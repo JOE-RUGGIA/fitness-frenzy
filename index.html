@@ -42,7 +42,7 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
 @keyframes slideDown{to{top:14px}} @keyframes slideUp{to{top:-60px}}
 #confetti{pointer-events:none;position:fixed;inset:0;z-index:110}
 
-/* Cards (compact & uniform height) */
+/* Cards */
 .card{
   position:relative;background:var(--card);border-radius:14px;padding:10px;margin:10px 0;
   box-shadow:0 10px 22px rgba(0,0,0,.36), inset 0 0 0 1px rgba(255,255,255,.05);
@@ -50,7 +50,6 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
 }
 @media (max-width:980px){.card{grid-template-columns:160px 1fr}.actions{grid-column:1/-1}}
 
-/* Tap avatar */
 .avatarbtn{
   position:relative;display:grid;place-items:center;width:100%;height:110px;border-radius:14px;
   border:2px dashed #7ff2b0;background:linear-gradient(180deg,#0c1e16,#0f271a);color:#cffff1;
@@ -67,33 +66,29 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
 .unlockPulse{animation:unlockPulse 1.1s ease-in-out infinite}
 @keyframes unlockPulse{
   0%{box-shadow:0 0 0 0 rgba(255,122,26,.0)}
-  50%{box-shadow:0 0 16px 2px rgba(255,122,26,.45)}
+  50%{box-shadow:0 0 16px 2px rgba(255,122,26,.55)}
   100%{box-shadow:0 0 0 0 rgba(255,122,26,.0)}
 }
 .emoji{font-size:64px;display:block;filter:drop-shadow(0 4px 7px rgba(0,0,0,.35))}
 .avatarbtn.animate .emoji{animation:bop .22s ease}
 @keyframes bop{0%{transform:scale(.94) rotate(-2deg)}50%{transform:scale(1.12) rotate(2deg)}100%{transform:scale(1)}}
 
-/* Badges & locked */
 .badge{position:absolute;top:8px;left:8px;background:#2b1630;color:#ffc6f0;border:1px solid rgba(255,255,255,.15);font-weight:900;padding:.2em .5em;border-radius:999px}
 .locked .emoji{filter:blur(8px) grayscale(.25) drop-shadow(0 4px 7px rgba(0,0,0,.35))}
 .lockOverlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.22);font-weight:900;color:#ffddb5;letter-spacing:.4px}
 .lockOverlay span{background:rgba(0,0,0,.22);padding:.2em .6em;border-radius:999px;border:1px solid rgba(255,255,255,.08)}
 
-/* Meta & bars */
 .meta h3{margin:0 0 2px;font:800 18px/1.1 system-ui;max-height:22px;overflow:hidden}
 .meta .sub{color:var(--muted);font-size:12px;max-height:16px;overflow:hidden}
 .bar{height:8px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:6px}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 
-/* Actions */
 .actions{display:grid;grid-template-columns:1.15fr .85fr;gap:8px;align-self:stretch}
 .actions .btn{height:40px;display:flex;align-items:center;justify-content:center}
 .action{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03}
 .secondary{background:#101823;color:#fff;border:0}
 .action[disabled],.secondary[disabled]{opacity:.5;cursor:not-allowed}
 
-/* Coach (bigger) */
 .coachBtn{display:flex;align-items:center;justify-content:center;gap:10px}
 .coachFace{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#21314a;border:1px solid rgba(255,255,255,.15);font-size:26px}
 .coachActive{background:#172b1f;border-color:#2dd36f;color:#b8ffd1}
@@ -101,10 +96,9 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
 .dot.pulse{animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(39,210,103,.35)}70%{box-shadow:0 0 0 10px rgba(39,210,103,0)}100%{box-shadow:0 0 0 0 rgba(39,210,103,0)}}
 
-/* FX */
 .float{position:absolute;color:#fff;font-weight:900;pointer-events:none;text-shadow:0 2px 12px rgba(0,0,0,.45)}
 
-/* Pre-workout SCOOPS */
+/* SCOOPS */
 .energyWrap{display:flex;align-items:center;gap:10px;background:#120f1b;border:1px solid #2a1f4a;padding:6px 10px;border-radius:12px}
 .tub{position:relative;width:48px;height:60px;border-radius:8px;background:linear-gradient(180deg,#261c3f,#1a1430);
      box-shadow:inset 0 0 0 2px #3b2e66, 0 6px 16px rgba(0,0,0,.35)}
@@ -116,24 +110,20 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
 .energyActive{animation:glowBottle 1.3s ease-in-out infinite}
 @keyframes glowBottle{0%{box-shadow:0 0 0 0 rgba(155,123,255,.32)}70%{box-shadow:0 0 0 10px rgba(155,123,255,0)}100%{box-shadow:0 0 0 0 rgba(155,123,255,0)}}
 
-/* Side panel: Quests + Gear */
+/* Side panel */
 .panel{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 .box{background:#101823;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px;min-width:260px;flex:1}
 .box h4{margin:0 0 8px;font:800 14px/1 system-ui;color:#cfe1ff;letter-spacing:.3px}
 
-/* Intro overlay */
+/* Intro */
 #intro{position:fixed;inset:0;background:radial-gradient(900px 600px at 50% -10%,rgba(155,123,255,.18),transparent),rgba(8,10,16,.92);z-index:999;display:grid;place-items:center}
 .introCard{width:min(720px,92vw);background:#121a2b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 .introCard h1{margin:0 0 6px;font:900 28px/1.1 system-ui}
 .introRow{display:flex;gap:12px;flex-wrap:wrap}
 .introStep{background:#0f1926;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px;flex:1;min-width:200px}
 .startBtn{margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,#ff8b3a,#ff7a1a);border:0;border-radius:12px;color:#1b0e03;font-weight:900;padding:10px 14px;cursor:pointer}
-
-/* Mood dropdown (placeholders for future) */
 .mood{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:6px 8px}
 .mood[disabled]{opacity:.55;cursor:not-allowed}
-
-/* Small helper text */
 .hint{font-size:12px;color:#9fb0c6}
 </style>
 </head>
@@ -143,11 +133,11 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
 <div id="intro">
   <div class="introCard">
     <h1>Fitness Frenzy</h1>
-    <p class="hint">Tap exercises to earn HP, upgrade them, hire coaches to automate, and stack <b>SCOOPS</b> for bursts. Unlock new moves, complete side quests, win prizes, and gear up.</p>
+    <p class="hint">Earn <b>HP (Health Points)</b> by tapping exercises. Upgrade them, hire coaches to automate, stack <b>SCOOPS</b> for bursts, complete quests, and unlock stronger moves.</p>
     <div class="introRow">
       <div class="introStep">👟 <b>Tap</b> when a card glows to gain HP faster. Unlocks pulse when affordable.</div>
       <div class="introStep">🧑‍🏫 <b>Hire coaches</b> to auto-tap. Upgrade to multiply gains.</div>
-      <div class="introStep">🥄 <b>Use SCOOPS</b> for temporary x2 boost. Stack them to extend time.</div>
+      <div class="introStep">🥄 <b>SCOOPS</b> = temporary x2 boost. Stack them to extend time.</div>
     </div>
     <button class="startBtn" id="startGame">Start Workout ▶</button>
   </div>
@@ -163,7 +153,7 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
       <div class="btn" data-m="100">x100</div>
       <div class="btn" data-m="max">xMAX</div>
 
-      <!-- Music: only GitHub MP3, with Mood placeholders -->
+      <!-- Music: only GitHub MP3, Mood placeholders -->
       <div class="pill">
         <label>♪ Music</label>
         <select id="mood" class="mood" disabled title="Upload tracks later: rock, hip-hop, jazz, classical">
@@ -174,7 +164,7 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
         </select>
         <button class="btn toggle" id="muteBtn">Mute</button>
         <label for="vol" class="hint">Vol</label>
-        <input id="vol" type="range" min="0" max="1" step="0.01" value="0.35" style="width:120px">
+        <input id="vol" type="range" min="0" max="1" step="0.01" value="0.25" style="width:120px">
       </div>
 
       <!-- SCOOPS -->
@@ -228,9 +218,9 @@ const EX=[ // id,name,emoji,set,gain,interval,baseCost,mult,coachCost,unlock
 ];
 const COACH_FACE={walk:"🧑‍🏫",jog:"🧑‍🦽",yoga:"🧘‍♀️",cycle:"🚴",lift:"💪",swim:"🩱",row:"🧑‍✈️",stairs:"🧗",rope:"🧑‍🎤",box:"🥋",hiit:"🏃",pilates:"🧘"};
 
-const STORAGE="ff_pages_v2";
+const STORAGE="ff_pages_v3";
 let state={hp:0,multi:1,items:{},buffUntil:0,scoops:0,gear:{shoes:0,vest:0},quests:[],spins:0};
-const tmp={}; // per-exercise timers
+const tmp={}; // per-exercise timers + prior affordability
 
 /* ========= HELPERS ========= */
 const $=s=>document.querySelector(s), id=s=>document.getElementById(s);
@@ -238,24 +228,44 @@ const now=()=>performance.now()/1000;
 /* HP granular; costs/gains integers */
 function fmtHP(n){const a=Math.abs(n);const d=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});if(a>=1e9)return d(n/1e9)+"B";if(a>=1e6)return d(n/1e6)+"M";if(a>=1e3)return d(n/1e3)+"K";return d(n)}
 function fmtInt(n){n=Math.floor(n);const a=Math.abs(n);if(a>=1e9)return Math.floor(n/1e9)+"B";if(a>=1e6)return Math.floor(n/1e6)+"M";if(a>=1e3)return Math.floor(n/1e3)+"K";return String(n)}
-function showRibbon(text){const rb=$("#ribbon");rb.textContent=text;rb.classList.remove("show");void rb.offsetWidth;rb.classList.add("show");fireConfetti(300)}
+function showRibbon(text){const rb=$("#ribbon");rb.textContent=text;rb.classList.remove("show");void rb.offsetWidth;rb.classList.add("show");fireConfetti(240); sfx('banner')}
 function floatText(anchor,text){const n=document.createElement("div");n.className="float";n.textContent=text;const r=anchor.getBoundingClientRect();n.style.left=(r.left+r.width/2)+"px";n.style.top=(r.top-6+window.scrollY)+"px";document.body.appendChild(n);n.animate([{transform:"translate(-50%,0)",opacity:1},{transform:"translate(-50%,-46px)",opacity:0}],{duration:820,easing:"ease-out"});setTimeout(()=>n.remove(),840)}
 
 /* ========= CONFETTI ========= */
 const cf=id("confetti"); const cfx=cf.getContext("2d"); let confetti=[],confTimer=null;
 function fireConfetti(n=200){cancelAnimationFrame(confTimer);const W=cf.width=innerWidth,H=cf.height=innerHeight;confetti=Array.from({length:n},()=>({x:Math.random()*W,y:-10,vy:2+Math.random()*3,vx:(Math.random()-.5)*2,s:2+Math.random()*4,c:`hsl(${Math.random()*360},90%,60%)`,r:Math.random()*Math.PI}));(function loop(){cfx.clearRect(0,0,W,H);confetti.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.1;cfx.save();cfx.translate(p.x,p.y);cfx.rotate(p.r);cfx.fillStyle=p.c;cfx.fillRect(-p.s/2,-p.s/2,p.s,p.s);cfx.restore();});confTimer=requestAnimationFrame(loop); if(confetti.every(p=>p.y>H+20)) cancelAnimationFrame(confTimer);})();}
 
-/* ========= AUDIO ========= */
-let AC=null, master=null, isPlaying=false;
+/* ========= AUDIO: Music + SFX (cute, built-in) ========= */
 const bgm=id("bgm"); bgm.src=EXTERNAL_URL; bgm.volume=Number($("#vol").value);
-function audio(){ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.6; master.connect(AC.destination); }
-$("#vol").addEventListener("input",e=>{ bgm.volume=Number(e.target.value); });
-id("muteBtn").addEventListener("click",()=>{ bgm.muted=!bgm.muted; id("muteBtn").textContent = bgm.muted? "Unmute":"Mute"; });
+let isPlaying=false;
+id("vol").addEventListener("input",e=>{ bgm.volume=Number(e.target.value); sfx('tick'); });
+id("muteBtn").addEventListener("click",()=>{ bgm.muted=!bgm.muted; id("muteBtn").textContent = bgm.muted? "Unmute":"Mute"; sfx('toggle'); });
+
+let AC=null, master=null;
+function ensureAC(){ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.8; master.connect(AC.destination); }
+function beep(freq=880,len=.08,vol=.15,type='sine'){ensureAC(); const o=AC.createOscillator(),g=AC.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(master); const t=AC.currentTime; g.gain.value=vol; g.gain.exponentialRampToValueAtTime(0.0001,t+len); o.start(t); o.stop(t+len+.02);}
+function clicky(){beep(1400,.04,.08,'square')}
+function coin(){beep(900,.12,.18,'square'); setTimeout(()=>beep(1200,.08,.14,'square'),60)}
+function woosh(){beep(420,.18,.10,'sawtooth')}
+function ping(){beep(1600,.10,.16,'triangle')}
+function thud(){beep(220,.10,.18,'sine')}
+function sparkle(){beep(1200,.10,.1,'triangle'); setTimeout(()=>beep(1800,.10,.08,'triangle'),80)}
+function sfx(kind){
+  if(kind==='tap') clicky();
+  else if(kind==='upgrade') coin();
+  else if(kind==='unlock') sparkle();
+  else if(kind==='quest-ready') ping();
+  else if(kind==='quest-claim') woosh();
+  else if(kind==='scoop') thud();
+  else if(kind==='banner') sparkle();
+  else if(kind==='tick') clicky();
+  else if(kind==='toggle') clicky();
+}
 
 /* ========= SAVE/LOAD ========= */
 function load(){
   try{const raw=localStorage.getItem(STORAGE);if(raw)state=Object.assign(state,JSON.parse(raw))}catch{}
-  EX.forEach(([eid],i)=>{ if(!state.items[eid]) state.items[eid]={lvl:i?0:1,unlocked:!i,coach:false,taps:0}; tmp[eid]={next:0,coachNext:0,coachTimer:null}; });
+  EX.forEach(([eid],i)=>{ if(!state.items[eid]) state.items[eid]={lvl:i?0:1,unlocked:!i,coach:false,taps:0}; tmp[eid]={next:0,coachNext:0,coachTimer:null,wasAffordable:false}; });
   if(!state.quests?.length) seedQuests();
 }
 function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
@@ -269,9 +279,10 @@ const QUEST_POOL=[
   {id:"coachGoal", label:"Hire 1 coach", reward:{hp:300, scoop:1}},
   {id:"tapMaster", label:"Do 50 taps total", reward:{hp:250, scoop:1}},
 ];
-function seedQuests(){ state.quests = QUEST_POOL.slice(0,3).map(q=>({...q, done:false })); }
+function seedQuests(){ state.quests = QUEST_POOL.slice(0,3).map(q=>({...q, done:false, claimed:false })); }
 function checkQuests(){
   const totalTaps = Object.values(state.items).reduce((a,b)=>a+(b?.taps||0),0);
+  const before = state.quests.map(q=>q.done);
   state.quests.forEach(q=>{
     if(q.done) return;
     if(q.id==="coachGoal" && Object.values(state.items).some(it=>it.coach)) q.done=true;
@@ -280,24 +291,33 @@ function checkQuests(){
     if(q.id==="yogaClass" && state.items.yoga?.lvl>=2) q.done=true;
     if(q.id==="meetFriend" && state.items.walk?.lvl>=5) q.done=true;
   });
+  // If any newly done, ping once
+  state.quests.forEach((q,i)=>{ if(!before[i] && q.done){ sfx('quest-ready'); }});
   renderQuests();
 }
 function renderQuests(){
   const host=id("questList"); host.innerHTML="";
   state.quests.forEach((q,i)=>{
-    const row=document.createElement("div"); row.style.display="flex"; row.style.justifyContent="space-between"; row.style.alignItems="center"; row.style.gap="8px"; row.style.marginBottom="8px";
+    const row=document.createElement("div");
+    row.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px";
     row.innerHTML=`<div>${q.done?'✅':'⬜'} ${q.label}</div>
       <div class="hint">+${q.reward.hp} HP • 🥄 x${q.reward.scoop}</div>
-      <button class="btn" ${q.done?'':'disabled'} data-i="${i}">Claim</button>`;
+      <button class="btn" ${q.done && !q.claimed ? '' : 'disabled'} data-i="${i}">${q.claimed?'Claimed':'Claim'}</button>`;
     host.appendChild(row);
-    row.querySelector("button").onclick=()=>{
-      if(!q.done) return;
+    const btn=row.querySelector("button");
+    btn.onclick=()=>{
+      if(q.claimed || !q.done) return;
+      q.claimed=true; // prevent re-claim
       state.hp += q.reward.hp;
       state.scoops += q.reward.scoop;
-      showRibbon("🎁 Quest reward!");
-      // replace with a new quest
-      const next = QUEST_POOL.find(nq=>!state.quests.some(k=>k.id===nq.id));
-      if(next){ state.quests[i]={...next,done:false}; }
+      sfx('quest-claim'); showRibbon("🎁 Quest reward!");
+      // replace with a new unique quest next tick
+      setTimeout(()=>{
+        const taken = new Set(state.quests.map(x=>x.id));
+        const next = QUEST_POOL.find(nq=>!taken.has(nq.id));
+        if(next){ state.quests[i]={...next,done:false,claimed:false}; }
+        renderAll(); save();
+      }, 150);
       renderAll(); save();
     };
   });
@@ -315,8 +335,8 @@ function renderGear(){
       <div>🥋 Weighted Vest <span class="hint">(+${Math.round((vestMult-1)*100)}% coach)</span></div>
       <button class="btn" id="buyVest">Upgrade | ${fmtInt(300*(state.gear.vest+1))} HP</button>
     </div>`;
-  id("buyShoes").onclick=()=>{const cost=200*(state.gear.shoes+1); if(state.hp>=cost){state.hp-=cost; state.gear.shoes++; showRibbon("👟 New Shoes!"); renderAll(); save();}};
-  id("buyVest").onclick=()=>{const cost=300*(state.gear.vest+1); if(state.hp>=cost){state.hp-=cost; state.gear.vest++; showRibbon("🥋 Weighted Vest!"); renderAll(); save();}};
+  id("buyShoes").onclick=()=>{const cost=200*(state.gear.shoes+1); if(state.hp>=cost){state.hp-=cost; state.gear.shoes++; sfx('upgrade'); showRibbon("👟 New Shoes!"); renderAll(); save();} else {sfx('tick')}};
+  id("buyVest").onclick=()=>{const cost=300*(state.gear.vest+1); if(state.hp>=cost){state.hp-=cost; state.gear.vest++; sfx('upgrade'); showRibbon("🥋 Weighted Vest!"); renderAll(); save();} else {sfx('tick')}};
 }
 
 /* ========= UI BUILD ========= */
@@ -326,9 +346,9 @@ function build(){
     const it=state.items[eid], unlocked=it.unlocked, ready= now()>=tmp[eid].next;
     const card=document.createElement("div"); card.className="card"; card.dataset.id=eid;
 
-    const unlockable = !unlocked && state.hp>=unlock;
+    const affordable = state.hp>=unlock;
     card.innerHTML=`
-      ${unlockable? `<div class="badge">UNLOCK AVAILABLE</div>` : ``}
+      ${!unlocked && affordable? `<div class="badge">UNLOCK AVAILABLE</div>` : ``}
       <button type="button" class="avatarbtn ${unlocked?'':'locked'} ${ready?'ready':''}" 
               id="tap-${eid}" ${unlocked?``:`disabled`} aria-label="${unlocked?'Perform '+name:'Locked'}">
         <div class="emoji">${emoji}</div>
@@ -355,18 +375,21 @@ function build(){
 
     const tap=id("tap-"+eid);
     if(unlocked){
-      const handler=ev=>{ev.preventDefault(); firstUserInteract(); perform(eid);};
+      const handler=ev=>{ev.preventDefault(); firstUserInteract(); perform(eid); sfx('tap');};
       tap.addEventListener("pointerdown",handler,{passive:false});
       tap.addEventListener("click",handler);
       tap.addEventListener("touchstart",handler,{passive:false});
+
       id("up-"+eid).addEventListener("click",()=>{
         const qty=(state.multi==="max")?maxLevels(base,mult,it.lvl,state.hp):Number(state.multi);
         const cnt=Math.max(1,qty||0), cost=pack(base,mult,it.lvl,cnt);
-        if(state.hp>=cost){ state.hp-=cost; it.lvl+=cnt; s_coin(); renderAll(); save(); }
+        if(state.hp>=cost){ state.hp-=cost; it.lvl+=cnt; sfx('upgrade'); floatText(tap, `Lvl +${cnt}`); renderAll(); save(); }
+        else sfx('tick');
       });
+
       id("coach-"+eid).addEventListener("click",()=>{
-        if(it.coach||state.hp<coachCost) return;
-        state.hp-=coachCost; it.coach=true; s_coin(); renderAll(); startCoach(eid, interval);
+        if(it.coach||state.hp<coachCost){ sfx('tick'); return; }
+        state.hp-=coachCost; it.coach=true; sfx('upgrade'); renderAll(); startCoach(eid, interval);
         id("coachFace-"+eid).classList.add("coachActive");
         id("coachTxt-"+eid).textContent="Coach Active";
         id("coachDot-"+eid).classList.remove("hide"); id("coachDot-"+eid).classList.add("pulse");
@@ -375,20 +398,25 @@ function build(){
       });
     }else{
       id("unlock-"+eid).addEventListener("click",()=>{
-        if(state.hp<unlock) return;
+        if(state.hp<unlock){ sfx('tick'); return; }
         state.hp-=unlock; it.unlocked=true; it.lvl=Math.max(1,it.lvl);
-        s_coin(); renderAll(); build();
+        sfx('unlock'); renderAll(); build(); // rebuild attaches tap handlers
         showRibbon(`✨ Unlocked ${name}!`);
       });
-      if(unlockable){ card.querySelector(".avatarbtn").classList.add("unlockPulse"); }
+      if(affordable){ card.querySelector(".avatarbtn").classList.add("unlockPulse"); }
+    }
+
+    // Track “first time affordable” to play SFX once
+    if(!unlocked){
+      if(affordable && !tmp[eid].wasAffordable){ sfx('quest-ready'); }
+      tmp[eid].wasAffordable = affordable;
     }
   });
 
-  // Mult buttons
   document.querySelectorAll("[data-m]").forEach(b=>{
     b.classList.toggle("active", b.dataset.m==state.multi);
     b.onclick=()=>{ document.querySelectorAll("[data-m]").forEach(x=>x.classList.remove("active"));
-      b.classList.add("active"); state.multi=(b.dataset.m==="max")?"max":Number(b.dataset.m); save(); renderAll(); };
+      b.classList.add("active"); state.multi=(b.dataset.m==="max")?"max":Number(b.dataset.m); sfx('toggle'); save(); renderAll(); };
   });
 
   renderQuests(); renderGear();
@@ -399,7 +427,7 @@ function firstUserInteract(){ if(!isPlaying){ bgm.play().catch(()=>{}); isPlayin
 
 function perform(eid,auto=false){
   const row=EX.find(r=>r[0]===eid), it=state.items[eid]; if(!row) return;
-  const [, name, , , gain, interval] = row;
+  const [, , , , gain, interval] = row;
   const t=now(); if(t<tmp[eid].next) return;
   tmp[eid].next = t + interval;
 
@@ -415,7 +443,6 @@ function perform(eid,auto=false){
   const tap=id("tap-"+eid); tap.classList.remove("animate"); void tap.offsetWidth; tap.classList.add("animate");
   floatText(tap, `+${fmtInt(amt)}${isCrit?" ✨":""}`);
 
-  // mini coach bonus tick visualization (if auto)
   if(auto && it.coach && vestMult>1){ floatText(tap, `+${Math.round((vestMult-1)*100)}% vest`); }
 
   renderAll(); save(); checkProgress();
@@ -439,11 +466,11 @@ function updateScoopsUI(){
   id("energyWrap").classList.toggle("energyActive", rem>0);
 }
 id("useScoop").addEventListener("click",()=>{
-  if(state.scoops<=0 && now()>=state.buffUntil){ showRibbon("🥄 No scoops — earn via quests & play!"); return; }
+  if(state.scoops<=0 && now()>=state.buffUntil){ showRibbon("🥄 No scoops — earn via quests & play!"); sfx('tick'); return; }
   if(state.scoops>0){
     state.scoops--;
     state.buffUntil = (state.buffUntil>now()) ? state.buffUntil + 20 : now() + 20;
-    showRibbon("✨ Pre-Workout x2 active");
+    sfx('scoop'); showRibbon("✨ Pre-Workout x2 active");
     renderAll(); save();
   }
 });
@@ -451,20 +478,23 @@ id("useScoop").addEventListener("click",()=>{
 /* ========= MATH & RENDER ========= */
 function pack(base,mult,start,count){const a=base*Math.pow(mult,start);return count===1?a:a*(Math.pow(mult,count)-1)/(mult-1)}
 function maxLevels(base,mult,current,hp){const a=base*Math.pow(mult,current); if(hp<a) return 0; return Math.floor(Math.log((hp*(mult-1))/a+1)/Math.log(mult));}
-
 function renderHP(){ id("hp").innerHTML=`${fmtHP(state.hp)} <small>HP</small>`; }
 function renderBars(){
   const t=now();
   EX.forEach(([eid,, , , , interval, , , , unlock])=>{
     const left=Math.max(0,tmp[eid].next - t);
     const pct = 1 - Math.min(1, left / interval);
-    const bar=id("bar-"+eid), tap=id("tap-"+eid);
+    const bar=id("bar-"+eid), tap=id("tap-"+eid");
     if(bar) bar.style.width = Math.round(pct*100)+"%";
     if(tap){
       tap.classList.toggle("ready", left<=0);
       tap.classList.toggle("needGlow", left<=0 && !state.items[eid].coach);
-      // unlock hint pulse handled in build via class; keep up-to-date:
-      const card = tap.closest(".card"); if(card && !state.items[eid].unlocked){ const can=state.hp>=unlock; card.querySelector(".avatarbtn").classList.toggle("unlockPulse",can); if(can && !card.querySelector(".badge")){ const b=document.createElement("div"); b.className="badge"; b.textContent="UNLOCK AVAILABLE"; card.appendChild(b);} }
+      const card = tap.closest(".card"); 
+      if(card && !state.items[eid].unlocked){
+        const can=state.hp>=unlock;
+        tap.classList.toggle("unlockPulse",can);
+        if(can && !card.querySelector(".badge")){ const b=document.createElement("div"); b.className="badge"; b.textContent="UNLOCK AVAILABLE"; card.appendChild(b); }
+      }
     }
   });
   updateScoopsUI();
@@ -495,22 +525,19 @@ function renderButtons(){
 }
 function renderAll(){ renderHP(); renderBars(); renderButtons(); }
 
-/* ========= PROGRESSION CHECKS (achievements/wheel) ========= */
+/* ========= PROGRESSION CHECKS ========= */
 function checkProgress(){
-  // Big milestones trigger confetti banner + occasional wheel
   const milestones=[1_000,10_000,100_000,1_000_000,10_000_000];
   if(!state._mileIndex) state._mileIndex=0;
   while(state._mileIndex<milestones.length && state.hp>=milestones[state._mileIndex]){
     showRibbon(`🏆 Reached ${fmtInt(milestones[state._mileIndex])} HP!`);
-    if(state._mileIndex%2===1){ // every other milestone
-      setTimeout(()=>spinWheel(),400);
-    }
+    if(state._mileIndex%2===1){ setTimeout(()=>spinWheel(),400); }
     state._mileIndex++;
   }
   checkQuests();
 }
 
-/* ========= LUCKY WHEEL (simple & tasteful) ========= */
+/* ========= LUCKY WHEEL (simple) ========= */
 function spinWheel(){
   const prizes=[
     {label:"🎁 +2,500 HP", fn:()=>state.hp+=2500},
@@ -521,14 +548,14 @@ function spinWheel(){
   ];
   const pick = prizes[Math.floor(Math.random()*prizes.length)];
   pick.fn(); renderAll(); save();
-  showRibbon(`🎡 ${pick.label}`);
+  showRibbon(`🎡 ${pick.label}`); sfx('unlock');
 }
 
 /* ========= INTRO ========= */
 id("startGame").addEventListener("click",()=>{
   id("intro").style.display="none";
-  // attempt to start music once user interacted
-  bgm.play().catch(()=>{}); isPlaying=true;
+  bgm.play().catch(()=>{}); isPlaying=true; ensureAC(); // AC for SFX
+  sfx('toggle');
 });
 
 /* ========= BOOT ========= */
@@ -536,12 +563,13 @@ function loop(){ renderBars(); requestAnimationFrame(loop); }
 function loadAll(){ load(); build(); renderAll(); renderQuests(); renderGear(); loop(); }
 document.querySelectorAll("[data-m]").forEach(b=>{
   b.onclick=()=>{ document.querySelectorAll("[data-m]").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active"); state.multi=(b.dataset.m==="max")?"max":Number(b.dataset.m); save(); renderAll(); };
+    b.classList.add("active"); state.multi=(b.dataset.m==="max")?"max":Number(b.dataset.m); sfx('toggle'); save(); renderAll(); };
 });
-document.getElementById("new").onclick=()=>{ if(confirm("Start a new game?")) newGame(); };
+document.getElementById("new").onclick=()=>{ if(confirm("Start a new game?")) { newGame(); sfx('toggle'); } };
 
-// Autoplay: start on first tap if intro was skipped somehow
-window.addEventListener("pointerdown",()=>{ if(!isPlaying && id("intro").style.display!=="none"){ /* intro visible */ } else if(!isPlaying){ bgm.play().catch(()=>{}); isPlaying=true; } }, {once:true});
+// Ensure AC for SFX and set initial volume 25%
+window.addEventListener("pointerdown",()=>{ ensureAC(); }, {once:true});
+bgm.volume = Number(id("vol").value);
 
 loadAll();
 </script>
