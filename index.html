@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Fitness Frenzy</title>
 <style>
 :root{
@@ -12,27 +12,42 @@
   --good:#2dd36f;
 }
 *{box-sizing:border-box} html,body{height:100%}
+html{-webkit-text-size-adjust:100%}
 body{
-  margin:0;color:var(--ink);font:16px/1.4 system-ui,Segoe UI,Arial;
+  margin:0;color:var(--ink);
+  font:16px/1.45 system-ui, Segoe UI, Arial;
   background:
     radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
     radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
     linear-gradient(180deg,var(--bg),var(--bg2));
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: env(safe-area-inset-bottom);
 }
-body.intro-open{overflow:hidden}
-.wrap{max-width:1140px;margin:16px auto 100px;padding:0 14px}
+button, input, select{font:inherit}
+input[type=range]{accent-color:var(--accent)}
+.wrap{max-width:1140px;margin:16px auto 110px;padding:0 14px}
 
 /* Header */
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
-.hp{flex:0 0 auto;min-width:220px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;
-    font:900 36px/1 system-ui;text-shadow:0 6px 22px rgba(0,0,0,.35)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.hp{
+  flex:0 1 auto;
+  font:900 clamp(24px,4.2vw,36px)/1 system-ui;
+  min-width: clamp(180px,30vw,260px);
+  text-overflow:ellipsis;white-space:nowrap;overflow:hidden;
+  text-shadow:0 6px 22px rgba(0,0,0,.35)
+}
 .hp small{font-weight:800;opacity:.9;background:rgba(255,255,255,.08);padding:.16em .45em;border-radius:.35em;margin-left:.45rem}
 .row{flex:1 1 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.btn{border:1px solid var(--edge);border-radius:12px;padding:8px 12px;font-weight:800;background:#0f1926;color:#fff;cursor:pointer;white-space:nowrap}
+
+.btn{
+  border:1px solid var(--edge);border-radius:12px;
+  padding:8px 12px;font-weight:800;background:#0f1926;color:#fff;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  min-width:80px
+}
 .btn.active{background:var(--accent);color:#1b0e03;border-color:transparent}
 .pill{display:flex;align-items:center;gap:8px;background:#0f1926;border-radius:12px;padding:6px 8px;border:1px solid var(--edge)}
 .pill label{font-weight:800;color:#d7e3f6;font-size:12px}
-input[type=range]{accent-color:var(--accent)}
 .toggle{background:#0e1724;border-radius:10px;padding:6px 10px;font-weight:800}
 
 /* Ribbon + Confetti */
@@ -48,14 +63,22 @@ input[type=range]{accent-color:var(--accent)}
 .card{
   position:relative;background:var(--card);border-radius:14px;padding:10px;margin:10px 0;
   box-shadow:0 10px 22px rgba(0,0,0,.36), inset 0 0 0 1px var(--edge);
-  display:grid;grid-template-columns:160px 1fr 340px;gap:10px;align-items:center;height:140px;
+  display:grid;grid-template-columns:160px 1fr 340px;gap:10px;align-items:center;min-height:140px;
 }
-@media (max-width:980px){.card{grid-template-columns:160px 1fr}.actions{grid-column:1/-1}}
+@media (max-width:900px){
+  .card{grid-template-columns:140px 1fr;min-height:150px}
+  .actions{grid-column:1/-1}
+}
+@media (max-width:680px){
+  .card{grid-template-columns:1fr;gap:8px;padding:12px}
+}
+
 /* Avatar */
 .avatarbtn{
-  position:relative;display:grid;place-items:center;width:100%;height:110px;border-radius:14px;
-  border:2px dashed #7ff2b0;background:linear-gradient(180deg,#0c1e16,#0f271a);color:#cffff1;
+  position:relative;display:grid;place-items:center;width:100%;height: clamp(92px,22vw,110px);
+  border-radius:14px;border:2px dashed #7ff2b0;background:linear-gradient(180deg,#0c1e16,#0f271a);color:#cffff1;
   cursor:pointer;user-select:none;overflow:hidden;z-index:5;transition:box-shadow .15s ease, transform .06s ease;
+  touch-action: manipulation;
 }
 .avatarbtn:active{transform:translateY(1px)}
 .avatarbtn.ready{box-shadow:0 0 0 3px rgba(39,210,103,.25) inset}
@@ -71,10 +94,10 @@ input[type=range]{accent-color:var(--accent)}
   50%{box-shadow:0 0 16px 2px rgba(255,122,26,.6)}
   100%{box-shadow:0 0 0 0 rgba(255,122,26,.0)}
 }
-.emoji{font-size:64px;display:block;filter:drop-shadow(0 4px 7px rgba(0,0,0,.35))}
+.emoji{font-size: clamp(48px,10vw,64px);display:block;filter:drop-shadow(0 4px 7px rgba(0,0,0,.35))}
 .avatarbtn.animate .emoji,.avatarbtn.animate img{animation:bop .22s ease}
 @keyframes bop{0%{transform:scale(.94) rotate(-2deg)}50%{transform:scale(1.12) rotate(2deg)}100%{transform:scale(1)}}
-.avatarbtn img{width:80px;height:80px;image-rendering:crisp-edges;image-rendering:pixelated}
+.avatarbtn img{width: clamp(64px,14vw,86px);height: clamp(64px,14vw,86px);image-rendering:pixelated;max-width:100%}
 
 /* Badges / Locks */
 .badge{position:absolute;top:8px;left:8px;background:#20314f;color:#bfe0ff;border:1px solid var(--edge);font-weight:900;padding:.2em .5em;border-radius:999px}
@@ -82,24 +105,33 @@ input[type=range]{accent-color:var(--accent)}
 .lockOverlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.22);font-weight:900;color:#ffddb5;letter-spacing:.4px}
 .lockOverlay span{background:rgba(0,0,0,.22);padding:.2em .6em;border-radius:999px;border:1px solid var(--edge)}
 
-/* Meta + Cooldown (striped) */
-.meta h3{margin:0 0 2px;font:800 18px/1.1 system-ui;max-height:22px;overflow:hidden}
-.meta .sub{color:var(--muted);font-size:12px;max-height:16px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.bar{height:12px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px;position:relative}
+/* Meta + Cooldown (striped orange) */
+.meta h3{margin:0 0 2px;font:800 clamp(16px,3.8vw,18px)/1.1 system-ui;max-height:22px;overflow:hidden}
+.meta .sub{color:var(--muted);font-size: clamp(11px,3.2vw,12px);max-height:18px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.bar{
+  height: clamp(12px,3.4vw,14px);
+  background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px;position:relative
+}
 .bar i{
   display:block;height:100%;width:0;
   background:
     repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 10px, rgba(0,0,0,.14) 10px 20px),
     linear-gradient(90deg,var(--accent),var(--accent2));
-  background-size:24px 12px, auto;
+  background-size:24px 100%, auto;
   animation:stripe 1.2s linear infinite;
 }
 @keyframes stripe{from{background-position:0 0,0 0}to{background-position:24px 0,0 0}}
 .bar.ready{box-shadow:0 0 0 2px rgba(45,211,111,.3) inset}
 
 /* Actions */
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-self:stretch}
-.actions .btn{height:40px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.actions{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;align-self:stretch
+}
+@media (max-width:680px){ .actions{grid-template-columns:1fr} }
+.actions .btn{
+  height:44px;display:flex;align-items:center;justify-content:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0
+}
 .action{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent;position:relative}
 .secondary{background:#0e1724;color:#fff;border:1px solid var(--edge);position:relative}
 .action[disabled],.secondary[disabled]{opacity:.5;cursor:not-allowed}
@@ -109,11 +141,11 @@ input[type=range]{accent-color:var(--accent)}
   content:""; position:absolute; inset:0; pointer-events:none;
   background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,.18) 25%, rgba(255,255,255,.35) 33%, transparent 45%);
   transform:translateX(-120%); filter:blur(.6px);
-  animation:shine 1.2s ease-in-out infinite;
+  animation:shine 1.15s ease-in-out infinite;
 }
 @keyframes shine{0%{transform:translateX(-120%)}60%{transform:translateX(0%)}100%{transform:translateX(120%)}}
 
-/* Coach bits */
+/* Coach */
 .coachBtn{display:flex;align-items:center;justify-content:center;gap:10px}
 .coachFace{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#1c2a44;border:1px solid var(--edge);font-size:26px;flex:0 0 48px}
 .coachActive{background:#172b1f;border-color:#2dd36f;color:#b8ffd1}
@@ -121,20 +153,35 @@ input[type=range]{accent-color:var(--accent)}
 .dot.pulse{animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(39,210,103,.35)}70%{box-shadow:0 0 0 10px rgba(39,210,103,0)}100%{box-shadow:0 0 0 0 rgba(39,210,103,0)}}
 
-.float{position:absolute;color:#fff;font-weight:900;pointer-events:none;text-shadow:0 2px 12px rgba(0,0,0,.45)}
-
 /* Intro modal */
+body.intro-open{overflow:hidden}
 #intro{
   position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:rgba(8,12,20,.65);backdrop-filter:blur(10px);
   opacity:1;visibility:visible;transition:opacity .25s ease,visibility .25s ease
 }
 #intro.off{opacity:0;visibility:hidden;pointer-events:none}
 .introCard{width:min(720px,92vw);background:#141f34;border:1px solid var(--edge);border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
-.introCard h1{margin:0 0 6px;font:900 28px/1.1 system-ui}
+.introCard h1{margin:0 0 6px;font:900 clamp(22px,6vw,28px)/1.1 system-ui}
 .introRow{display:flex;gap:12px;flex-wrap:wrap}
 .introStep{background:#0f1928;border:1px solid var(--edge);border-radius:12px;padding:10px;flex:1;min-width:200px}
 .startBtn{margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,#ff8b3a,#ff7a1a);border:0;border-radius:12px;color:#1b0e03;font-weight:900;padding:10px 14px;cursor:pointer}
-.hint{font-size:12px;color:#9fb0c6}
+
+/* Sticky mobile footer */
+.footer{
+  position:fixed;left:0;right:0;bottom:0;z-index:1000;
+  display:none; /* default hidden on desktop */
+  gap:10px;align-items:center;justify-content:space-between;
+  padding:10px max(10px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  background:rgba(15,21,33,.85); backdrop-filter: blur(10px);
+  border-top:1px solid var(--edge);
+}
+.footer .group{display:flex;gap:8px;align-items:center}
+.footer .btn{min-width:64px}
+.footer input[type=range]{width:min(42vw,220px)}
+@media (max-width:820px){
+  .footer{display:flex}
+  .wrap{margin-bottom:160px}
+}
 </style>
 </head>
 <body class="intro-open">
@@ -150,7 +197,7 @@ input[type=range]{accent-color:var(--accent)}
       <div class="introStep">🧑‍🏫 <b>Coaches</b> auto-tap. Upgrade to multiply gains.</div>
       <div class="introStep">🔓 <b>Unlock</b> new exercises as HP grows.</div>
     </div>
-    <button class="startBtn" onclick="startGame()">Start Workout ▶</button>
+    <button class="startBtn" id="startGame" onclick="startGame()">Start Workout ▶</button>
   </div>
 </div>
 
@@ -158,7 +205,7 @@ input[type=range]{accent-color:var(--accent)}
   <header>
     <div class="hp" id="hp">0.00 <small>HP</small></div>
 
-    <div class="row">
+    <div class="row" id="topControls">
       <div class="btn active" data-m="1">x1</div>
       <div class="btn" data-m="10">x10</div>
       <div class="btn" data-m="100">x100</div>
@@ -178,6 +225,20 @@ input[type=range]{accent-color:var(--accent)}
   <div id="list"></div>
 </div>
 
+<!-- Sticky mobile footer controls -->
+<div class="footer" id="footer">
+  <div class="group">
+    <div class="btn" data-m="1">x1</div>
+    <div class="btn" data-m="10">x10</div>
+    <div class="btn" data-m="100">x100</div>
+    <div class="btn" data-m="max">xMAX</div>
+  </div>
+  <div class="group">
+    <button class="btn toggle" id="muteBtn2">Mute</button>
+    <input id="vol2" type="range" min="0" max="1" step="0.01" value="0.25">
+  </div>
+</div>
+
 <div class="ribbon" id="ribbon">🎉 Unlocked!</div>
 <audio id="bgm" preload="auto" loop crossorigin="anonymous"></audio>
 
@@ -195,20 +256,16 @@ const EX=[ // id,name,emoji,set,gain,interval,baseCost,mult,coachCost,unlock
   ["lift","Weight Lifting","🏋️‍♂️","20 reps",520,9.0,6800,1.22,80000,  2200],
 ];
 
-/* Sprite frames per exercise (optional). 
-   You said: bike1.png ... (repeated). I’ll assume walk test uses bike1..bike3 as placeholders.
-   Drop files at repo root or adjust paths below. If any 404, we auto-fallback to emoji. */
+/* Optional sprite frames (placeholder uses bike*.png you mentioned) */
 const SPRITES = {
-  walk: [ "bike1.png", "bike2.png", "bike3.png" ].map(f=>RAW_BASE+f),
-  // When you have walking frames (e.g., walk1.png..walk6.png), change above to those.
+  walk: ["bike1.png","bike2.png","bike3.png"].map(f=>RAW_BASE+f),
 };
 
-/* ========= STATE ========= */
-const STORAGE="ff_core_v2";
+const STORAGE="ff_core_v3";
 let state={hp:0,multi:1,items:{},_mileIndex:0};
 const tmp={}; // timers, frames
 
-/* ========= SHORTCUTS ========= */
+/* ========= QS ========= */
 const $=s=>document.querySelector(s), id=s=>document.getElementById(s);
 const now=()=>performance.now()/1000;
 
@@ -238,8 +295,12 @@ function showRibbon(text){const rb=$("#ribbon");rb.textContent=text;rb.classList
 
 /* ========= AUDIO ========= */
 const bgm=id("bgm"); bgm.src=MUSIC_URL; bgm.volume=Number($("#vol").value); let isPlaying=false;
-id("vol").addEventListener("input",e=>{ bgm.volume=Number(e.target.value); });
-id("muteBtn").addEventListener("click",()=>{ bgm.muted=!bgm.muted; id("muteBtn").textContent = bgm.muted? "Unmute":"Mute"; });
+function syncVolumeUIs(v){ id("vol").value=v; id("vol2").value=v; }
+id("vol").addEventListener("input",e=>{ bgm.volume=Number(e.target.value); id("vol2").value=e.target.value; });
+id("vol2").addEventListener("input",e=>{ bgm.volume=Number(e.target.value); id("vol").value=e.target.value; });
+function syncMuteUIs(){ const t=bgm.muted?"Unmute":"Mute"; id("muteBtn").textContent=t; id("muteBtn2").textContent=t; }
+id("muteBtn").addEventListener("click",()=>{ bgm.muted=!bgm.muted; syncMuteUIs(); });
+id("muteBtn2").addEventListener("click",()=>{ bgm.muted=!bgm.muted; syncMuteUIs(); });
 
 let AC=null, master=null, noiseBuf=null;
 function ensureAC(){ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.85; master.connect(AC.destination); noiseBuf=mkNoise(.18); }
@@ -255,20 +316,17 @@ function s_step(){
 }
 function coin(){ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=880;o.connect(g);g.connect(master);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}
 function sparkle(){ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=1400;o.connect(g);g.connect(master);g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}
-/* Cheer SFX when confetti triggers */
+/* Cheer (confetti) */
 function s_cheer(){
   ensureAC();
   const t=AC.currentTime;
-  // crowd noise burst
   const ns=AC.createBufferSource(); ns.buffer=noiseBuf;
   const hp=AC.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=500;
   const g1=AC.createGain(); g1.gain.value=.2; ns.connect(hp); hp.connect(g1); g1.connect(master);
   g1.gain.setValueAtTime(0,t); g1.gain.linearRampToValueAtTime(.2,t+.02); g1.gain.exponentialRampToValueAtTime(.0001,t+.5);
   ns.start(t); ns.stop(t+.52);
-  // “hey!” blip chord
-  const mk=(f,dt)=>{const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=f;o.connect(g);g.connect(master);g.gain.setValueAtTime(.18,t+dt);g.gain.exponentialRampToValueAtTime(.0001,t+dt+.25);o.start(t+dt);o.stop(t+dt+.26);};
+  const mk=(f,dt)=>{const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=f;o.connect(g);g.connect(master);g.gain.setValueAtTime(.16,t+dt);g.gain.exponentialRampToValueAtTime(.0001,t+dt+.25);o.start(t+dt);o.stop(t+dt+.26);};
   mk(660,0.02); mk(990,0.02); mk(1320,0.02);
-  // light sparkle tail
   setTimeout(sparkle,140);
 }
 
@@ -284,7 +342,7 @@ function newGame(){localStorage.removeItem(STORAGE);state={hp:0,multi:1,items:{}
 function preloadSprites(eid, urls=[]){
   if(!urls.length){ tmp[eid].useEmoji=true; return; }
   let loaded=0, ok=true; tmp[eid].frames = urls.map(u=>{ const im=new Image(); im.src=u; im.onload=()=>loaded++; im.onerror=()=>{ok=false}; return im; });
-  setTimeout(()=>{ tmp[eid].useEmoji = !(ok && loaded>0); }, 500);
+  setTimeout(()=>{ tmp[eid].useEmoji = !(ok && loaded>0); const img=id("spr-"+eid), emo=id("emo-"+eid); if(img&&emo&&tmp[eid].useEmoji===false){ img.style.display="block"; emo.style.display="none"; img.src=tmp[eid].frames[0].src; } }, 600);
 }
 
 /* ========= BUILD ========= */
@@ -294,16 +352,12 @@ function build(){
     const it=state.items[eid], unlocked=it.unlocked, ready=now()>=tmp[eid].next;
     const affordable = state.hp>=unlock;
 
-    // avatar HTML (sprite or emoji)
-    const spriteMarkup = `<img id="spr-${eid}" alt="" style="display:none" />`;
-    const emojiMarkup  = `<div class="emoji" id="emo-${eid}" aria-hidden="true">${emoji}</div>`;
-
     const card=document.createElement("div"); card.className="card"; card.dataset.id=eid;
     card.innerHTML=`
       ${!unlocked && affordable? `<div class="badge">UNLOCK AVAILABLE</div>` : ``}
       <button type="button" class="avatarbtn ${unlocked?'':'locked'} ${ready?'ready':''}" 
               id="tap-${eid}" ${unlocked?``:`disabled`} aria-label="${unlocked?'Perform '+name:'Locked'}">
-        ${spriteMarkup}${emojiMarkup}
+        <img id="spr-${eid}" alt="" style="display:none"/><div class="emoji" id="emo-${eid}" aria-hidden="true">${emoji}</div>
         ${unlocked?'':'<div class="lockOverlay"><span>🔒 COMING SOON</span></div>'}
       </button>
       <div class="meta">
@@ -325,20 +379,8 @@ function build(){
 
     host.appendChild(card);
 
-    // Prepare sprites (walking test)
-    if(eid==="walk" && SPRITES.walk){
-      preloadSprites("walk", SPRITES.walk);
-      const img = id("spr-walk"), emo=id("emo-walk");
-      // try to show sprite when loaded
-      setTimeout(()=>{
-        if(tmp.walk && tmp.walk.useEmoji===false && tmp.walk.frames?.length){
-          img.style.display="block"; emo.style.display="none";
-          img.src = tmp.walk.frames[0].src;
-        }
-      }, 600);
-    }
+    if(eid==="walk" && SPRITES.walk){ preloadSprites("walk", SPRITES.walk); }
 
-    // Tap handlers
     const tap=id("tap-"+eid);
     if(unlocked){
       const handler=e=>{e.preventDefault(); firstUserInteract(); perform(eid); s_step();};
@@ -346,8 +388,8 @@ function build(){
       tap.addEventListener("click",handler);
       tap.addEventListener("touchstart",handler,{passive:false});
 
-      // Upgrade
-      const upBtn=id("up-"+eid");
+      // Upgrade (FIXED stray quote bug)
+      const upBtn=id("up-"+eid);
       upBtn.addEventListener("click",()=>{
         const qty=(state.multi==="max")?maxLevels(base,mult,it.lvl,state.hp):Number(state.multi);
         const cnt=Math.max(1,qty||0), cost=pack(base,mult,it.lvl,cnt);
@@ -378,16 +420,17 @@ function build(){
     }
   });
 
-  // Mult buttons
+  // All multiplier buttons (top + footer) stay in sync
   document.querySelectorAll("[data-m]").forEach(b=>{
     b.classList.toggle("active", b.dataset.m==state.multi);
     b.onclick=()=>{ document.querySelectorAll("[data-m]").forEach(x=>x.classList.remove("active"));
-      b.classList.add("active"); state.multi=(b.dataset.m==="max")?"max":Number(b.dataset.m); save(); renderAll(); };
+      document.querySelectorAll(`[data-m="${b.dataset.m}"]`).forEach(x=>x.classList.add("active"));
+      state.multi=(b.dataset.m==="max")?"max":Number(b.dataset.m); save(); renderAll(); };
   });
 }
 
 /* ========= CORE LOOP ========= */
-function firstUserInteract(){ if(!isPlaying){ bgm.play().catch(()=>{}); isPlaying=true; ensureAC(); } }
+function firstUserInteract(){ if(!isPlaying){ bgm.play().catch(()=>{}); isPlaying=true; ensureAC(); syncMuteUIs(); } }
 
 function perform(eid,auto=false){
   const row=EX.find(r=>r[0]===eid), it=state.items[eid]; if(!row) return;
@@ -398,7 +441,6 @@ function perform(eid,auto=false){
   const amt = Math.floor(gain * Math.max(1,it.lvl));
   state.hp += amt; it.taps++;
 
-  // Advance sprite frame if available
   if(tmp[eid].useEmoji===false && tmp[eid].frames?.length){
     tmp[eid].frame = (tmp[eid].frame+1) % tmp[eid].frames.length;
     const img = id("spr-"+eid); if(img){ img.src = tmp[eid].frames[tmp[eid].frame].src; }
@@ -423,10 +465,11 @@ function stopCoach(eid){ if(tmp[eid].timer){ clearTimeout(tmp[eid].timer); tmp[e
 function pack(base,mult,start,count){const a=base*Math.pow(mult,start);return count===1?a:a*(Math.pow(mult,count)-1)/(mult-1)}
 function maxLevels(base,mult,current,hp){const a=base*Math.pow(mult,current); if(hp<a) return 0; return Math.floor(Math.log((hp*(mult-1))/a+1)/Math.log(mult));}
 
+function floatText(anchor,text){const n=document.createElement("div");n.className="float";n.textContent=text;const r=anchor.getBoundingClientRect();n.style.left=(r.left+r.width/2)+"px";n.style.top=(r.top-6+window.scrollY)+"px";document.body.appendChild(n);n.animate([{transform:"translate(-50%,0)",opacity:1},{transform:"translate(-50%,-46px)",opacity:0}],{duration:820,easing:"ease-out"});setTimeout(()=>n.remove(),840)}
 function renderHP(){ id("hp").innerHTML=`${fmtHP(state.hp)} <small>HP</small>`; }
 function renderBars(){
   const t=now();
-  EX.forEach(([eid,, , , , interval, , , coachCost, unlock])=>{
+  EX.forEach(([eid,, , , , interval, base, mult, coachCost, unlock])=>{
     const left=Math.max(0,tmp[eid].next - t);
     const pct = 1 - Math.min(1, left / interval);
     const bar=id("bar-"+eid), tap=id("tap-"+eid);
@@ -434,7 +477,6 @@ function renderBars(){
     if(tap){
       tap.classList.toggle("ready", left<=0);
       tap.classList.toggle("needGlow", left<=0 && !state.items[eid].coach);
-      // Glitter hints: when affordable
       const card = tap.closest(".card");
       if(card){
         const upBtn=card.querySelector("#up-"+eid);
@@ -442,8 +484,7 @@ function renderBars(){
         const coachBtn=card.querySelector("#coach-"+eid);
         if(unlockBtn){ unlockBtn.classList.toggle("glitter", state.hp>=unlock && !state.items[eid].unlocked); }
         if(upBtn){
-          // compute affordability for x1 to add sheen if you can buy at least something
-          const c1 = pack(EX.find(r=>r[0]===eid)[6], EX.find(r=>r[0]===eid)[7], state.items[eid].lvl, 1);
+          const c1 = pack(base, mult, state.items[eid].lvl, 1);
           upBtn.classList.toggle("glitter", state.hp>=c1);
         }
         if(coachBtn && !state.items[eid].coach){ coachBtn.classList.toggle("glitter", state.hp>=coachCost); }
@@ -484,20 +525,17 @@ function startGame(){
   document.body.classList.remove('intro-open');
   try { bgm.play().catch(()=>{}); } catch(e){}
   isPlaying = true; try { ensureAC(); } catch(e){}
+  syncMuteUIs(); // keep both mute buttons in sync
 }
 
 /* ========= LOOP & BOOT ========= */
 function loop(){ renderBars(); requestAnimationFrame(loop); }
 function loadAll(){ load(); build(); renderAll(); loop(); }
-document.querySelectorAll("[data-m]").forEach(b=>{
-  b.onclick=()=>{ document.querySelectorAll("[data-m]").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active"); state.multi=(b.dataset.m==="max")?"max":Number(b.dataset.m); save(); renderAll(); };
-});
 document.getElementById("new").onclick=()=>{ if(confirm("Start a new game?")) { newGame(); } };
 
 // init
 window.addEventListener("pointerdown",()=>{ ensureAC(); }, {once:true});
-bgm.volume = Number(id("vol").value);
+bgm.volume = Number(id("vol").value); syncVolumeUIs(bgm.volume); syncMuteUIs();
 loadAll();
 </script>
 </body>
