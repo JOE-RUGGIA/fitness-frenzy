@@ -10,7 +10,7 @@
   --ink:#eaf1fb; --muted:#9fb0c6;
   --card:#152136; --edge:rgba(255,255,255,.06);
   --accent:#ff7a1a; --accent2:#ffc38f;
-  --good:#2dd36f;
+  --good:#2dd36f; --warn:#ffd166;
 }
 *{box-sizing:border-box} html,body{height:100%}
 html{-webkit-text-size-adjust:100%}
@@ -29,7 +29,7 @@ input[type=range]{accent-color:var(--accent)}
 .wrap{max-width:1140px;margin:16px auto 110px;padding:0 14px}
 
 /* Header */
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
 .hp{
   flex:0 1 auto;
   font:900 clamp(24px,4.2vw,36px)/1 system-ui;
@@ -49,6 +49,17 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;ma
 .pill label{font-weight:800;color:#d7e3f6;font-size:12px}
 .toggle{background:#0e1724;border-radius:10px;padding:6px 10px;font-weight:800}
 
+/* Missions / Week */
+.mission{
+  display:flex;align-items:center;gap:10px;margin:6px 0 10px;
+  background:#111a2b;border:1px solid var(--edge);border-radius:12px;padding:10px;
+}
+.mission h2{margin:0;font:900 16px/1.1 system-ui}
+.msub{color:#cfe0ff;font-size:12px}
+.mbar{flex:1;height:12px;background:#0b1219;border-radius:8px;overflow:hidden;position:relative}
+.mbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--good),#9cffbd)}
+.mgoal{font-weight:900;color:#bfe0ff}
+
 /* Ribbon + Confetti */
 .ribbon{position:fixed;top:-60px;left:50%;transform:translateX(-50%);
   background:#152136;border:1px solid var(--edge);color:#eaf1fb;
@@ -62,7 +73,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;ma
 .card{
   position:relative;background:var(--card);border-radius:14px;padding:10px;margin:10px 0;
   box-shadow:0 10px 22px rgba(0,0,0,.36), inset 0 0 0 1px var(--edge);
-  display:grid;grid-template-columns:160px 1fr 340px;gap:10px;align-items:center;min-height:140px;
+  display:grid;grid-template-columns:160px 1fr 360px;gap:10px;align-items:center;min-height:140px;
 }
 @media (max-width:900px){
   .card{grid-template-columns:140px 1fr;min-height:150px}
@@ -90,7 +101,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;ma
 .unlockPulse{animation:unlockPulse 1.05s ease-in-out infinite}
 @keyframes unlockPulse{0%{box-shadow:0 0 0 0 rgba(255,122,26,.0)}50%{box-shadow:0 0 16px 2px rgba(255,122,26,.6)}100%{box-shadow:0 0 0 0 rgba(255,122,26,.0)}}
 .emoji{font-size: clamp(48px,10vw,64px);display:block;filter:drop-shadow(0 4px 7px rgba(0,0,0,.35))}
-.avatarbtn.animate .emoji,.avatarbtn.animate img{animation:bop .22s ease}
+.avatarbtn.animate .emoji{animation:bop .22s ease} /* NOTE: sprites do NOT bop */
 @keyframes bop{0%{transform:scale(.94) rotate(-2deg)}50%{transform:scale(1.12) rotate(2deg)}100%{transform:scale(1)}}
 .avatarbtn img{width: clamp(64px,14vw,86px);height: clamp(64px,14vw,86px);image-rendering:pixelated;max-width:100%}
 
@@ -122,8 +133,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;ma
 .secondary{background:#0e1724;color:#fff;border:1px solid var(--edge);position:relative}
 .action[disabled],.secondary[disabled]{opacity:.5;cursor:not-allowed}
 
-/* Glitter sheen on affordable */
-.glitter::after{
+/* Glitter sheen on affordable (applies only when enabled & affordable) */
+.glitter.available::after{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,.18) 25%, rgba(255,255,255,.35) 33%, transparent 45%);
   transform:translateX(-120%); filter:blur(.6px);
@@ -133,7 +144,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;ma
 
 /* Coach */
 .coachBtn{display:flex;align-items:center;justify-content:center;gap:10px}
-.coachFace{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#1c2a44;border:1px solid var(--edge);font-size:26px;flex:0 0 48px}
+.coachFace{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#1c2a44;border:1px solid var(--edge);font-size:26px;flex:0 0 52px}
 .coachActive{background:#172b1f;border-color:#2dd36f;color:#b8ffd1}
 .dot{width:10px;height:10px;border-radius:50%;background:#2dd36f;box-shadow:0 0 10px #2dd36f}
 .dot.pulse{animation:pulse 1.2s ease-in-out infinite}
@@ -164,6 +175,15 @@ body.intro-open{overflow:hidden}
 .footer .btn{min-width:64px}
 .footer input[type=range]{width:min(42vw,220px)}
 @media (max-width:820px){ .footer{display:flex} .wrap{margin-bottom:160px} }
+
+/* Tutorial highlights */
+.tutor{
+  position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:1500;
+}
+.tutor.on{display:grid}
+.tcard{background:#13203a;border:1px solid var(--edge);border-radius:12px;padding:14px;max-width:92vw;box-shadow:0 16px 44px rgba(0,0,0,.6)}
+.tcard b{color:#fff}
+.tfinger{position:absolute;width:64px;height:64px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5))}
 </style>
 </head>
 <body class="intro-open">
@@ -173,11 +193,11 @@ body.intro-open{overflow:hidden}
 <div id="intro">
   <div class="introCard">
     <h1>Fitness Frenzy</h1>
-    <p class="hint">Earn <b>HP (Health Points)</b> by tapping exercises. Upgrade them, hire coaches to automate, and unlock stronger moves. The orange striped bar shows cooldown.</p>
+    <p class="hint">Earn <b>HP (Health Points)</b> by tapping exercises. Upgrade them, hire coaches (auto-tap), and unlock stronger moves. The orange striped bar shows cooldown.</p>
     <div class="introRow">
       <div class="introStep">👟 <b>Tap</b> when a card glows.</div>
       <div class="introStep">🧑‍🏫 <b>Coaches</b> auto-tap (and earn while you’re away!).</div>
-      <div class="introStep">🔓 <b>Unlock</b> new exercises as HP grows.</div>
+      <div class="introStep">📆 <b>Weeks</b> (levels): finish Week goals to progress.</div>
     </div>
     <button class="startBtn" id="startGame" onclick="startGame()">Start Workout ▶</button>
   </div>
@@ -205,6 +225,16 @@ body.intro-open{overflow:hidden}
     </div>
   </header>
 
+  <!-- Mission / Week tracker -->
+  <div class="mission" id="mission">
+    <div>
+      <h2 id="mTitle">Week 1: Foundation</h2>
+      <div class="msub" id="mSub">Goal: Unlock <b>Weight Lifting</b> & any Coach to <b>Lv.2</b></div>
+    </div>
+    <div class="mbar"><i id="mProg"></i></div>
+    <div class="mgoal" id="mGoal">0/2</div>
+  </div>
+
   <div id="list"></div>
 </div>
 
@@ -222,6 +252,12 @@ body.intro-open{overflow:hidden}
   </div>
 </div>
 
+<!-- Tutorial overlay -->
+<div class="tutor" id="tutor">
+  <img class="tfinger" id="tfinger" alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><text x='8' y='48' font-size='40'>👉</text></svg>">
+  <div class="tcard" id="tcard">Tip</div>
+</div>
+
 <div class="ribbon" id="ribbon">🎉 Unlocked!</div>
 <audio id="bgm" preload="auto" loop crossorigin="anonymous"></audio>
 
@@ -230,30 +266,31 @@ body.intro-open{overflow:hidden}
 const RAW_BASE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/";
 const MUSIC_URL = RAW_BASE + "Velvet%20Haze%20-%20Take%20a%20Seat%20-%20Instrumental%20version.mp3";
 
-/* ========= EXERCISES ========= */
-const EX=[ // id,name,emoji,set,gain,interval,baseCost,mult,coachCost,unlock
-  ["walk","Walking","👟","0.25 miles",1,0.5,6,1.18,  300,    0],
-  ["jog","Jogging","🏃‍♂️","0.5 miles",7,2.0,40,1.19, 1200,   40],
-  ["yoga","Yoga","🧘‍♂️","2 min flow",30,3.0,220,1.20, 6000,  120],
-  ["cycle","Cycling","🚴‍♂️","1.2 miles",120,6.5,1200,1.21,20000, 600],
-  ["lift","Weight Lifting","🏋️‍♂️","20 reps",520,9.0,6800,1.22,80000,  2200],
+/* ========= EXERCISES (Week 1 set) ========= */
+const EX=[ // id,name,emoji,set,gain,interval,baseCost,mult,coachCost,unlock,week
+  ["walk","Walking","👟","0.25 miles",1,0.5,6,1.18,  300,    0, 1],
+  ["jog","Jogging","🏃‍♂️","0.5 miles",7,2.0,40,1.19, 1200,   40, 1],
+  ["yoga","Yoga","🧘‍♂️","2 min flow",30,3.0,220,1.20, 6000,  120,1],
+  ["cycle","Cycling","🚴‍♂️","1.2 miles",120,6.5,1200,1.21,20000, 600,1],
+  ["lift","Weight Lifting","🏋️‍♂️","20 reps",520,9.0,6800,1.22,80000,  2200,1], // Week 1 "final"
 ];
 
-/* Teaser big goal (visual only, locked) */
+/* Teaser big goal (later) */
 const BIG_GOAL = { id:"ult", name:"Ultimate Trainer", emoji:"🏆", tease:"All exercises x10 • Global auto-click", unlockHp: 5_000_000 };
 
-/* Optional sprite frames (placeholder you mentioned) */
+/* SPRITES: walking demo uses your bike frames for now */
 const SPRITES = { walk: ["bike1.png","bike2.png","bike3.png"].map(f=>RAW_BASE+f) };
 
 /* ========= STATE ========= */
-const STORAGE="ff_core_v4";  // bump for new fields
+const STORAGE="ff_core_levels_v1";
 let state={
-  hp:0, multi:1, items:{}, _mileIndex:0,
+  hp:0, multi:1, items:{}, level:1,
   firstSteps:{taps:0, done:false},
-  lastSeen: Date.now(), // for offline
-  streak:{lastDay:null, count:0}
+  lastSeen: Date.now(),
+  streak:{lastDay:null, count:0},
+  tut:{tap:false, up:false, coach:false}
 };
-const tmp={}; // timers, frames
+const tmp={}; // timers, frames, anim
 
 /* ========= QS ========= */
 const $=s=>document.querySelector(s), id=s=>document.getElementById(s);
@@ -281,7 +318,7 @@ function fmtCost(n){
 const cf=id("confetti"); const cfx=cf.getContext("2d"); let confetti=[],confTimer=null;
 function fireConfetti(n=140){cancelAnimationFrame(confTimer);const W=cf.width=innerWidth,H=cf.height=innerHeight;confetti=Array.from({length:n},()=>({x:Math.random()*W,y:-10,vy:2+Math.random()*3,vx:(Math.random()-.5)*2,s:2+Math.random()*4,c:`hsl(${Math.random()*360},90%,60%)`,r:Math.random()*Math.PI}));(function loop(){cfx.clearRect(0,0,W,H);confetti.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.1;cfx.save();cfx.translate(p.x,p.y);cfx.rotate(p.r);cfx.fillStyle=p.c;cfx.fillRect(-p.s/2,-p.s/2,p.s,p.s);cfx.restore();});confTimer=requestAnimationFrame(loop); if(confetti.every(p=>p.y>H+20)) cancelAnimationFrame(confTimer);})();}
 
-function showRibbon(text){const rb=$("#ribbon");rb.textContent=text;rb.classList.remove("show");void rb.offsetWidth;rb.classList.add("show");fireConfetti(160); s_cheer();}
+function showRibbon(text){const rb=$("#ribbon");rb.textContent=text;rb.classList.remove("show");void rb.offsetWidth;rb.classList.add("show");fireConfetti(180); s_cheer();}
 
 /* ========= AUDIO ========= */
 const bgm=id("bgm"); bgm.src=MUSIC_URL; bgm.volume=Number($("#vol").value); let isPlaying=false;
@@ -293,34 +330,46 @@ id("muteBtn").addEventListener("click",()=>{ bgm.muted=!bgm.muted; syncMuteUIs()
 id("muteBtn2").addEventListener("click",()=>{ bgm.muted=!bgm.muted; syncMuteUIs(); });
 
 let AC=null, master=null, noiseBuf=null;
-function ensureAC(){ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.85; master.connect(AC.destination); noiseBuf=mkNoise(.18); }
+function ensureAC(){ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination); noiseBuf=mkNoise(.18); }
 function mkNoise(sec){const n=AC.sampleRate*sec,b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;return b;}
-/* tap */
-function s_step(){ ensureAC(); const t=AC.currentTime; const src=AC.createBufferSource(); src.buffer=noiseBuf; const bp=AC.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=220; bp.Q.value=0.6; const g=AC.createGain(); g.gain.value=.18; src.connect(bp); bp.connect(g); g.connect(master); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.18,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.12); src.start(t); src.stop(t+.14);}
-function coin(){ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=880;o.connect(g);g.connect(master);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}
-function sparkle(){ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=1400;o.connect(g);g.connect(master);g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}
-/* Cheer */
-function s_cheer(){ ensureAC(); const t=AC.currentTime; const ns=AC.createBufferSource(); ns.buffer=noiseBuf; const hp=AC.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=500; const g1=AC.createGain(); g1.gain.value=.2; ns.connect(hp); hp.connect(g1); g1.connect(master); g1.gain.setValueAtTime(0,t); g1.gain.linearRampToValueAtTime(.2,t+.02); g1.gain.exponentialRampToValueAtTime(.0001,t+.5); ns.start(t); ns.stop(t+.52); const mk=(f,dt)=>{const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=f;o.connect(g);g.connect(master);g.gain.setValueAtTime(.16,t+dt);g.gain.exponentialRampToValueAtTime(.0001,t+dt+.25);o.start(t+dt);o.stop(t+dt+.26);}; mk(660,0.02); mk(990,0.02); mk(1320,0.02); setTimeout(sparkle,140); }
+function s_step(){ ensureAC(); const t=AC.currentTime; const src=AC.createBufferSource(); src.buffer=noiseBuf; const bp=AC.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=220; bp.Q.value=0.6; const g=AC.createGain(); g.gain.value=.20; src.connect(bp); bp.connect(g); g.connect(master); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.20,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.12); src.start(t); src.stop(t+.14);}
+function coin(){ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=920;o.connect(g);g.connect(master);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}
+function sparkle(){ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=1500;o.connect(g);g.connect(master);g.gain.setValueAtTime(.16,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}
+function s_cheer(){ // louder cheer so it's clearly audible
+  ensureAC(); const t=AC.currentTime;
+  const ns=AC.createBufferSource(); ns.buffer=noiseBuf;
+  const hp=AC.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=420;
+  const g1=AC.createGain(); g1.gain.value=.35; ns.connect(hp); hp.connect(g1); g1.connect(master);
+  g1.gain.setValueAtTime(0,t); g1.gain.linearRampToValueAtTime(.35,t+.02); g1.gain.exponentialRampToValueAtTime(.0001,t+.6);
+  ns.start(t); ns.stop(t+.62);
+  const blip=(f,dt,amp=.22)=>{const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=f;o.connect(g);g.connect(master);g.gain.setValueAtTime(amp,t+dt);g.gain.exponentialRampToValueAtTime(.0001,t+dt+.3);o.start(t+dt);o.stop(t+dt+.32);};
+  blip(660,0.02); blip(990,0.02,.20); blip(1320,0.03,.18); setTimeout(sparkle,160);
+}
 
 /* ========= SAVE/LOAD ========= */
 function load(){
   try{const raw=localStorage.getItem(STORAGE); if(raw){ const parsed=JSON.parse(raw); state=Object.assign(state,parsed);} }catch{}
-  EX.forEach(([eid],i)=>{ if(!state.items[eid]) state.items[eid]={lvl:i?0:1,unlocked:!i,coach:false,taps:0}; tmp[eid]={next:0,frame:0,timer:null,frames:[],useEmoji:true}; });
+  EX.forEach(([eid],i)=>{
+    if(!state.items[eid]) state.items[eid]={lvl:i?0:1,unlocked:!i,coach:false,coachLevel:0,taps:0};
+    tmp[eid]={next:0,frame:0,timer:null,frames:[],useEmoji:true,animTimer:null,animLoop:false};
+  });
 }
 function save(){ state.lastSeen = Date.now(); localStorage.setItem(STORAGE,JSON.stringify(state)); }
-function newGame(){ localStorage.removeItem(STORAGE); state={hp:0,multi:1,items:{},_mileIndex:0,firstSteps:{taps:0,done:false},lastSeen:Date.now(),streak:{lastDay:null,count:0}}; load(); build(); renderAll(); }
+function newGame(){ localStorage.removeItem(STORAGE); state={hp:0,multi:1,items:{},level:1,firstSteps:{taps:0,done:false},lastSeen:Date.now(),streak:{lastDay:null,count:0},tut:{tap:false,up:false,coach:false}}; load(); build(); renderAll(); }
 
 /* ========= OFFLINE GAINS ========= */
 function grantOffline(){
   const then = state.lastSeen || Date.now();
   const ms = Math.max(0, Date.now()-then);
   const sec = Math.floor(ms/1000);
-  if(sec<5) return; // tiny gaps ignored
-
-  // Sum coach production per second
+  if(sec<5) return;
   let perSec = 0;
   EX.forEach(([eid,, , , gain, interval])=>{
-    const it=state.items[eid]; if(it?.coach){ const perTap = Math.floor(gain*Math.max(1,it.lvl)); perSec += (perTap/interval); }
+    const it=state.items[eid]; if(it?.coach){
+      const perTap = Math.floor(gain*Math.max(1,it.lvl));
+      const speed = coachSpeed(interval,it.coachLevel||1);
+      perSec += (perTap/speed);
+    }
   });
   const gain = Math.floor(perSec * sec);
   if(gain>0){ state.hp += gain; showRibbon(`💤 Offline gains: +${fmtCost(gain)} HP`); }
@@ -330,17 +379,17 @@ function grantOffline(){
 function dailyStreak(){
   const today = new Date(); today.setHours(0,0,0,0);
   const todayKey = today.getTime();
-  if(state.streak.lastDay===todayKey) return; // already claimed today
+  if(state.streak.lastDay===todayKey) return;
   const last = state.streak.lastDay;
-  if(last && todayKey - last === 86400000){ state.streak.count = Math.min(state.streak.count+1,7); } // +1 day, cap 7
+  if(last && todayKey - last === 86400000){ state.streak.count = Math.min(state.streak.count+1,7); }
   else { state.streak.count = 1; }
   state.streak.lastDay = todayKey;
-  const reward = 100 * state.streak.count; // 100, 200, ... 700
+  const reward = 100 * state.streak.count;
   state.hp += reward;
   showRibbon(`📆 Daily streak ${state.streak.count}/7: +${fmtCost(reward)} HP`);
 }
 
-/* ========= SPRITE LOADING ========= */
+/* ========= SPRITES ========= */
 function preloadSprites(eid, urls=[]){
   if(!urls.length){ tmp[eid].useEmoji=true; return; }
   let loaded=0, ok=true;
@@ -352,11 +401,61 @@ function preloadSprites(eid, urls=[]){
   }, 600);
 }
 
+/* ========= ANIMATION CONTROL (bike) ========= */
+function startAnim(eid, mode, durationSec){
+  // mode: 'cooldown' (run through frames until cooldown ends), 'loop' (continuous for coach), 'stop'
+  stopAnim(eid);
+  const info = tmp[eid]; if(info.useEmoji) return; // emojis don't animate now
+  const img = id("spr-"+eid); if(!img) return;
+
+  if(mode==="loop"){ info.animLoop=true; info.animTimer=setInterval(()=>{ info.frame=(info.frame+1)%info.frames.length; img.src=info.frames[info.frame].src; }, 120); return; }
+
+  if(mode==="cooldown"){
+    const end = performance.now() + durationSec*1000;
+    let interval = 90; // fast at start
+    const tick=()=>{
+      const left = end - performance.now();
+      if(left<=0){ stopAnim(eid); return; }
+      info.frame=(info.frame+1)%info.frames.length; img.src=info.frames[info.frame].src;
+      // simple ease out: slow down toward the end
+      const p = 1 - (left/(durationSec*1000));
+      interval = 90 + Math.floor(p*180); // 90ms -> 270ms
+      info.animTimer = setTimeout(tick, interval);
+    };
+    info.animTimer = setTimeout(tick, interval);
+  }
+}
+function stopAnim(eid){
+  const info=tmp[eid]; if(!info) return;
+  if(info.animTimer){ clearTimeout(info.animTimer); info.animTimer=null; }
+  info.animLoop=false;
+}
+
+/* ========= MISSIONS ========= */
+function updateMissionUI(){
+  const goals = [
+    // Week 1: unlock last card + any coach lv2
+    () => state.items["lift"]?.unlocked ? 1 : 0,
+    () => Object.values(state.items).some(v=>v.coach && (v.coachLevel||1)>=2) ? 1 : 0
+  ];
+  const done = goals.reduce((a,f)=>a+f(),0);
+  id("mGoal").textContent = `${done}/2`;
+  id("mProg").style.width = `${(done/2)*100}%`;
+  id("mTitle").textContent = state.level===1 ? "Week 1: Foundation" : `Week ${state.level}`;
+  id("mSub").innerHTML = state.level===1
+    ? `Goal: Unlock <b>Weight Lifting</b> & any Coach to <b>Lv.2</b>`
+    : `New week unlocked! More intense training ahead.`;
+  if(done===2 && state.level===1){
+    state.level=2; save();
+    showRibbon("✅ Week 1 complete — Week 2 unlocked!");
+  }
+}
+
 /* ========= BUILD ========= */
 function build(){
   const host=$("#list"); host.innerHTML="";
 
-  EX.forEach(([eid,name,emoji,setLabel,gain,interval,base,mult,coachCost,unlock])=>{
+  EX.filter(r=>r[10] <= state.level).forEach(([eid,name,emoji,setLabel,gain,interval,base,mult,coachCost,unlock])=>{
     const it=state.items[eid], unlocked=it.unlocked, ready=now()>=tmp[eid].next;
     const affordable = state.hp>=unlock;
 
@@ -377,8 +476,8 @@ function build(){
         ${unlocked
           ? `<button class="btn action" id="up-${eid}">Upgrade</button>
              <button class="btn secondary coachBtn" id="coach-${eid}">
-                <span class="coachFace" id="coachFace-${eid}">🧑‍🏫</span>
-                <span id="coachTxt-${eid}">${it.coach?'Coach Active':'Coach • '+fmtCost(coachCost)+' HP'}</span>
+                <span class="coachFace" id="coachFace-${eid}">${it.coach?'🧑‍🏫':'🧑‍🏫'}</span>
+                <span id="coachTxt-${eid}">${it.coach?('Coach Lv.'+(it.coachLevel||1)):'Hire Coach • '+fmtCost(coachCost)+' HP'}</span>
                 <span class="dot ${it.coach?'pulse':'hide'}" id="coachDot-${eid}" style="margin-left:4px"></span>
               </button>`
           : `<button class="btn action" id="unlock-${eid}">Unlock | ${fmtCost(unlock)} HP</button>
@@ -386,13 +485,21 @@ function build(){
       </div>`;
     host.appendChild(card);
 
-    // load demo sprite for Walking
+    // load demo sprite for Walking (bike frames) and NEVER bop the sprite
     if(eid==="walk" && SPRITES.walk){ preloadSprites("walk", SPRITES.walk); }
 
     // Tap
     const tap=id("tap-"+eid);
     if(unlocked){
-      const handler=e=>{e.preventDefault(); firstUserInteract(); perform(eid); s_step();};
+      const handler=e=>{
+        e.preventDefault(); firstUserInteract();
+        perform(eid);
+        s_step();
+        // start cooldown animation for sprites (not emoji)
+        if(tmp[eid].useEmoji===false){
+          startAnim(eid, "cooldown", intervalForCoach(eid)); // animate through cooldown
+        }
+      };
       tap.addEventListener("pointerdown",handler,{passive:false});
       tap.addEventListener("click",handler);
       tap.addEventListener("touchstart",handler,{passive:false});
@@ -402,19 +509,41 @@ function build(){
       upBtn.addEventListener("click",()=>{
         const qty=(state.multi==="max")?maxLevels(base,mult,it.lvl,state.hp):Number(state.multi);
         const cnt=Math.max(1,qty||0), cost=pack(base,mult,it.lvl,cnt);
-        if(state.hp>=cost){ state.hp-=cost; it.lvl+=cnt; coin(); floatText(tap, `Lvl +${cnt}`); renderAll(); save(); }
+        if(state.hp>=cost){
+          state.hp-=cost; it.lvl+=cnt; coin(); renderAll(); save();
+          // remove gleam right after purchase
+          upBtn.classList.remove("glitter","available");
+          // tutorial: if first time, show coach tip
+          if(!state.tut.coach){ setTimeout(()=>maybeTutorCoach(eid),200); }
+        }
       });
 
-      // Coach
+      // Coach / Coach upgrades
       const coachBtn=id("coach-"+eid), txt=id("coachTxt-"+eid), face=id("coachFace-"+eid);
-      const refreshCoachLabel=()=>{ txt.textContent = it.coach ? "Coach Active" : `Coach • ${fmtCost(coachCost)} HP`; };
+      const refreshCoachLabel=()=>{ txt.textContent = it.coach ? ("Coach Lv."+(it.coachLevel||1)) : `Hire Coach • ${fmtCost(coachCost)} HP`; };
       refreshCoachLabel();
       coachBtn.addEventListener("click",()=>{
-        if(it.coach || state.hp<coachCost) return;
-        state.hp-=coachCost; it.coach=true; coin(); renderAll(); startCoach(eid, interval);
-        face.classList.add("coachActive"); id("coachDot-"+eid)?.classList.remove("hide"); id("coachDot-"+eid)?.classList.add("pulse");
-        showRibbon(`🧑‍🏫 Coach hired for ${name}!`); refreshCoachLabel(); save();
+        // Hire
+        if(!it.coach){
+          if(state.hp<coachCost) return;
+          state.hp-=coachCost; it.coach=true; it.coachLevel=1; coin(); renderAll(); startCoach(eid); save();
+          face.classList.add("coachActive"); id("coachDot-"+eid)?.classList.remove("hide"); id("coachDot-"+eid)?.classList.add("pulse");
+          showRibbon(`🧑‍🏫 Coach hired for ${name}!`);
+          refreshCoachLabel();
+          // Walking sprite loops under coach
+          if(eid==="walk" && tmp[eid].useEmoji===false) startAnim(eid,"loop");
+        }else{
+          // Upgrade coach: cost scales like base*1.7^level
+          const nextLevel=(it.coachLevel||1)+1;
+          const cost=Math.floor(coachCost*Math.pow(1.7,nextLevel-1));
+          if(state.hp<cost) return;
+          state.hp-=cost; it.coachLevel=nextLevel; coin(); renderAll(); save();
+          showRibbon(`⬆️ Coach Lv.${nextLevel} for ${name}`);
+          refreshCoachLabel();
+          if(eid==="walk" && tmp[eid].useEmoji===false) { stopAnim(eid); startAnim(eid,"loop"); } // keep looping
+        }
       });
+
     }else{
       id("unlock-"+eid).addEventListener("click",()=>{
         if(state.hp<unlock) return;
@@ -425,7 +554,7 @@ function build(){
     }
   });
 
-  /* Big Goal teaser card */
+  /* Big Goal teaser */
   const goal = document.createElement("div"); goal.className="card";
   goal.innerHTML = `
     <button type="button" class="avatarbtn locked" disabled>
@@ -442,16 +571,28 @@ function build(){
       <button class="btn secondary" id="share2">Tell a friend</button>
     </div>`;
   $("#list").appendChild(goal);
-  const shareHandler=()=>shareProgress();
-  goal.querySelector("#share2").addEventListener("click",shareHandler);
+  goal.querySelector("#share2").addEventListener("click",shareProgress);
 
-  // Multiplier buttons (top + footer) sync
+  // Multiplier buttons sync (top + footer)
   document.querySelectorAll("[data-m]").forEach(b=>{
     b.classList.toggle("active", b.dataset.m==state.multi);
     b.onclick=()=>{ document.querySelectorAll("[data-m]").forEach(x=>x.classList.remove("active"));
       document.querySelectorAll(`[data-m="${b.dataset.m}"]`).forEach(x=>x.classList.add("active"));
       state.multi=(b.dataset.m==="max")?"max":Number(b.dataset.m); save(); renderAll(); };
   });
+
+  updateMissionUI();
+}
+
+/* ========= COOLDOWNS / GLEAM ========= */
+function coachSpeed(baseInterval, level){ // lower is faster
+  if(!level || level<1) level=1;
+  return baseInterval / (1 + (level-1)*0.25); // each level +25% faster
+}
+function intervalForCoach(eid){
+  const row=EX.find(r=>r[0]===eid); const base=row[5];
+  const it=state.items[eid]; if(!it?.coach) return base;
+  return coachSpeed(base, it.coachLevel||1);
 }
 
 /* ========= CORE LOOP ========= */
@@ -459,20 +600,23 @@ function firstUserInteract(){ if(!isPlaying){ bgm.play().catch(()=>{}); isPlayin
 
 function perform(eid,auto=false){
   const row=EX.find(r=>r[0]===eid), it=state.items[eid]; if(!row) return;
-  const [, , , , gain, interval] = row;
+  const [, , , , gain, ] = row;
   const t=now(); if(t<tmp[eid].next) return;
-  tmp[eid].next = t + interval;
+
+  // next based on current coach speed (even for manual we align to same duration for animation feel)
+  const dur = intervalForCoach(eid);
+  tmp[eid].next = t + dur;
 
   // Base gain
   let amt = Math.floor(gain * Math.max(1,it.lvl));
 
-  // Surprise drop (5% chance): +50% of current tap
+  // Surprise drop (5%)
   if(Math.random()<0.05){ const bonus = Math.ceil(amt*0.5); amt += bonus; floatText(id("tap-"+eid), `✨ +${fmtCost(bonus)} bonus!`); sparkle(); }
 
   state.hp += amt; it.taps++;
 
   // First Steps early reward
-  if(!state.firstSteps.done){
+  if(!state.firstSteps.done && eid==="walk"){
     state.firstSteps.taps++;
     if(state.firstSteps.taps===10){
       const gift = 120; state.hp += gift; state.firstSteps.done=true;
@@ -480,24 +624,25 @@ function perform(eid,auto=false){
     }
   }
 
-  // Sprite advance
-  if(tmp[eid].useEmoji===false && tmp[eid].frames?.length){
-    tmp[eid].frame = (tmp[eid].frame+1) % tmp[eid].frames.length;
-    const img = id("spr-"+eid); if(img){ img.src = tmp[eid].frames[tmp[eid].frame].src; }
-  }
+  // EMOJI BOP ONLY if not sprite
   const tap = id("tap-"+eid);
-  tap.classList.remove("animate"); void tap.offsetWidth; tap.classList.add("animate");
-  floatText(tap, `+${fmtCost(amt)}`);
+  if(tmp[eid].useEmoji!==false){ tap.classList.remove("animate"); void tap.offsetWidth; tap.classList.add("animate"); }
 
   renderAll(); save();
 }
 
-/* Coaches (exact schedule to the bar) */
-function startCoach(eid, interval){
+/* Coaches schedule exactly on their (faster) interval */
+function startCoach(eid){
   const it=state.items[eid]; if(!it.coach) return;
-  stopCoach(eid); perform(eid,true);
-  const schedule=()=>{ const left=tmp[eid].next - now(); tmp[eid].timer=setTimeout(()=>{ if(!state.items[eid].coach) return; perform(eid,true); schedule(); }, Math.max(0,left)*1000); };
-  schedule();
+  stopCoach(eid);
+  // Start/keep sprite loop for walking
+  if(eid==="walk" && tmp[eid].useEmoji===false) { stopAnim(eid); startAnim(eid,"loop"); }
+  const tick=()=>{
+    const interval = intervalForCoach(eid);
+    perform(eid,true);
+    tmp[eid].timer = setTimeout(tick, interval*1000);
+  };
+  tmp[eid].timer = setTimeout(tick, 0);
 }
 function stopCoach(eid){ if(tmp[eid].timer){ clearTimeout(tmp[eid].timer); tmp[eid].timer=null; }}
 
@@ -510,27 +655,49 @@ function renderHP(){ id("hp").innerHTML=`${fmtHP(state.hp)} <small>HP</small>`; 
 function renderBars(){
   const t=now();
   EX.forEach(([eid,, , , , interval, base, mult, coachCost, unlock])=>{
+    const it=state.items[eid];
     const left=Math.max(0,tmp[eid].next - t);
-    const pct = 1 - Math.min(1, left / interval);
+    const dur = intervalForCoach(eid);
+    const pct = 1 - Math.min(1, left / dur);
     const bar=id("bar-"+eid), tap=id("tap-"+eid);
     if(bar){ bar.style.width = Math.round(pct*100)+"%"; bar.parentElement.classList.toggle('ready', left<=0); }
     if(tap){
       tap.classList.toggle("ready", left<=0);
-      tap.classList.toggle("needGlow", left<=0 && !state.items[eid].coach);
+      tap.classList.toggle("needGlow", left<=0 && !it.coach);
+      // gleam only when enabled & affordable
       const card = tap.closest(".card");
       if(card){
         const upBtn=card.querySelector("#up-"+eid);
         const unlockBtn=card.querySelector("#unlock-"+eid);
         const coachBtn=card.querySelector("#coach-"+eid);
-        if(unlockBtn){ unlockBtn.classList.toggle("glitter", state.hp>=unlock && !state.items[eid].unlocked); }
-        if(upBtn){
-          const c1 = pack(base, mult, state.items[eid].lvl, 1);
-          upBtn.classList.toggle("glitter", state.hp>=c1);
+        if(unlockBtn){
+          const allow = (state.hp>=unlock && !it.unlocked);
+          unlockBtn.classList.toggle("glitter", allow);
+          unlockBtn.classList.toggle("available", allow);
         }
-        if(coachBtn && !state.items[eid].coach){ coachBtn.classList.toggle("glitter", state.hp>=coachCost); }
+        if(upBtn){
+          const c1 = pack(base, mult, it.lvl, 1);
+          const allow = state.hp>=c1;
+          upBtn.classList.toggle("glitter", allow);
+          upBtn.classList.toggle("available", allow);
+        }
+        if(coachBtn && !it.coach){
+          const allow = state.hp>=coachCost;
+          coachBtn.classList.toggle("glitter", allow);
+          coachBtn.classList.toggle("available", allow);
+        } else if (coachBtn && it.coach){
+          // show gleam when you can afford next coach level
+          const nextLevel=(it.coachLevel||1)+1;
+          const c = Math.floor(coachCost*Math.pow(1.7,nextLevel-1));
+          const allow = state.hp>=c;
+          coachBtn.classList.toggle("glitter", allow);
+          coachBtn.classList.toggle("available", allow);
+          id("coachTxt-"+eid).textContent = `Coach Lv.${it.coachLevel||1}`;
+        }
       }
     }
   });
+  updateMissionUI();
 }
 function renderButtons(){
   EX.forEach(([eid,, , , gain, , base, mult, coachCost, unlock])=>{
@@ -545,12 +712,22 @@ function renderButtons(){
     }
     const coachBtn=id("coach-"+eid), face=id("coachFace-"+eid), dot=id("coachDot-"+eid), txt=id("coachTxt-"+eid);
     if(coachBtn){
-      txt.textContent = it.coach ? "Coach Active" : `Coach • ${fmtCost(coachCost)} HP`;
-      coachBtn.disabled = it.coach || state.hp<coachCost;
-      if(it.coach){ face.classList.add("coachActive"); dot?.classList.remove("hide"); dot?.classList.add("pulse"); }
+      if(!it.coach){
+        txt.textContent = `Hire Coach • ${fmtCost(coachCost)} HP`;
+        coachBtn.disabled = state.hp<coachCost;
+      }else{
+        const nextLevel=(it.coachLevel||1)+1;
+        const c = Math.floor(coachCost*Math.pow(1.7,nextLevel-1));
+        txt.textContent = `Coach Lv.${it.coachLevel||1} • Upgrade ${fmtCost(c)} HP`;
+        coachBtn.disabled = state.hp<c;
+        face.classList.add("coachActive"); dot?.classList.remove("hide"); dot?.classList.add("pulse");
+      }
     }
     const unlockBtn=id("unlock-"+eid);
-    if(unlockBtn){ unlockBtn.textContent = `Unlock | ${fmtCost(unlock)} HP`; unlockBtn.disabled = state.hp<unlock; }
+    if(unlockBtn){
+      unlockBtn.textContent = `Unlock | ${fmtCost(unlock)} HP`;
+      unlockBtn.disabled = state.hp<unlock;
+    }
   });
 }
 function renderAll(){ renderHP(); renderBars(); renderButtons(); }
@@ -560,12 +737,37 @@ function shareProgress(){
   const text=`I just hit ${fmtHP(state.hp)} HP in Fitness Frenzy! 💪`;
   const url=location.href;
   if(navigator.share){ navigator.share({title:"Fitness Frenzy", text, url}).catch(()=>{}); }
-  else {
-    navigator.clipboard?.writeText(`${text} ${url}`);
-    showRibbon("🔗 Link copied — go flex!");
-  }
+  else { navigator.clipboard?.writeText(`${text} ${url}`); showRibbon("🔗 Link copied — go flex!"); }
 }
 id("share").addEventListener("click",shareProgress);
+
+/* ========= TUTORIAL ========= */
+function showTutor(msg, targetEl){
+  const t = id("tutor"), c=id("tcard"), f=id("tfinger");
+  c.innerHTML = msg;
+  if(targetEl){
+    const r=targetEl.getBoundingClientRect();
+    f.style.left = (r.left + r.width/2) + "px";
+    f.style.top  = (r.top  + window.scrollY + r.height + 26) + "px";
+  }
+  t.classList.add("on");
+  t.onclick = ()=> t.classList.remove("on");
+}
+function maybeTutorTap(){
+  if(state.tut.tap) return;
+  const el = id("tap-walk");
+  if(el){ state.tut.tap=true; save(); showTutor("<b>Tap here</b> to walk and earn HP!", el); }
+}
+function maybeTutorUpgrade(eid){
+  if(state.tut.up) return;
+  const up = id("up-"+eid);
+  if(up && !up.disabled){ state.tut.up=true; save(); showTutor("You can <b>upgrade</b> this exercise to earn more HP per tap.", up); }
+}
+function maybeTutorCoach(eid){
+  if(state.tut.coach) return;
+  const c = id("coach-"+eid);
+  if(c){ state.tut.coach=true; save(); showTutor("Hire a <b>Coach</b> to auto-tap. Upgrade coach levels to go faster.", c); }
+}
 
 /* ========= START ========= */
 function startGame(){
@@ -575,23 +777,24 @@ function startGame(){
   try { bgm.play().catch(()=>{}); } catch(e){}
   isPlaying = true; try { ensureAC(); } catch(e){}
   syncMuteUIs();
+  setTimeout(maybeTutorTap, 300);
 }
 
 /* ========= LOOP & BOOT ========= */
 function loop(){ renderBars(); requestAnimationFrame(loop); }
 function loadAll(){
   load();
-  grantOffline();      // add offline earnings first
-  dailyStreak();       // then daily reward if applicable
+  grantOffline();
+  dailyStreak();
   build();
   renderAll();
   loop();
 }
-document.getElementById("new").onclick=()=>{ if(confirm("Start a new game?")) { newGame(); } };
+document.getElementById("new").onclick=()=>{ if(confirm("Start a new game? This wipes progress.")) { newGame(); } };
 
 // init
 window.addEventListener("pointerdown",()=>{ ensureAC(); }, {once:true});
-bgm.volume = Number(id("vol").value); syncVolumeUIs(bgm.volume); syncMuteUIs();
+const bgmVol = Number(id("vol").value); bgm.volume = bgmVol; syncVolumeUIs(bgmVol); syncMuteUIs();
 loadAll();
 </script>
 </body>
