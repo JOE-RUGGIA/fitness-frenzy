@@ -139,7 +139,7 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
       <div class="introStep">🧑‍🏫 <b>Hire coaches</b> to auto-tap. Upgrade to multiply gains.</div>
       <div class="introStep">🥄 <b>SCOOPS</b> = temporary x2 boost. Stack them to extend time.</div>
     </div>
-    <button class="startBtn" id="startGame">Start Workout ▶</button>
+<button class="startBtn" id="startGame" onclick="startGame()">Start Workout ▶</button>
   </div>
 </div>
 
@@ -535,6 +535,14 @@ function checkProgress(){
     state._mileIndex++;
   }
   checkQuests();
+}
+function startGame(){
+  const intro = document.getElementById('intro');
+  if (intro) intro.style.display = 'none';
+  try { bgm.play().catch(()=>{}); } catch(e){}
+  isPlaying = true;
+  try { ensureAC(); } catch(e){}
+  try { sfx && sfx('toggle'); } catch(e){}
 }
 
 /* ========= LUCKY WHEEL (simple) ========= */
