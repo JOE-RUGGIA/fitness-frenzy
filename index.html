@@ -71,7 +71,7 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
 }
 .emoji{font-size:64px;display:block;filter:drop-shadow(0 4px 7px rgba(0,0,0,.35))}
 .avatarbtn.animate .emoji{animation:bop .22s ease}
-@keyframes bop{0%{transform:scale(.94) rotate(-2deg)}50%{transform:scale(1.12) rotate(2deg)}100%{transform:scale(1)}}
+@keyframes bop{0%{transform:scale(.94) rotate(-2deg)}50%{transform:scale(1.12) rotate(2deg)}100%{transform:scale(1)}
 
 .badge{position:absolute;top:8px;left:8px;background:#2b1630;color:#ffc6f0;border:1px solid rgba(255,255,255,.15);font-weight:900;padding:.2em .5em;border-radius:999px}
 .locked .emoji{filter:blur(8px) grayscale(.25) drop-shadow(0 4px 7px rgba(0,0,0,.35))}
@@ -139,7 +139,7 @@ select{background:#0f1823;color:#eaf1fb;border:1px solid rgba(255,255,255,.08);b
       <div class="introStep">🧑‍🏫 <b>Hire coaches</b> to auto-tap. Upgrade to multiply gains.</div>
       <div class="introStep">🥄 <b>SCOOPS</b> = temporary x2 boost. Stack them to extend time.</div>
     </div>
-<button class="startBtn" id="startGame" onclick="startGame()">Start Workout ▶</button>
+    <button class="startBtn" id="startGame" onclick="startGame()">Start Workout ▶</button>
   </div>
 </div>
 
@@ -218,9 +218,9 @@ const EX=[ // id,name,emoji,set,gain,interval,baseCost,mult,coachCost,unlock
 ];
 const COACH_FACE={walk:"🧑‍🏫",jog:"🧑‍🦽",yoga:"🧘‍♀️",cycle:"🚴",lift:"💪",swim:"🩱",row:"🧑‍✈️",stairs:"🧗",rope:"🧑‍🎤",box:"🥋",hiit:"🏃",pilates:"🧘"};
 
-const STORAGE="ff_pages_v3";
+const STORAGE="ff_pages_v4";
 let state={hp:0,multi:1,items:{},buffUntil:0,scoops:0,gear:{shoes:0,vest:0},quests:[],spins:0};
-const tmp={}; // per-exercise timers + prior affordability
+const tmp={}; // per-exercise timers + affordability tracking
 
 /* ========= HELPERS ========= */
 const $=s=>document.querySelector(s), id=s=>document.getElementById(s);
@@ -235,7 +235,7 @@ function floatText(anchor,text){const n=document.createElement("div");n.classNam
 const cf=id("confetti"); const cfx=cf.getContext("2d"); let confetti=[],confTimer=null;
 function fireConfetti(n=200){cancelAnimationFrame(confTimer);const W=cf.width=innerWidth,H=cf.height=innerHeight;confetti=Array.from({length:n},()=>({x:Math.random()*W,y:-10,vy:2+Math.random()*3,vx:(Math.random()-.5)*2,s:2+Math.random()*4,c:`hsl(${Math.random()*360},90%,60%)`,r:Math.random()*Math.PI}));(function loop(){cfx.clearRect(0,0,W,H);confetti.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.1;cfx.save();cfx.translate(p.x,p.y);cfx.rotate(p.r);cfx.fillStyle=p.c;cfx.fillRect(-p.s/2,-p.s/2,p.s,p.s);cfx.restore();});confTimer=requestAnimationFrame(loop); if(confetti.every(p=>p.y>H+20)) cancelAnimationFrame(confTimer);})();}
 
-/* ========= AUDIO: Music + SFX (cute, built-in) ========= */
+/* ========= AUDIO: Music + SFX ========= */
 const bgm=id("bgm"); bgm.src=EXTERNAL_URL; bgm.volume=Number($("#vol").value);
 let isPlaying=false;
 id("vol").addEventListener("input",e=>{ bgm.volume=Number(e.target.value); sfx('tick'); });
@@ -291,7 +291,6 @@ function checkQuests(){
     if(q.id==="yogaClass" && state.items.yoga?.lvl>=2) q.done=true;
     if(q.id==="meetFriend" && state.items.walk?.lvl>=5) q.done=true;
   });
-  // If any newly done, ping once
   state.quests.forEach((q,i)=>{ if(!before[i] && q.done){ sfx('quest-ready'); }});
   renderQuests();
 }
@@ -307,11 +306,10 @@ function renderQuests(){
     const btn=row.querySelector("button");
     btn.onclick=()=>{
       if(q.claimed || !q.done) return;
-      q.claimed=true; // prevent re-claim
+      q.claimed=true;
       state.hp += q.reward.hp;
       state.scoops += q.reward.scoop;
       sfx('quest-claim'); showRibbon("🎁 Quest reward!");
-      // replace with a new unique quest next tick
       setTimeout(()=>{
         const taken = new Set(state.quests.map(x=>x.id));
         const next = QUEST_POOL.find(nq=>!taken.has(nq.id));
@@ -324,8 +322,8 @@ function renderQuests(){
 }
 function renderGear(){
   const host=id("gearList"); host.innerHTML="";
-  const shoesMult = 1 + 0.1*state.gear.shoes; // +10% tap gain each tier
-  const vestMult  = 1 + 0.1*state.gear.vest;  // +10% coach output each tier
+  const shoesMult = 1 + 0.1*state.gear.shoes;
+  const vestMult  = 1 + 0.1*state.gear.vest;
   host.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div>👟 Shoes <span class="hint">(+${Math.round((shoesMult-1)*100)}% tap)</span></div>
@@ -373,7 +371,7 @@ function build(){
 
     host.appendChild(card);
 
-    const tap=id("tap-"+eid);
+    const tap = id("tap-"+eid); // <-- fixed (no stray quote)
     if(unlocked){
       const handler=ev=>{ev.preventDefault(); firstUserInteract(); perform(eid); sfx('tap');};
       tap.addEventListener("pointerdown",handler,{passive:false});
@@ -440,7 +438,8 @@ function perform(eid,auto=false){
   const amt = Math.floor(gain * Math.max(1,it.lvl) * mult);
   state.hp += amt; it.taps++;
 
-  const tap=id("tap-"+eid); tap.classList.remove("animate"); void tap.offsetWidth; tap.classList.add("animate");
+  const tap = id("tap-"+eid);
+  tap.classList.remove("animate"); void tap.offsetWidth; tap.classList.add("animate");
   floatText(tap, `+${fmtInt(amt)}${isCrit?" ✨":""}`);
 
   if(auto && it.coach && vestMult>1){ floatText(tap, `+${Math.round((vestMult-1)*100)}% vest`); }
@@ -484,7 +483,7 @@ function renderBars(){
   EX.forEach(([eid,, , , , interval, , , , unlock])=>{
     const left=Math.max(0,tmp[eid].next - t);
     const pct = 1 - Math.min(1, left / interval);
-    const bar=id("bar-"+eid), tap=id("tap-"+eid");
+    const bar=id("bar-"+eid), tap=id("tap-"+eid);
     if(bar) bar.style.width = Math.round(pct*100)+"%";
     if(tap){
       tap.classList.toggle("ready", left<=0);
@@ -536,16 +535,8 @@ function checkProgress(){
   }
   checkQuests();
 }
-function startGame(){
-  const intro = document.getElementById('intro');
-  if (intro) intro.style.display = 'none';
-  try { bgm.play().catch(()=>{}); } catch(e){}
-  isPlaying = true;
-  try { ensureAC(); } catch(e){}
-  try { sfx && sfx('toggle'); } catch(e){}
-}
 
-/* ========= LUCKY WHEEL (simple) ========= */
+/* ========= LUCKY WHEEL ========= */
 function spinWheel(){
   const prizes=[
     {label:"🎁 +2,500 HP", fn:()=>state.hp+=2500},
@@ -559,12 +550,15 @@ function spinWheel(){
   showRibbon(`🎡 ${pick.label}`); sfx('unlock');
 }
 
-/* ========= INTRO ========= */
-id("startGame").addEventListener("click",()=>{
-  id("intro").style.display="none";
-  bgm.play().catch(()=>{}); isPlaying=true; ensureAC(); // AC for SFX
-  sfx('toggle');
-});
+/* ========= START GAME (global) ========= */
+function startGame(){
+  const intro = document.getElementById('intro');
+  if (intro) intro.style.display = 'none';
+  try { bgm.play().catch(()=>{}); } catch(e){}
+  isPlaying = true;
+  try { ensureAC(); } catch(e){}
+  try { sfx && sfx('toggle'); } catch(e){}
+}
 
 /* ========= BOOT ========= */
 function loop(){ renderBars(); requestAnimationFrame(loop); }
