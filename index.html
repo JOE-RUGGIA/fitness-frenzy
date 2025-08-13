@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Fitness Frenzy</title>
+<title>Fitness Frenzy — Safe Build R1</title>
 <style>
 :root{
   --bg:#0f1421; --bg2:#0b1220;
@@ -27,7 +27,7 @@ body{
 }
 button{font:inherit}
 
-/* Sticky header (below intro & tutor) */
+/* Sticky header */
 header{
   position:sticky; top:0; z-index:1000;
   display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -49,7 +49,7 @@ header{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:84px
 }
 
-/* Mission / progress */
+/* Mission */
 .mission{
   display:flex;align-items:center;gap:10px;margin:12px 14px 8px;
   background:#111a2b;border:1px solid var(--edge);border-radius:12px;padding:10px;
@@ -60,7 +60,6 @@ header{
 .mbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--good),#9cffbd)}
 .mgoal{font-weight:900;color:#bfe0ff}
 
-/* Content wrapper */
 .wrap{max-width:1140px;margin:0 auto 110px;padding:0 14px}
 
 /* Cards */
@@ -103,7 +102,7 @@ header{
 
 /* Meta + orange cooldown bar */
 .meta h3{margin:0 0 2px;font:800 clamp(16px,3.8vw,18px)/1.1 system-ui;max-height:22px;overflow:hidden}
-.meta .sub{color:var(--muted);font-size: clamp(11px,3.2vw,12px);max-height:18px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.meta .sub{color:#9fb0c6;font-size: clamp(11px,3.2vw,12px);max-height:18px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .bar{height: clamp(12px,3.4vw,14px);background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px;position:relative}
 .bar i{
   display:block;height:100%;width:0;
@@ -143,10 +142,10 @@ header{
 .footer .btn{min-width:64px}
 @media (max-width:820px){ .footer{display:flex} .wrap{margin-bottom:160px} }
 
-/* Intro modal — raised above everything */
+/* Intro (non-blocking safe modal) */
 body.intro-open{overflow:hidden}
 #intro{
-  position:fixed;inset:0;z-index:5000; /* (FIX) higher than header & tutor */
+  position:fixed;inset:0;z-index:5000;
   display:grid;place-items:center;background:rgba(8,12,20,.65);
   opacity:1;visibility:visible;transition:opacity .25s ease,visibility .25s ease
 }
@@ -157,22 +156,7 @@ body.intro-open{overflow:hidden}
 .introStep{background:#0f1928;border:1px solid var(--edge);border-radius:12px;padding:10px;flex:1;min-width:200px}
 .startBtn{margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,#ff8b3a,#ff7a1a);border:0;border-radius:12px;color:#1b0e03;font-weight:900;padding:10px 14px;cursor:pointer}
 
-/* Tutorial overlay (no blur), sits under intro */
-.tutor{
-  position:fixed;inset:0;display:none;z-index:4500; /* below intro, above header */
-  background:rgba(0,0,0,.35);
-}
-.tutor.on{display:block}
-.tcard{
-  position:absolute;max-width:92vw;background:#13203a;border:1px solid var(--edge);border-radius:12px;padding:12px;
-  box-shadow:0 16px 44px rgba(0,0,0,.6); font-weight:700;
-}
-.tfinger{
-  position:absolute;width:64px;height:64px;transform:translate(-50%,-50%);pointer-events:none;
-  filter:drop-shadow(0 8px 20px rgba(0,0,0,.5))
-}
-
-/* Confetti/Ribbon (under tutor) */
+/* Confetti/Ribbon */
 .ribbon{position:fixed;top:-60px;left:50%;transform:translateX(-50%);
   background:#152136;border:1px solid var(--edge);color:#eaf1fb;
   padding:10px 16px;border-radius:999px;font-weight:900;z-index:120;
@@ -226,74 +210,70 @@ body.intro-open{overflow:hidden}
   <button class="btn" id="muteBottom">Mute</button>
 </div>
 
-<!-- Tutorial overlay -->
-<div class="tutor" id="tutor">
-  <img class="tfinger" id="tfinger" alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><text x='8' y='48' font-size='40'>👉</text></svg>">
-  <div class="tcard" id="tcard">Tip</div>
-</div>
-
 <div class="ribbon" id="ribbon">🎉 Unlocked!</div>
 <audio id="bgm" preload="auto" loop crossorigin="anonymous"></audio>
 
 <script>
-/* ====== CONFIG & STATE ====== */
+/* ========= HARDENED SAFE CORE ========= */
+/* Config */
 const RAW_BASE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/";
 const MUSIC_URL = RAW_BASE + "Velvet%20Haze%20-%20Take%20a%20Seat%20-%20Instrumental%20version.mp3";
-const STORAGE="ff_polish_v2";
+const STORAGE="ff_safe_r1";
 
-const EX=[ // id,name,emoji,setLabel(sec),gain,interval,baseCost,mult,coachCost,unlock,week
+/* Exercises: id,name,emoji,label,gain,interval,baseCost,mult,coachCost,unlock,week */
+const EX=[
   ["walk","Walking","👟","0.25s",1,0.25,6,1.18,  300,    0, 1],
   ["jog","Jogging","🏃‍♂️","0.5s",  7,0.50,40,1.19, 1200,   40, 1],
   ["yoga","Yoga","🧘‍♂️","1.0s",   30,1.00,220,1.20, 6000,  120,1],
   ["cycle","Cycling","🚴‍♂️","2.0s",120,2.00,1200,1.21,20000,  600,1],
   ["lift","Weight Lifting","🏋️‍♂️","3.0s",520,3.00,6800,1.22,80000, 2200,1],
 ];
+const BIG_UNLOCK = 5_000_000;
 
+/* State */
 let state={
   hp:0, items:{}, level:1,
   firstSteps:{taps:0, done:false},
   lastSeen: Date.now(),
-  streak:{lastDay:null,count:0},
-  tut:{step:null, done:{tap:false,unlock:false,up:false,coach:false,coach2:false}}
+  streak:{lastDay:null,count:0}
 };
 const tmp={}; // timers
 let started=false;
 
-/* ====== HELPERS ====== */
+/* Helpers */
 const $=s=>document.querySelector(s), id=s=>document.getElementById(s);
 const now=()=>performance.now()/1000;
 function fmtHP(n){
   const a=Math.abs(n);
   const d=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(a>=1e9) return d(n/1e9)+"B";
-  if(a>=1e6) return d(n/1e6)+"M";
-  if(a>=1e3) return d(n/1e3)+"K";
+  if(a>=1e9) return d(n/1e9)+"B"; if(a>=1e6) return d(n/1e6)+"M"; if(a>=1e3) return d(n/1e3)+"K";
   return d(n);
 }
-function fmtCost(n){
-  n=Math.floor(n); const a=Math.abs(n);
+function fmtCost(n){ n=Math.floor(n); const a=Math.abs(n);
   const f=v=>Number.isInteger(v)?v.toString():v.toFixed(1).replace(/\.0$/,'');
-  if(a>=1e9) return f(n/1e9)+"B";
-  if(a>=1e6) return f(n/1e6)+"M";
-  if(a>=1e3) return f(n/1e3)+"K";
+  if(a>=1e9) return f(n/1e9)+"B"; if(a>=1e6) return f(n/1e6)+"M"; if(a>=1e3) return f(n/1e3)+"K";
   return String(n);
 }
 
-/* ====== AUDIO ====== */
+/* Audio (safe) */
 const bgm=id("bgm"); bgm.src=MUSIC_URL; bgm.volume=0.22; let isPlaying=false;
 function syncMute(){ const t=bgm.muted?"Unmute":"Mute"; id("muteTop").textContent=t; id("muteBottom").textContent=t; }
-id("muteTop").addEventListener("click",()=>{ bgm.muted=!bgm.muted; syncMute(); });
-id("muteBottom").addEventListener("click",()=>{ bgm.muted=!bgm.muted; syncMute(); });
+id("muteTop").onclick=()=>{ bgm.muted=!bgm.muted; syncMute(); };
+id("muteBottom").onclick=()=>{ bgm.muted=!bgm.muted; syncMute(); };
 
 let AC=null, master=null, noiseBuf=null;
-function ensureAC(){ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination); noiseBuf=mkNoise(.18); }
-function mkNoise(sec){const n=AC.sampleRate*sec,b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;return b;}
-function s_click(){ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=420;o.connect(g);g.connect(master);g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.start(t);o.stop(t+.16);}
-function s_upgrade(){ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=980;o.connect(g);g.connect(master);g.gain.setValueAtTime(.24,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}
-function s_coin(){ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=760;o.connect(g);g.connect(master);g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.start(t);o.stop(t+.2);}
-function s_cheer(){ ensureAC(); const t=AC.currentTime; const ns=AC.createBufferSource(); ns.buffer=noiseBuf; const hp=AC.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=420; const g1=AC.createGain(); g1.gain.value=.35; ns.connect(hp); hp.connect(g1); g1.connect(master); g1.gain.setValueAtTime(0,t); g1.gain.linearRampToValueAtTime(.35,t+.02); g1.gain.exponentialRampToValueAtTime(.0001,t+.6); ns.start(t); ns.stop(t+.62); const blip=(f,dt,amp=.22)=>{const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=f;o.connect(g);g.connect(master);g.gain.setValueAtTime(amp,t+dt);g.gain.exponentialRampToValueAtTime(.0001,t+dt+.3);o.start(t+dt);o.stop(t+dt+.32);}; blip(660,0.02); blip(990,0.02,.20); blip(1320,0.03,.18); }
+function ensureAC(){ try{
+  if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C();
+  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);
+  noiseBuf=mkNoise(.18);
+}catch{}}
+function mkNoise(sec){ const sr=(AC?.sampleRate)||48000, n=sr*sec; const b=AC.createBuffer(1,n,sr), a=b.getChannelData(0); for(let i=0;i<n;i++) a[i]=Math.random()*2-1; return b; }
+function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=420;o.connect(g);g.connect(master);g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.start(t);o.stop(t+.16);}catch{} }
+function s_upgrade(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=980;o.connect(g);g.connect(master);g.gain.setValueAtTime(.24,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}catch{} }
+function s_coin(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=760;o.connect(g);g.connect(master);g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.start(t);o.stop(t+.2);}catch{} }
+function s_cheer(){ try{ ensureAC(); const t=AC.currentTime; const ns=AC.createBufferSource(); ns.buffer=noiseBuf; const hp=AC.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=420; const g1=AC.createGain(); g1.gain.value=.35; ns.connect(hp); hp.connect(g1); g1.connect(master); g1.gain.setValueAtTime(0,t); g1.gain.linearRampToValueAtTime(.35,t+.02); g1.gain.exponentialRampToValueAtTime(.0001,t+.6); ns.start(t); ns.stop(t+.62);}catch{} }
 
-/* ====== SAVE/LOAD & OFFLINE ====== */
+/* Save/Load & offline */
 function load(){
   try{const raw=localStorage.getItem(STORAGE); if(raw){ const parsed=JSON.parse(raw); state=Object.assign(state,parsed);} }catch{}
   EX.forEach(([eid],i)=>{
@@ -301,10 +281,10 @@ function load(){
     tmp[eid]={next:0,timer:null};
   });
 }
-function save(){ state.lastSeen = Date.now(); localStorage.setItem(STORAGE,JSON.stringify(state)); }
-function newGame(){ localStorage.removeItem(STORAGE); state={hp:0, items:{}, level:1, firstSteps:{taps:0,done:false}, lastSeen:Date.now(), streak:{lastDay:null,count:0}, tut:{step:null, done:{tap:false,unlock:false,up:false,coach:false,coach2:false}}}; load(); build(); renderAll(); started=false; }
+function save(){ state.lastSeen = Date.now(); try{ localStorage.setItem(STORAGE,JSON.stringify(state)); }catch{} }
+function newGame(){ try{ localStorage.removeItem(STORAGE);}catch{}; state={hp:0, items:{}, level:1, firstSteps:{taps:0,done:false}, lastSeen:Date.now(), streak:{lastDay:null,count:0}}; load(); build(); renderAll(); started=false; }
 
-function coachSpeed(baseInterval, level){ if(!level || level<1) level=1; const capped=Math.min(level,2); return baseInterval/(1+(capped-1)*0.25); }
+function coachSpeed(base, level){ if(!level||level<1) level=1; const capped=Math.min(level,2); return base/(1+(capped-1)*0.25); }
 
 function grantOffline(){
   const then = state.lastSeen || Date.now();
@@ -323,11 +303,11 @@ function grantOffline(){
   if(gain>0){ state.hp += gain; showRibbon(`💤 Offline gains: +${fmtCost(gain)} HP`); }
 }
 
-/* ====== BUILD UI ====== */
+/* UI build */
 function build(){
   const host=$("#list"); host.innerHTML="";
 
-  EX.filter(r=>r[10] <= state.level).forEach(([eid,name,emoji,setLabel,gain,interval,base,mult,coachCost,unlock])=>{
+  EX.filter(r=>r[10] <= state.level).forEach(([eid,name,emoji,label,gain,interval,base,mult,coachCost,unlock])=>{
     const it=state.items[eid], unlocked=it.unlocked, ready=now()>=tmp[eid].next;
     const affordable = state.hp>=unlock;
 
@@ -340,7 +320,7 @@ function build(){
         ${unlocked?'':`<div class="lockOverlay"><span>🔓 Unlock | ${fmtCost(unlock)} HP</span></div>`}
       </button>
       <div class="meta">
-        <h3>${name} <span class="sub">• ${setLabel}</span></h3>
+        <h3>${name} <span class="sub">• ${label}</span></h3>
         <div class="sub">HP Gain: <b id="gain-${eid}">${fmtCost(Math.max(1,gain*Math.max(1,it.lvl)))}</b> • Unlock: ${fmtCost(unlock)} HP</div>
         <div class="bar ${ready?'ready':''}"><i id="bar-${eid}"></i></div>
       </div>
@@ -357,40 +337,32 @@ function build(){
       </div>`;
     host.appendChild(card);
 
-    // Tap
     const tap=id("tap-"+eid);
     if(unlocked){
       const handler=e=>{
-        e.preventDefault(); firstUserInteract();
-        perform(eid);
-        s_click();
+        e.preventDefault(); firstInteract();
+        perform(eid); s_click();
       };
       tap.addEventListener("pointerdown",handler,{passive:false});
       tap.addEventListener("click",handler);
       tap.addEventListener("touchstart",handler,{passive:false});
 
-      // Upgrade
       id("up-"+eid).addEventListener("click",()=>{
         const cost=pack(base,mult,it.lvl,1);
         if(state.hp>=cost){
           state.hp-=cost; it.lvl+=1; s_upgrade(); renderAll(); save();
-          if(started && !state.tut.done.coach){ setTimeout(()=>startTutor("coach", id("coach-"+eid), "Hire a Coach to auto-tap."),200); }
         }
       });
 
-      // Coach / Lv.2 cap
       const coachBtn=id("coach-"+eid);
       coachBtn.addEventListener("click",()=>{
-        // Hire
         if(!it.coach){
           if(state.hp<coachCost) return;
           state.hp-=coachCost; it.coach=true; it.coachLevel=1; s_coin();
           startCoach(eid);
           showRibbon(`🧑‍🏫 Coach hired for ${name}!`);
-          if(started && !state.tut.done.coach2){ setTimeout(()=>startTutor("coach2", coachBtn, "Upgrade Coach to Lv.2 to progress."),200); }
           renderAll(); save();
         }else{
-          // Upgrade to Lv.2 only
           if((it.coachLevel||1)>=2) return;
           const nextLevel=2;
           const cost=Math.floor(coachCost*Math.pow(1.7,nextLevel-1));
@@ -409,17 +381,18 @@ function build(){
     }
   });
 
-  /* Big goal teaser */
+  /* Teaser */
   const goal = document.createElement("div"); goal.className="card";
+  const pct = Math.min(100, Math.floor((state.hp/BIG_UNLOCK)*100));
   goal.innerHTML = `
     <button type="button" class="avatarbtn locked" disabled>
       <div class="emoji">🏆</div>
-      <div class="lockOverlay"><span>🔒 ${fmtCost(BIG_GOAL.unlockHp)} HP</span></div>
+      <div class="lockOverlay"><span>🔒 ${fmtCost(BIG_UNLOCK)} HP</span></div>
     </button>
     <div class="meta">
       <h3>Ultimate Trainer <span class="sub">• All exercises x10 • Global auto-click</span></h3>
-      <div class="sub">Unlock: <b>${fmtCost(5_000_000)} HP</b></div>
-      <div class="bar"><i style="width:${Math.min(100, Math.floor((state.hp/5_000_000)*100))}%"></i></div>
+      <div class="sub">Unlock: <b>${fmtCost(BIG_UNLOCK)} HP</b></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
     </div>
     <div class="actions">
       <button class="btn secondary" disabled>Coming Soon</button>
@@ -431,8 +404,14 @@ function build(){
   updateMissionUI();
 }
 
-/* ====== CORE ====== */
-function firstUserInteract(){ if(!isPlaying){ bgm.play().catch(()=>{}); isPlaying=true; ensureAC(); syncMute(); } }
+/* Core */
+function firstInteract(){
+  if(!isPlaying){
+    try{ bgm.play().catch(()=>{}); }catch(e){}
+    isPlaying=true; ensureAC(); syncMute();
+  }
+  started=true;
+}
 
 function perform(eid){
   const row=EX.find(r=>r[0]===eid), it=state.items[eid]; if(!row) return;
@@ -447,7 +426,6 @@ function perform(eid){
 
   state.hp += amt; it.taps++;
 
-  // First steps bonus (on walk)
   if(!state.firstSteps.done && eid==="walk"){
     state.firstSteps.taps++;
     if(state.firstSteps.taps===10){
@@ -456,16 +434,11 @@ function perform(eid){
     }
   }
 
-  // Bounce emoji
   const tap = id("tap-"+eid);
   tap.classList.remove("animate"); void tap.offsetWidth; tap.classList.add("animate");
-
   floatText(tap, `+${fmtCost(amt)}`);
 
   renderAll(); save();
-
-  // complete tap tutorial if active
-  if(state.tut.step==="tap" && eid==="walk") completeTutor("tap");
 }
 
 function startCoach(eid){
@@ -480,7 +453,7 @@ function startCoach(eid){
 }
 function stopCoach(eid){ if(tmp[eid].timer){ clearTimeout(tmp[eid].timer); tmp[eid].timer=null; }}
 
-/* ====== UTIL RENDER ====== */
+/* Math & render */
 function pack(base,mult,start,count){const a=base*Math.pow(mult,start);return count===1?a:a*(Math.pow(mult,count)-1)/(mult-1)}
 
 function floatText(anchor,text){
@@ -519,28 +492,24 @@ function renderBars(){
           const allow = (state.hp>=unlock && !it.unlocked);
           unlockBtn.classList.toggle("glitter", allow);
           unlockBtn.classList.toggle("available", allow);
-          if(started && allow && !state.tut.done.unlock) startTutor("unlock", unlockBtn, "Unlock your next exercise here.");
         }
         if(upBtn){
           const c1 = pack(base, mult, it.lvl, 1);
           const allow = state.hp>=c1;
           upBtn.classList.toggle("glitter", allow);
           upBtn.classList.toggle("available", allow);
-          if(started && allow && !state.tut.done.up) startTutor("up", upBtn, "Upgrade to increase HP per tap.");
         }
         if(coachBtn){
           if(!it.coach){
             const allow = state.hp>=coachCost;
             coachBtn.classList.toggle("glitter", allow);
             coachBtn.classList.toggle("available", allow);
-            if(started && !state.tut.done.coach && state.tut.done.up) startTutor("coach", coachBtn, "Hire a Coach to auto-tap.");
           }else{
             const nextLevel=2;
             const c = Math.floor(coachCost*Math.pow(1.7,nextLevel-1));
             const allow = (it.coachLevel<2) && state.hp>=c;
             coachBtn.classList.toggle("glitter", allow);
             coachBtn.classList.toggle("available", allow);
-            if(started && allow && !state.tut.done.coach2) startTutor("coach2", coachBtn, "Upgrade Coach to Lv.2 to progress.");
           }
           const txt=id("coachTxt-"+eid);
           if(!it.coach){
@@ -580,7 +549,7 @@ function renderButtons(){
 }
 function renderAll(){ renderHP(); renderBars(); renderButtons(); }
 
-/* ====== MISSION ====== */
+/* Mission */
 function updateMissionUI(){
   const goals = [
     () => state.items["lift"]?.unlocked ? 1 : 0,
@@ -600,43 +569,7 @@ function updateMissionUI(){
   }
 }
 
-/* ====== TUTORIAL (guarded until started) ====== */
-function startTutor(which, targetEl, msg){
-  if(!started) return; // (FIX) don't show before Start
-  if(!targetEl || state.tut.done[which]) return;
-  if(state.tut.step && state.tut.step!==which) return; // no stacking
-  state.tut.step = which;
-  showTutor(msg, targetEl);
-}
-function completeTutor(which){
-  if(state.tut.step!==which) return;
-  state.tut.done[which]=true; state.tut.step=null; save();
-  id("tutor").classList.remove("on");
-}
-function showTutor(msg, targetEl){
-  const overlay=id("tutor"), card=id("tcard"), finger=id("tfinger");
-  // Only scroll and position after Start
-  if(started){
-    targetEl.scrollIntoView({behavior:"smooth", block:"center"});
-  }
-  setTimeout(()=>{
-    const r=targetEl.getBoundingClientRect();
-    const x = r.left + r.width/2;
-    const y = r.top + window.scrollY + r.height + 24;
-
-    card.textContent = msg;
-    const cardTop = (r.top+window.scrollY) - 70;
-    card.style.left = Math.max(12, x-140) + "px";
-    card.style.top = (cardTop<80? (y+12) : cardTop) + "px";
-
-    finger.style.left = x + "px";
-    finger.style.top  = y + "px";
-
-    overlay.classList.add("on");
-  }, 120);
-}
-
-/* ====== SHARE ====== */
+/* Share */
 function shareProgress(){
   const text=`I just hit ${fmtHP(state.hp)} HP in Fitness Frenzy! 💪`;
   const url=location.href;
@@ -644,54 +577,19 @@ function shareProgress(){
   else { navigator.clipboard?.writeText(`${text} ${url}`); showRibbon("🔗 Link copied — go flex!"); }
 }
 
-/* ====== START / LOOP / BOOT ====== */
+/* Start / loop / boot */
 function startGame(){
-  started=true; // (FIX) tutorials allowed only after this
+  started=true;
   id('intro')?.classList.add('off');
   document.body.classList.remove('intro-open');
-  try{ bgm.play().catch(()=>{}); }catch(e){}
-  isPlaying=true; try{ ensureAC(); }catch(e){}
-  syncMute();
-  // kick off first tutorial gently
-  setTimeout(()=>{ if(!state.tut.done.tap) startTutor("tap", id("tap-walk"), "Tap to walk and earn HP!"); }, 300);
+  firstInteract();
 }
 id("startBtn").addEventListener("click", startGame);
 id("share").addEventListener("click",shareProgress);
 id("new").onclick=()=>{ if(confirm("Start a new game? This wipes progress.")) { newGame(); } };
 
-function loop(){
-  renderBars();
-  requestAnimationFrame(loop);
-}
-
-function loadAll(){
-  load();
-  grantOffline();
-  dailyStreak();
-  build();
-  renderAll();
-  loop();
-}
-
-/* Close specific tutorials only when the action occurs */
-document.addEventListener("click",(e)=>{
-  if(!started) return;
-  const step = state.tut.step;
-  if(!step) return;
-
-  if(step==="tap" && e.target.closest("#tap-walk")) { completeTutor("tap"); return; }
-  if(step==="unlock" && e.target.closest("#unlock-jog")) { completeTutor("unlock"); return; }
-  if(step==="up" && e.target.closest("#up-walk")) { completeTutor("up"); return; }
-  if(step==="coach" && e.target.closest("#coach-walk")) { completeTutor("coach"); return; }
-  if(step==="coach2" && e.target.closest("#coach-walk")) {
-    const it = state.items["walk"];
-    if(it?.coach && (it.coachLevel||1)>=2) completeTutor("coach2");
-    return;
-  }
-}, true);
-
-/* Music + AudioContext on first pointer (mobile) */
-window.addEventListener("pointerdown",()=>{ ensureAC(); if(!isPlaying){ bgm.play().catch(()=>{}); isPlaying=true; syncMute(); } }, {once:true});
+/* Animation loop */
+function loop(){ renderBars(); requestAnimationFrame(loop); }
 
 /* Confetti + Ribbon */
 const cf=id("confetti"); const cfx=cf.getContext("2d"); let confetti=[],confTimer=null;
@@ -699,7 +597,30 @@ function fireConfetti(n=160){cancelAnimationFrame(confTimer);const W=cf.width=in
 
 function showRibbon(text){const rb=$("#ribbon");rb.textContent=text;rb.classList.remove("show");void rb.offsetWidth;rb.classList.add("show");fireConfetti(180); s_cheer();}
 
-/* GO */
+/* Boot */
+function loadAll(){
+  load(); grantOffline(); dailyStreak(); build(); renderAll(); loop();
+}
+function dailyStreak(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayKey = today.getTime();
+  if(state.streak?.lastDay===todayKey) return;
+  const last = state.streak?.lastDay;
+  if(last && todayKey - last === 86400000){ state.streak.count = Math.min((state.streak.count||0)+1,7); }
+  else { state.streak.count = 1; }
+  state.streak.lastDay = todayKey;
+  const reward = 100 * state.streak.count;
+  state.hp += reward;
+  showRibbon(`📆 Daily streak ${state.streak.count}/7: +${fmtCost(reward)} HP`);
+}
+
+/* Start music on first pointer (mobile-safe) */
+window.addEventListener("pointerdown",()=>{ ensureAC(); if(!isPlaying){ try{bgm.play().catch(()=>{})}catch{}; isPlaying=true; syncMute(); } }, {once:true});
+
+/* Resize confetti canvas */
+function fitCanvas(){ cf.width=innerWidth; cf.height=innerHeight; }
+window.addEventListener("resize",fitCanvas); fitCanvas();
+
 loadAll();
 </script>
 </body>
