@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — Core + DOM-Safe Debug (Reps ×2, 6-step speed bar)</title>
+<title>Fitness Frenzy — Balanced Core + Debug</title>
 <style>
   :root{ --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6; --card:#152136; --edge:rgba(255,255,255,.08);
          --accent:#ff7a1a; --accent2:#ffc38f; --good:#2dd36f; }
@@ -82,7 +82,7 @@
       <div class="bar"><i id="cool"></i></div>
       <div class="mini"><i id="mini"></i><div class="lbl" id="miniLbl">0/0</div></div>
       <div class="actions">
-        <button class="btn action" id="rep">Reps ×2 | 10 HP</button>
+        <button class="btn action" id="rep">Reps ×2 (early) → ×1.4 (later) | 12 HP</button>
       </div>
     </div>
   </div>
@@ -90,37 +90,44 @@
 
 <script>
 /* ------- State ------- */
-let hp=0, reps=1, tier=0, steps=0, stepsReq=6, nextReadyMs=0; // stepsReq starts at 6 per your spec
+let hp=0, reps=1, tier=0, steps=0, stepsReq=6, nextReadyMs=0;
 
-/* ------- Tunables ------- */
-const BASE_GAIN=1;                       // Lv1 gain
-const BASE_CD_S=1.00, MIN_CD_S=0.10;    // Cooldown halves each tier
-const REP_BASE=10, REP_MULT=1.28;       // Rep cost curve
-const STEP_GROW=1.6, STEP_BONUS=2;      // Make later tiers a bit harder than 6 (e.g., 6 → ~12 → ~21 …)
+/* ------- Tunables (BALANCE) ------- */
+const BASE_GAIN=1;                        // Lv1 gain
+const BASE_CD_S=1.00, MIN_CD_S=0.25;     // cooldown halves per tier; floor at 0.25s to avoid flicker
+const REP_BASE=12, REP_MULT=1.8;         // cost grows quickly after a few upgrades
+const STEP_GROW=1.85, STEP_BONUS=4;      // 6 → 15 → 32 → 63 …
+
+/* Gain/tap curve:
+   - Reps 1..3: ×1, ×2, ×4  (spicy start)
+   - Reps 4+:   ×(4 * 1.4^(reps-3))  (flatter, keeps progression sane)
+*/
+function repsMultiplier(r){
+  if(r<=1) return 1;
+  if(r===2) return 2;
+  if(r===3) return 4;
+  return 4 * Math.pow(1.4, r-3);
+}
 
 /* ------- Helpers ------- */
 const $ = s => document.getElementById(s);
 function fmtHP(n){ const a=Math.abs(n), d=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   if(a>=1e9) return d(n/1e9)+"B"; if(a>=1e6) return d(n/1e6)+"M"; if(a>=1e3) return d(n/1e3)+"K"; return d(n); }
-function gainPerTap(){
-  // Reps multiply gain by 2 each level: Lv1=1×, Lv2=2×, Lv3=4×, …
-  const mult = Math.pow(2, Math.max(0, reps-1));
-  return Math.max(1, BASE_GAIN * mult);
-}
-function nextRepCost(){ return Math.floor(REP_BASE * Math.pow(REP_MULT, Math.max(0,reps))); }
+function gainPerTap(){ return Math.max(1, Math.floor(BASE_GAIN * repsMultiplier(reps))); }
+function nextRepCost(){ return Math.max(1, Math.floor(REP_BASE * Math.pow(REP_MULT, Math.max(0,reps-1)))); }
 function intervalMs(){ let s = BASE_CD_S / Math.pow(2, tier); if(s<MIN_CD_S) s=MIN_CD_S; return Math.round(s*1000); }
 function canFire(){ return Date.now() >= nextReadyMs; }
 
 /* ------- Audio (tiny) ------- */
 let AC=null, master=null;
 function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C();
-  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch(e){} }
+  master=AC.createGain(); master.gain.value=.9; master.connect(AC.destination);}catch(e){} }
 function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type="triangle"; o.frequency.value=420; o.connect(g); g.connect(master); g.gain.setValueAtTime(.18,t);
-  g.gain.exponentialRampToValueAtTime(.0001,t+.14); o.start(t); o.stop(t+.16);}catch(e){} }
+  o.type="triangle"; o.frequency.value=420; o.connect(g); g.connect(master); g.gain.setValueAtTime(.16,t);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.12); o.start(t); o.stop(t+.14);}catch(e){} }
 function s_up(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type="square"; o.frequency.value=980; o.connect(g); g.connect(master); g.gain.setValueAtTime(.22,t);
-  g.gain.exponentialRampToValueAtTime(.0001,t+.22); o.start(t); o.stop(t+.24);}catch(e){} }
+  o.type="square"; o.frequency.value=980; o.connect(g); g.connect(master); g.gain.setValueAtTime(.2,t);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.2); o.start(t); o.stop(t+.22);}catch(e){} }
 
 /* ------- VFX ------- */
 function bopTap(){ const el=$('tap'); if(!el) return; el.classList.remove('bop'); void el.offsetWidth; el.classList.add('bop'); }
@@ -151,12 +158,12 @@ function buyRep(){
   const cost = nextRepCost();
   if(hp < cost) return;
   hp -= cost;
-  reps += 1;        // doubles Gain/tap each time
-  steps += 1;       // progress to 2× speed (cooldown halved)
+  reps += 1;        // boosts Gain/tap
+  steps += 1;       // contributes to speed tier
   if(steps >= stepsReq){
     steps = 0;
-    tier += 1;      // 1.00s → 0.50s → 0.25s …
-    stepsReq = Math.ceil(stepsReq * STEP_GROW + STEP_BONUS); // gets harder after the first 6
+    tier += 1;      // halves cooldown
+    stepsReq = Math.ceil(stepsReq * STEP_GROW + STEP_BONUS);
   }
   s_up(); render();
 }
@@ -174,7 +181,7 @@ function render(){
 
   const cost = nextRepCost();
   if(repBtn){
-    repBtn.textContent = `Reps ×2 | ${cost.toLocaleString()} HP`;
+    repBtn.textContent = `Reps ×2 (early) → ×1.4 (later) | ${cost.toLocaleString()} HP`;
     const can = hp >= cost;
     repBtn.disabled = !can;
     repBtn.classList.toggle('glitter', can);
@@ -229,11 +236,9 @@ if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoad
     document.getElementById('ffClick').textContent = 'Last click on: ' + id;
   }, true);
   function probe(){
-    var tap = document.getElementById('tap');
-    var info = document.getElementById('ffTop');
+    var tap = document.getElementById('tap'); var info = document.getElementById('ffTop');
     if(!tap){ info.textContent = 'Top element over tap: (no #tap on page)'; return; }
-    var r = tap.getBoundingClientRect();
-    var x = Math.round(r.left + r.width/2), y = Math.round(r.top + r.height/2);
+    var r = tap.getBoundingClientRect(); var x = Math.round(r.left + r.width/2), y = Math.round(r.top + r.height/2);
     var el = document.elementFromPoint(x, y);
     info.textContent = 'Top element over tap: ' + (el ? (el.id || el.tagName) : 'none');
   }
