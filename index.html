@@ -46,7 +46,7 @@ header{
 .hp small{font-weight:800;opacity:.9;background:rgba(255,255,255,.08);padding:.16em .45em;border-radius:.35em;margin-left:.45rem}
 .head-actions{display:flex;gap:8px;align-items:center}
 
-/* Icon-only mute */
+/* Icon-only buttons (mute/new) */
 .iconbtn{
   position:relative; width:44px; height:44px; border-radius:12px; border:1px solid var(--edge);
   background:#0f1926; color:#fff; display:grid; place-items:center; cursor:pointer;
@@ -58,7 +58,7 @@ header{
 }
 
 /* Content wrapper */
-.wrap{max-width:1080px;margin:10px auto 110px;padding:0 14px}
+.wrap{max-width:1080px;margin:10px auto 80px;padding:0 14px}
 
 /* Cards */
 .card{
@@ -92,15 +92,18 @@ header{
 .avatarbtn.animate .emoji{animation:bop .22s ease}
 @keyframes bop{0%{transform:scale(.94) rotate(-2deg)}50%{transform:scale(1.12) rotate(2deg)}100%{transform:scale(1)}}
 
-/* Mini progress-to-next-Rep bar inside avatar (GREEN) */
+/* Mini progress-to-next-Rep bar inside avatar (GREEN) with fraction text */
 .avatar-mini{
-  position:absolute;left:8px;right:8px;bottom:8px;height:10px;border-radius:8px;
-  background:#0b1219;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)
+  position:absolute;left:8px;right:8px;bottom:8px;height:12px;border-radius:8px;
+  background:#0b1219;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;color:#0b1219;
 }
 .avatar-mini i{
-  display:block;height:100%;width:0%;
+  position:absolute;left:0;top:0;height:100%;width:0%;
   background:linear-gradient(90deg,#9cffbd,#2dd36f);
+  z-index:0;
 }
+.avatar-mini span{position:relative;z-index:1;mix-blend-mode:luminosity}
 
 /* Lock */
 .lockedTone{filter:grayscale(.75) brightness(.85); opacity:.9}
@@ -131,28 +134,19 @@ header{
   height:46px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
   border:1px solid var(--edge);border-radius:12px;padding:10px 12px;font-weight:800;background:#0e1724;color:#fff;cursor:pointer;
 }
-.action{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent}
+.action{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent;position:relative}
 .secondary{background:#0e1724;color:#fff;border:1px solid var(--edge)}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 
-/* Glitter only when affordable */
-.glitter.available::after{
+/* SHINE — contained to the button only */
+.btn.glitter.available::after{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,.18) 25%, rgba(255,255,255,.35) 33%, transparent 45%);
   transform:translateX(-120%); filter:blur(.6px);
   animation:shine 1.15s ease-in-out infinite;
+  border-radius:12px;
 }
 @keyframes shine{0%{transform:translateX(-120%)}60%{transform:translateX(0%)}100%{transform:translateX(120%)}}
-
-/* Mobile footer (mute only) */
-.footer{
-  position:fixed;left:0;right:0;bottom:0;z-index:1000;
-  display:flex;gap:10px;align-items:center;justify-content:flex-end;
-  padding:10px max(10px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-  background:rgba(15,21,33,.85); backdrop-filter: blur(10px);
-  border-top:1px solid var(--edge);
-}
-.footer .iconbtn{min-width:44px}
 
 /* Intro */
 body.intro-open{overflow:hidden}
@@ -165,7 +159,7 @@ body.intro-open{overflow:hidden}
 .introCard h1{margin:0 0 6px;font:900 clamp(22px,6vw,28px)/1.1 system-ui}
 .startBtn{margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,#ff8b3a,#ff7a1a);border:0;border-radius:12px;color:#1b0e03;font-weight:900;padding:10px 14px;cursor:pointer}
 
-/* Confetti/Ribbon + burst */
+/* Confetti/Ribbon + bursts */
 .ribbon{position:fixed;top:-60px;left:50%;transform:translateX(-50%);
   background:#152136;border:1px solid var(--edge);color:#eaf1fb;
   padding:10px 16px;border-radius:999px;font-weight:900;z-index:120;
@@ -174,6 +168,7 @@ body.intro-open{overflow:hidden}
 @keyframes slideDown{to{top:14px}} @keyframes slideUp{to{top:-60px}}
 #confetti{pointer-events:none;position:fixed;inset:0;z-index:110}
 .burst{position:absolute;left:0;top:0;pointer-events:none;z-index:1300;font-size:20px}
+.hpBurst{font-size:22px; text-shadow:0 1px 2px rgba(0,0,0,.25)}
 </style>
 </head>
 <body class="intro-open">
@@ -183,7 +178,7 @@ body.intro-open{overflow:hidden}
 <div id="intro">
   <div class="introCard">
     <h1>Fitness Frenzy</h1>
-    <p>Tap to earn <b>HP (Health Points)</b>. Increase <b>Reps</b> to raise HP/tap and reduce cooldown (never below <b>0.10s</b>). Hire a <b>Coach</b> later for x2 speed.</p>
+    <p>Tap to earn <b>HP (Health Points)</b>. Buy <b>Reps</b> to gain more HP/tap. Fill the green bar (e.g. <b>8/20</b>) to reach the next <b>Speed Tier</b>—when full, your cooldown <b>halves</b> (never below <b>0.10s</b>), and the bar resets with a higher requirement.</p>
     <button class="startBtn" id="startBtn">Start Workout ▶</button>
   </div>
 </div>
@@ -197,7 +192,7 @@ body.intro-open{overflow:hidden}
     <button class="iconbtn" id="muteTop" aria-label="Toggle sound">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zM16 7.82v8.36c1.76-.97 3-2.85 3-4.82s-1.24-3.85-3-4.82z"/></svg>
     </button>
-    <button class="iconbtn" id="new" title="New Game" aria-label="New Game">🗘</button>
+    <button class="iconbtn" id="new" title="Menu / New Game" aria-label="Menu">🗘</button>
   </div>
 </header>
 
@@ -205,64 +200,56 @@ body.intro-open{overflow:hidden}
   <div id="list"></div>
 </div>
 
-<!-- Mobile footer (mute only) -->
-<div class="footer">
-  <button class="iconbtn" id="muteBottom" aria-label="Toggle sound">
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zM16 7.82v8.36c1.76-.97 3-2.85 3-4.82s-1.24-3.85-3-4.82z"/></svg>
-  </button>
-</div>
-
 <div class="ribbon" id="ribbon">🎉</div>
 <audio id="bgm" preload="auto" loop crossorigin="anonymous"></audio>
 
 <script>
-/* ========= CORE ========= */
+/* ========= CONFIG ========= */
 const RAW_BASE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/";
 const MUSIC_URL = RAW_BASE + "Velvet%20Haze%20-%20Take%20a%20Seat%20-%20Instrumental%20version.mp3";
-const STORAGE="ff_balanced_v3";
+const STORAGE="ff_stepspeed_v1";
 
-/* Exercises: id,name,emoji,baseGain,baseInterval,baseRepCost,repCostMult,gainMult,unlockCost, burstEmoji */
+/* Exercises:
+   id, name, emoji, baseGain, baseInterval, baseRepCost, repCostMult, gainMultPerRep, unlockCost, burstEmoji,
+   startStepsRequired
+*/
 const EX=[
-  ["walk","Walking","👟",  1, 1.00,  10, 1.35, 1.12,   0,  "👟"],
-  ["jog","Jogging","🏃‍♂️", 6, 3.00,  60, 1.38, 1.13,  60,  "🏁"],
-  ["yoga","Yoga","🧘‍♂️",  22, 5.00, 260, 1.42, 1.14, 180, "🧘"],
-  ["cycle","Cycling","🚴‍♂️", 80, 8.00, 1200,1.45, 1.15, 720,"🚴"],
-  ["lift","Weight Lifting","🏋️‍♂️", 300,12.0, 6800,1.48,1.16, 2500,"🏋️"],
+  ["walk","Walking","👟",   1, 1.00,  10, 1.35, 1.10,   0,  "✨", 10],
+  ["jog","Jogging","🏃‍♂️",  6, 3.00,  60, 1.38, 1.11,  60,  "✨", 12],
+  ["yoga","Yoga","🧘‍♂️",    22,5.00, 260, 1.42, 1.12, 180, "✨", 14],
+  ["cycle","Cycling","🚴‍♂️", 80,8.00,1200, 1.45, 1.13, 720, "✨", 16],
+  ["lift","Weight Lifting","🏋️‍♂️",300,12.0,6800,1.48, 1.14,2500, "✨", 18],
 ];
 
-const COACH_BASE = 800;       // base
-const COACH_SCALE = 3.0;      // index factor
-const MIN_INTERVAL = 0.10;    // cap
+const COACH_PLACEHOLDER = true; // show but disabled for now
+const MIN_INTERVAL = 0.10;
 
-/* State */
+/* ========= STATE ========= */
 let state={ hp:0, items:{}, lastSeen:Date.now() };
-const tmp={}; // per-ex timers
-let isPlaying=false;
+const tmp={}; let isPlaying=false;
 
-/* Helpers */
+/* ========= HELPERS ========= */
 const $=s=>document.querySelector(s), id=s=>document.getElementById(s);
 const now=()=>performance.now()/1000;
 function fmtHP(n){ const a=Math.abs(n); const d=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   if(a>=1e9) return d(n/1e9)+"B"; if(a>=1e6) return d(n/1e6)+"M"; if(a>=1e3) return d(n/1e3)+"K"; return d(n); }
 function fmtCost(n){ n=Math.floor(n); const a=Math.abs(n); const f=v=>Number.isInteger(v)?v.toString():v.toFixed(1).replace(/\.0$/,'');
   if(a>=1e9) return f(n/1e9)+"B"; if(a>=1e6) return f(n/1e6)+"M"; if(a>=1e3) return f(n/1e3)+"K"; return String(n); }
-function repCost(ex, lvl){ return Math.floor(ex[5] * Math.pow(ex[6], Math.max(0,lvl-1))); } // steeper cost
-function gainPerTap(ex, lvl){ return Math.floor(ex[3] * Math.pow(ex[7], Math.max(0,lvl-1))); } // gentler growth
-function intervalFor(ex, lvl, hasCoach){
-  const base = ex[4] * Math.pow(0.92, Math.max(0,lvl-1)); // reps reduce 8%-> now 8% (0.92 factor)
-  const sped = hasCoach ? base/2 : base;
-  return Math.max(MIN_INTERVAL, sped);
-}
 
-/* Audio */
+/* Mechanics:
+   - Each Rep purchase increments steps.
+   - Gain per tap increases every Rep by gainMultPerRep.
+   - When steps >= stepsRequired, speedTier++, cooldown halves, steps reset, stepsRequired grows.
+*/
+function nextRepCost(ex, reps){ return Math.floor(ex[5] * Math.pow(ex[6], Math.max(0,reps-1))); }
+function gainPerTap(ex, reps){ return Math.floor(ex[3] * Math.pow(ex[7], Math.max(0,reps-1))); }
+function intervalFor(ex, tier){ const base = ex[4] / Math.pow(2, Math.max(0,tier)); return Math.max(MIN_INTERVAL, base); }
+function growStepsRequired(req){ return Math.ceil(req * 1.35 + 2); } // ramps up reasonably
+
+/* ========= AUDIO ========= */
 const bgm=id("bgm"); bgm.src=MUSIC_URL; bgm.volume=0.22;
-function setMuteUI(){
-  const muted = bgm.muted;
-  id("muteTop").classList.toggle("muted", muted);
-  id("muteBottom").classList.toggle("muted", muted);
-}
+function setMuteUI(){ id("muteTop").classList.toggle("muted", bgm.muted); }
 id("muteTop").onclick=()=>{ bgm.muted=!bgm.muted; setMuteUI(); };
-id("muteBottom").onclick=()=>{ bgm.muted=!bgm.muted; setMuteUI(); };
 
 let AC=null, master=null, noiseBuf=null;
 function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination); noiseBuf=mkNoise(.18);}catch{} }
@@ -272,19 +259,28 @@ function s_upgrade(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.create
 function s_coin(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=760;o.connect(g);g.connect(master);g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.start(t);o.stop(t+.2);}catch{} }
 function s_cheer(){ try{ ensureAC(); const t=AC.currentTime; const ns=AC.createBufferSource(); ns.buffer=noiseBuf; const hp=AC.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=420; const g1=AC.createGain(); g1.gain.value=.35; ns.connect(hp); hp.connect(g1); g1.connect(master); g1.gain.setValueAtTime(0,t); g1.gain.linearRampToValueAtTime(.35,t+.02); g1.gain.exponentialRampToValueAtTime(.0001,t+.6); ns.start(t); ns.stop(t+.62);}catch{} }
 
-/* Save/Load */
+/* ========= SAVE/LOAD ========= */
 function load(){
   try{const raw=localStorage.getItem(STORAGE); if(raw){ const parsed=JSON.parse(raw); state=Object.assign(state,parsed);} }catch{}
   EX.forEach((ex,i)=>{
     const eid=ex[0];
-    if(!state.items[eid]) state.items[eid]={ unlocked: i===0, reps: Math.max(1, i===0?1:0), coach:false, next:0, taps:0 };
+    if(!state.items[eid]) state.items[eid]={
+      unlocked: i===0,
+      reps: i===0?1:0,
+      steps: 0,
+      stepsReq: ex[10],
+      tier: 0,     // how many times halved
+      coach:false,
+      next:0,
+      taps:0
+    };
     tmp[eid]={timer:null};
   });
 }
 function save(){ state.lastSeen=Date.now(); try{localStorage.setItem(STORAGE,JSON.stringify(state));}catch{} }
 function newGame(){ try{localStorage.removeItem(STORAGE);}catch{}; state={hp:0,items:{},lastSeen:Date.now()}; load(); build(); renderAll(); }
 
-/* Build UI */
+/* ========= BUILD UI ========= */
 function build(){
   const host=$("#list"); host.innerHTML="";
   EX.forEach((ex,i)=>{
@@ -292,8 +288,6 @@ function build(){
     const it=state.items[eid]; const unlocked=it.unlocked;
 
     const card=document.createElement("div"); card.className="card"; card.dataset.id=eid;
-
-    const coachCost = Math.floor((COACH_BASE + unlockCost*2) * (1 + i/COACH_SCALE));
 
     const metaUnlocked = `
       <h3>${name}</h3>
@@ -311,57 +305,50 @@ function build(){
     card.innerHTML = `
       <button type="button" class="avatarbtn ${unlocked?'':'lockedTone'}" id="tap-${eid}" ${unlocked?``:`disabled`} aria-label="${unlocked?'Perform '+name:'Locked'}">
         <div class="emoji">${emoji}</div>
-        <div class="avatar-mini"><i id="mini-${eid}"></i></div>
+        <div class="avatar-mini"><i id="mini-${eid}"></i><span id="miniTxt-${eid}">0/0</span></div>
       </button>
       <div class="meta">${unlocked?metaUnlocked:metaLocked}</div>
       <div class="actions" id="actions-${eid}">
         ${unlocked
           ? `<button class="btn action" id="rep-${eid}">Reps</button>
-             <button class="btn secondary" id="coach-${eid}" ${ (it.reps>=3 && !it.coach) ? "" : "disabled" }>
-               <span>🧑‍💼 Coach</span>
-             </button>`
+             <button class="btn secondary" id="coach-${eid}" disabled title="Coach coming soon">🧑‍💼 Coach</button>`
           : `<button class="btn action" id="unlock-${eid}">Unlock | ${fmtCost(unlockCost)} HP</button>`}
       </div>
     `;
     host.appendChild(card);
 
     if(unlocked){
-      // Tap – play SFX only if activation actually happens
+      // Tap (play SFX only on real activation)
       const tap = id("tap-"+eid);
       const handler = (e)=>{ e.preventDefault(); firstInteract();
-        if (perform(eid)) { s_click(); } // play only on true perform
+        if (perform(eid)) { s_click(); }
       };
       tap.addEventListener("pointerdown",handler,{passive:false});
       tap.addEventListener("click",handler);
       tap.addEventListener("touchstart",handler,{passive:false});
 
-      // Reps
+      // Reps (steps toward speed tier)
       id("rep-"+eid).addEventListener("click",()=>{
-        const nextLvl = (it.reps||1)+1;
-        const cost = repCost(ex, nextLvl);
+        const next = (it.reps||1)+1;
+        const cost = nextRepCost(ex, next);
         if(state.hp>=cost){
-          state.hp -= cost; it.reps = nextLvl; s_upgrade();
-          const coachBtn = id("coach-"+eid);
-          if(it.reps>=3 && !it.coach) coachBtn.disabled=false;
+          state.hp -= cost; it.reps = next; it.steps += 1; s_upgrade();
+          hpBurst(id("rep-"+eid), 12); // bigger HP foreground burst
+          // Check speed tier threshold
+          if(it.steps >= it.stepsReq){
+            it.steps = 0;
+            it.tier += 1; // halves cooldown via intervalFor()
+            it.stepsReq = growStepsRequired(it.stepsReq);
+            showRibbon(`⚡ ${name} faster! New cooldown: ${intervalFor(ex,it.tier).toFixed(2)}s`);
+          }
           renderAll(); save();
         }
-      });
-
-      // Coach (x2 speed)
-      const coachBtn = id("coach-"+eid);
-      coachBtn?.addEventListener("click",()=>{
-        if(it.coach) return;
-        const price = coachCost;
-        if(state.hp<price) return;
-        state.hp -= price; it.coach = true; s_coin(); startCoach(eid);
-        showRibbon(`🧑‍💼 Coach hired for ${name} (x2 speed)`);
-        coachBtn.disabled = true; renderAll(); save();
       });
     }else{
       id("unlock-"+eid).addEventListener("click",()=>{
         const cost = unlockCost;
         if(state.hp<cost) return;
-        state.hp -= cost; it.unlocked=true; it.reps=1; s_coin(); showRibbon(`✨ Unlocked ${name}!`);
+        state.hp -= cost; it.unlocked=true; it.reps=1; it.steps=0; s_coin(); showRibbon(`✨ Unlocked ${name}!`);
         build(); renderAll(); save();
       });
     }
@@ -373,7 +360,7 @@ function build(){
   teaser.innerHTML=`
     <button type="button" class="avatarbtn lockedTone" disabled>
       <div class="emoji">🏆</div>
-      <div class="avatar-mini"><i style="width:${pct}%;"></i></div>
+      <div class="avatar-mini"><i style="width:${pct}%"></i><span>${pct}%</span></div>
     </button>
     <div class="meta">
       <h3>Ultimate Trainer</h3>
@@ -388,7 +375,7 @@ function build(){
   $("#share2").addEventListener("click",shareProgress);
 }
 
-/* Interactions */
+/* ========= GAMEPLAY ========= */
 function firstInteract(){
   if(!isPlaying){
     try{ bgm.play().catch(()=>{}); }catch(e){}
@@ -397,52 +384,39 @@ function firstInteract(){
   const intro=$("#intro"); if(intro && !intro.classList.contains("off")) { intro.classList.add("off"); document.body.classList.remove("intro-open"); }
 }
 
-/* Perform returns true if activation happened (for sound gating) */
+/* Perform returns true if activation happened */
 function perform(eid){
   const ex = EX.find(x=>x[0]===eid), it=state.items[eid];
   const t=now();
-  const interval = intervalFor(ex, it.reps||1, it.coach);
-  if(t < (it.next||0)) return false; // no activation -> no SFX
+  const interval = intervalFor(ex, it.tier||0);
+  if(t < (it.next||0)) return false;
 
   it.next = t + interval;
 
-  let gain = gainPerTap(ex, it.reps||1);
+  // Gain depends on Reps
+  const gain = Math.max(1, gainPerTap(ex, it.reps||1));
   state.hp += gain; it.taps++;
 
   const tapEl=id("tap-"+eid);
   tapEl.classList.remove("animate"); void tapEl.offsetWidth; tapEl.classList.add("animate");
+  whiteSparkles(tapEl, 10); // subtle ✨
   floatHP(tapEl, gain);
-  emojiBurst(tapEl, ex[9]); // single-theme emoji
 
   renderAll(); save();
   return true;
 }
 
-function startCoach(eid){
-  const it=state.items[eid]; if(!it.coach) return;
-  stopCoach(eid);
-  const tick=()=>{
-    perform(eid);
-    const ex=EX.find(x=>x[0]===eid);
-    const interval = intervalFor(ex, it.reps||1, true);
-    tmp[eid].timer = setTimeout(tick, Math.max(80, interval*1000));
-  };
-  tmp[eid].timer = setTimeout(tick, 0);
-}
-function stopCoach(eid){ if(tmp[eid].timer){ clearTimeout(tmp[eid].timer); tmp[eid].timer=null; }}
-
-/* Rendering */
+/* ========= RENDER ========= */
 function renderAll(){
   id("hp").innerHTML = `${fmtHP(state.hp)} <small>HP</small>`;
 
   EX.forEach((ex,i)=>{
-    const [eid,name,emoji,, , , , ,unlockCost,burst] = ex; const it=state.items[eid];
+    const [eid,name,emoji,,, , , ,unlockCost,burst] = ex; const it=state.items[eid];
     const unlocked=it.unlocked;
 
     if(unlocked){
-      const t=now();
-      const interval = intervalFor(ex, it.reps||1, it.coach);
-      const left = Math.max(0,(it.next||0)-t);
+      const interval = intervalFor(ex, it.tier||0);
+      const left = Math.max(0,(it.next||0)-now());
       const pct = 1 - Math.min(1, left/interval);
 
       const barWrap=id("coolbar-"+eid);
@@ -458,71 +432,59 @@ function renderAll(){
       }
       const tap=id("tap-"+eid); if(tap){
         tap.classList.toggle("ready", left<=0);
-        tap.classList.toggle("needGlow", left<=0 && !it.coach);
+        tap.classList.toggle("needGlow", left<=0);
       }
 
       // Stats
       const repLv = it.reps||1;
       const gain = gainPerTap(ex, repLv);
       const cd = interval.toFixed(2).replace(/\.00$/,'');
-      const nextRepCost = repCost(ex, repLv+1);
+      const nextCost = nextRepCost(ex, repLv+1);
 
       const replv=id("replv-"+eid); if(replv) replv.textContent=repLv;
       const ge=id("gain-"+eid); if(ge) ge.textContent=fmtCost(gain);
       const ce=id("cd-"+eid); if(ce) ce.textContent=cd;
 
-      const repstat=id("repstat-"+eid);
-      if(repstat){ repstat.innerHTML = `Next Rep: <b>${fmtCost(nextRepCost)} HP</b>`; }
-
-      const coachBtn = id("coach-"+eid);
-      const coachstat=id("coachstat-"+eid);
-      const cPrice = Math.floor((COACH_BASE + unlockCost*2) * (1 + i/COACH_SCALE));
-      if(coachBtn && coachstat){
-        if(repLv>=3 && !it.coach){
-          coachBtn.disabled = state.hp<cPrice;
-          coachstat.innerHTML = `Coach: <b>${fmtCost(cPrice)} HP</b><br/><small style="color:#9fb0c6">🧑‍💼 x2 speed</small>`;
-          coachBtn.classList.toggle("glitter", state.hp>=cPrice);
-          coachBtn.classList.toggle("available", state.hp>=cPrice);
-        }else if(it.coach){
-          coachBtn.disabled = true;
-          coachstat.innerHTML = `Coach: <b>Active</b><br/><small style="color:#9fb0c6">🧑‍💼 x2 speed</small>`;
-          coachBtn.classList.remove("glitter","available");
-        }else{
-          coachBtn.disabled = true;
-          coachstat.innerHTML = `Coach: <span style="color:#9fb0c6">Unlock after Rep Lv.3</span>`;
-          coachBtn.classList.remove("glitter","available");
-        }
-      }
-
-      // Mini green bar toward next Rep
-      const mini=id("mini-"+eid);
-      if(mini){
-        const pctAff = Math.max(0, Math.min(1, state.hp / Math.max(1,nextRepCost))) * 100;
-        mini.style.width = pctAff.toFixed(0)+"%";
-      }
-
-      // Buttons
+      // Two-line stats, button-only glitter
       const repBtn=id("rep-"+eid);
       if(repBtn){
-        repBtn.textContent = `Reps | ${fmtCost(nextRepCost)} HP`;
-        repBtn.disabled = state.hp<nextRepCost;
-        repBtn.classList.toggle("glitter", state.hp>=nextRepCost);
-        repBtn.classList.toggle("available", state.hp>=nextRepCost);
+        repBtn.textContent = `Reps | ${fmtCost(nextCost)} HP`;
+        const can = state.hp>=nextCost;
+        repBtn.disabled = !can;
+        repBtn.classList.toggle("glitter", can);
+        repBtn.classList.toggle("available", can);
+      }
+
+      // Coach placeholder text
+      const coachstat=id("coachstat-"+eid);
+      if(coachstat){
+        coachstat.innerHTML = `Coach: <span style="color:#9fb0c6">🧑‍💼 Coming soon</span>`;
+      }
+
+      // Mini green bar shows steps toward next speed tier as "x/y"
+      const mini=id("mini-"+eid), miniTxt=id("miniTxt-"+eid);
+      if(mini && miniTxt){
+        const x = it.steps||0, y = it.stepsReq||ex[10];
+        const p = Math.max(0, Math.min(1, y? x/y : 0)) * 100;
+        mini.style.setProperty('--p', p.toFixed(0));
+        mini.querySelector('i').style.width = p.toFixed(0)+"%";
+        miniTxt.textContent = `${x}/${y}`;
       }
     }else{
-      // Locked: show only unlock in actions and meta text has cost
+      // Locked
       const actions=id("actions-"+eid);
       if(actions){ actions.querySelectorAll(".btn").forEach(b=>{ if(!b.id.startsWith("unlock-")) b.style.display="none"; }); }
-      const mini=id("mini-"+eid);
-      if(mini){
-        const pct = Math.max(0, Math.min(1, state.hp / Math.max(1,unlockCost))) * 100;
-        mini.style.width = pct.toFixed(0)+"%";
+      const mini=id("mini-"+eid), miniTxt=id("miniTxt-"+eid);
+      if(mini && miniTxt){
+        const p = Math.max(0, Math.min(1, state.hp / Math.max(1,unlockCost))) * 100;
+        mini.querySelector('i').style.width = p.toFixed(0)+"%";
+        miniTxt.textContent = `${fmtCost(Math.floor(state.hp))}/${fmtCost(unlockCost)}`;
       }
     }
   });
 }
 
-/* Floaters & burst */
+/* ========= VFX ========= */
 function floatHP(anchor, amt){
   const n=document.createElement("div"); n.textContent="+"+fmtCost(amt)+" HP";
   n.style.position="absolute"; n.style.left="0"; n.style.top="0"; n.style.pointerEvents="none"; n.style.zIndex=1300; n.style.fontWeight="900";
@@ -534,17 +496,30 @@ function floatHP(anchor, amt){
             {duration:820,easing:"ease-out"});
   setTimeout(()=>n.remove(),840)
 }
-function emojiBurst(anchor, emoji){
+function whiteSparkles(anchor, count=10){
   const r=anchor.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2+window.scrollY;
-  for(let i=0;i<10;i++){
-    const e=document.createElement("div"); e.className="burst"; e.textContent=emoji;
+  for(let i=0;i<count;i++){
+    const e=document.createElement("div"); e.className="burst"; e.textContent="✨";
     e.style.left=cx+"px"; e.style.top=cy+"px";
     document.body.appendChild(e);
     const dx=(Math.random()-0.5)*120, dy=-60 - Math.random()*60, rot=(Math.random()*60-30);
     e.animate([{transform:`translate(-50%,-50%) translate(0,0) rotate(0deg)`,opacity:1},
                {transform:`translate(-50%,-50%) translate(${dx}px,${dy}px) rotate(${rot}deg)`,opacity:0}],
-               {duration:700+Math.random()*300,easing:"cubic-bezier(.2,.8,.2,1)"});
-    setTimeout(()=>e.remove(),1100);
+               {duration:650+Math.random()*250,easing:"cubic-bezier(.2,.8,.2,1)"});
+    setTimeout(()=>e.remove(),1000);
+  }
+}
+function hpBurst(anchor, count=10){
+  const r=anchor.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2+window.scrollY;
+  for(let i=0;i<count;i++){
+    const e=document.createElement("div"); e.className="burst hpBurst"; e.textContent="🅷🅿";
+    e.style.left=cx+"px"; e.style.top=cy+"px";
+    document.body.appendChild(e);
+    const dx=(Math.random()-0.5)*150, dy=-80 - Math.random()*80, rot=(Math.random()*60-30);
+    e.animate([{transform:`translate(-50%,-50%) translate(0,0) rotate(0deg)`,opacity:1},
+               {transform:`translate(-50%,-50%) translate(${dx}px,${dy}px) rotate(${rot}deg)`,opacity:.15}],
+               {duration:900+Math.random()*400,easing:"cubic-bezier(.2,.8,.2,1)"});
+    setTimeout(()=>e.remove(),1300);
   }
 }
 
@@ -553,7 +528,7 @@ const cf=id("confetti"); const cfx=cf.getContext("2d"); let confetti=[],confTime
 function fireConfetti(n=140){cancelAnimationFrame(confTimer);const W=cf.width=innerWidth,H=cf.height=innerHeight;confetti=Array.from({length:n},()=>({x:Math.random()*W,y:-10,vy:2+Math.random()*3,vx:(Math.random()-.5)*2,s:2+Math.random()*4,c:`hsl(${Math.random()*360},90%,60%)`,r:Math.random()*Math.PI}));(function loopC(){cfx.clearRect(0,0,W,H);confetti.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.1;cfx.save();cfx.translate(p.x,p.y);cfx.rotate(p.r);cfx.fillStyle=p.c;cfx.fillRect(-p.s/2,-p.s/2,p.s,p.s);cfx.restore();});confTimer=requestAnimationFrame(loopC); if(confetti.every(p=>p.y>H+20)) cancelAnimationFrame(confTimer);})(); }
 function showRibbon(text){const rb=$("#ribbon");rb.textContent=text;rb.classList.remove("show");void rb.offsetWidth;rb.classList.add("show");fireConfetti(160); s_cheer();}
 
-/* Share (teaser button uses this) */
+/* Share (future) */
 function shareProgress(){
   const text=`I just hit ${fmtHP(state.hp)} HP in Fitness Frenzy! 💪`;
   const url=location.href;
@@ -561,11 +536,10 @@ function shareProgress(){
   else { navigator.clipboard?.writeText(`${text} ${url}`); showRibbon("🔗 Link copied — go flex!"); }
 }
 
-/* Start / New / Loop */
+/* ========= START / LOOP ========= */
 id("startBtn").addEventListener("click",()=>{ firstInteract(); $("#intro").classList.add("off"); document.body.classList.remove("intro-open"); });
 id("new").onclick=()=>{ if(confirm("Start a new game? This wipes progress.")) newGame(); };
 
-/* Loop: drive cooldown bars */
 function loop(){ renderAll(); requestAnimationFrame(loop); }
 
 /* Music policy (mobile) */
