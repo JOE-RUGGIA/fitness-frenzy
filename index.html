@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Fitness Frenzy — Classic + Green Tier Bar</title>
+<title>Fitness Frenzy — Classic Stable</title>
 <style>
 :root{
   --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
@@ -59,15 +59,6 @@ header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12
 @keyframes needBlink{50%{box-shadow:0 0 12px 2px rgba(58,160,255,.35),0 0 0 4px rgba(255,122,26,.18) inset}}
 .lockedTone{filter:grayscale(.75) brightness(.85);opacity:.9}
 
-/* Green tier bar in avatar with fraction */
-.avatar-mini{
-  position:absolute;left:8px;right:8px;bottom:8px;height:12px;border-radius:8px;background:#0b1219;
-  overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
-  display:flex;align-items:center;justify-content:center;font:900 11px/1 system-ui;color:#0b1219;
-}
-.avatar-mini i{position:absolute;left:0;top:0;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
-.avatar-mini span{position:relative;z-index:1;mix-blend-mode:luminosity}
-
 /* Cooldown bar (orange) */
 .bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:10px}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
@@ -79,21 +70,10 @@ header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12
   border-radius:12px;padding:0 12px;font-weight:900;background:#0e1724;color:#fff;cursor:pointer;position:relative}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 .action{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent}
-
-/* Shine only inside the button */
 .btn.glitter.available::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:12px;
   background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.18) 25%,rgba(255,255,255,.35) 33%,transparent 45%);
   transform:translateX(-120%);animation:shine 1.15s ease-in-out infinite;filter:blur(.6px)}
 @keyframes shine{0%{transform:translateX(-120%)}60%{transform:translateX(0)}100%{transform:translateX(120%)}}
-
-/* Rep button bounce (more noticeable when affordable) */
-.btn.bounce{animation:btnBounce 0.95s ease-in-out infinite}
-@keyframes btnBounce{
-  0%,100%{transform:translateZ(0) scale(1)}
-  50%{transform:translateZ(0) scale(1.06)}
-}
-.btn.clicked{animation:clickPop .18s ease}
-@keyframes clickPop{0%{transform:scale(1)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
 
 /* Intro */
 #intro{position:fixed;inset:0;display:grid;place-items:center;background:rgba(8,12,20,.65);z-index:5000}
@@ -115,7 +95,7 @@ header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12
 <div id="intro">
   <div class="introCard">
     <h1>Fitness Frenzy</h1>
-    <p>Tap to earn <b>HP (Health Points)</b>. Buy <b>Reps</b> to earn more HP per tap. Fill the green bar (e.g. <b>3/10</b>) to unlock a <b>Speed Tier</b>—your cooldown halves (min <b>0.10s</b>), then the bar resets with a higher requirement.</p>
+    <p>Tap to earn <b>HP (Health Points)</b>. Buy <b>Reps</b> to increase HP/tap and reduce cooldown (min <b>0.10s</b>). Hire a <b>Coach</b> at 1,000 HP to automate taps.</p>
     <button class="startBtn" id="startBtn">Start Workout ▶</button>
   </div>
 </div>
@@ -141,22 +121,23 @@ header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12
 /* ---------- Config ---------- */
 const RAW = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/";
 const MUSIC = RAW + "Velvet%20Haze%20-%20Take%20a%20Seat%20-%20Instrumental%20version.mp3";
-const STORAGE="ff_classic_greenbar_v1";
+const STORAGE="ff_classic_stable_v1";
 const MIN_INTERVAL=0.10;
 const COACH_UNLOCK=1000;
 
-/* id, name, emoji, baseGain, baseInterval(s), repCostBase, repCostMult, gainMultPerRep, unlockCost, stepsReqStart */
+/* exercises: id, name, emoji, baseGain, baseInterval(s), repCostBase, repCostMult, gainMultPerRep, unlockCost */
 const EX = [
-  ["walk","Walking","👟", 1, 1.00, 10, 1.28, 1.15,   0, 6],  // walking back to 1.0s
-  ["jog", "Jogging","🏃‍♂️",6, 2.00, 60, 1.32, 1.14,  60, 8],
-  ["yoga","Yoga","🧘‍♂️",22, 4.00,260, 1.36, 1.13, 180,10],
-  ["cycle","Cycling","🚴‍♂️",80, 6.00,900, 1.40, 1.12, 720,12],
-  ["lift","Weight Lifting","🏋️‍♂️",300,8.00,2400,1.45, 1.12,2500,14],
+  ["walk","Walking","👟", 1, 0.50, 10, 1.28, 1.15,   0],
+  ["jog", "Jogging","🏃‍♂️",6, 2.00, 60, 1.32, 1.14,  60],
+  ["yoga","Yoga","🧘‍♂️",22, 4.00,260, 1.36, 1.13, 180],
+  ["cycle","Cycling","🚴‍♂️",80, 6.00,900, 1.40, 1.12, 720],
+  ["lift","Weight Lifting","🏋️‍♂️",300,8.00,2400,1.45, 1.12,2500],
 ];
 
 /* ---------- State ---------- */
 let state={ hp:0, items:{}, lastSeen:Date.now() };
-const tmp={}; let started=false;
+const tmp={}; // timers
+let started=false;
 
 /* ---------- Utils ---------- */
 const $=s=>document.querySelector(s), id=s=>document.getElementById(s);
@@ -168,9 +149,11 @@ function fmtCost(n){ n=Math.floor(n); const a=Math.abs(n), f=v=>Number.isInteger
 
 function nextRepCost(ex, reps){ return Math.floor(ex[5] * Math.pow(ex[6], Math.max(0,reps-1))); }
 function gainPerTap(ex, reps){ return Math.max(1, Math.floor(ex[3] * Math.pow(ex[7], Math.max(0,reps-1)))); }
-/* Speed tiers only: cooldown = base / 2^tier (reps NO longer change cooldown) */
-function intervalFor(ex, tier, hasCoach){ const base = ex[4] / Math.pow(2, Math.max(0,tier||0)); const sped = hasCoach? base/2 : base; return Math.max(MIN_INTERVAL, sped); }
-function growStepsRequired(req){ return Math.ceil(req*1.35 + 2); }
+function intervalFor(ex, reps, hasCoach){
+  const base = ex[4] * Math.pow(0.94, Math.max(0,reps-1)); // ~6% faster per Rep
+  const sped = hasCoach ? base/2 : base;
+  return Math.max(MIN_INTERVAL, sped);
+}
 
 /* ---------- Audio ---------- */
 const bgm = id("bgm"); bgm.src=MUSIC; bgm.volume=0.22;
@@ -188,8 +171,7 @@ function load(){
   EX.forEach((ex,i)=>{
     const eid=ex[0];
     if(!state.items[eid]) state.items[eid]={
-      unlocked:i===0, reps:i===0?1:0, tier:0, steps:0, stepsReq:ex[9],
-      coach:false, next:0, taps:0
+      unlocked:i===0, reps:i===0?1:0, coach:false, next:0, taps:0
     };
     tmp[eid]={ timer:null };
   });
@@ -218,7 +200,6 @@ function build(){
     card.innerHTML=`
       <button type="button" class="avatarbtn ${unlocked?'':'lockedTone'}" id="tap-${eid}" ${unlocked?'':'disabled'}>
         <div class="emoji">${emoji}</div>
-        ${unlocked ? `<div class="avatar-mini"><i id="mini-${eid}"></i><span id="miniTxt-${eid}">0/0</span></div>` : ``}
       </button>
       <div class="meta">${unlocked?metaUnlocked:metaLocked}</div>
       <div class="actions" id="act-${eid}"></div>`;
@@ -232,7 +213,7 @@ function build(){
       repBtn.className="btn action"; repBtn.id="rep-"+eid; repBtn.textContent="Reps";
       actions.appendChild(repBtn);
 
-      // Coach button (unchanged)
+      // Coach button (appears at 1k HP)
       const coachBtn=document.createElement("button");
       coachBtn.className="btn"; coachBtn.id="coach-"+eid; coachBtn.textContent="🧑‍💼 Coach";
       actions.appendChild(coachBtn);
@@ -246,28 +227,29 @@ function build(){
       tap.addEventListener("pointerdown", tapHandler, {passive:false});
       tap.addEventListener("touchstart", tapHandler, {passive:false});
 
-      // Reps handler: +HP/tap and +1 step toward tier
+      // Reps handler
       repBtn.addEventListener("click", ()=>{
         const next = (it.reps||1)+1;
         const cost = nextRepCost(ex, next);
         if(state.hp>=cost){
           state.hp -= cost;
           it.reps = next;
-          it.steps = (it.steps||0) + 1;  // add a step
           s_upgrade();
-          // tier bump when bar full
-          if(it.steps >= (it.stepsReq||ex[9])){
-            it.steps = 0;
-            it.tier = (it.tier||0) + 1;
-            it.stepsReq = growStepsRequired(it.stepsReq||ex[9]);
-            showRibbon(`⚡ ${name} faster! Cooldown halved`);
-          }
-          // click pop feedback
-          repBtn.classList.add("clicked"); setTimeout(()=>repBtn.classList.remove("clicked"), 180);
           render(); save();
         }
       });
-    }
+
+      // Coach handler
+      coachBtn.addEventListener("click", ()=>{
+        if(it.coach) return;
+        if(state.hp < COACH_UNLOCK) return;
+        state.hp -= COACH_UNLOCK;
+        it.coach = true;
+        s_coin();
+        startCoach(eid);
+        render(); save();
+      });
+    } // locked handled in render()
   });
 }
 
@@ -285,7 +267,7 @@ function startAudio(){
 function perform(eid){
   const ex = EX.find(x=>x[0]===eid), it=state.items[eid];
   const t = now();
-  const interval = intervalFor(ex, it.tier||0, it.coach);
+  const interval = intervalFor(ex, it.reps||1, it.coach);
   if(t < (it.next||0)) return false;
 
   it.next = t + interval;
@@ -306,7 +288,7 @@ function startCoach(eid){
   const tick=()=>{
     perform(eid);
     const ex=EX.find(x=>x[0]===eid);
-    const interval = intervalFor(ex, it.tier||0, true);
+    const interval = intervalFor(ex, it.reps||1, true);
     tmp[eid].timer = setTimeout(tick, Math.max(80, interval*1000));
   };
   tmp[eid].timer = setTimeout(tick, 0);
@@ -320,19 +302,19 @@ function render(){
   EX.forEach(ex=>{
     const [eid,name,emoji,,,,,,unlockCost] = ex;
     const it=state.items[eid];
+
+    const tap=id("tap-"+eid), coolWrap=id("cool-"+eid), cool=id("cooli-"+eid);
     const actions=id("act-"+eid);
 
     if(it.unlocked){
       // cooldown bar
-      const interval = intervalFor(ex, it.tier||0, it.coach);
+      const interval = intervalFor(ex, it.reps||1, it.coach);
       const left = Math.max(0, (it.next||0) - now());
       const pct = 1 - Math.min(1, left/interval);
-      const coolWrap=id("cool-"+eid), cool=id("cooli-"+eid);
       if(cool){
         if(interval<=0.18){ coolWrap?.classList.add("pulse"); cool.style.width="100%"; }
         else { coolWrap?.classList.remove("pulse"); cool.style.width = Math.round(pct*100)+"%"; }
       }
-      const tap=id("tap-"+eid);
       if(tap){
         tap.classList.toggle("ready", left<=0);
         tap.classList.toggle("needGlow", left<=0 && !it.coach);
@@ -349,7 +331,7 @@ function render(){
       const ge=id("gain-"+eid); if(ge) ge.textContent=fmtCost(gain);
       const ce=id("cd-"+eid); if(ce) ce.textContent=cd;
 
-      // Rep btn: only glare + bounce when affordable
+      // buttons: reps state + coach availability
       const repBtn = id("rep-"+eid);
       if(repBtn){
         repBtn.textContent = `Reps | ${fmtCost(nextCost)} HP`;
@@ -357,31 +339,12 @@ function render(){
         repBtn.disabled = !can;
         repBtn.classList.toggle("glitter", can);
         repBtn.classList.toggle("available", can);
-        repBtn.classList.toggle("bounce", can);
       }
-
-      // Coach button (unchanged)
       const coachBtn = id("coach-"+eid);
       if(coachBtn){
         coachBtn.textContent = it.coach ? "🧑‍💼 Coach (Active)" :
           (state.hp>=COACH_UNLOCK ? `🧑‍💼 Coach | ${fmtCost(COACH_UNLOCK)} HP` : "🧑‍💼 Coach | 1k HP");
         coachBtn.disabled = it.coach || state.hp<COACH_UNLOCK;
-        if(!it.coach && !coachBtn._wired){
-          coachBtn._wired=true;
-          coachBtn.addEventListener("click", ()=>{
-            if(it.coach || state.hp<COACH_UNLOCK) return;
-            state.hp -= COACH_UNLOCK; it.coach=true; s_coin(); startCoach(eid); render(); save();
-          });
-        }
-      }
-
-      // GREEN TIER BAR: steps/required in avatar
-      const mini=id("mini-"+eid), miniTxt=id("miniTxt-"+eid);
-      if(mini && miniTxt){
-        const x=it.steps||0, y=it.stepsReq||ex[9];
-        const p=Math.max(0,Math.min(1, y? x/y : 0))*100;
-        mini.querySelector("i").style.width=p.toFixed(0)+"%";
-        miniTxt.textContent=`${x}/${y}`;
       }
     } else {
       // locked: show unlock button only when affordable
@@ -395,7 +358,7 @@ function render(){
           btn.addEventListener("click", ()=>{
             if(state.hp<unlockCost) return;
             state.hp -= unlockCost;
-            it.unlocked=true; it.reps=1; it.tier=0; it.steps=0; it.stepsReq=ex[9]; it.coach=false; it.next=0;
+            it.unlocked=true; it.reps=1; it.coach=false; it.next=0;
             s_coin();
             build(); render(); save();
           });
