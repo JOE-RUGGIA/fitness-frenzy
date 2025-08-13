@@ -1,411 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Fitness Frenzy — Classic Stable</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FF Core Mini (Timer v2)</title>
 <style>
-:root{
-  --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
-  --card:#152136; --edge:rgba(255,255,255,.06);
-  --accent:#ff7a1a; --accent2:#ffc38f;
-  --good:#2dd36f; --lock:#8ea0bd; --danger:#ff4d4d;
-}
-*{box-sizing:border-box}
-html,body{height:100%} html{-webkit-text-size-adjust:100%}
-body{
-  margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
-  background:
-    radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
-    radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
-    linear-gradient(180deg,var(--bg),var(--bg2));
-  -webkit-tap-highlight-color: transparent;
-}
+body{font-family:system-ui,Arial;margin:2rem;background:#0f1421;color:#eaf1fb}
+.wrap{display:grid;grid-template-columns:160px 1fr;gap:12px;max-width:760px}
+@media (max-width:700px){.wrap{grid-template-columns:1fr}}
+.tap{display:grid;place-items:center;height:120px;border-radius:12px;border:2px dashed #7ff2b0;background:#0c1e16;color:#cffff1;cursor:pointer;user-select:none}
+.tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
+.emoji{font-size:56px}
+h2,h3{margin:0 0 8px}
+.sub{color:#9fb0c6;margin:0 0 8px}
 
-/* Header */
-header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12px;
-  padding:10px 14px;background:rgba(15,21,33,.85);border-bottom:1px solid var(--edge);backdrop-filter:blur(8px)}
-.hp-wrap{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
-.hp-icon{font-size:26px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
-.hp{flex:1;font:900 clamp(22px,4.2vw,36px)/1 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hp small{font-weight:800;opacity:.9;background:rgba(255,255,255,.08);padding:.16em .45em;border-radius:.35em;margin-left:.45rem}
-.head-actions{display:flex;gap:8px;align-items:center}
-.iconbtn{position:relative;width:44px;height:44px;border-radius:12px;border:1px solid var(--edge);
-  background:#0f1926;color:#fff;display:grid;place-items:center;cursor:pointer}
-.iconbtn svg{width:22px;height:22px}
-.iconbtn.muted::after{content:"";position:absolute;width:28px;height:2.5px;background:var(--danger);transform:rotate(-30deg);border-radius:2px}
+/* Orange cooldown bar */
+.bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7a1a,#ffc38f)}
 
-/* Layout */
-.wrap{max-width:1000px;margin:14px auto 100px;padding:0 14px}
+/* Green progress bar (with fraction text) */
+.mini{position:relative;height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px}
+.mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
+.mini .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font:900 11px/1 system-ui;color:#cfead7;text-shadow:0 1px 2px rgba(0,0,0,.5);pointer-events:none}
 
-/* Cards */
-.card{background:var(--card);border-radius:14px;padding:12px;margin:12px 0;
-  box-shadow:0 10px 22px rgba(0,0,0,.36), inset 0 0 0 1px var(--edge);
-  display:grid;grid-template-columns:150px 1fr 290px;gap:12px;align-items:center;min-height:132px}
-@media (max-width:900px){.card{grid-template-columns:140px 1fr}.actions{grid-column:1/-1}}
-@media (max-width:640px){.card{grid-template-columns:1fr}.actions{grid-template-columns:1fr}}
-.meta h3{margin:0 0 4px;font:800 clamp(16px,3.8vw,18px)/1.15 system-ui}
-.meta .sub{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.meta .sub.lock{color:var(--lock)}
-
-/* Tap area */
-.avatarbtn{position:relative;display:grid;place-items:center;height:120px;border-radius:14px;border:2px dashed #7ff2b0;
-  background:linear-gradient(180deg,#0c1e16,#0f271a);color:#cffff1;cursor:pointer;user-select:none;overflow:hidden}
-.avatarbtn[disabled]{cursor:not-allowed}
-.emoji{font-size:64px;filter:drop-shadow(0 4px 7px rgba(0,0,0,.35))}
-.avatarbtn.animate .emoji{animation:bop .2s ease} @keyframes bop{50%{transform:scale(1.12)}}
-.avatarbtn.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
-.avatarbtn.needGlow{animation:needBlink 1.05s ease-in-out infinite}
-@keyframes needBlink{50%{box-shadow:0 0 12px 2px rgba(58,160,255,.35),0 0 0 4px rgba(255,122,26,.18) inset}}
-.lockedTone{filter:grayscale(.75) brightness(.85);opacity:.9}
-
-/* Cooldown bar (orange) */
-.bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:10px}
-.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-.bar.pulse i{width:100%!important}
-
-/* Actions + buttons */
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-self:stretch}
-.btn{height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--edge);
-  border-radius:12px;padding:0 12px;font-weight:900;background:#0e1724;color:#fff;cursor:pointer;position:relative}
-.btn[disabled]{opacity:.5;cursor:not-allowed}
-.action{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent}
-.btn.glitter.available::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:12px;
-  background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.18) 25%,rgba(255,255,255,.35) 33%,transparent 45%);
-  transform:translateX(-120%);animation:shine 1.15s ease-in-out infinite;filter:blur(.6px)}
-@keyframes shine{0%{transform:translateX(-120%)}60%{transform:translateX(0)}100%{transform:translateX(120%)}}
-
-/* Intro */
-#intro{position:fixed;inset:0;display:grid;place-items:center;background:rgba(8,12,20,.65);z-index:5000}
-#intro.off{display:none}
-.introCard{width:min(720px,92vw);background:#141f34;border:1px solid var(--edge);border-radius:16px;padding:22px}
-.startBtn{margin-top:12px;background:linear-gradient(180deg,#ff8b3a,#ff7a1a);border:0;border-radius:12px;color:#1b0e03;font-weight:900;padding:10px 14px;cursor:pointer}
-
-/* Ribbon + bursts */
-.ribbon{position:fixed;top:-60px;left:50%;transform:translateX(-50%);background:#152136;border:1px solid var(--edge);color:#eaf1fb;
-  padding:10px 16px;border-radius:999px;font-weight:900;z-index:120;box-shadow:0 14px 32px rgba(0,0,0,.4)}
-.ribbon.show{animation:down .25s ease forwards, up .35s ease 2.6s forwards}
-@keyframes down{to{top:14px}}@keyframes up{to{top:-60px}}
-.burst{position:absolute;left:0;top:0;pointer-events:none;z-index:1300;font-size:20px}
-.hpBurst{font-size:22px;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.btn{margin-top:10px;padding:10px 14px;border-radius:10px;border:0;background:#ff7a1a;color:#1b0e03;font-weight:900;cursor:pointer}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
 </style>
 </head>
 <body>
-<!-- Intro -->
-<div id="intro">
-  <div class="introCard">
-    <h1>Fitness Frenzy</h1>
-    <p>Tap to earn <b>HP (Health Points)</b>. Buy <b>Reps</b> to increase HP/tap and reduce cooldown (min <b>0.10s</b>). Hire a <b>Coach</b> at 1,000 HP to automate taps.</p>
-    <button class="startBtn" id="startBtn">Start Workout ▶</button>
+<h2>HP: <span id="hp">0</span></h2>
+
+<div class="wrap">
+  <button id="tap" class="tap" aria-label="Tap to perform"><div class="emoji">👟</div></button>
+  <div>
+    <h3>Walking</h3>
+    <div class="sub">Reps Lv.<b id="replv">1</b> • Gain/tap: <b id="gain">1</b> • Cooldown: <b id="cd">1.00</b>s</div>
+    <div class="bar" title="Cooldown"><i id="cool"></i></div>
+    <div class="mini" title="Progress to 2× speed">
+      <i id="mini"></i><div class="lbl" id="miniLbl">0/0</div>
+    </div>
+    <button class="btn" id="rep">Reps | 10 HP</button>
   </div>
 </div>
 
-<header>
-  <div class="hp-wrap">
-    <div class="hp-icon">💪</div>
-    <div class="hp" id="hp">0.00 <small>HP</small></div>
-  </div>
-  <div class="head-actions">
-    <button class="iconbtn" id="mute" aria-label="Toggle sound">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 10v4h4l5 4V6L7 10H3zM16 7.82v8.36c1.76-.97 3-2.85 3-4.82s-1.24-3.85-3-4.82z"/></svg>
-    </button>
-    <button class="iconbtn" id="new" title="New Game">🗘</button>
-  </div>
-</header>
-
-<div class="wrap" id="list"></div>
-<div class="ribbon" id="ribbon">🎉</div>
-<audio id="bgm" preload="auto" loop crossorigin="anonymous"></audio>
-
 <script>
-/* ---------- Config ---------- */
-const RAW = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/";
-const MUSIC = RAW + "Velvet%20Haze%20-%20Take%20a%20Seat%20-%20Instrumental%20version.mp3";
-const STORAGE="ff_classic_stable_v1";
-const MIN_INTERVAL=0.10;
-const COACH_UNLOCK=1000;
+/* -------- State & constants -------- */
+let hp=0;
+let reps=1;        // increases HP per tap only
+let tier=0;        // each full green bar → +1 tier (2× faster)
+let steps=0;       // progress to next tier
+let stepsReq=10;   // starting requirement (harder each tier)
+let nextReadyMs=0;
 
-/* exercises: id, name, emoji, baseGain, baseInterval(s), repCostBase, repCostMult, gainMultPerRep, unlockCost */
-const EX = [
-  ["walk","Walking","👟", 1, 0.50, 10, 1.28, 1.15,   0],
-  ["jog", "Jogging","🏃‍♂️",6, 2.00, 60, 1.32, 1.14,  60],
-  ["yoga","Yoga","🧘‍♂️",22, 4.00,260, 1.36, 1.13, 180],
-  ["cycle","Cycling","🚴‍♂️",80, 6.00,900, 1.40, 1.12, 720],
-  ["lift","Weight Lifting","🏋️‍♂️",300,8.00,2400,1.45, 1.12,2500],
-];
+const BASE_GAIN=1;
+const GAIN_MULT=1.15;
 
-/* ---------- State ---------- */
-let state={ hp:0, items:{}, lastSeen:Date.now() };
-const tmp={}; // timers
-let started=false;
+const BASE_CD_S=1.00;   // starts at 1.00s (your request)
+const MIN_CD_S =0.10;   // floor
 
-/* ---------- Utils ---------- */
-const $=s=>document.querySelector(s), id=s=>document.getElementById(s);
-const now=()=>performance.now()/1000;
-function fmtHP(n){ const a=Math.abs(n), d=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(a>=1e9) return d(n/1e9)+"B"; if(a>=1e6) return d(n/1e6)+"M"; if(a>=1e3) return d(n/1e3)+"K"; return d(n); }
-function fmtCost(n){ n=Math.floor(n); const a=Math.abs(n), f=v=>Number.isInteger(v)?v.toString():v.toFixed(1).replace(/\.0$/,'');
-  if(a>=1e9) return f(n/1e9)+"B"; if(a>=1e6) return f(n/1e6)+"M"; if(a>=1e3) return f(n/1e3)+"K"; return String(n); }
+const REP_BASE=10;
+const REP_MULT=1.28;
 
-function nextRepCost(ex, reps){ return Math.floor(ex[5] * Math.pow(ex[6], Math.max(0,reps-1))); }
-function gainPerTap(ex, reps){ return Math.max(1, Math.floor(ex[3] * Math.pow(ex[7], Math.max(0,reps-1)))); }
-function intervalFor(ex, reps, hasCoach){
-  const base = ex[4] * Math.pow(0.94, Math.max(0,reps-1)); // ~6% faster per Rep
-  const sped = hasCoach ? base/2 : base;
-  return Math.max(MIN_INTERVAL, sped);
+/* -------- DOM helpers -------- */
+const $ = id => document.getElementById(id);
+function fmtHP(n){
+  if(n>=1e9) return (n/1e9).toFixed(2).replace(/\.00$/,'')+'B';
+  if(n>=1e6) return (n/1e6).toFixed(2).replace(/\.00$/,'')+'M';
+  if(n>=1e3) return (n/1e3).toFixed(2).replace(/\.00$/,'')+'K';
+  return n.toFixed(0);
 }
 
-/* ---------- Audio ---------- */
-const bgm = id("bgm"); bgm.src=MUSIC; bgm.volume=0.22;
-let AC=null, master=null, noiseBuf=null;
-function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C();
-  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination); noiseBuf=mkNoise(.18);}catch{} }
-function mkNoise(sec){ const sr=(AC?.sampleRate)||48000, n=sr*sec; const b=AC.createBuffer(1,n,sr), a=b.getChannelData(0); for(let i=0;i<n;i++) a[i]=Math.random()*2-1; return b;}
-function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=420;o.connect(g);g.connect(master);g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.start(t);o.stop(t+.16);}catch{} }
-function s_upgrade(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=980;o.connect(g);g.connect(master);g.gain.setValueAtTime(.24,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}catch{} }
-function s_coin(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=760;o.connect(g);g.connect(master);g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.start(t);o.stop(t+.2);}catch{} }
-
-/* ---------- Save/Load ---------- */
-function load(){
-  try{const raw=localStorage.getItem(STORAGE); if(raw){ Object.assign(state, JSON.parse(raw)); }}catch{}
-  EX.forEach((ex,i)=>{
-    const eid=ex[0];
-    if(!state.items[eid]) state.items[eid]={
-      unlocked:i===0, reps:i===0?1:0, coach:false, next:0, taps:0
-    };
-    tmp[eid]={ timer:null };
-  });
+/* -------- Mechanics -------- */
+function gainPerTap(){ return Math.max(1, Math.floor(BASE_GAIN * Math.pow(GAIN_MULT, reps-1))); }
+function nextRepCost(){ return Math.floor(REP_BASE * Math.pow(REP_MULT, reps)); }
+function intervalMs(){
+  let s = BASE_CD_S / Math.pow(2, tier);          // halves each tier
+  if (s < MIN_CD_S) s = MIN_CD_S;
+  return Math.round(s*1000);
 }
-function save(){ state.lastSeen=Date.now(); try{localStorage.setItem(STORAGE, JSON.stringify(state));}catch{} }
-function newGame(){ try{localStorage.removeItem(STORAGE);}catch{}; state={hp:0,items:{},lastSeen:Date.now()}; load(); build(); render(); }
+function canFire(){ return Date.now() >= nextReadyMs; }
 
-/* ---------- Build UI ---------- */
-function build(){
-  const host=id("list"); host.innerHTML="";
-  EX.forEach((ex,i)=>{
-    const [eid,name,emoji,,,,,,unlockCost]=ex;
-    const it=state.items[eid]; const unlocked=it.unlocked;
-
-    const card=document.createElement("div"); card.className="card"; card.dataset.id=eid;
-
-    const metaUnlocked=`
-      <h3>${name}</h3>
-      <div class="sub">Reps Lv.<b id="replv-${eid}">${it.reps||1}</b> • Gain/tap: <b id="gain-${eid}"></b> • Cooldown: <b id="cd-${eid}"></b>s</div>
-      <div class="bar" id="cool-${eid}"><i id="cooli-${eid}"></i></div>`;
-
-    const metaLocked=`
-      <h3>${name}</h3>
-      <div class="sub lock">Unlock: <b>${fmtCost(unlockCost)} HP</b></div>`;
-
-    card.innerHTML=`
-      <button type="button" class="avatarbtn ${unlocked?'':'lockedTone'}" id="tap-${eid}" ${unlocked?'':'disabled'}>
-        <div class="emoji">${emoji}</div>
-      </button>
-      <div class="meta">${unlocked?metaUnlocked:metaLocked}</div>
-      <div class="actions" id="act-${eid}"></div>`;
-    host.appendChild(card);
-
-    const actions = id("act-"+eid);
-
-    if(unlocked){
-      // Reps button
-      const repBtn=document.createElement("button");
-      repBtn.className="btn action"; repBtn.id="rep-"+eid; repBtn.textContent="Reps";
-      actions.appendChild(repBtn);
-
-      // Coach button (appears at 1k HP)
-      const coachBtn=document.createElement("button");
-      coachBtn.className="btn"; coachBtn.id="coach-"+eid; coachBtn.textContent="🧑‍💼 Coach";
-      actions.appendChild(coachBtn);
-
-      // Tap handler – SFX only on true activation
-      const tap = id("tap-"+eid);
-      const tapHandler = (e)=>{ e.preventDefault(); startAudio();
-        if (perform(eid)) s_click();
-      };
-      tap.addEventListener("click", tapHandler);
-      tap.addEventListener("pointerdown", tapHandler, {passive:false});
-      tap.addEventListener("touchstart", tapHandler, {passive:false});
-
-      // Reps handler
-      repBtn.addEventListener("click", ()=>{
-        const next = (it.reps||1)+1;
-        const cost = nextRepCost(ex, next);
-        if(state.hp>=cost){
-          state.hp -= cost;
-          it.reps = next;
-          s_upgrade();
-          render(); save();
-        }
-      });
-
-      // Coach handler
-      coachBtn.addEventListener("click", ()=>{
-        if(it.coach) return;
-        if(state.hp < COACH_UNLOCK) return;
-        state.hp -= COACH_UNLOCK;
-        it.coach = true;
-        s_coin();
-        startCoach(eid);
-        render(); save();
-      });
-    } // locked handled in render()
-  });
+/* -------- Actions -------- */
+function perform(){
+  if(!canFire()) return;
+  nextReadyMs = Date.now() + intervalMs();
+  hp += gainPerTap();           // HP increases on a real activation (not on purchase)
+  render();
 }
-
-/* ---------- Perform / Coach ---------- */
-function startAudio(){
-  if(!started){
-    started=true; ensureAC();
-    bgm.play().catch(()=>{});
-    id("mute").classList.toggle("muted", bgm.muted);
-    id("intro").classList.add("off");
+function buyRep(){
+  const cost = nextRepCost();
+  if(hp < cost) return;
+  hp -= cost;
+  reps += 1;                    // Gain/tap increases immediately
+  steps += 1;                   // Each Rep contributes 1 step toward 2× speed
+  if(steps >= stepsReq){
+    steps = 0;
+    tier += 1;                  // cooldown halves (speeds up)
+    // make it progressively harder each time
+    stepsReq = Math.ceil(stepsReq * 1.5 + 3);
   }
+  render();
 }
 
-/* returns true when activation fires */
-function perform(eid){
-  const ex = EX.find(x=>x[0]===eid), it=state.items[eid];
-  const t = now();
-  const interval = intervalFor(ex, it.reps||1, it.coach);
-  if(t < (it.next||0)) return false;
-
-  it.next = t + interval;
-  const gain = gainPerTap(ex, it.reps||1);
-  state.hp += gain; it.taps++;
-
-  // tiny sparkle + float
-  sparkle(id("tap-"+eid));
-  floatHP(id("tap-"+eid), gain);
-
-  render(); save();
-  return true;
-}
-
-function startCoach(eid){
-  const it=state.items[eid]; if(!it.coach) return;
-  stopCoach(eid);
-  const tick=()=>{
-    perform(eid);
-    const ex=EX.find(x=>x[0]===eid);
-    const interval = intervalFor(ex, it.reps||1, true);
-    tmp[eid].timer = setTimeout(tick, Math.max(80, interval*1000));
-  };
-  tmp[eid].timer = setTimeout(tick, 0);
-}
-function stopCoach(eid){ if(tmp[eid].timer){ clearTimeout(tmp[eid].timer); tmp[eid].timer=null; }}
-
-/* ---------- Render ---------- */
+/* -------- Render -------- */
 function render(){
-  id("hp").innerHTML = `${fmtHP(state.hp)} <small>HP</small>`;
+  $('hp').textContent = fmtHP(hp);
+  $('replv').textContent = reps;
+  $('gain').textContent  = gainPerTap();
+  $('cd').textContent    = (intervalMs()/1000).toFixed(2).replace(/\.00$/,'');
 
-  EX.forEach(ex=>{
-    const [eid,name,emoji,,,,,,unlockCost] = ex;
-    const it=state.items[eid];
+  // Reps button
+  const cost = nextRepCost();
+  $('rep').textContent = `Reps | ${cost.toLocaleString()} HP`;
+  $('rep').disabled = hp < cost;
 
-    const tap=id("tap-"+eid), coolWrap=id("cool-"+eid), cool=id("cooli-"+eid);
-    const actions=id("act-"+eid);
+  // Cooldown bar & glow
+  const nowMs = Date.now();
+  const dur = intervalMs();
+  const left = Math.max(0, nextReadyMs - nowMs);
+  const pct = dur ? 1 - Math.min(1, left/dur) : 1;
+  $('cool').style.width = Math.round(pct*100)+'%';
+  $('tap').classList.toggle('ready', left<=0);
 
-    if(it.unlocked){
-      // cooldown bar
-      const interval = intervalFor(ex, it.reps||1, it.coach);
-      const left = Math.max(0, (it.next||0) - now());
-      const pct = 1 - Math.min(1, left/interval);
-      if(cool){
-        if(interval<=0.18){ coolWrap?.classList.add("pulse"); cool.style.width="100%"; }
-        else { coolWrap?.classList.remove("pulse"); cool.style.width = Math.round(pct*100)+"%"; }
-      }
-      if(tap){
-        tap.classList.toggle("ready", left<=0);
-        tap.classList.toggle("needGlow", left<=0 && !it.coach);
-        tap.classList.add("animate"); setTimeout(()=>tap.classList.remove("animate"), 120);
-      }
-
-      // labels
-      const repLv = it.reps||1;
-      const gain  = gainPerTap(ex, repLv);
-      const cd    = interval.toFixed(2).replace(/\.00$/,'');
-      const nextCost = nextRepCost(ex, repLv+1);
-
-      const replv=id("replv-"+eid); if(replv) replv.textContent=repLv;
-      const ge=id("gain-"+eid); if(ge) ge.textContent=fmtCost(gain);
-      const ce=id("cd-"+eid); if(ce) ce.textContent=cd;
-
-      // buttons: reps state + coach availability
-      const repBtn = id("rep-"+eid);
-      if(repBtn){
-        repBtn.textContent = `Reps | ${fmtCost(nextCost)} HP`;
-        const can = state.hp>=nextCost;
-        repBtn.disabled = !can;
-        repBtn.classList.toggle("glitter", can);
-        repBtn.classList.toggle("available", can);
-      }
-      const coachBtn = id("coach-"+eid);
-      if(coachBtn){
-        coachBtn.textContent = it.coach ? "🧑‍💼 Coach (Active)" :
-          (state.hp>=COACH_UNLOCK ? `🧑‍💼 Coach | ${fmtCost(COACH_UNLOCK)} HP` : "🧑‍💼 Coach | 1k HP");
-        coachBtn.disabled = it.coach || state.hp<COACH_UNLOCK;
-      }
-    } else {
-      // locked: show unlock button only when affordable
-      if(actions){
-        actions.innerHTML="";
-        if(state.hp>=unlockCost){
-          const btn=document.createElement("button");
-          btn.className="btn action glitter available";
-          btn.id="unlock-"+eid; btn.textContent=`Unlock | ${fmtCost(unlockCost)} HP`;
-          actions.appendChild(btn);
-          btn.addEventListener("click", ()=>{
-            if(state.hp<unlockCost) return;
-            state.hp -= unlockCost;
-            it.unlocked=true; it.reps=1; it.coach=false; it.next=0;
-            s_coin();
-            build(); render(); save();
-          });
-        }
-      }
-    }
-  });
+  // Green progress bar with fraction text (e.g., 6/15)
+  const p2 = stepsReq ? Math.round((steps/stepsReq)*100) : 0;
+  $('mini').style.width = Math.min(100, p2)+'%';
+  $('miniLbl').textContent = `${steps}/${stepsReq}`;
 }
 
-/* ---------- VFX ---------- */
-function floatHP(anchor, amt){
-  const n=document.createElement("div"); n.textContent="+"+fmtCost(amt)+" HP";
-  n.style.position="absolute"; n.style.left="0"; n.style.top="0"; n.style.pointerEvents="none";
-  n.style.zIndex=1300; n.style.fontWeight="900";
-  document.body.appendChild(n);
-  const r=anchor.getBoundingClientRect();
-  n.style.left=(r.left+r.width/2)+"px"; n.style.top=(r.top-6+scrollY)+"px"; n.style.transform="translate(-50%,0)";
-  n.animate([{transform:"translate(-50%,0)",opacity:1,color:"#fff"},
-             {transform:"translate(-50%,-46px)",opacity:0,color:"#ffdea8"}],
-            {duration:820,easing:"ease-out"});
-  setTimeout(()=>n.remove(),840);
-}
-function sparkle(anchor){
-  const r=anchor.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2+scrollY;
-  for(let i=0;i<8;i++){
-    const e=document.createElement("div"); e.className="burst"; e.textContent="✨";
-    e.style.left=cx+"px"; e.style.top=cy+"px";
-    document.body.appendChild(e);
-    const dx=(Math.random()-0.5)*110, dy=-60 - Math.random()*60, rot=(Math.random()*60-30);
-    e.animate([{transform:`translate(-50%,-50%) translate(0,0) rotate(0deg)`,opacity:1},
-               {transform:`translate(-50%,-50%) translate(${dx}px,${dy}px) rotate(${rot}deg)`,opacity:0}],
-               {duration:620+Math.random()*240,easing:"cubic-bezier(.2,.8,.2,1)"}); setTimeout(()=>e.remove(),980);
-  }
-}
+/* -------- Wire events -------- */
+$('tap').addEventListener('click', perform);
+$('tap').addEventListener('pointerdown', e=>{e.preventDefault(); perform();}, {passive:false});
+$('rep').addEventListener('click', buyRep);
 
-/* ---------- Intro / controls ---------- */
-id("startBtn").addEventListener("click", ()=>{ startAudio(); });
-id("new").addEventListener("click", ()=>{ if(confirm("Start new game?")) newGame(); });
-id("mute").addEventListener("click", ()=>{ bgm.muted=!bgm.muted; id("mute").classList.toggle("muted", bgm.muted); });
-
-/* Mobile: first gesture unlocks audio */
-window.addEventListener("pointerdown", ()=>{ if(!started){ startAudio(); }}, {once:true});
-
-/* ---------- Boot + Loop ---------- */
-function loop(){ render(); requestAnimationFrame(loop); }
-function loadAll(){ load(); build(); render(); loop(); }
-loadAll();
+/* -------- Timer loop (stable everywhere) -------- */
+setInterval(render, 60);
+render();
 </script>
 </body>
 </html>
