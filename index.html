@@ -2,47 +2,198 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FF Inline Click Sanity</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fitness Frenzy — Core (1 exercise)</title>
 <style>
-  html,body{margin:0;background:#0f1421;color:#eaf1fb;font:16px/1.4 system-ui,Arial}
-  .wrap{max-width:680px;margin:40px auto;padding:0 16px;display:grid;gap:16px}
-  .box{background:#152136;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px}
-  .btn{font-size:22px;font-weight:900;padding:14px 18px;border:0;border-radius:12px;cursor:pointer}
-  .primary{background:#ff7a1a;color:#1b0e03}
-  .ok{background:#2dd36f;color:#04130a}
-  /* make sure nothing sits on top or eats clicks */
-  .btn{position:relative; z-index:999999; pointer-events:auto}
-  *{pointer-events:auto}
+  :root{
+    --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
+    --card:#152136; --edge:rgba(255,255,255,.08);
+    --accent:#ff7a1a; --accent2:#ffc38f; --good:#2dd36f;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%} html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
+    background:
+      radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
+      radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
+      linear-gradient(180deg,var(--bg),var(--bg2));
+    -webkit-tap-highlight-color: transparent;
+  }
+  header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;
+    padding:10px 14px;background:rgba(15,21,33,.85);border-bottom:1px solid var(--edge);backdrop-filter:blur(8px)}
+  .hp-wrap{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+  .hp-icon{font-size:26px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
+  .hp{flex:1;font:900 clamp(22px,4.2vw,36px)/1 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hp small{font-weight:800;opacity:.9;background:rgba(255,255,255,.08);padding:.16em .45em;border-radius:.35em;margin-left:.45rem}
+
+  .wrap{max-width:760px;margin:14px auto 100px;padding:0 14px}
+  .card{background:var(--card);border-radius:14px;padding:12px;margin:12px 0;
+    box-shadow:0 10px 22px rgba(0,0,0,.36), inset 0 0 0 1px var(--edge);
+    display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;min-height:140px}
+  @media (max-width:700px){.card{grid-template-columns:1fr}}
+  .meta h3{margin:0 0 6px;font:800 clamp(16px,3.8vw,18px)/1.15 system-ui}
+  .meta .sub{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .tap{position:relative;display:grid;place-items:center;height:120px;border-radius:14px;border:2px dashed #7ff2b0;
+    background:linear-gradient(180deg,#0c1e16,#0f271a);color:#cffff1;cursor:pointer;user-select:none;overflow:hidden}
+  .emoji{font-size:64px;filter:drop-shadow(0 4px 7px rgba(0,0,0,.35))}
+  .tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
+  .tap.bop .emoji{animation:bop .18s ease} @keyframes bop{50%{transform:scale(1.12)}}
+
+  /* Orange cooldown */
+  .bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+
+  /* Green speed bar w/ fraction */
+  .mini{position:relative;height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px}
+  .mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
+  .mini .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font:900 11px/1 system-ui;color:#cfead7;text-shadow:0 1px 2px rgba(0,0,0,.5);pointer-events:none}
+
+  .actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+  .btn{height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--edge);
+    border-radius:12px;padding:0 12px;font-weight:900;background:#0e1724;color:#fff;cursor:pointer}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .action{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent}
+  .btn.glitter.available::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:12px;
+    background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.18) 25%,rgba(255,255,255,.35) 33%,transparent 45%);
+    transform:translateX(-120%);animation:shine 1.15s ease-in-out infinite;filter:blur(.6px)}
+  @keyframes shine{0%{transform:translateX(-120%)}60%{transform:translateX(0)}100%{transform:translateX(120%)}}
+
+  /* +HP float */
+  .float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 </style>
 </head>
 <body>
+<header>
+  <div class="hp-wrap">
+    <div class="hp-icon">💪</div>
+    <div class="hp" id="hp">0.00 <small>HP</small></div>
+  </div>
+</header>
+
 <div class="wrap">
-  <div class="box">
-    <h2>HP: <span id="hp">0</span></h2>
-    <button class="btn primary"
-      onclick="
-        var el=document.getElementById('hp');
-        el.textContent = (parseInt(el.textContent||'0',10)+1);
-      ">
-      +1 HP (inline onclick)
-    </button>
-  </div>
-
-  <div class="box">
-    <p>If this works, your clicks are reaching the page. If it doesn’t, you’re likely viewing inside a sandbox (e.g., GitHub <em>blob</em> page or Drive preview) or an extension overlay is intercepting clicks.</p>
-    <button class="btn ok" onclick="alert('JS events work ✅');">JS event check</button>
-  </div>
-
-  <div class="box">
-    <h3>How to open correctly</h3>
-    <ol>
-      <li><b>Locally:</b> double-click the file (URL should start with <code>file:///</code>).</li>
-      <li><b>GitHub Pages:</b> commit the file to your repo and open<br>
-      <code>https://&lt;your-username>.github.io/&lt;repo>/ff_inline_click.html</code></li>
-      <li><b>Do NOT</b> use the github.com file viewer (the URL with <code>/blob/</code>).</li>
-    </ol>
+  <div class="card">
+    <button id="tap" class="tap" aria-label="Tap to perform"><div class="emoji">👟</div></button>
+    <div class="meta">
+      <h3>Walking</h3>
+      <div class="sub">Reps Lv.<b id="replv">1</b> • Gain/tap: <b id="gain">1</b> • Cooldown: <b id="cd">1.00</b>s</div>
+      <div class="bar"><i id="cool"></i></div>
+      <div class="mini"><i id="mini"></i><div class="lbl" id="miniLbl">0/0</div></div>
+      <div class="actions">
+        <button class="btn action" id="rep">Reps | 10 HP</button>
+      </div>
+    </div>
   </div>
 </div>
+
+<script>
+/* ------- State (one exercise) ------- */
+let hp=0, reps=1, tier=0, steps=0, stepsReq=10, nextReadyMs=0;
+
+/* ------- Tunables ------- */
+const BASE_GAIN=1, GAIN_MULT=1.15;       // Reps boost HP/tap
+const BASE_CD_S=1.00, MIN_CD_S=0.10;     // Cooldown halves each tier, floor at 0.10s
+const REP_BASE=10, REP_MULT=1.28;        // Rep cost growth
+const STEP_GROW=1.5, STEP_BONUS=3;       // Speed-up requirement growth
+
+/* ------- Helpers ------- */
+const $ = s => document.getElementById(s);
+function fmtHP(n){ const a=Math.abs(n), d=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(a>=1e9) return d(n/1e9)+"B"; if(a>=1e6) return d(n/1e6)+"M"; if(a>=1e3) return d(n/1e3)+"K"; return d(n); }
+function gainPerTap(){ return Math.max(1, Math.floor(BASE_GAIN * Math.pow(GAIN_MULT, Math.max(0,reps-1)))); }
+function nextRepCost(){ return Math.floor(REP_BASE * Math.pow(REP_MULT, Math.max(0,reps))); }
+function intervalMs(){ let s = BASE_CD_S / Math.pow(2, tier); if(s<MIN_CD_S) s=MIN_CD_S; return Math.round(s*1000); }
+function canFire(){ return Date.now() >= nextReadyMs; }
+
+/* ------- Audio (tiny, reliable) ------- */
+let AC=null, master=null;
+function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C();
+  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch{} }
+function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type="triangle"; o.frequency.value=420; o.connect(g); g.connect(master); g.gain.setValueAtTime(.18,t);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.14); o.start(t); o.stop(t+.16);}catch{} }
+function s_up(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type="square"; o.frequency.value=980; o.connect(g); g.connect(master); g.gain.setValueAtTime(.22,t);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.22); o.start(t); o.stop(t+.24);}catch{} }
+
+/* ------- Actions ------- */
+function perform(){
+  if(!canFire()) return;
+  nextReadyMs = Date.now() + intervalMs();
+  const g = gainPerTap();
+  hp += g;
+
+  // FX
+  s_click();
+  bopTap();
+  floatHP($('#tap'), `+${g} HP`);
+
+  render();
+}
+function buyRep(){
+  const cost = nextRepCost();
+  if(hp < cost) return;
+  hp -= cost;
+  reps += 1;           // more HP per tap
+  steps += 1;          // progress to 2× speed
+  if(steps >= stepsReq){
+    steps = 0;
+    tier += 1;         // halves cooldown
+    stepsReq = Math.ceil(stepsReq * STEP_GROW + STEP_BONUS);
+  }
+  s_up();
+  render();
+}
+
+/* ------- Render ------- */
+function render(){
+  $('hp').innerHTML = `${fmtHP(hp)} <small>HP</small>`;
+  $('replv').textContent = reps;
+  $('gain').textContent  = gainPerTap();
+  $('cd').textContent    = (intervalMs()/1000).toFixed(2).replace(/\.00$/,'');
+
+  const cost = nextRepCost();
+  const repBtn = $('rep');
+  repBtn.textContent = `Reps | ${cost.toLocaleString()} HP`;
+  const can = hp >= cost;
+  repBtn.disabled = !can;
+  repBtn.classList.toggle('glitter', can);
+  repBtn.classList.toggle('available', can);
+
+  // cooldown bar
+  const nowMs = Date.now(), dur = intervalMs(), left = Math.max(0, nextReadyMs - nowMs);
+  const pct = dur ? 1 - Math.min(1, left/dur) : 1;
+  $('cool').style.width = Math.round(pct*100)+'%';
+  $('#tap').classList.toggle('ready', left<=0);
+
+  // green progress bar + fraction
+  const p2 = stepsReq ? Math.round((steps/stepsReq)*100) : 0;
+  $('mini').style.width = Math.min(100, p2)+'%';
+  $('miniLbl').textContent = `${steps}/${stepsReq}`;
+}
+
+/* ------- Tiny VFX ------- */
+function bopTap(){ const el=$('#tap'); el.classList.remove('bop'); void el.offsetWidth; el.classList.add('bop'); }
+function floatHP(anchor, text){
+  const r = anchor.getBoundingClientRect();
+  const n = document.createElement('div');
+  n.className='float'; n.textContent=text;
+  n.style.left = (r.left + r.width/2) + 'px';
+  n.style.top  = (r.top + 10 + window.scrollY) + 'px';
+  document.body.appendChild(n);
+  n.animate([{transform:'translate(-50%,0) scale(1)', opacity:1, color:'#fff'},
+             {transform:'translate(-50%,-40px) scale(1.05)', opacity:0, color:'#ffdea8'}],
+            {duration:800, easing:'ease-out'});
+  setTimeout(()=>n.remove(),820);
+}
+
+/* ------- Wire + Loop ------- */
+$('#tap').addEventListener('click', ()=>{ ensureAC(); perform(); });
+$('#rep').addEventListener('click', ()=>{ ensureAC(); buyRep(); });
+setInterval(render, 60);
+render();
+</script>
 </body>
 </html>
