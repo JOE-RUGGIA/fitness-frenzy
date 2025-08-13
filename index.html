@@ -3,17 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — AdCap Core (free first rep) + Save + Offline + Debug</title>
+<title>Fitness Frenzy — Linear Reps + Working Green Bar + Clean Pulse</title>
 <style>
-  :root{--bg:#0f1421;--bg2:#0b1220;--ink:#eaf1fb;--muted:#9fb0c6;--card:#152136;--edge:rgba(255,255,255,.08);
-        --accent:#ff7a1a;--accent2:#ffc38f;--good:#2dd36f}
-  *{box-sizing:border-box} html,body{height:100%} html{-webkit-text-size-adjust:100%}
-  body{margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
-       background:
-        radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
-        radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
-        linear-gradient(180deg,var(--bg),var(--bg2));
-       -webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
+    --card:#152136; --edge:rgba(255,255,255,.08);
+    --accent:#ff7a1a; --accent2:#ffc38f; --good:#2dd36f;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%} html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
+    background:
+      radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
+      radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
+      linear-gradient(180deg,var(--bg),var(--bg2));
+    -webkit-tap-highlight-color: transparent;
+  }
   header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;
     padding:10px 14px;background:rgba(15,21,33,.85);border-bottom:1px solid var(--edge);backdrop-filter:blur(8px)}
   .hp-wrap{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
@@ -29,19 +35,23 @@
     box-shadow:0 10px 22px rgba(0,0,0,.36), inset 0 0 0 1px var(--edge);
     display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;min-height:140px}
   @media (max-width:520px){.card{grid-template-columns:1fr}}
+
   .tap{position:relative;display:grid;place-items:center;height:100px;border-radius:14px;border:2px dashed #7ff2b0;
     background:linear-gradient(180deg,#0c1e16,#0f271a);color:#cffff1;cursor:pointer;user-select:none;overflow:hidden}
-  .tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
   .emoji{font-size:56px}
-  .tap.bop .emoji{animation:bop .18s ease}@keyframes bop{50%{transform:scale(1.12)}}
+  .tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
+  .tap.bop .emoji{animation:bop .18s ease} @keyframes bop{50%{transform:scale(1.12)}}
 
   .meta h3{margin:0 0 6px;font:800 18px/1.15 system-ui;display:flex;align-items:center;gap:8px}
   .meta h3 small{font-weight:800;color:#fff;background:#2c3a57;border:1px solid rgba(255,255,255,.15);
     padding:.1em .5em;border-radius:.4em}
   .sub{color:var(--muted);font-size:13px;display:flex;gap:10px;flex-wrap:wrap}
 
+  /* Orange cooldown */
   .bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:6px}
   .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+
+  /* Green speed bar + fraction */
   .mini{position:relative;height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px}
   .mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
   .mini .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
@@ -49,16 +59,24 @@
 
   .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
   .btn{height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--edge);
-    border-radius:12px;padding:0 10px;font-weight:900;background:#0e1724;color:#fff;cursor:pointer;position:relative}
+    border-radius:12px;padding:0 10px;font-weight:900;background:#0e1724;color:#fff;cursor:pointer;position:relative;overflow:hidden}
   .btn[disabled]{opacity:.5;cursor:not-allowed}
   .primary{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent}
-  .glitter.available::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:12px;
-    background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.18) 25%,rgba(255,255,255,.35) 33%,transparent 45%);
-    transform:translateX(-120%);animation:shine 1.15s ease-in-out infinite;filter:blur(.6px)}
-  @keyframes shine{0%{transform:translateX(-120%)}60%{transform:translateX(0)}100%{transform:translateX(120%)}}
 
+  /* Clean “available” animations (pick one or keep both) */
+  .btn.available.pulse{animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{
+    0%{transform:translateZ(0) scale(1); box-shadow:0 0 0 0 rgba(255,158,61,.35)}
+    70%{transform:scale(1.02); box-shadow:0 0 0 10px rgba(255,158,61,0)}
+    100%{transform:scale(1)}
+  }
+  .btn.available.bounce{animation:bounce 0.9s ease-in-out infinite}
+  @keyframes bounce{50%{transform:translateY(-2px)}}
+
+  /* Floating +HP */
   .float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 
+  /* Debug */
   #ffDebug{position:fixed;inset:auto 8px 8px 8px;background:#0b0f18;color:#ffb4b4;
     border:1px solid #311;border-radius:10px;padding:10px;font:12px/1.35 ui-monospace,monospace;z-index:999999}
   #ffDebug b{color:#fff}
@@ -88,9 +106,11 @@
 /* ========= Utils ========= */
 const $=s=>document.getElementById(s);
 const now=()=>Date.now();
-function fmt(n){const a=Math.abs(n),f=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+function fmt(n){
+  const a=Math.abs(n), f=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   if(a>=1e15)return f(n/1e15)+'Q'; if(a>=1e12)return f(n/1e12)+'T'; if(a>=1e9)return f(n/1e9)+'B';
-  if(a>=1e6)return f(n/1e6)+'M'; if(a>=1e3)return f(n/1e3)+'K'; return f(n);}
+  if(a>=1e6)return f(n/1e6)+'M'; if(a>=1e3)return f(n/1e3)+'K'; return f(n);
+}
 
 /* ========= Audio (tiny) ========= */
 let AC=null, master=null;
@@ -100,35 +120,58 @@ function s_buy(){try{ensureAC();const t=AC.currentTime;const o=AC.createOscillat
 
 /* ========= Config ========= */
 const EXERCISES=[
-  {key:'walk',name:'Walking',icon:'👟',baseCost:5,baseHP:1,cooldown:4000,coeff:1.07,trainerCost:100,unlocked:true,freeReps:1},
-  {key:'sit', name:'Sit-Ups',icon:'🤸‍♂️',baseCost:60,baseHP:60,cooldown:3000,coeff:1.15,trainerCost:600,unlocked:false}
+  // Linear payout: HP/cycle = baseHP * reps  (so Walking = 1,2,3,4…)
+  { key:'walk', name:'Walking', icon:'👟',
+    baseCost:5, baseHP:1, cooldownBase:1000, coeff:'linear', // 1.00s base
+    trainerCost:100, unlocked:true, freeReps:1, stepsReqBase:6
+  },
+  { key:'sit', name:'Sit-Ups', icon:'🤸‍♂️',
+    baseCost:60, baseHP:60, cooldownBase:3000, coeff:1.15,
+    trainerCost:600, unlocked:false, stepsReqBase:8
+  }
 ];
+
 const OFFLINE_RATE=0.5, OFFLINE_CAP_MS=24*3600e3;
+const COOLDOWN_MIN=250; // 0.25s floor
 
 /* ========= State / Save ========= */
 let state={
   hp:0,lastSave:now(),lastTick:now(),
-  exercises:EXERCISES.map(cfg=>({key:cfg.key,reps:0,trainer:false,nextReady:0,unlocked:!!cfg.unlocked}))
+  exercises:EXERCISES.map(cfg=>({
+    key:cfg.key, reps:0, trainer:false, nextReady:0, unlocked:!!cfg.unlocked,
+    cooldown:cfg.cooldownBase, steps:0, stepsReq:cfg.stepsReqBase||6
+  }))
 };
-const SAVE_KEY='ff-save-v1';
+const SAVE_KEY='ff-save-v2';
 function save(){state.lastSave=now();localStorage.setItem(SAVE_KEY,JSON.stringify(state));}
 function load(){
-  const raw=localStorage.getItem(SAVE_KEY); if(!raw){ // first run → grant any free reps
-    EXERCISES.forEach((cfg,i)=>{ if(cfg.freeReps && state.exercises[i]) state.exercises[i].reps=cfg.freeReps; });
+  const raw=localStorage.getItem(SAVE_KEY);
+  if(!raw){
+    // first run → apply free reps, set nextReady so tap pays immediately
+    EXERCISES.forEach((cfg,i)=>{
+      if(cfg.freeReps) state.exercises[i].reps = cfg.freeReps;
+      state.exercises[i].cooldown = cfg.cooldownBase;
+      state.exercises[i].stepsReq = cfg.stepsReqBase||6;
+      if(state.exercises[i].reps>0) state.exercises[i].nextReady = now();
+    });
     return;
   }
   try{
     const s=JSON.parse(raw); if(!s) return;
     state={...state,...s};
-    // ensure structure + apply freeReps if missing
+    // ensure structure
     EXERCISES.forEach((cfg,i)=>{
-      if(!state.exercises[i]||state.exercises[i].key!==cfg.key){
-        state.exercises[i]={key:cfg.key,reps:cfg.freeReps||0,trainer:false,nextReady:0,unlocked:!!cfg.unlocked};
+      const ex=state.exercises[i];
+      if(!ex || ex.key!==cfg.key){
+        state.exercises[i]={key:cfg.key,reps:cfg.freeReps||0,trainer:false,nextReady:0,unlocked:!!cfg.unlocked,
+                            cooldown:cfg.cooldownBase,steps:0,stepsReq:cfg.stepsReqBase||6};
       }else{
-        if((state.exercises[i].reps||0)===0 && cfg.freeReps) state.exercises[i].reps=cfg.freeReps;
+        if((ex.reps||0)===0 && cfg.freeReps) ex.reps=cfg.freeReps;
+        if(!ex.cooldown) ex.cooldown = cfg.cooldownBase;
+        if(!ex.stepsReq) ex.stepsReq = cfg.stepsReqBase||6;
       }
     });
-    // offline gains
+    // offline gains (coaches only)
     const elapsed=Math.min(OFFLINE_CAP_MS, now()-(s.lastTick||now()));
     if(elapsed>1000){
       let gain=0;
@@ -136,7 +179,7 @@ function load(){
         const ex=state.exercises[i];
         if(ex.trainer && ex.reps>0){
           const per=calcCycleHP(cfg,ex);
-          const cycles=Math.floor(elapsed/cfg.cooldown);
+          const cycles=Math.floor(elapsed/ex.cooldown);
           gain+=per*cycles*OFFLINE_RATE;
         }
       });
@@ -147,11 +190,13 @@ function load(){
 window.addEventListener('beforeunload',save); setInterval(save,15000);
 
 /* ========= Math ========= */
-function costNext(cfg,ex){return Math.ceil(cfg.baseCost*Math.pow(1.07,ex.reps));}
+function costNext(cfg,ex){ return Math.ceil(cfg.baseCost*Math.pow(1.07, ex.reps)); }
 function calcCycleHP(cfg,ex){
-  if(ex.reps<=0)return 0;
-  const mult=Math.pow(ex.reps,cfg.coeff);
-  return cfg.baseHP*mult;
+  if(ex.reps<=0) return 0;
+  if(cfg.coeff==='linear') return cfg.baseHP * ex.reps; // 1,2,3,4…
+  // fallback (for other exercises later)
+  const mult=Math.pow(ex.reps, Number(cfg.coeff)||1.07);
+  return Math.max(1, Math.floor(cfg.baseHP * mult));
 }
 
 /* ========= UI ========= */
@@ -162,7 +207,7 @@ function buildUI(){
     const card=document.createElement('div'); card.className='card'; card.id=`card-${cfg.key}`;
     const tap=document.createElement('button'); tap.className='tap'; tap.id=`tap-${cfg.key}`;
     tap.innerHTML=`<div class="emoji">${cfg.icon}</div>`;
-    tap.addEventListener('click',()=>{ensureAC();tapExercise(i);});
+    tap.addEventListener('click',()=>{ensureAC(); tapExercise(i);});
 
     const meta=document.createElement('div'); meta.className='meta';
     meta.innerHTML=`
@@ -170,12 +215,12 @@ function buildUI(){
       <div class="sub">
         <span>Reps: <b id="reps-${cfg.key}">${ex.reps}</b></span>
         <span>HP/cycle: <b id="hpc-${cfg.key}">0</b></span>
-        <span>Cooldown: <b id="cd-${cfg.key}">${(cfg.cooldown/1000).toFixed(2)}s</b></span>
+        <span>Cooldown: <b id="cd-${cfg.key}">${(ex.cooldown/1000).toFixed(2)}s</b></span>
       </div>
       <div class="bar"><i id="cool-${cfg.key}"></i></div>
-      <div class="mini"><i id="mini-${cfg.key}"></i><div class="lbl" id="miniLbl-${cfg.key}">—</div></div>
+      <div class="mini"><i id="mini-${cfg.key}"></i><div class="lbl" id="miniLbl-${cfg.key}">${ex.steps}/${ex.stepsReq}</div></div>
       <div class="actions">
-        <button class="btn primary glitter" id="buy-${cfg.key}">Buy Rep | — HP</button>
+        <button class="btn primary" id="buy-${cfg.key}">Reps +1 | — HP</button>
         <button class="btn" id="mgr-${cfg.key}">Hire Coach | — HP</button>
       </div>`;
     card.appendChild(tap); card.appendChild(meta); cards.appendChild(card);
@@ -189,38 +234,47 @@ function updateUI(){
           cdEl=$(`cd-${cfg.key}`), coolI=$(`cool-${cfg.key}`),
           miniI=$(`mini-${cfg.key}`), miniL=$(`miniLbl-${cfg.key}`),
           buyBt=$(`buy-${cfg.key}`), mgrBt=$(`mgr-${cfg.key}`);
-    if(tapEl) tapEl.classList.toggle('ready',ready);
+
+    if(tapEl) tapEl.classList.toggle('ready', ready);
 
     const per=calcCycleHP(cfg,ex);
     if(repsEl) repsEl.textContent=ex.reps;
     if(hpcEl)  hpcEl.textContent=fmt(per);
-    if(cdEl)   cdEl.textContent=(cfg.cooldown/1000).toFixed(2)+'s';
+    if(cdEl)   cdEl.textContent=(ex.cooldown/1000).toFixed(2)+'s';
 
     // cooldown bar
-    const left=Math.max(0,ex.nextReady-now());
-    const pct=1-Math.min(1,left/cfg.cooldown);
+    const left=Math.max(0, ex.nextReady-now());
+    const pct=1-Math.min(1, left/ex.cooldown);
     if(coolI) coolI.style.width=Math.round(pct*100)+'%';
 
+    // GREEN SPEED BAR (progress to next cooldown tier)
+    const spct = ex.stepsReq ? Math.min(100, Math.round((ex.steps/ex.stepsReq)*100)) : 0;
+    if(miniI) miniI.style.width = spct + '%';
+    if(miniL) miniL.textContent = `${ex.steps}/${ex.stepsReq}`;
+
+    // Buy Rep
     const cost=costNext(cfg,ex);
-    if(buyBt){ buyBt.textContent=`Buy Rep | ${fmt(cost)} HP`;
-      const can=state.hp>=cost && ex.unlocked!==false;
-      buyBt.disabled=!can; buyBt.classList.toggle('available',can);
-      buyBt.onclick=()=>{ensureAC();buyRep(i);}; }
-    if(mgrBt){ const mCost=cfg.trainerCost;
+    if(buyBt){
+      buyBt.textContent=`Reps +1 | ${fmt(cost)} HP`;
+      const can = state.hp>=cost && ex.unlocked!==false;
+      buyBt.disabled = !can;
+      buyBt.classList.toggle('available', can);
+      buyBt.classList.toggle('pulse', can);    // clean pulse when affordable
+      buyBt.classList.remove('bounce');        // (switch to bounce if you prefer)
+      buyBt.onclick=()=>{ensureAC(); buyRep(i);};
+    }
+    // Coach
+    if(mgrBt){
+      const mCost=cfg.trainerCost;
       mgrBt.textContent=ex.trainer?'Coach Hired':`Hire Coach | ${fmt(mCost)} HP`;
       const can=!ex.trainer && state.hp>=mCost && ex.reps>0;
-      mgrBt.disabled=!can; mgrBt.classList.toggle('available',can);
-      mgrBt.onclick=()=>{ensureAC();hireCoach(i);}; }
-
-    // Unlock next exercise when you have >=1 rep here
-    if(i+1<EXERCISES.length){
-      const next=state.exercises[i+1];
-      if(!next.unlocked && ex.reps>=1){
-        next.unlocked=true;
-        const nextCard=$(`card-${EXERCISES[i+1].key}`); if(nextCard) nextCard.style.filter='none';
-      }
+      mgrBt.disabled=!can;
+      mgrBt.classList.toggle('available', can);
+      mgrBt.classList.toggle('pulse', can);
+      mgrBt.onclick=()=>{ensureAC(); hireCoach(i);};
     }
-    // Lock visuals
+
+    // Lock visuals (future if you add more items locked by default)
     const card=$(`card-${cfg.key}`);
     if(card){
       if(!ex.unlocked){
@@ -233,7 +287,6 @@ function updateUI(){
         card.style.filter='none';
         if(buyBt) buyBt.style.visibility='';
         if(mgrBt) mgrBt.style.visibility='';
-        if(miniL) miniL.textContent='—';
       }
     }
   });
@@ -253,19 +306,32 @@ function tapExercise(i){
   const cfg=EXERCISES[i], ex=state.exercises[i];
   if(!ex.unlocked) return;
   if(now()<ex.nextReady) return;
-  if(ex.reps<=0) return; // should not happen now (freeReps)
+  if(ex.reps<=0) return;
   const gain=calcCycleHP(cfg,ex);
   state.hp+=gain; s_click();
   const tapEl=$(`tap-${cfg.key}`); if(tapEl){tapEl.classList.remove('bop'); void tapEl.offsetWidth; tapEl.classList.add('bop'); floatHP(tapEl,`+${fmt(gain)} HP`);}
-  ex.nextReady=now()+cfg.cooldown;
+  ex.nextReady=now()+ex.cooldown;
 }
+
 function buyRep(i){
   const cfg=EXERCISES[i], ex=state.exercises[i];
-  if(!ex.unlocked)return;
-  const cost=costNext(cfg,ex); if(state.hp<cost)return;
+  if(!ex.unlocked) return;
+  const cost=costNext(cfg,ex);
+  if(state.hp<cost) return;
   state.hp-=cost; ex.reps+=1; s_buy();
-  if(ex.nextReady===0) ex.nextReady=now(); // first-time nudge
+
+  // Fill green bar toward speed-up
+  ex.steps += 1;
+  if(ex.steps >= ex.stepsReq){
+    ex.steps = 0;
+    ex.cooldown = Math.max(COOLDOWN_MIN, Math.floor(ex.cooldown/2)); // halve cooldown, respect floor
+    // Slightly ramp requirements each tier
+    ex.stepsReq = Math.ceil(ex.stepsReq*1.6 + 2);
+  }
+
+  if(ex.nextReady===0) ex.nextReady=now(); // first time nudge
 }
+
 function hireCoach(i){
   const cfg=EXERCISES[i], ex=state.exercises[i];
   if(ex.trainer||ex.reps<=0) return;
@@ -275,13 +341,15 @@ function hireCoach(i){
 
 /* ========= Loop ========= */
 function tick(){
-  const t=now(), dt=t-state.lastTick; state.lastTick=t;
+  const t=now(); state.lastTick=t;
+  // Coaches automation
   EXERCISES.forEach((cfg,i)=>{
     const ex=state.exercises[i];
     if(!ex.trainer||ex.reps<=0||!ex.unlocked) return;
     if(t>=ex.nextReady){
-      const gain=calcCycleHP(cfg,ex); state.hp+=gain; ex.nextReady=t+cfg.cooldown;
-      const tapEl=$(`tap-${cfg.key}`); if(tapEl){tapEl.classList.add('ready'); setTimeout(()=>tapEl.classList.remove('ready'),60);}
+      const gain=calcCycleHP(cfg,ex);
+      state.hp+=gain; ex.nextReady=t+ex.cooldown;
+      const tapEl=$(`tap-${cfg.key}`); if(tapEl){ tapEl.classList.add('ready'); setTimeout(()=>tapEl.classList.remove('ready'),60); }
     }
   });
   updateUI();
