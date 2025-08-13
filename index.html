@@ -3,125 +3,46 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FF Working Minimum</title>
+<title>FF Inline Click Sanity</title>
 <style>
-  body{font-family:system-ui,Arial;margin:2rem;background:#0f1421;color:#eaf1fb}
-  .wrap{display:grid;grid-template-columns:160px 1fr;gap:12px;max-width:760px}
-  @media (max-width:700px){.wrap{grid-template-columns:1fr}}
-  .tap{position:relative;display:grid;place-items:center;height:120px;border-radius:12px;border:2px dashed #7ff2b0;background:#0c1e16;color:#cffff1;cursor:pointer;user-select:none;overflow:hidden}
-  .tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
-  .emoji{font-size:56px}
-  h2,h3{margin:0 0 8px}
-  .sub{color:#9fb0c6;margin:0 0 8px}
-  .bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden}
-  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7a1a,#ffc38f)}
-  .mini{position:relative;height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px}
-  .mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
-  .mini .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:900 11px/1 system-ui;color:#cfead7;text-shadow:0 1px 2px rgba(0,0,0,.5);pointer-events:none}
-  .btn{margin-top:10px;padding:10px 14px;border-radius:10px;border:0;background:#ff7a1a;color:#1b0e03;font-weight:900;cursor:pointer}
-  .btn[disabled]{opacity:.45;cursor:not-allowed}
-  .float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+  html,body{margin:0;background:#0f1421;color:#eaf1fb;font:16px/1.4 system-ui,Arial}
+  .wrap{max-width:680px;margin:40px auto;padding:0 16px;display:grid;gap:16px}
+  .box{background:#152136;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px}
+  .btn{font-size:22px;font-weight:900;padding:14px 18px;border:0;border-radius:12px;cursor:pointer}
+  .primary{background:#ff7a1a;color:#1b0e03}
+  .ok{background:#2dd36f;color:#04130a}
+  /* make sure nothing sits on top or eats clicks */
+  .btn{position:relative; z-index:999999; pointer-events:auto}
+  *{pointer-events:auto}
 </style>
 </head>
 <body>
-<h2>HP: <span id="hp">0</span></h2>
-
 <div class="wrap">
-  <button id="tap" class="tap" aria-label="Tap to perform"><div class="emoji">👟</div></button>
-  <div>
-    <h3>Walking</h3>
-    <div class="sub">Reps Lv.<b id="replv">1</b> • Gain/tap: <b id="gain">1</b> • Cooldown: <b id="cd">1.00</b>s</div>
-    <div class="bar" title="Cooldown"><i id="cool"></i></div>
-    <div class="mini" title="Progress to 2× speed"><i id="mini"></i><div class="lbl" id="miniLbl">0/0</div></div>
-    <button class="btn" id="rep">Reps | 10 HP</button>
+  <div class="box">
+    <h2>HP: <span id="hp">0</span></h2>
+    <button class="btn primary"
+      onclick="
+        var el=document.getElementById('hp');
+        el.textContent = (parseInt(el.textContent||'0',10)+1);
+      ">
+      +1 HP (inline onclick)
+    </button>
+  </div>
+
+  <div class="box">
+    <p>If this works, your clicks are reaching the page. If it doesn’t, you’re likely viewing inside a sandbox (e.g., GitHub <em>blob</em> page or Drive preview) or an extension overlay is intercepting clicks.</p>
+    <button class="btn ok" onclick="alert('JS events work ✅');">JS event check</button>
+  </div>
+
+  <div class="box">
+    <h3>How to open correctly</h3>
+    <ol>
+      <li><b>Locally:</b> double-click the file (URL should start with <code>file:///</code>).</li>
+      <li><b>GitHub Pages:</b> commit the file to your repo and open<br>
+      <code>https://&lt;your-username>.github.io/&lt;repo>/ff_inline_click.html</code></li>
+      <li><b>Do NOT</b> use the github.com file viewer (the URL with <code>/blob/</code>).</li>
+    </ol>
   </div>
 </div>
-
-<script>
-/* ---- State ---- */
-let hp=0, reps=1, tier=0, steps=0, stepsReq=10, nextReadyMs=0;
-
-/* ---- Tunables ---- */
-const BASE_GAIN=1, GAIN_MULT=1.15;
-const BASE_CD_S=1.00, MIN_CD_S=0.10;
-const REP_BASE=10, REP_MULT=1.28;
-
-/* ---- Helpers ---- */
-const $ = id => document.getElementById(id);
-function fmtHP(n){ if(n>=1e9)return (n/1e9).toFixed(2).replace(/\.00$/,'')+'B';
-  if(n>=1e6)return (n/1e6).toFixed(2).replace(/\.00$/,'')+'M';
-  if(n>=1e3)return (n/1e3).toFixed(2).replace(/\.00$/,'')+'K';
-  return n.toFixed(0); }
-function gainPerTap(){ return Math.max(1, Math.floor(BASE_GAIN * Math.pow(GAIN_MULT, reps-1))); }
-function nextRepCost(){ return Math.floor(REP_BASE * Math.pow(REP_MULT, reps)); }
-function intervalMs(){ let s=BASE_CD_S/Math.pow(2,tier); if(s<MIN_CD_S) s=MIN_CD_S; return Math.round(s*1000); }
-function canFire(){ return Date.now() >= nextReadyMs; }
-
-/* ---- Actions ---- */
-function perform(){
-  if(!canFire()) return;
-  nextReadyMs = Date.now() + intervalMs();
-  const gain = gainPerTap();
-  hp += gain;
-  floatHP($('#tap'), `+${gain} HP`);
-  render();
-}
-function buyRep(){
-  const cost = nextRepCost();
-  if(hp < cost) return;
-  hp -= cost;
-  reps += 1;       // boosts Gain/tap (you'll see it change immediately)
-  steps += 1;      // progress to 2x speed
-  if(steps >= stepsReq){
-    steps = 0;
-    tier += 1;     // halve cooldown
-    stepsReq = Math.ceil(stepsReq*1.5 + 3); // harder each time
-  }
-  render();
-}
-
-/* ---- UI ---- */
-function render(){
-  $('hp').textContent = fmtHP(hp);
-  $('replv').textContent = reps;
-  $('gain').textContent  = gainPerTap();
-  $('cd').textContent    = (intervalMs()/1000).toFixed(2).replace(/\.00$/,'');
-
-  const cost = nextRepCost();
-  $('rep').textContent = `Reps | ${cost.toLocaleString()} HP`;
-  $('rep').disabled = hp < cost;
-
-  // cooldown bar & ready glow
-  const now = Date.now(), dur = intervalMs(), left = Math.max(0, nextReadyMs - now);
-  const pct = dur ? 1 - Math.min(1, left/dur) : 1;
-  $('cool').style.width = Math.round(pct*100)+'%';
-  $('tap').classList.toggle('ready', left<=0);
-
-  // green progress bar + fraction
-  const p2 = stepsReq ? Math.round((steps/stepsReq)*100) : 0;
-  $('mini').style.width = Math.min(100, p2)+'%';
-  $('miniLbl').textContent = `${steps}/${stepsReq}`;
-}
-
-/* ---- +HP float ---- */
-function floatHP(anchor, text){
-  const r = anchor.getBoundingClientRect();
-  const n = document.createElement('div');
-  n.className='float'; n.textContent=text;
-  n.style.left = (r.left + r.width/2) + 'px';
-  n.style.top  = (r.top + 10 + window.scrollY) + 'px';
-  document.body.appendChild(n);
-  n.animate([{transform:'translate(-50%,0) scale(1)', opacity:1, color:'#fff'},
-             {transform:'translate(-50%,-40px) scale(1.05)', opacity:0, color:'#ffdea8'}],
-            {duration:800, easing:'ease-out'});
-  setTimeout(()=>n.remove(),820);
-}
-
-/* ---- Wire & loop ---- */
-$('#tap').addEventListener('click', perform);
-$('#rep').addEventListener('click', buyRep);
-setInterval(render, 60);
-render();
-</script>
 </body>
 </html>
