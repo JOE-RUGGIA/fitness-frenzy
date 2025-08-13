@@ -1,404 +1,407 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — Reset Button, Coaches from #3, Clean Green Bar</title>
-<style>
-  :root{
-    --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
-    --card:#152136; --edge:rgba(255,255,255,.08);
-    --accent:#ff7a1a; --accent2:#ffc38f; --good:#2dd36f;
-    --stripe:rgba(255,255,255,.16);
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%} html{-webkit-text-size-adjust:100%}
-  body{
-    margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
-    background:
-      radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
-      radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
-      linear-gradient(180deg,var(--bg),var(--bg2));
-    -webkit-tap-highlight-color: transparent;
-  }
-  header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;
-    padding:10px 14px;background:rgba(15,21,33,.85);border-bottom:1px solid var(--edge);backdrop-filter:blur(8px)}
-  .hp-wrap{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
-  .hp-icon{font-size:26px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
-  .hp{flex:1;font:900 clamp(22px,4.2vw,36px)/1 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .hp small{font-weight:800;opacity:.9;background:rgba(255,255,255,.08);padding:.16em .45em;border-radius:.35em;margin-left:.45rem}
-  .reset{display:flex;gap:8px}
-  .btn-reset{height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--edge);background:#1a2234;color:#fff;font-weight:800;cursor:pointer}
-  .btn-reset:hover{filter:brightness(1.1)}
+  <meta charset="utf-8" />
+  <title>Idle Clicker – V0.2 (Mobile + GitHub Assets)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111" />
+  <style>
+    :root {
+      --bg: #0f1114;
+      --card: #15181d;
+      --ink: #e9eef3;
+      --muted: #9aa7b3;
+      --accent: #2e7d32;
+      --accent-2: #256628;
+      --border: #232a33;
+      --radius: 14px;
+      --space: clamp(10px, 2.2vw, 18px);
+      --fs-1: clamp(16px, 2.4vw, 18px);
+      --fs-2: clamp(18px, 3.2vw, 22px);
+      --fs-3: clamp(22px, 5vw, 28px);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: env(safe-area-inset-top) var(--space) env(safe-area-inset-bottom) var(--space);
+    }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    header { display: flex; align-items: center; gap: var(--space); margin: var(--space) 0; }
+    header img { width: clamp(28px, 6vw, 48px); height: auto; }
+    h1 { font-size: var(--fs-3); margin: 0; font-weight: 700; letter-spacing: 0.2px; }
 
-  .wrap{max-width:900px;margin:14px auto 120px;padding:0 14px}
-  .grid{display:grid;gap:12px}
-  @media (min-width:740px){.grid{grid-template-columns:1fr 1fr}}
+    .row { display: flex; gap: var(--space); flex-wrap: wrap; }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: var(--space);
+      flex: 1 1 280px;
+      min-width: 260px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset, 0 10px 24px rgba(0,0,0,0.25);
+    }
+    h3 { margin: 0 0 10px 0; font-size: var(--fs-2); }
+    .muted { color: var(--muted); }
+    .stat { font-variant-numeric: tabular-nums; }
 
-  .card{background:var(--card);border-radius:14px;padding:12px;
-    box-shadow:0 10px 22px rgba(0,0,0,.36), inset 0 0 0 1px var(--edge);
-    display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;min-height:140px}
-  @media (max-width:520px){.card{grid-template-columns:1fr}}
+    .btn {
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: clamp(10px, 2.5vh, 14px) clamp(14px, 3vw, 18px);
+      font-size: var(--fs-1);
+      font-weight: 600;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform .02s ease-out, filter .12s ease;
+      touch-action: manipulation;
+      width: 100%;
+    }
+    .btn:active { transform: translateY(1px); filter: brightness(0.95); }
+    .btn[disabled] { background: #3a434f; color: #a7b1be; cursor: not-allowed; transform: none; }
+    .btn.secondary { background: #2b3c4f; }
+    .btn.secondary:active { filter: brightness(1.08); }
 
-  .tap{position:relative;display:grid;place-items:center;height:100px;border-radius:14px;border:2px dashed #7ff2b0;
-    background:linear-gradient(180deg,#0c1e16,#0f271a);color:#cffff1;cursor:pointer;user-select:none;overflow:hidden}
-  .emoji{font-size:56px}
-  .tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
-  .tap.bop .emoji{animation:bop .18s ease} @keyframes bop{50%{transform:scale(1.12)}}
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space);
+    }
+    @media (max-width: 560px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
 
-  .meta h3{margin:0 0 6px;font:800 18px/1.15 system-ui;display:flex;align-items:center;gap:8px}
-  .meta h3 small{font-weight:800;color:#fff;background:#2c3a57;border:1px solid rgba(255,255,255,.15);
-    padding:.1em .5em;border-radius:.4em}
-  .sub{color:var(--muted);font-size:13px;display:flex;gap:10px;flex-wrap:wrap}
-
-  /* Orange cooldown with slanted stripes */
-  .bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:6px;position:relative}
-  .bar i{
-    display:block;height:100%;width:0;
-    background:
-      linear-gradient(90deg,var(--accent),var(--accent2)),
-      repeating-linear-gradient(135deg, transparent 0 10px, var(--stripe) 10px 16px, transparent 16px 26px);
-    background-blend-mode:overlay;
-  }
-
-  /* Green speed bar (no stripes) */
-  .mini{position:relative;height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px}
-  .mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
-  .mini .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font:900 11px/1 system-ui;color:#0b2415;text-shadow:0 1px 2px rgba(255,255,255,.35);pointer-events:none}
-
-  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-  .btn{height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--edge);
-    border-radius:12px;padding:0 10px;font-weight:900;background:#0e1724;color:#fff;cursor:pointer;position:relative;overflow:hidden}
-  .btn[disabled]{opacity:.5;cursor:not-allowed}
-  .primary{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent}
-
-  /* Clean “available” pulse (no long glare) */
-  .btn.available.pulse{animation:pulse 1.1s ease-in-out infinite}
-  @keyframes pulse{
-    0%{transform:translateZ(0) scale(1); box-shadow:0 0 0 0 rgba(255,158,61,.35)}
-    70%{transform:scale(1.02); box-shadow:0 0 0 10px rgba(255,158,61,0)}
-    100%{transform:scale(1)}
-  }
-
-  /* Floating +HP */
-  .float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
-
-  /* Debug */
-  #ffDebug{position:fixed;inset:auto 8px 8px 8px;background:#0b0f18;color:#ffb4b4;
-    border:1px solid #311;border-radius:10px;padding:10px;font:12px/1.35 ui-monospace,monospace;z-index:999999}
-  #ffDebug b{color:#fff}
-</style>
+    .flex { display: flex; align-items: center; gap: 10px; }
+    .spacer { height: var(--space); }
+    .status { min-height: 1.2em; }
+    .row-compact { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .kpi { display:flex; align-items:center; gap:10px; }
+    .kpi img { width: clamp(20px, 5vw, 28px); height: auto; filter: drop-shadow(0 2px 1px rgba(0,0,0,0.6)); }
+    .switch { display:flex; align-items:center; gap:8px; font-size: var(--fs-1); }
+    input[type="checkbox"] { width: 18px; height: 18px; }
+  </style>
 </head>
 <body>
-<header>
-  <div class="hp-wrap">
-    <div class="hp-icon">💪</div>
-    <div class="hp" id="hp">0.00 <small>HP</small></div>
-  </div>
-  <div class="reset">
-    <button class="btn-reset" id="newGame">New Game</button>
-  </div>
-</header>
+  <div class="wrap">
+    <header>
+      <img id="coinImg" alt="Coin" />
+      <h1>Idle Clicker</h1>
+    </header>
 
-<div class="wrap">
-  <div class="grid" id="cards"></div>
-</div>
-
-<!-- DEBUG PANEL -->
-<div id="ffDebug">
-  <div><b>Fitness Frenzy Debug</b></div>
-  <div id="ffErr">No errors yet.</div>
-  <div id="ffClick">No clicks yet.</div>
-  <div id="ffTop">Top element: (waiting)</div>
-</div>
-
-<script>
-/* ========= Utils ========= */
-const $=s=>document.getElementById(s);
-const now=()=>Date.now();
-function fmt(n){
-  const a=Math.abs(n), f=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(a>=1e15)return f(n/1e15)+'Q'; if(a>=1e12)return f(n/1e12)+'T'; if(a>=1e9)return f(n/1e9)+'B';
-  if(a>=1e6)return f(n/1e6)+'M'; if(a>=1e3)return f(n/1e3)+'K'; return f(n);
-}
-
-/* ========= Audio (tiny) ========= */
-let AC=null, master=null;
-function ensureAC(){try{if(AC)return;const C=window.AudioContext||window.webkitAudioContext;AC=new C();master=AC.createGain();master.gain.value=.9;master.connect(AC.destination);}catch(e){}}
-function s_click(){try{ensureAC();const t=AC.currentTime;const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=420;o.connect(g);g.connect(master);g.gain.setValueAtTime(.16,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);o.start(t);o.stop(t+.14);}catch(e){}}
-function s_buy(){try{ensureAC();const t=AC.currentTime;const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=980;o.connect(g);g.connect(master);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);o.start(t);o.stop(t+.22);}catch(e){}}
-
-/* ========= Config ========= */
-const COOLDOWN_MIN = 100; // 0.10s floor
-const COACH_UNLOCK_INDEX = 2; // coaches appear starting from exercise index 2 (3rd exercise)
-
-const EXERCISES=[
-  { key:'walk', name:'Walking', icon:'👟',
-    baseCost:12, baseHP:1, cooldownBase:1000, repsType:'doubling',
-    trainerCost:200, unlocked:true, freeReps:1, stepsReqBase:6
-  },
-  { key:'sit', name:'Sit-Ups', icon:'🧎‍♂️',
-    baseCost:60, baseHP:60, cooldownBase:3000, repsType:'power', coeff:1.15,
-    trainerCost:600, unlocked:false, stepsReqBase:8
-  },
-  { key:'jog', name:'Jogging', icon:'🏃‍♂️',
-    baseCost:720, baseHP:540, cooldownBase:6000, repsType:'power', coeff:1.14,
-    trainerCost:3000, unlocked:false, stepsReqBase:10
-  }
-];
-
-const OFFLINE_RATE=0.5, OFFLINE_CAP_MS=24*3600e3;
-
-/* ========= State / Save ========= */
-let state={
-  hp:0,lastSave:now(),lastTick:now(),
-  exercises:EXERCISES.map(cfg=>({
-    key:cfg.key, reps:0, trainer:false, nextReady:0, unlocked:!!cfg.unlocked,
-    cooldown:cfg.cooldownBase, steps:0, stepsReq:cfg.stepsReqBase||6
-  }))
-};
-const SAVE_KEY='ff-save-v4';
-function save(){state.lastSave=now();localStorage.setItem(SAVE_KEY,JSON.stringify(state));}
-function load(){
-  const raw=localStorage.getItem(SAVE_KEY);
-  if(!raw){
-    // first run defaults
-    EXERCISES.forEach((cfg,i)=>{
-      if(cfg.freeReps) state.exercises[i].reps = cfg.freeReps;
-      state.exercises[i].cooldown = cfg.cooldownBase;
-      state.exercises[i].stepsReq = cfg.stepsReqBase||6;
-      if(state.exercises[i].reps>0) state.exercises[i].nextReady = now();
-    });
-    return;
-  }
-  try{
-    const s=JSON.parse(raw); if(!s) return;
-    state={...state,...s};
-    EXERCISES.forEach((cfg,i)=>{
-      const ex=state.exercises[i];
-      if(!ex || ex.key!==cfg.key){
-        state.exercises[i]={key:cfg.key,reps:cfg.freeReps||0,trainer:false,nextReady:0,unlocked:!!cfg.unlocked,
-                            cooldown:cfg.cooldownBase,steps:0,stepsReq:cfg.stepsReqBase||6};
-      }else{
-        if((ex.reps||0)===0 && cfg.freeReps) ex.reps=cfg.freeReps;
-        if(!ex.cooldown) ex.cooldown = cfg.cooldownBase;
-        if(!ex.stepsReq) ex.stepsReq = cfg.stepsReqBase||6;
-      }
-    });
-    // offline gains (coaches only)
-    const elapsed=Math.min(OFFLINE_CAP_MS, now()-(s.lastTick||now()));
-    if(elapsed>1000){
-      let gain=0;
-      EXERCISES.forEach((cfg,i)=>{
-        const ex=state.exercises[i];
-        if(ex.trainer && ex.reps>0){
-          const per=calcCycleHP(cfg,ex);
-          const cycles=Math.floor(elapsed/ex.cooldown);
-          gain+=per*cycles*OFFLINE_RATE;
-        }
-      });
-      state.hp+=gain;
-    }
-  }catch(e){console.warn('Load failed',e);}
-}
-window.addEventListener('beforeunload',save); setInterval(save,15000);
-
-/* ========= Math ========= */
-function costNext(cfg,ex){
-  // tougher because doubling: base * 1.35^reps
-  return Math.ceil(cfg.baseCost * Math.pow(1.35, ex.reps));
-}
-function calcCycleHP(cfg,ex){
-  if(ex.reps<=0) return 0;
-  if(cfg.repsType==='doubling'){
-    return cfg.baseHP * Math.pow(2, ex.reps-1); // 1,2,4,8…
-  }
-  const c = Number(cfg.coeff||1.07);
-  return Math.max(1, Math.floor(cfg.baseHP * Math.pow(ex.reps, c)));
-}
-
-/* ========= UI ========= */
-function buildUI(){
-  const cards=$('cards'); cards.innerHTML='';
-  EXERCISES.forEach((cfg,i)=>{
-    const ex=state.exercises[i];
-    const card=document.createElement('div'); card.className='card'; card.id=`card-${cfg.key}`;
-    const tap=document.createElement('button'); tap.className='tap'; tap.id=`tap-${cfg.key}`;
-    tap.innerHTML=`<div class="emoji">${cfg.icon}</div>`;
-    tap.addEventListener('click',()=>{ensureAC(); tapExercise(i);});
-
-    const meta=document.createElement('div'); meta.className='meta';
-    meta.innerHTML=`
-      <h3>${cfg.name} ${ex.trainer?'<small>Coach</small>':''}</h3>
-      <div class="sub">
-        <span>Reps: <b id="reps-${cfg.key}">${ex.reps}</b></span>
-        <span>HP/cycle: <b id="hpc-${cfg.key}">0</b></span>
-        <span>Cooldown: <b id="cd-${cfg.key}">${(ex.cooldown/1000).toFixed(2)}s</b></span>
+    <div class="row">
+      <div class="card">
+        <h3>Bank</h3>
+        <div class="kpi">
+          <img id="coinImg2" alt="Coin" />
+          <div>Coins: <span id="coins" class="stat">0</span></div>
+        </div>
+        <div class="muted">Per tap: <span id="perTap" class="stat">1</span></div>
+        <div class="muted">Idle/sec: <span id="perSec" class="stat">0</span></div>
+        <div class="spacer"></div>
+        <div class="grid-2">
+          <button id="tapBtn" class="btn">Tap (+)</button>
+          <button id="saveBtn" class="btn secondary">Save</button>
+          <button id="resetBtn" class="btn secondary">Hard Reset</button>
+          <label class="switch">
+            <input id="muteToggle" type="checkbox" />
+            Mute
+          </label>
+        </div>
+        <div id="status" class="muted status"></div>
       </div>
-      <div class="bar"><i id="cool-${cfg.key}"></i></div>
-      <div class="mini"><i id="mini-${cfg.key}"></i><div class="lbl" id="miniLbl-${cfg.key}">${ex.steps}/${ex.stepsReq}</div></div>
-      <div class="actions">
-        <button class="btn primary" id="buy-${cfg.key}">${cfg.repsType==='doubling'?'Do More Reps ×2':'Buy Rep'} | — HP</button>
-        <button class="btn" id="mgr-${cfg.key}" style="display:${i<COACH_UNLOCK_INDEX?'none':''}">Hire Coach | — HP</button>
-      </div>`;
-    card.appendChild(tap); card.appendChild(meta); cards.appendChild(card);
-  });
-}
-function updateUI(){
-  $('hp').innerHTML=`${fmt(state.hp)} <small>HP</small>`;
-  EXERCISES.forEach((cfg,i)=>{
-    const ex=state.exercises[i], ready=now()>=ex.nextReady;
-    const tapEl=$(`tap-${cfg.key}`), repsEl=$(`reps-${cfg.key}`), hpcEl=$(`hpc-${cfg.key}`),
-          cdEl=$(`cd-${cfg.key}`), coolI=$(`cool-${cfg.key}`),
-          miniI=$(`mini-${cfg.key}`), miniL=$(`miniLbl-${cfg.key}`),
-          buyBt=$(`buy-${cfg.key}`), mgrBt=$(`mgr-${cfg.key}`);
 
-    if(tapEl) tapEl.classList.toggle('ready', ready);
+      <div class="card">
+        <h3>Upgrades</h3>
+        <div class="row-compact">
+          <div>
+            <div><strong>Auto-Tapper</strong></div>
+            <div class="muted">Each adds 1 tap/sec (multiplier applies)</div>
+            <div class="muted">Owned: <span id="autoOwned" class="stat">0</span></div>
+          </div>
+          <button id="buyAutoBtn" class="btn">Buy (cost <span id="autoCost" class="stat">15</span>)</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="row-compact">
+          <div>
+            <div><strong>Multiplier</strong></div>
+            <div class="muted">+100% to taps & idle per level</div>
+            <div class="muted">Level: <span id="multOwned" class="stat">1</span></div>
+          </div>
+          <button id="buyMultBtn" class="btn">Buy (cost <span id="multCost" class="stat">50</span>)</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    const per=calcCycleHP(cfg,ex);
-    if(repsEl) repsEl.textContent=ex.reps;
-    if(hpcEl)  hpcEl.textContent=fmt(per);
-    if(cdEl)   cdEl.textContent=(ex.cooldown/1000).toFixed(2)+'s';
-
-    // cooldown bar (orange)
-    const left=Math.max(0, ex.nextReady-now());
-    const pct=1-Math.min(1, left/ex.cooldown);
-    if(coolI) coolI.style.width=Math.round(pct*100)+'%';
-
-    // green speed bar + fraction (no stripes)
-    const spct = ex.stepsReq ? Math.min(100, Math.round((ex.steps/ex.stepsReq)*100)) : 0;
-    if(miniI) miniI.style.width = spct + '%';
-    if(miniL) miniL.textContent = `${ex.steps}/${ex.stepsReq}`;
-
-    // Buy Rep
-    const cost=costNext(cfg,ex);
-    if(buyBt){
-      buyBt.textContent=`${cfg.repsType==='doubling'?'Do More Reps ×2':'Buy Rep'} | ${fmt(cost)} HP`;
-      const can = state.hp>=cost && ex.unlocked!==false;
-      buyBt.disabled = !can;
-      buyBt.classList.toggle('available', can);
-      buyBt.classList.toggle('pulse', can);
-      buyBt.onclick=()=>{ensureAC(); buyRep(i);};
+  <script>
+  // =======================
+  // CONFIG (point to GitHub)
+  // =======================
+  // If left empty, the app will try local files (e.g., ./assets/images/coin.png)
+  const CONFIG = {
+    ASSET_BASE: "", // e.g., "https://YOUR-USERNAME.github.io/YOUR-REPO/assets"
+    IMAGES: {
+      coin: "images/coin.png"
+    },
+    SOUNDS: {
+      tap: "sounds/click.wav",
+      buy: "sounds/buy.wav"
     }
+  };
+  const url = (path) => {
+    const base = (CONFIG.ASSET_BASE || "").replace(/\/$/, "");
+    const clean = (path || "").replace(/^\//, "");
+    return base ? `${base}/${clean}` : `./assets/${clean}`;
+  };
 
-    // Coach (only visible from 3rd exercise)
-    if(mgrBt && i>=COACH_UNLOCK_INDEX){
-      const mCost=cfg.trainerCost;
-      mgrBt.textContent=ex.trainer?'Coach Hired':`Hire Coach | ${fmt(mCost)} HP`;
-      const can=!ex.trainer && state.hp>=mCost && ex.reps>0;
-      mgrBt.disabled=!can;
-      mgrBt.classList.toggle('available', can);
-      mgrBt.classList.toggle('pulse', can);
-      mgrBt.onclick=()=>{ensureAC(); hireCoach(i);};
-    }
-  });
-}
+  // ================
+  // VERSION / SAVE
+  // ================
+  const VERSION = '0.2.0';
+  const SAVE_KEY = 'idle_clicker_save_v' + VERSION;
 
-/* ========= Gameplay ========= */
-function floatHP(anchor, gain){
-  if(!anchor) return;
-  const r=anchor.getBoundingClientRect();
-  const n=document.createElement('div');
-  n.className='float';
-  n.textContent = `+${Number.isInteger(gain)?gain:gain.toFixed(0)} HP`;
-  n.style.left=(r.left+r.width/2)+'px';
-  n.style.top=(r.top+10+window.scrollY)+'px';
-  document.body.appendChild(n);
-  n.animate([{transform:'translate(-50%,0) scale(1)',opacity:1,color:'#fff'},
-             {transform:'translate(-50%,-40px) scale(1.05)',opacity:0,color:'#ffdea8'}],
-            {duration:800,easing:'ease-out'});
-  setTimeout(()=>n.remove(),820);
-}
+  // ==========
+  // STATE
+  // ==========
+  const state = {
+    coins: 0,
+    perTapBase: 1,
+    multiplierLevel: 1,    // effective multiplier = level
+    autoOwned: 0,          // each = 1 tap/sec baseline
+    lastTS: performance.now(),
+    lastSavedAt: Date.now(),
+    muted: false
+  };
 
-function tapExercise(i){
-  const cfg=EXERCISES[i], ex=state.exercises[i];
-  if(!ex.unlocked) return;
-  if(now()<ex.nextReady) return;
-  if(ex.reps<=0) return;
-  const gain=calcCycleHP(cfg,ex);
-  state.hp+=gain; s_click();
-  const tapEl=$(`tap-${cfg.key}`);
-  if(tapEl){tapEl.classList.remove('bop'); void tapEl.offsetWidth; tapEl.classList.add('bop'); floatHP(tapEl,gain);}
-  ex.nextReady=now()+ex.cooldown;
-}
+  const costs = {
+    auto: { base: 15, growth: 1.15 },
+    mult: { base: 50, growth: 1.20 }
+  };
 
-function buyRep(i){
-  const cfg=EXERCISES[i], ex=state.exercises[i];
-  if(!ex.unlocked) return;
-  const cost=costNext(cfg,ex);
-  if(state.hp<cost) return;
-  state.hp-=cost; ex.reps+=1; s_buy();
-
-  // Progress towards faster cooldown
-  ex.steps += 1;
-  if(ex.steps >= ex.stepsReq){
-    ex.steps = 0;
-    ex.cooldown = Math.max(COOLDOWN_MIN, Math.floor(ex.cooldown/2));
-    ex.stepsReq = Math.ceil(ex.stepsReq*1.6 + 2);
+  // ==========
+  // UTIL
+  // ==========
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const pow = Math.pow;
+  const fmt = (n) => {
+    if (n >= 1e12) return (n/1e12).toFixed(2) + 'T';
+    if (n >= 1e9)  return (n/1e9 ).toFixed(2) + 'B';
+    if (n >= 1e6)  return (n/1e6 ).toFixed(2) + 'M';
+    if (n >= 1e3)  return (n/1e3 ).toFixed(2) + 'K';
+    return Math.floor(n).toString();
+  };
+  function costFor(countOwned, { base, growth }) {
+    return Math.floor(base * pow(growth, countOwned));
+  }
+  function totalPerTap() {
+    return state.perTapBase * state.multiplierLevel;
+  }
+  function totalPerSec() {
+    return state.autoOwned * totalPerTap();
   }
 
-  if(ex.nextReady===0) ex.nextReady=now();
-
-  // Unlock the next exercise when req met (>=5 reps here OR HP ≥ next base cost)
-  if(i+1<EXERCISES.length){
-    const nextCfg=EXERCISES[i+1], next=state.exercises[i+1];
-    if(!next.unlocked && (ex.reps>=5 || state.hp >= nextCfg.baseCost)){
-      next.unlocked = true;
-      const nextCard = document.getElementById(`card-${nextCfg.key}`);
-      if(nextCard) nextCard.style.filter='none';
-    }
-  }
-}
-
-function hireCoach(i){
-  const cfg=EXERCISES[i], ex=state.exercises[i];
-  if(ex.trainer||ex.reps<=0) return;
-  const mCost=cfg.trainerCost; if(state.hp<mCost) return;
-  state.hp-=mCost; ex.trainer=true; s_buy();
-}
-
-/* ========= Loop ========= */
-function tick(){
-  const t=now(); state.lastTick=t;
-
-  // Coaches automation
-  EXERCISES.forEach((cfg,i)=>{
-    const ex=state.exercises[i];
-    if(!ex.trainer||ex.reps<=0||!ex.unlocked) return;
-    if(t>=ex.nextReady){
-      const gain=calcCycleHP(cfg,ex);
-      state.hp+=gain; ex.nextReady=t+ex.cooldown;
-      const tapEl=$(`tap-${cfg.key}`); if(tapEl){ tapEl.classList.add('ready'); setTimeout(()=>tapEl.classList.remove('ready'),60); }
-    }
+  // ==========
+  // AUDIO
+  // ==========
+  const sfx = {
+    tap: new Audio(url(CONFIG.SOUNDS.tap)),
+    buy: new Audio(url(CONFIG.SOUNDS.buy))
+  };
+  [sfx.tap, sfx.buy].forEach(a => {
+    a.preload = 'auto';
+    a.volume = 0.8;
   });
 
-  updateUI();
-}
-setInterval(tick,60);
+  let audioUnlocked = false;
+  function unlockAudioOnce() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    // Attempt a tiny silent play to satisfy iOS autoplay policies
+    try { sfx.tap.muted = true; sfx.tap.play().then(() => { sfx.tap.pause(); sfx.tap.currentTime = 0; sfx.tap.muted = state.muted; }); } catch {}
+  }
+  function playSfx(aud) {
+    if (state.muted) return;
+    try {
+      // Reuse element; quick sounds are fine with currentTime reset
+      aud.currentTime = 0;
+      aud.play();
+    } catch {}
+  }
 
-/* ========= Reset / Boot / Debug ========= */
-function hardReset(){
-  if(!confirm('Start a new game? This will erase your progress.')) return;
-  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
-  location.reload();
-}
+  // ================
+  // PERSISTENCE
+  // ================
+  function save() {
+    const payload = {
+      coins: state.coins,
+      multiplierLevel: state.multiplierLevel,
+      autoOwned: state.autoOwned,
+      lastSavedAt: Date.now(),
+      muted: state.muted,
+      version: VERSION
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    ui.status.textContent = 'Saved.';
+    setTimeout(() => (ui.status.textContent = ''), 800);
+  }
+  function load() {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    try {
+      const s = JSON.parse(raw);
+      state.coins = s.coins ?? state.coins;
+      state.multiplierLevel = s.multiplierLevel ?? state.multiplierLevel;
+      state.autoOwned = s.autoOwned ?? state.autoOwned;
+      state.lastSavedAt = s.lastSavedAt ?? Date.now();
+      state.muted = !!s.muted;
 
-function boot(){
-  buildUI(); load(); updateUI();
-  // Reset button
-  const ng=$('newGame'); if(ng) ng.addEventListener('click', hardReset);
+      // Offline progress (cap at 24h)
+      const secs = clamp((Date.now() - state.lastSavedAt) / 1000, 0, 60 * 60 * 24);
+      state.coins += totalPerSec() * secs;
+    } catch { /* ignore */ }
+  }
 
-  document.addEventListener('click',e=>{$('ffClick').textContent='Last click on: '+(e.target.id||e.target.tagName);},true);
-  setInterval(()=>{
-    const first=EXERCISES[0]; const tap=document.getElementById(`tap-${first.key}`), info=$('ffTop');
-    if(!tap){info.textContent='Top element over tap: (no element)'; return;}
-    const r=tap.getBoundingClientRect(); const x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2);
-    const el=document.elementFromPoint(x,y); info.textContent='Top element over tap: '+(el?(el.id||el.tagName):'none');
-  },500);
-  window.addEventListener('error',e=>{const where=(e.filename||'')+(e.lineno?(':'+e.lineno):''); $('ffErr').textContent='JS error: '+e.message+' @ '+where;});
-}
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot);}else{boot();}
-</script>
+  // ================
+  // ECONOMY
+  // ================
+  function canAfford(cost) { return state.coins >= cost; }
+  function tap() {
+    state.coins += totalPerTap();
+    playSfx(sfx.tap);
+  }
+  function buyAuto() {
+    const c = costFor(state.autoOwned, costs.auto);
+    if (!canAfford(c)) return false;
+    state.coins -= c;
+    state.autoOwned += 1;
+    playSfx(sfx.buy);
+    return true;
+  }
+  function buyMult() {
+    const c = costFor(state.multiplierLevel - 1, costs.mult);
+    if (!canAfford(c)) return false;
+    state.coins -= c;
+    state.multiplierLevel += 1;
+    playSfx(sfx.buy);
+    return true;
+  }
+
+  // ==========
+  // LOOP
+  // ==========
+  const STEP = 100; // ms (10Hz fixed update)
+  let acc = 0;
+  function update(dtMs) {
+    acc += dtMs;
+    while (acc >= STEP) {
+      state.coins += (totalPerSec() * (STEP / 1000));
+      acc -= STEP;
+    }
+  }
+  function render() {
+    ui.coins.textContent = fmt(state.coins);
+    ui.perTap.textContent = fmt(totalPerTap());
+    ui.perSec.textContent = fmt(totalPerSec());
+    ui.autoOwned.textContent = state.autoOwned;
+    ui.multOwned.textContent = state.multiplierLevel;
+
+    const nextAutoCost = costFor(state.autoOwned, costs.auto);
+    const nextMultCost = costFor(state.multiplierLevel - 1, costs.mult);
+    ui.autoCost.textContent = fmt(nextAutoCost);
+    ui.multCost.textContent = fmt(nextMultCost);
+    ui.buyAutoBtn.disabled = !canAfford(nextAutoCost);
+    ui.buyMultBtn.disabled = !canAfford(nextMultCost);
+    ui.muteToggle.checked = state.muted;
+  }
+  function tick(ts) {
+    const dt = ts - state.lastTS;
+    state.lastTS = ts;
+    update(dt);
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  // ==========
+  // UI
+  // ==========
+  const ui = {
+    coins: document.getElementById('coins'),
+    perTap: document.getElementById('perTap'),
+    perSec: document.getElementById('perSec'),
+    tapBtn: document.getElementById('tapBtn'),
+    buyAutoBtn: document.getElementById('buyAutoBtn'),
+    buyMultBtn: document.getElementById('buyMultBtn'),
+    autoOwned: document.getElementById('autoOwned'),
+    multOwned: document.getElementById('multOwned'),
+    autoCost: document.getElementById('autoCost'),
+    multCost: document.getElementById('multCost'),
+    saveBtn: document.getElementById('saveBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    status: document.getElementById('status'),
+    muteToggle: document.getElementById('muteToggle'),
+    coinImg: document.getElementById('coinImg'),
+    coinImg2: document.getElementById('coinImg2')
+  };
+
+  // Mobile-friendly: single "press" binding with Pointer Events
+  function bindPress(el, handler) {
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); // prevents 300ms delay + accidental text selection
+      unlockAudioOnce();
+      handler(e);
+    }, { passive: false });
+    // Keyboard accessibility
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); }
+    });
+  }
+
+  bindPress(ui.tapBtn, () => { tap(); render(); });
+  bindPress(ui.buyAutoBtn, () => { if (buyAuto()) render(); });
+  bindPress(ui.buyMultBtn, () => { if (buyMult()) render(); });
+  bindPress(ui.saveBtn, save);
+  bindPress(ui.resetBtn, () => {
+    if (!confirm('Hard reset? This clears your save.')) return;
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  });
+  ui.muteToggle.addEventListener('change', () => {
+    state.muted = ui.muteToggle.checked;
+    sfx.tap.muted = state.muted;
+    sfx.buy.muted = state.muted;
+  });
+
+  // ==========
+  // BOOT
+  // ==========
+  function boot() {
+    // Set coin images (works with GitHub or local assets/)
+    const coinURL = url(CONFIG.IMAGES.coin);
+    ui.coinImg.src = coinURL;
+    ui.coinImg2.src = coinURL;
+
+    load();
+    render();
+
+    requestAnimationFrame((ts) => {
+      state.lastTS = ts;
+      requestAnimationFrame(tick);
+    });
+
+    // auto-save every 15s
+    setInterval(save, 15000);
+  }
+
+  boot();
+  </script>
 </body>
 </html>
