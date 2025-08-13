@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — Core + Debug</title>
+<title>Fitness Frenzy — Core + DOM-Safe Debug</title>
 <style>
   :root{
     --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
@@ -124,65 +124,10 @@ function s_up(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscil
   o.type="square"; o.frequency.value=980; o.connect(g); g.connect(master); g.gain.setValueAtTime(.22,t);
   g.gain.exponentialRampToValueAtTime(.0001,t+.22); o.start(t); o.stop(t+.24);}catch(e){} }
 
-/* ------- Actions ------- */
-function perform(){
-  if(!canFire()) return;
-  nextReadyMs = Date.now() + intervalMs();
-  const g = gainPerTap();
-  hp += g;
-
-  // FX
-  s_click();
-  bopTap();
-  floatHP($('#tap'), `+${g} HP`);
-
-  render();
-}
-function buyRep(){
-  const cost = nextRepCost();
-  if(hp < cost) return;
-  hp -= cost;
-  reps += 1;           // more HP per tap
-  steps += 1;          // progress to 2× speed
-  if(steps >= stepsReq){
-    steps = 0;
-    tier += 1;         // halves cooldown
-    stepsReq = Math.ceil(stepsReq * STEP_GROW + STEP_BONUS);
-  }
-  s_up();
-  render();
-}
-
-/* ------- Render ------- */
-function render(){
-  $('hp').innerHTML = `${fmtHP(hp)} <small>HP</small>`;
-  $('replv').textContent = reps;
-  $('gain').textContent  = gainPerTap();
-  $('cd').textContent    = (intervalMs()/1000).toFixed(2).replace(/\.00$/,'');
-
-  const cost = nextRepCost();
-  const repBtn = $('rep');
-  repBtn.textContent = `Reps | ${cost.toLocaleString()} HP`;
-  const can = hp >= cost;
-  repBtn.disabled = !can;
-  repBtn.classList.toggle('glitter', can);
-  repBtn.classList.toggle('available', can);
-
-  // cooldown bar
-  const nowMs = Date.now(), dur = intervalMs(), left = Math.max(0, nextReadyMs - nowMs);
-  const pct = dur ? 1 - Math.min(1, left/dur) : 1;
-  $('cool').style.width = Math.round(pct*100)+'%';
-  $('#tap').classList.toggle('ready', left<=0);
-
-  // green progress bar + fraction
-  const p2 = stepsReq ? Math.round((steps/stepsReq)*100) : 0;
-  $('mini').style.width = Math.min(100, p2)+'%';
-  $('miniLbl').textContent = `${steps}/${stepsReq}`;
-}
-
-/* ------- Tiny VFX ------- */
-function bopTap(){ const el=$('#tap'); el.classList.remove('bop'); void el.offsetWidth; el.classList.add('bop'); }
+/* ------- VFX ------- */
+function bopTap(){ const el=$('tap'); if(!el) return; el.classList.remove('bop'); void el.offsetWidth; el.classList.add('bop'); }
 function floatHP(anchor, text){
+  if(!anchor) return;
   const r = anchor.getBoundingClientRect();
   const n = document.createElement('div');
   n.className='float'; n.textContent=text;
@@ -195,21 +140,93 @@ function floatHP(anchor, text){
   setTimeout(()=>n.remove(),820);
 }
 
-/* ------- Safe binding (shows warning if element is missing) ------- */
+/* ------- Actions ------- */
+function perform(){
+  if(!canFire()) return;
+  nextReadyMs = Date.now() + intervalMs();
+  const g = gainPerTap();
+  hp += g;
+
+  s_click();
+  bopTap();
+  floatHP($('tap'), `+${g} HP`);
+
+  render();
+}
+function buyRep(){
+  const cost = nextRepCost();
+  if(hp < cost) return;
+  hp -= cost;
+  reps += 1;
+  steps += 1;
+  if(steps >= stepsReq){
+    steps = 0;
+    tier += 1;
+    stepsReq = Math.ceil(stepsReq * STEP_GROW + STEP_BONUS);
+  }
+  s_up();
+  render();
+}
+
+/* ------- Render ------- */
+function render(){
+  const hpEl=$('hp'), replvEl=$('replv'), gainEl=$('gain'), cdEl=$('cd'),
+        repBtn=$('rep'), cool=$('cool'), tapEl=$('tap'),
+        mini=$('mini'), miniLbl=$('miniLbl');
+
+  if(hpEl) hpEl.innerHTML = `${fmtHP(hp)} <small>HP</small>`;
+  if(replvEl) replvEl.textContent = reps;
+  if(gainEl)  gainEl.textContent  = gainPerTap();
+  if(cdEl)    cdEl.textContent    = (intervalMs()/1000).toFixed(2).replace(/\.00$/,'');
+
+  const cost = nextRepCost();
+  if(repBtn){
+    repBtn.textContent = `Reps | ${cost.toLocaleString()} HP`;
+    const can = hp >= cost;
+    repBtn.disabled = !can;
+    repBtn.classList.toggle('glitter', can);
+    repBtn.classList.toggle('available', can);
+  }
+
+  // cooldown bar & glow
+  const nowMs = Date.now(), dur = intervalMs(), left = Math.max(0, nextReadyMs - nowMs);
+  const pct = dur ? 1 - Math.min(1, left/dur) : 1;
+  if(cool) cool.style.width = Math.round(pct*100)+'%';
+  if(tapEl) tapEl.classList.toggle('ready', left<=0);
+
+  // green progress bar + fraction
+  const p2 = stepsReq ? Math.round((steps/stepsReq)*100) : 0;
+  if(mini) mini.style.width = Math.min(100, p2)+'%';
+  if(miniLbl) miniLbl.textContent = `${steps}/${stepsReq}`;
+
+  // If tapEl is missing, surface it in debug immediately
+  if(!tapEl){ const errBox=document.getElementById('ffErr'); if(errBox){ errBox.textContent='DOM issue: #tap not found (render)'; } }
+}
+
+/* ------- Safe binding (warn if missing) ------- */
 function bind(id, ev, fn){
   const el = document.getElementById(id);
   if(!el){
+    const errBox=document.getElementById('ffErr');
+    if(errBox) errBox.textContent = `DOM issue: element #${id} not found when binding`;
     console.warn('Missing element #' + id);
     return;
   }
   el.addEventListener(ev, fn);
 }
 
-/* ------- Wire + Loop ------- */
-bind('tap','click', ()=>{ ensureAC(); perform(); });
-bind('rep','click', ()=>{ ensureAC(); buyRep(); });
-setInterval(render, 60);
-render();
+/* ------- Boot after DOM is ready ------- */
+function boot(){
+  bind('tap','click', ()=>{ ensureAC(); perform(); });
+  bind('rep','click', ()=>{ ensureAC(); buyRep(); });
+  setInterval(render, 60);
+  render();
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', boot);
+}else{
+  boot();
+}
 </script>
 
 <!-- ==================== DEBUG START ==================== -->
@@ -231,7 +248,8 @@ render();
 (function(){
   // 1) Show JavaScript errors
   window.addEventListener('error', function(e){
-    document.getElementById('ffErr').textContent = 'JS error: ' + e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'?');
+    var where = (e.filename||'') + (e.lineno?(':'+e.lineno):'');
+    document.getElementById('ffErr').textContent = 'JS error: ' + e.message + ' @ ' + where;
   });
 
   // 2) Log clicks reaching the page
@@ -244,7 +262,7 @@ render();
   function probe(){
     var tap = document.getElementById('tap'); // main button id
     var info = document.getElementById('ffTop');
-    if(!tap){ info.textContent = 'No #tap element found.'; return; }
+    if(!tap){ info.textContent = 'Top element over tap: (no #tap on page)'; return; }
     var r = tap.getBoundingClientRect();
     var x = Math.round(r.left + r.width/2), y = Math.round(r.top + r.height/2);
     var el = document.elementFromPoint(x, y);
