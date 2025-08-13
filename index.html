@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V1.5 (Global BuyQty + Unlock Bounce)</title>
+<title>Fitness Frenzy – V1.6 (Rep Progress Fix + Unlock Overlay)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
   :root{
     --bg:#0a1320; --card:#0f1b2b; --ink:#e9eef3; --muted:#a7b7cc; --border:#213149;
-    --accent:#cc6b2c;          /* burnt orange */
-    --accent-hi:#ffb357;       /* brighter orange */
-    --rep:#22c55e;             /* green rep bar */
+    --accent:#cc6b2c; --accent-hi:#ffb357; --rep:#22c55e;
     --space:clamp(10px,2.2vw,18px); --r:14px;
     --fs-1:clamp(16px,2.4vw,18px); --fs-2:clamp(18px,3.2vw,22px); --fs-3:clamp(22px,5vw,28px);
   }
@@ -25,14 +23,13 @@
   .title .icon{font-size:clamp(22px,5vw,28px)}
   h1{margin:0;font-size:var(--fs-3)}
 
-  /* HP pill (big & fun) */
-  .hpPill{
-    display:flex; align-items:center; gap:10px;
-    padding:8px 14px; border-radius:999px; background:linear-gradient(135deg,#132647,#1d3a61);
-    border:1px solid #2a4a78; box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04);
-  }
-  .hpPill .label{font-weight:900; letter-spacing:.3px; color:#ffd6a8}
-  .hpPill .val{font-variant-numeric:tabular-nums; font-weight:900; font-size:clamp(20px,4.5vw,28px); color:#fff}
+  /* HP pill (bigger, steady width) */
+  .hpPill{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;
+          background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid #2a4a78;
+          box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04)}
+  .hpPill .label{font-weight:900;letter-spacing:.3px;color:var(--accent)}
+  .hpPill .val{font-variant-numeric:tabular-nums;font-weight:900;font-size:clamp(20px,4.5vw,28px);color:#fff;
+               min-width:8ch;text-align:right}
 
   .spacer{flex:1 1 auto}
 
@@ -47,7 +44,6 @@
   .btn.secondary{background:#1a2a40;color:#d7e3f5}
   .btn:active{transform:translateY(1px)}
   .btn[disabled]{background:#2a3a51;color:#9ab;cursor:not-allowed}
-  /* Ready shine (orange) */
   .btn.ready{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 8px 20px rgba(204,107,44,.35);filter:saturate(1.15) brightness(1.08)}
   .btn.ready::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.18) 45%,transparent 90%);
                     transform:translateX(-110%);animation:shine 1.25s linear infinite;pointer-events:none}
@@ -69,6 +65,14 @@
           display:flex;align-items:center;justify-content:center;font-size:clamp(28px,8vw,40px);user-select:none;-webkit-tap-highlight-color:transparent;
           transition:transform .02s ease,filter .12s ease,background .2s ease;cursor:pointer;overflow:visible}
   .tapPad:active{transform:translateY(1px) scale(.98);filter:brightness(1.08)}
+
+  /* Rep badge inside pad */
+  .repBadge{position:absolute;left:8%;right:8%;bottom:6%;display:flex;flex-direction:column;gap:4px;align-items:center}
+  .repbar{width:100%;height:10px;border-radius:8px;background:#15341f;border:1px solid #204e2b;overflow:hidden}
+  .repfill{height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
+  .reptext{font-size:12px;color:#cfead6;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+
+  /* +HP float */
   .float{position:absolute;left:50%;top:10%;transform:translateX(-50%);color:#ffe6c7;font-weight:800;text-shadow:0 1px 0 rgba(0,0,0,.6);
          animation:rise .7s ease-out forwards;pointer-events:none}
   @keyframes rise{0%{opacity:0;transform:translate(-50%,10px) scale(.9)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-24px) scale(1.05)}}
@@ -79,7 +83,7 @@
   .ex-title{font-size:var(--fs-2);margin:0}
   .muted{color:var(--muted)}
 
-  /* Cooldown bar */
+  /* Cooldown bar (no numbers inside) */
   .coolwrap{background:#0c1525;border:1px solid #223556;border-radius:10px;overflow:hidden}
   .coolbar{height:16px;background:#101a2a;position:relative}
   .coolfill{height:100%;width:0%;position:relative;background:linear-gradient(90deg,var(--accent) 0%, var(--accent-hi) 92%)}
@@ -88,11 +92,11 @@
       mix-blend-mode:overlay;opacity:.65;animation:stripeMove 1.2s linear infinite}
   @keyframes stripeMove{from{background-position:0 0}to{background-position:60px 0}}
 
-  /* Rep row */
-  .repRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .repbar{flex:1;height:10px;border-radius:8px;background:#15341f;border:1px solid #204e2b;overflow:hidden;min-width:180px}
-  .repfill{height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
   .kv{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:6px 10px;border-radius:10px;font-size:14px}
+
+  /* Unlock overlay button */
+  .unlockOverlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .unlockOverlay .btn{pointer-events:auto}
 </style>
 </head>
 <body>
@@ -121,40 +125,44 @@
 </div>
 
 <div class="wrap"><div id="stack" class="stack"></div></div>
-<div id="toast" class="toast" style="display:none"></div>
 
 <script>
 /* ===== Data / Config ===== */
-const VERSION='ff-v1-5';
+const VERSION='ff-v1-6';
 const SAVE_KEY='fitness_frenzy_'+VERSION;
-
-/* Rep growth ~7% per rep */
-const REP_GROWTH = 1.07;
-/* Global buy quantity (header toggle) */
+const REP_GROWTH = 1.07;  // ~7% growth
 let BUY_QTY = 1;
 
 const exercises = [
+  // repPower: total reps ever bought (drives tap power & price). repProgress: progress toward next upgrade.
   { id:'walk', name:'Walking', icon:'🚶', baseHP:1,   baseCooldown:600,
-    reps:0, repTarget:10, repBaseCost:4,  unlocked:true,  unlockCost:0,
+    repPower:0, repProgress:0, repTarget:10, repBaseCost:4,
+    unlocked:true,  unlockCost:0,
     cooldown:600, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+
   { id:'jog',  name:'Jogging', icon:'🏃', baseHP:60,  baseCooldown:3000,
-    reps:0, repTarget:10, repBaseCost:30, unlocked:false, unlockCost:60,
+    repPower:0, repProgress:0, repTarget:10, repBaseCost:30,
+    unlocked:false, unlockCost:60,
     cooldown:3000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+
   { id:'sit',  name:'Sit-ups', icon:'🤸', baseHP:180, baseCooldown:2500,
-    reps:0, repTarget:10, repBaseCost:90, unlocked:false, unlockCost:300,
+    repPower:0, repProgress:0, repTarget:10, repBaseCost:90,
+    unlocked:false, unlockCost:300,
     cooldown:2500, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+
   { id:'push', name:'Push-ups', icon:'💪', baseHP:400, baseCooldown:2000,
-    reps:0, repTarget:10, repBaseCost:200, unlocked:false, unlockCost:1200,
+    repPower:0, repProgress:0, repTarget:10, repBaseCost:200,
+    unlocked:false, unlockCost:1200,
     cooldown:2000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 ];
 
-const state = { hp:0, lastTS:performance.now() };
+const state = { hp:0 };
 
 /* ===== Utils ===== */
 const fmtTop = n => n>=1e9?(n/1e9).toFixed(2)+'B' : n>=1e6?(n/1e6).toFixed(2)+'M' : n>=1e3?(n/1e3).toFixed(2)+'K' : Math.floor(n).toString();
 const fmtCost = n => n<1e3 ? n.toFixed(2) : (n<1e6 ? (n/1e3).toFixed(2)+'K' : (n<1e9 ? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const perTap = e => e.baseHP * Math.pow(2, e.reps);
+const perTap = e => e.baseHP * Math.pow(2, e.repPower);
 const cooldownMs = e => e.cooldown;
 const canTap = (e, now)=> (now - e.lastTapAt) >= cooldownMs(e) - 1;
 
@@ -171,8 +179,7 @@ function sfx(type){
     };
     if(type==='tap')      beep(660,'sine',.12,.06);
     if(type==='buy')      beep(440,'sine',.18,.08);
-    if(type==='upgrade'){ beep(520,'sine',.2,.08);
-                          const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    if(type==='upgrade'){ beep(520,'sine',.2,.08); const o=audioCtx.createOscillator(), g=audioCtx.createGain();
                           o.type='sine'; g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.0001,t+.22);
                           o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(880,t+.18);
                           o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(t+.24);}
@@ -184,7 +191,10 @@ function sfx(type){
 function save(){
   localStorage.setItem(SAVE_KEY, JSON.stringify({
     hp: state.hp,
-    exercises: exercises.map(e=>({id:e.id,reps:e.reps,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown}))
+    exercises: exercises.map(e=>({
+      id:e.id, repPower:e.repPower, repProgress:e.repProgress, repTarget:e.repTarget,
+      unlocked:e.unlocked, cooldown:e.cooldown
+    }))
   }));
   toast('Saved.');
 }
@@ -196,8 +206,13 @@ function load(){
     if(Array.isArray(s.exercises)){
       for(const se of s.exercises){
         const e = exercises.find(x=>x.id===se.id); if(!e) continue;
-        e.reps=se.reps ?? e.reps; e.repTarget=se.repTarget ?? e.repTarget;
-        e.unlocked=se.unlocked ?? e.unlocked; e.cooldown=se.cooldown ?? e.baseCooldown;
+        // migrate from old versions if needed
+        if(se.reps!==undefined && se.repPower===undefined){ e.repPower = se.reps; }
+        e.repPower    = se.repPower ?? e.repPower;
+        e.repProgress = se.repProgress ?? e.repProgress;
+        e.repTarget   = se.repTarget ?? e.repTarget;
+        e.unlocked    = se.unlocked ?? e.unlocked;
+        e.cooldown    = se.cooldown ?? e.baseCooldown;
       }
     }
   }catch{}
@@ -209,8 +224,7 @@ const ui = {
   saveBtn: document.getElementById('saveBtn'),
   resetBtn: document.getElementById('resetBtn'),
   qtyTop: document.getElementById('qtyTop'),
-  stack: document.getElementById('stack'),
-  toast: document.getElementById('toast')
+  stack: document.getElementById('stack')
 };
 
 function makeExerciseCard(e){
@@ -219,6 +233,14 @@ function makeExerciseCard(e){
 
   const tapPad = document.createElement('div');
   tapPad.className='tapPad'; tapPad.textContent = e.icon;
+
+  // rep badge inside pad
+  const repBadge = document.createElement('div');
+  repBadge.className='repBadge';
+  repBadge.innerHTML = `
+    <div class="repbar"><div class="repfill"></div></div>
+    <div class="reptext">0/10</div>`;
+  tapPad.appendChild(repBadge);
 
   const right = document.createElement('div'); right.className='right';
 
@@ -232,59 +254,59 @@ function makeExerciseCard(e){
 
   const kvs = document.createElement('div');
   kvs.innerHTML = `<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>
-                   <span class="kv">Reps: <strong class="kvReps">${e.reps}</strong></span>`;
+                   <span class="kv">Reps: <strong class="kvReps">${e.repPower}</strong></span>`;
 
   const repRow = document.createElement('div'); repRow.className='repRow';
-  repRow.innerHTML = `<div class="repbar"><div class="repfill"></div></div>`;
-  const buyRepBtn = document.createElement('button'); buyRepBtn.className='btn'; buyRepBtn.textContent='Buy Rep';
+  const buyRepBtn = document.createElement('button'); buyRepBtn.className='btn'; buyRepBtn.textContent='Add Reps';
   repRow.appendChild(buyRepBtn);
 
-  // Locked info (on card, not overlay)
-  const lockedInfo = document.createElement('div');
-  lockedInfo.className='repRow';
-  lockedInfo.innerHTML = `<div class="kv">Unlock cost: <strong class="unlockCost">${fmtCost(e.unlockCost)}</strong> HP</div>`;
-  const unlockBtn = document.createElement('button'); unlockBtn.className='btn'; unlockBtn.textContent='Unlock';
-  lockedInfo.appendChild(unlockBtn);
+  // Unlock overlay (appears only when affordable)
+  const unlockOverlay = document.createElement('div');
+  unlockOverlay.className='unlockOverlay'; unlockOverlay.style.display='none';
+  unlockOverlay.innerHTML = `<button class="btn">Unlock</button>`;
+  const unlockBtn = unlockOverlay.querySelector('.btn');
 
   // Assemble right column
   right.appendChild(head);
   right.appendChild(coolWrap);
   right.appendChild(kvs);
   right.appendChild(repRow);
-  right.appendChild(lockedInfo);
 
   card.appendChild(tapPad);
   card.appendChild(right);
+  card.appendChild(unlockOverlay);
 
   // store refs
   e.els = {
-    card, tapPad,
+    card, tapPad, repBadge,
+    repFill: repBadge.querySelector('.repfill'),
+    repText: repBadge.querySelector('.reptext'),
     headRight: head.querySelector('.headRight'),
     coolFill: coolWrap.querySelector('.coolfill'),
     kvTap: kvs.querySelector('.kvTap'),
     kvReps: kvs.querySelector('.kvReps'),
-    repFill: repRow.querySelector('.repfill'),
     buyRepBtn,
-    lockedInfo, unlockBtn, unlockCostEl: lockedInfo.querySelector('.unlockCost'),
-    coolWrap, kvs, repRow
+    unlockOverlay, unlockBtn
   };
 
-  // initial show/hide
-  if(e.unlocked){ lockedInfo.style.display='none'; }
-  else{ coolWrap.style.display='none'; kvs.style.display='none'; repRow.style.display='none'; }
+  // initial show/hide for locked
+  if(!e.unlocked){
+    coolWrap.style.display='none';
+    kvs.style.display='none';
+    repRow.style.display='none';
+  }
 
   // wire events
   bindPress(tapPad, ()=> tap(e));
-  bindPress(buyRepBtn, ()=> buyRep(e, BUY_QTY));
+  bindPress(buyRepBtn, ()=> addReps(e, BUY_QTY));
   bindPress(unlockBtn, ()=>{
     if(state.hp >= e.unlockCost){
       state.hp -= e.unlockCost; e.unlocked = true; sfx('buy');
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
+      e.els.unlockOverlay.style.display='none';
       // reveal internals
-      e.els.lockedInfo.style.display='none';
-      e.els.coolWrap.style.display='block';
-      e.els.kvs.style.display='block';
-      e.els.repRow.style.display='flex';
+      coolWrap.style.display='block'; kvs.style.display='block'; repRow.style.display='flex';
+      burstConfetti(e.els.card);
       refreshExerciseUI(e); renderTop();
     }
   });
@@ -304,47 +326,48 @@ function renderStack(){
     [...ui.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     BUY_QTY = parseInt(btn.dataset.q,10);
-    // refresh all buttons/cost labels
     exercises.forEach(refreshExerciseUI);
   }, {passive:false});
 });
 
 /* ===== UI Updates ===== */
 function refreshExerciseUI(e){
-  // header right text: either cooldown countdown or "Locked"
+  // header right text = countdown only (no word)
   if(e.unlocked){
-    e.els.headRight.textContent = `Cooldown: ${ (cooldownMs(e)/1000).toFixed(2) }s`;
+    e.els.headRight.textContent = (cooldownMs(e)/1000).toFixed(2)+'s';
   }else{
-    e.els.headRight.textContent = `Locked`;
+    e.els.headRight.textContent = ''; // no "Locked" text
   }
 
-  // core stats (only if unlocked)
+  // rep badge (progress fraction) – always visible
+  e.els.repText.textContent = `${e.repProgress}/${e.repTarget}`;
+  e.els.repFill.style.width = (Math.min(e.repProgress / e.repTarget, 1)*100).toFixed(1)+'%';
+
   if(e.unlocked){
     e.els.kvTap.textContent = perTap(e).toFixed(0);
-    e.els.kvReps.textContent = e.reps;
-    e.els.repFill.style.width = (Math.min(e.reps / e.repTarget, 1)*100).toFixed(1)+'%';
+    e.els.kvReps.textContent = e.repPower;
 
     const cost = bulkRepCost(e, BUY_QTY);
     const canBuy = state.hp >= cost;
     e.els.buyRepBtn.textContent =
-      (BUY_QTY===1 ? `Buy Rep (${fmtCost(cost)} HP)` : `Buy ${BUY_QTY} Reps (${fmtCost(cost)} HP)`);
+      (BUY_QTY===1 ? `Add Reps (${fmtCost(cost)} HP)` : `Add ${BUY_QTY} Reps (${fmtCost(cost)} HP)`);
     e.els.buyRepBtn.disabled = !canBuy;
     if(canBuy && !e._repReady){ e._repReady=true; e.els.buyRepBtn.classList.add('ready'); sfx('ready'); }
     if(!canBuy && e._repReady){ e._repReady=false; e.els.buyRepBtn.classList.remove('ready'); }
   }else{
-    // locked card: show cost + unlock state
-    e.els.unlockCostEl.textContent = fmtCost(e.unlockCost);
+    // Locked: show overlay only when affordable
     const canUn = state.hp >= e.unlockCost;
-    e.els.unlockBtn.disabled = !canUn;
-    // visual attention on card + button
     if(canUn && !e._unlockReady){
       e._unlockReady=true;
+      e.els.unlockOverlay.style.display='flex';
       e.els.card.classList.add('unlock-ready','unlock-bounce');
       e.els.unlockBtn.classList.add('ready');
+      e.els.unlockBtn.textContent = `Unlock (${fmtCost(e.unlockCost)} HP)`;
       sfx('ready');
     }
     if(!canUn && e._unlockReady){
       e._unlockReady=false;
+      e.els.unlockOverlay.style.display='none';
       e.els.card.classList.remove('unlock-ready','unlock-bounce');
       e.els.unlockBtn.classList.remove('ready');
     }
@@ -355,29 +378,29 @@ function renderTop(){ ui.hp.textContent = fmtTop(state.hp); }
 function refreshAll(){ renderTop(); exercises.forEach(refreshExerciseUI); }
 
 /* ===== Economy ===== */
-function repUnitCost(e, offset=0){ return e.repBaseCost * Math.pow(REP_GROWTH, e.reps + offset); }
+function unitRepCost(e, offset=0){ return e.repBaseCost * Math.pow(REP_GROWTH, e.repPower + offset); }
 function bulkRepCost(e, qty){
-  const base = e.repBaseCost * Math.pow(REP_GROWTH, e.reps);
+  const base = e.repBaseCost * Math.pow(REP_GROWTH, e.repPower);
   const cost = base * (Math.pow(REP_GROWTH, qty) - 1) / (REP_GROWTH - 1);
   return +cost.toFixed(2);
 }
-function buyRep(e, qty=1){
+function addReps(e, qty=1){
   if(!e.unlocked) return;
   const cost = bulkRepCost(e, qty);
   if(state.hp + 1e-9 < cost) return;
   state.hp -= cost;
-  e.reps += qty;
+  e.repPower += qty;       // permanent power & pricing
+  e.repProgress += qty;    // progress toward next upgrade
   sfx('buy');
-  checkUpgrade(e);
+  handleUpgrades(e);
   refreshAll();
 }
-function checkUpgrade(e){
-  while(e.reps >= e.repTarget){
-    e.reps -= e.repTarget;
-    e.repTarget *= 2;
-    e.cooldown = Math.max(100, Math.floor(e.cooldown/2));
-    toast('Upgraded! Cooldown halved.');
-    sfx('upgrade');
+function handleUpgrades(e){
+  while(e.repProgress >= e.repTarget){
+    e.repProgress -= e.repTarget;         // reset progress for the next tier
+    e.repTarget *= 2;                      // 10 → 20 → 40 …
+    e.cooldown = Math.max(100, Math.floor(e.cooldown/2)); // halve cooldown
+    toast('Upgrade! Cooldown halved.'); sfx('upgrade');
   }
 }
 
@@ -403,46 +426,70 @@ function spawnFloat(e, text){
 function updateCooldownUI(e){
   if(!e.unlocked) return;
   const cd = cooldownMs(e), now = performance.now(), since = now - e.lastTapAt, pct = clamp(since/cd,0,1);
-  // bar fill only; countdown sits in header (we update it here)
+  // fill bar; show countdown in header as high → 0.00
   if(cd <= 100){
     e.els.coolFill.style.width = '100%';
-    e.els.headRight.textContent = `Cooldown: 0.00s`;
+    e.els.headRight.textContent = '0.00s';
     return;
   }
   e.els.coolFill.style.width = (pct*100).toFixed(1)+'%';
   if(pct < 1){
     const remain = Math.max(0, (cd - since)/1000);
     const shown = Math.max(0.01, remain);
-    e.els.headRight.textContent = `Cooldown: ${shown.toFixed(2)}s`;
+    e.els.headRight.textContent = shown.toFixed(2)+'s';
   } else {
-    e.els.headRight.textContent = `Cooldown: 0.00s`;
+    e.els.headRight.textContent = '0.00s';
   }
 }
 
-/* ===== Loop ===== */
-function tick(ts){
-  state.lastTS = ts;
-  exercises.forEach(updateCooldownUI);
-  requestAnimationFrame(tick);
+/* ===== Confetti ===== */
+function burstConfetti(card){
+  const rect = card.getBoundingClientRect();
+  const container = document.createElement('div');
+  container.style.position='fixed'; container.style.left=rect.left+'px'; container.style.top=rect.top+'px';
+  container.style.width=rect.width+'px'; container.style.height=rect.height+'px'; container.style.pointerEvents='none'; container.style.zIndex=9999;
+  document.body.appendChild(container);
+  const colors=['#ffb357','#cc6b2c','#22c55e','#8ab4ff','#ffd166'];
+  const N = 36;
+  for(let i=0;i<N;i++){
+    const p=document.createElement('div');
+    p.style.position='absolute';
+    p.style.width='6px'; p.style.height='10px';
+    p.style.left=(rect.width/2)+'px'; p.style.top=(rect.height/2)+'px';
+    p.style.background=colors[i%colors.length];
+    p.style.borderRadius='2px';
+    const angle = Math.random()*2*Math.PI;
+    const dist = 40 + Math.random()*80;
+    const dx = Math.cos(angle)*dist, dy = Math.sin(angle)*dist;
+    const rot = (Math.random()*360)|0;
+    p.animate([
+      { transform:`translate(0,0) rotate(0deg)`, opacity:1 },
+      { transform:`translate(${dx}px, ${dy}px) rotate(${rot}deg)`, opacity:0 }
+    ], { duration: 700 + Math.random()*400, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards' });
+    container.appendChild(p);
+  }
+  setTimeout(()=>container.remove(), 1200);
 }
 
-/* ===== Toast (subtle) ===== */
-let toastTimer=null;
-function toast(msg){
-  ui.toast.textContent=msg; ui.toast.style.display='block';
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>{ ui.toast.style.display='none'; }, 1000);
-}
+/* ===== Loop, Bind, Boot ===== */
+function tick(){ exercises.forEach(updateCooldownUI); requestAnimationFrame(tick); }
 
-/* ===== Bind & Boot ===== */
 function bindPress(el, fn){
   el.addEventListener('pointerdown', e=>{ e.preventDefault(); fn(e); }, {passive:false});
   el.addEventListener('keydown', e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); fn(e);} });
 }
+
+function toast(msg){
+  // lightweight toast in header pill (subtle)
+  console.log(msg);
+}
+
 ui.saveBtn.addEventListener('click', save);
 ui.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.removeItem(SAVE_KEY); location.reload(); });
 
-function boot(){ load(); renderTop(); renderStack(); requestAnimationFrame(tick); setInterval(save, 20000); }
+[...ui.qtyTop.querySelectorAll('.segBtn')].forEach(b=>{ if(+b.dataset.q===BUY_QTY) b.classList.add('active'); });
+
+function boot(){ load(); renderTop(); renderStack(); tick(); setInterval(save, 20000); }
 boot();
 </script>
 </body>
