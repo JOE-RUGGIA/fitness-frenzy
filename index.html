@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Fitness Frenzy — Classic Stable</title>
+<title>Fitness Frenzy — Classic + Speed Bar</title>
 <style>
 :root{
   --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
@@ -59,6 +59,16 @@ header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12
 @keyframes needBlink{50%{box-shadow:0 0 12px 2px rgba(58,160,255,.35),0 0 0 4px rgba(255,122,26,.18) inset}}
 .lockedTone{filter:grayscale(.75) brightness(.85);opacity:.9}
 
+/* NEW: green speed-progress bar inside avatar */
+.avatar-mini{
+  position:absolute;left:8px;right:8px;bottom:8px;height:12px;border-radius:8px;
+  background:#0b1219;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+  display:flex;align-items:center;justify-content:center;
+  font:900 11px/1 system-ui;color:#0b1219;
+}
+.avatar-mini i{position:absolute;left:0;top:0;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
+.avatar-mini span{position:relative;z-index:1;mix-blend-mode:luminosity}
+
 /* Cooldown bar (orange) */
 .bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:10px}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
@@ -87,7 +97,6 @@ header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12
 .ribbon.show{animation:down .25s ease forwards, up .35s ease 2.6s forwards}
 @keyframes down{to{top:14px}}@keyframes up{to{top:-60px}}
 .burst{position:absolute;left:0;top:0;pointer-events:none;z-index:1300;font-size:20px}
-.hpBurst{font-size:22px;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 </style>
 </head>
 <body>
@@ -95,7 +104,7 @@ header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12
 <div id="intro">
   <div class="introCard">
     <h1>Fitness Frenzy</h1>
-    <p>Tap to earn <b>HP (Health Points)</b>. Buy <b>Reps</b> to increase HP/tap and reduce cooldown (min <b>0.10s</b>). Hire a <b>Coach</b> at 1,000 HP to automate taps.</p>
+    <p>Tap to earn <b>HP</b>. Buy <b>Reps</b> to increase HP/tap. Fill the GREEN bar (e.g. <b>3/8</b>) to unlock a <b>2× speed</b> boost (cooldown halves). Minimum cooldown is <b>0.10s</b>.</p>
     <button class="startBtn" id="startBtn">Start Workout ▶</button>
   </div>
 </div>
@@ -114,24 +123,24 @@ header{position:sticky;top:0;z-index:1000;display:flex;align-items:center;gap:12
 </header>
 
 <div class="wrap" id="list"></div>
-<div class="ribbon" id="ribbon">🎉</div>
+<div class="ribbon" id="ribbon" hidden>🎉</div>
 <audio id="bgm" preload="auto" loop crossorigin="anonymous"></audio>
 
 <script>
 /* ---------- Config ---------- */
 const RAW = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/";
 const MUSIC = RAW + "Velvet%20Haze%20-%20Take%20a%20Seat%20-%20Instrumental%20version.mp3";
-const STORAGE="ff_classic_stable_v1";
+const STORAGE="ff_classic_speedbar_v1";
 const MIN_INTERVAL=0.10;
 const COACH_UNLOCK=1000;
 
-/* exercises: id, name, emoji, baseGain, baseInterval(s), repCostBase, repCostMult, gainMultPerRep, unlockCost */
+/* exercises: id, name, emoji, baseGain, baseInterval(s), repCostBase, repCostMult, gainMultPerRep, unlockCost, stepsReqStart */
 const EX = [
-  ["walk","Walking","👟", 1, 0.50, 10, 1.28, 1.15,   0],
-  ["jog", "Jogging","🏃‍♂️",6, 2.00, 60, 1.32, 1.14,  60],
-  ["yoga","Yoga","🧘‍♂️",22, 4.00,260, 1.36, 1.13, 180],
-  ["cycle","Cycling","🚴‍♂️",80, 6.00,900, 1.40, 1.12, 720],
-  ["lift","Weight Lifting","🏋️‍♂️",300,8.00,2400,1.45, 1.12,2500],
+  ["walk","Walking","👟", 1, 0.50, 10, 1.28, 1.15,   0,  8],
+  ["jog", "Jogging","🏃‍♂️",6, 2.00, 60, 1.32, 1.14,  60, 10],
+  ["yoga","Yoga","🧘‍♂️",22, 4.00,260, 1.36, 1.13, 180, 12],
+  ["cycle","Cycling","🚴‍♂️",80, 6.00,900, 1.40, 1.12, 720, 14],
+  ["lift","Weight Lifting","🏋️‍♂️",300,8.00,2400,1.45, 1.12,2500,16],
 ];
 
 /* ---------- State ---------- */
@@ -149,30 +158,44 @@ function fmtCost(n){ n=Math.floor(n); const a=Math.abs(n), f=v=>Number.isInteger
 
 function nextRepCost(ex, reps){ return Math.floor(ex[5] * Math.pow(ex[6], Math.max(0,reps-1))); }
 function gainPerTap(ex, reps){ return Math.max(1, Math.floor(ex[3] * Math.pow(ex[7], Math.max(0,reps-1)))); }
-function intervalFor(ex, reps, hasCoach){
-  const base = ex[4] * Math.pow(0.94, Math.max(0,reps-1)); // ~6% faster per Rep
-  const sped = hasCoach ? base/2 : base;
-  return Math.max(MIN_INTERVAL, sped);
+
+/* Speed is controlled ONLY by tier (2× each tier), not by reps */
+function intervalFor(ex, tier, hasCoach){
+  let base = ex[4] / Math.pow(2, Math.max(0,tier)); // halves each tier
+  if(hasCoach) base /= 2;
+  return Math.max(MIN_INTERVAL, base);
 }
+function growStepsRequired(req){ return Math.ceil(req*1.35 + 2); }
 
 /* ---------- Audio ---------- */
 const bgm = id("bgm"); bgm.src=MUSIC; bgm.volume=0.22;
-let AC=null, master=null, noiseBuf=null;
+let AC=null, master=null;
 function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C();
-  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination); noiseBuf=mkNoise(.18);}catch{} }
-function mkNoise(sec){ const sr=(AC?.sampleRate)||48000, n=sr*sec; const b=AC.createBuffer(1,n,sr), a=b.getChannelData(0); for(let i=0;i<n;i++) a[i]=Math.random()*2-1; return b;}
-function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=420;o.connect(g);g.connect(master);g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.start(t);o.stop(t+.16);}catch{} }
-function s_upgrade(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=980;o.connect(g);g.connect(master);g.gain.setValueAtTime(.24,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}catch{} }
-function s_coin(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=760;o.connect(g);g.connect(master);g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);o.start(t);o.stop(t+.2);}catch{} }
+  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch{} }
+function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type="triangle";o.frequency.value=420;o.connect(g);g.connect(master);g.gain.setValueAtTime(.18,t);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.start(t);o.stop(t+.16);}catch{} }
+function s_upgrade(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type="square";o.frequency.value=980;o.connect(g);g.connect(master);g.gain.setValueAtTime(.24,t);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.start(t);o.stop(t+.24);}catch{} }
 
 /* ---------- Save/Load ---------- */
 function load(){
   try{const raw=localStorage.getItem(STORAGE); if(raw){ Object.assign(state, JSON.parse(raw)); }}catch{}
   EX.forEach((ex,i)=>{
     const eid=ex[0];
-    if(!state.items[eid]) state.items[eid]={
-      unlocked:i===0, reps:i===0?1:0, coach:false, next:0, taps:0
-    };
+    const exist = state.items[eid];
+    if(!exist){
+      state.items[eid]={
+        unlocked:i===0, reps:i===0?1:0, coach:false, next:0, taps:0,
+        steps:0, stepsReq:ex[9], tier:0
+      };
+    }else{
+      // migrate older saves to add speed-progress fields
+      if(exist.steps===undefined) exist.steps=0;
+      if(exist.stepsReq===undefined) exist.stepsReq=ex[9];
+      if(exist.tier===undefined) exist.tier=0;
+    }
     tmp[eid]={ timer:null };
   });
 }
@@ -200,6 +223,7 @@ function build(){
     card.innerHTML=`
       <button type="button" class="avatarbtn ${unlocked?'':'lockedTone'}" id="tap-${eid}" ${unlocked?'':'disabled'}>
         <div class="emoji">${emoji}</div>
+        ${unlocked ? `<div class="avatar-mini"><i id="mini-${eid}"></i><span id="miniTxt-${eid}"></span></div>` : ``}
       </button>
       <div class="meta">${unlocked?metaUnlocked:metaLocked}</div>
       <div class="actions" id="act-${eid}"></div>`;
@@ -227,13 +251,19 @@ function build(){
       tap.addEventListener("pointerdown", tapHandler, {passive:false});
       tap.addEventListener("touchstart", tapHandler, {passive:false});
 
-      // Reps handler
+      // Reps handler (adds HP/tap AND progress toward next 2× speed)
       repBtn.addEventListener("click", ()=>{
         const next = (it.reps||1)+1;
         const cost = nextRepCost(ex, next);
         if(state.hp>=cost){
           state.hp -= cost;
           it.reps = next;
+          it.steps += 1;                     // progress toward 2× speed
+          if(it.steps >= it.stepsReq){
+            it.steps = 0;
+            it.tier += 1;                    // halves cooldown
+            it.stepsReq = growStepsRequired(it.stepsReq);
+          }
           s_upgrade();
           render(); save();
         }
@@ -245,7 +275,6 @@ function build(){
         if(state.hp < COACH_UNLOCK) return;
         state.hp -= COACH_UNLOCK;
         it.coach = true;
-        s_coin();
         startCoach(eid);
         render(); save();
       });
@@ -267,7 +296,7 @@ function startAudio(){
 function perform(eid){
   const ex = EX.find(x=>x[0]===eid), it=state.items[eid];
   const t = now();
-  const interval = intervalFor(ex, it.reps||1, it.coach);
+  const interval = intervalFor(ex, it.tier||0, it.coach);
   if(t < (it.next||0)) return false;
 
   it.next = t + interval;
@@ -288,7 +317,7 @@ function startCoach(eid){
   const tick=()=>{
     perform(eid);
     const ex=EX.find(x=>x[0]===eid);
-    const interval = intervalFor(ex, it.reps||1, true);
+    const interval = intervalFor(ex, it.tier||0, true);
     tmp[eid].timer = setTimeout(tick, Math.max(80, interval*1000));
   };
   tmp[eid].timer = setTimeout(tick, 0);
@@ -308,7 +337,7 @@ function render(){
 
     if(it.unlocked){
       // cooldown bar
-      const interval = intervalFor(ex, it.reps||1, it.coach);
+      const interval = intervalFor(ex, it.tier||0, it.coach);
       const left = Math.max(0, (it.next||0) - now());
       const pct = 1 - Math.min(1, left/interval);
       if(cool){
@@ -346,6 +375,16 @@ function render(){
           (state.hp>=COACH_UNLOCK ? `🧑‍💼 Coach | ${fmtCost(COACH_UNLOCK)} HP` : "🧑‍💼 Coach | 1k HP");
         coachBtn.disabled = it.coach || state.hp<COACH_UNLOCK;
       }
+
+      // NEW: green bar fraction for 2× speed progress
+      const mini=id("mini-"+eid), miniTxt=id("miniTxt-"+eid);
+      if(mini && miniTxt){
+        const x=it.steps||0, y=it.stepsReq||ex[9];
+        const p=Math.max(0,Math.min(1, y? x/y : 0))*100;
+        mini.style.display="flex";
+        mini.querySelector("i").style.width=p.toFixed(0)+"%";
+        miniTxt.textContent=`${x}/${y}`;
+      }
     } else {
       // locked: show unlock button only when affordable
       if(actions){
@@ -359,7 +398,7 @@ function render(){
             if(state.hp<unlockCost) return;
             state.hp -= unlockCost;
             it.unlocked=true; it.reps=1; it.coach=false; it.next=0;
-            s_coin();
+            it.steps=0; it.stepsReq=ex[9]; it.tier=0;
             build(); render(); save();
           });
         }
@@ -375,14 +414,14 @@ function floatHP(anchor, amt){
   n.style.zIndex=1300; n.style.fontWeight="900";
   document.body.appendChild(n);
   const r=anchor.getBoundingClientRect();
-  n.style.left=(r.left+r.width/2)+"px"; n.style.top=(r.top-6+scrollY)+"px"; n.style.transform="translate(-50%,0)";
+  n.style.left=(r.left+r.width/2)+"px"; n.style.top=(r.top-6+window.scrollY)+"px"; n.style.transform="translate(-50%,0)";
   n.animate([{transform:"translate(-50%,0)",opacity:1,color:"#fff"},
              {transform:"translate(-50%,-46px)",opacity:0,color:"#ffdea8"}],
             {duration:820,easing:"ease-out"});
   setTimeout(()=>n.remove(),840);
 }
 function sparkle(anchor){
-  const r=anchor.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2+scrollY;
+  const r=anchor.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2+window.scrollY;
   for(let i=0;i<8;i++){
     const e=document.createElement("div"); e.className="burst"; e.textContent="✨";
     e.style.left=cx+"px"; e.style.top=cy+"px";
