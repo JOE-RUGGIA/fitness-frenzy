@@ -3,37 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FF Core Mini (Timer v3)</title>
+<title>FF Working Minimum</title>
 <style>
-body{font-family:system-ui,Arial;margin:2rem;background:#0f1421;color:#eaf1fb}
-.wrap{display:grid;grid-template-columns:160px 1fr;gap:12px;max-width:760px}
-@media (max-width:700px){.wrap{grid-template-columns:1fr}}
-.tap{position:relative;display:grid;place-items:center;height:120px;border-radius:12px;border:2px dashed #7ff2b0;background:#0c1e16;color:#cffff1;cursor:pointer;user-select:none;overflow:hidden}
-.tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
-.emoji{font-size:56px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
-.tap.bop .emoji{animation:bop .18s ease}
-@keyframes bop{50%{transform:scale(1.12)}}
-h2,h3{margin:0 0 8px}
-.sub{color:#9fb0c6;margin:0 0 8px}
-.bump{animation:bump .35s ease}
-@keyframes bump{0%{transform:scale(1)}25%{transform:scale(1.06)}100%{transform:scale(1)}}
-
-/* Orange cooldown bar */
-.bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7a1a,#ffc38f)}
-
-/* Green progress bar (with fraction text) */
-.mini{position:relative;height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px}
-.mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
-.mini .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font:900 11px/1 system-ui;color:#cfead7;text-shadow:0 1px 2px rgba(0,0,0,.5);pointer-events:none}
-
-/* Buttons */
-.btn{margin-top:10px;padding:10px 14px;border-radius:10px;border:0;background:#ff7a1a;color:#1b0e03;font-weight:900;cursor:pointer}
-.btn[disabled]{opacity:.45;cursor:not-allowed}
-
-/* Float +HP */
-.float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+  body{font-family:system-ui,Arial;margin:2rem;background:#0f1421;color:#eaf1fb}
+  .wrap{display:grid;grid-template-columns:160px 1fr;gap:12px;max-width:760px}
+  @media (max-width:700px){.wrap{grid-template-columns:1fr}}
+  .tap{position:relative;display:grid;place-items:center;height:120px;border-radius:12px;border:2px dashed #7ff2b0;background:#0c1e16;color:#cffff1;cursor:pointer;user-select:none;overflow:hidden}
+  .tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
+  .emoji{font-size:56px}
+  h2,h3{margin:0 0 8px}
+  .sub{color:#9fb0c6;margin:0 0 8px}
+  .bar{height:14px;background:#0b1219;border-radius:8px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7a1a,#ffc38f)}
+  .mini{position:relative;height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px}
+  .mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
+  .mini .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:900 11px/1 system-ui;color:#cfead7;text-shadow:0 1px 2px rgba(0,0,0,.5);pointer-events:none}
+  .btn{margin-top:10px;padding:10px 14px;border-radius:10px;border:0;background:#ff7a1a;color:#1b0e03;font-weight:900;cursor:pointer}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 </style>
 </head>
 <body>
@@ -45,127 +32,82 @@ h2,h3{margin:0 0 8px}
     <h3>Walking</h3>
     <div class="sub">Reps Lv.<b id="replv">1</b> • Gain/tap: <b id="gain">1</b> • Cooldown: <b id="cd">1.00</b>s</div>
     <div class="bar" title="Cooldown"><i id="cool"></i></div>
-    <div class="mini" title="Progress to 2× speed">
-      <i id="mini"></i><div class="lbl" id="miniLbl">0/0</div>
-    </div>
+    <div class="mini" title="Progress to 2× speed"><i id="mini"></i><div class="lbl" id="miniLbl">0/0</div></div>
     <button class="btn" id="rep">Reps | 10 HP</button>
   </div>
 </div>
 
 <script>
-/* -------- State & constants -------- */
-let hp=0;
-let reps=1;        // increases HP per tap only
-let tier=0;        // each full green bar → +1 tier (2× faster)
-let steps=0;       // progress to next tier
-let stepsReq=10;   // starting requirement (harder each tier)
-let nextReadyMs=0;
+/* ---- State ---- */
+let hp=0, reps=1, tier=0, steps=0, stepsReq=10, nextReadyMs=0;
 
-const BASE_GAIN=1;
-const GAIN_MULT=1.15;
+/* ---- Tunables ---- */
+const BASE_GAIN=1, GAIN_MULT=1.15;
+const BASE_CD_S=1.00, MIN_CD_S=0.10;
+const REP_BASE=10, REP_MULT=1.28;
 
-const BASE_CD_S=1.00;   // starts at 1.00s (your request)
-const MIN_CD_S =0.10;   // floor
-
-const REP_BASE=10;
-const REP_MULT=1.28;
-
-/* -------- DOM helpers -------- */
+/* ---- Helpers ---- */
 const $ = id => document.getElementById(id);
-function fmtHP(n){
-  if(n>=1e9) return (n/1e9).toFixed(2).replace(/\.00$/,'')+'B';
-  if(n>=1e6) return (n/1e6).toFixed(2).replace(/\.00$/,'')+'M';
-  if(n>=1e3) return (n/1e3).toFixed(2).replace(/\.00$/,'')+'K';
-  return n.toFixed(0);
-}
-
-/* -------- Mechanics -------- */
+function fmtHP(n){ if(n>=1e9)return (n/1e9).toFixed(2).replace(/\.00$/,'')+'B';
+  if(n>=1e6)return (n/1e6).toFixed(2).replace(/\.00$/,'')+'M';
+  if(n>=1e3)return (n/1e3).toFixed(2).replace(/\.00$/,'')+'K';
+  return n.toFixed(0); }
 function gainPerTap(){ return Math.max(1, Math.floor(BASE_GAIN * Math.pow(GAIN_MULT, reps-1))); }
 function nextRepCost(){ return Math.floor(REP_BASE * Math.pow(REP_MULT, reps)); }
-function intervalMs(){
-  let s = BASE_CD_S / Math.pow(2, tier);          // halves each tier
-  if (s < MIN_CD_S) s = MIN_CD_S;
-  return Math.round(s*1000);
-}
+function intervalMs(){ let s=BASE_CD_S/Math.pow(2,tier); if(s<MIN_CD_S) s=MIN_CD_S; return Math.round(s*1000); }
 function canFire(){ return Date.now() >= nextReadyMs; }
 
-/* -------- Audio -------- */
-let AC=null, master=null;
-function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch{} }
-function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type="triangle"; o.frequency.value=420; o.connect(g); g.connect(master);
-  g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.0001,t+.14);
-  o.start(t); o.stop(t+.16);}catch{} }
-function s_up(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
-  o.type="square"; o.frequency.value=980; o.connect(g); g.connect(master);
-  g.gain.setValueAtTime(.22,t); g.gain.exponentialRampToValueAtTime(.0001,t+.22);
-  o.start(t); o.stop(t+.24);}catch{} }
-
-/* -------- Actions -------- */
+/* ---- Actions ---- */
 function perform(){
   if(!canFire()) return;
   nextReadyMs = Date.now() + intervalMs();
   const gain = gainPerTap();
   hp += gain;
-
-  // SFX + small visuals
-  s_click();
-  bop($('#tap'));
   floatHP($('#tap'), `+${gain} HP`);
-
   render();
 }
 function buyRep(){
   const cost = nextRepCost();
   if(hp < cost) return;
   hp -= cost;
-  reps += 1;             // Gain/tap increases immediately
-  steps += 1;            // progress toward 2× speed
+  reps += 1;       // boosts Gain/tap (you'll see it change immediately)
+  steps += 1;      // progress to 2x speed
   if(steps >= stepsReq){
     steps = 0;
-    tier += 1;           // cooldown halves
-    stepsReq = Math.ceil(stepsReq * 1.5 + 3); // progressively harder
+    tier += 1;     // halve cooldown
+    stepsReq = Math.ceil(stepsReq*1.5 + 3); // harder each time
   }
-  s_up();
-  bump($('#gain')); bump($('#replv'));
-
   render();
 }
 
-/* -------- Render -------- */
+/* ---- UI ---- */
 function render(){
   $('hp').textContent = fmtHP(hp);
   $('replv').textContent = reps;
   $('gain').textContent  = gainPerTap();
   $('cd').textContent    = (intervalMs()/1000).toFixed(2).replace(/\.00$/,'');
 
-  // Reps button
   const cost = nextRepCost();
   $('rep').textContent = `Reps | ${cost.toLocaleString()} HP`;
   $('rep').disabled = hp < cost;
 
-  // Cooldown bar & glow
-  const nowMs = Date.now();
-  const dur = intervalMs();
-  const left = Math.max(0, nextReadyMs - nowMs);
+  // cooldown bar & ready glow
+  const now = Date.now(), dur = intervalMs(), left = Math.max(0, nextReadyMs - now);
   const pct = dur ? 1 - Math.min(1, left/dur) : 1;
   $('cool').style.width = Math.round(pct*100)+'%';
   $('tap').classList.toggle('ready', left<=0);
 
-  // Green progress bar with fraction text (e.g., 6/15)
+  // green progress bar + fraction
   const p2 = stepsReq ? Math.round((steps/stepsReq)*100) : 0;
   $('mini').style.width = Math.min(100, p2)+'%';
   $('miniLbl').textContent = `${steps}/${stepsReq}`;
 }
 
-/* -------- Tiny VFX helpers -------- */
-function bop(el){ el.classList.remove('bop'); void el.offsetWidth; el.classList.add('bop'); }
-function bump(el){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+/* ---- +HP float ---- */
 function floatHP(anchor, text){
   const r = anchor.getBoundingClientRect();
   const n = document.createElement('div');
-  n.className='float';
-  n.textContent=text;
+  n.className='float'; n.textContent=text;
   n.style.left = (r.left + r.width/2) + 'px';
   n.style.top  = (r.top + 10 + window.scrollY) + 'px';
   document.body.appendChild(n);
@@ -175,12 +117,9 @@ function floatHP(anchor, text){
   setTimeout(()=>n.remove(),820);
 }
 
-/* -------- Wire events -------- */
+/* ---- Wire & loop ---- */
 $('#tap').addEventListener('click', perform);
-$('#tap').addEventListener('pointerdown', e=>{e.preventDefault(); perform();}, {passive:false});
 $('#rep').addEventListener('click', buyRep);
-
-/* -------- Timer loop (stable everywhere) -------- */
 setInterval(render, 60);
 render();
 </script>
