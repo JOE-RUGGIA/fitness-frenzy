@@ -1,7 +1,352 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8" />
+<title>Fitness Frenzy – V1.3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root{
+    --bg:#0a1320; --card:#0f1b2b; --ink:#e9eef3; --muted:#a7b7cc; --border:#213149;
+    --accent:#cc6b2c;         /* burnt orange */
+    --accent-hi:#ffb357;      /* brighter orange for fade */
+    --rep:#22c55e;            /* green rep bar */
+    --space:clamp(10px,2.2vw,18px); --r:14px;
+    --fs-1:clamp(16px,2.4vw,18px); --fs-2:clamp(18px,3.2vw,22px); --fs-3:clamp(22px,5vw,28px);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);
+       padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0;}
+
+  /* Sticky Top Bar */
+  .topbar{position:sticky;top:0;z-index:10;background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
+  .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px}
+  .title{display:flex;align-items:center;gap:10px}
+  .title .icon{font-size:clamp(22px,5vw,28px)}
+  h1{margin:0;font-size:var(--fs-3)}
+  .hpbox{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .hpval{font-variant-numeric:tabular-nums;font-weight:700}
+  .btn{position:relative;overflow:hidden;padding:10px 14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;
+       transition:transform .04s ease,box-shadow .2s ease,filter .2s ease}
+  .btn.secondary{background:#1a2a40;color:#d7e3f5}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:#2a3a51;color:#9ab;cursor:not-allowed}
+  /* “Ready” shine (orange) */
+  .btn.ready{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 8px 20px rgba(204,107,44,.35);filter:saturate(1.15) brightness(1.08)}
+  .btn.ready::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.18) 45%,transparent 90%);
+                    transform:translateX(-110%);animation:shine 1.25s linear infinite;pointer-events:none}
+  @keyframes shine{to{transform:translateX(110%)}}
+
+  /* Content */
+  .wrap{max-width:980px;margin:0 auto;padding:var(--space)}
+  .stack{display:flex;flex-direction:column;gap:var(--space)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:var(--space);display:flex;gap:14px;align-items:stretch;
+        transition:transform .18s ease,filter .18s ease,opacity .18s ease}
+  .card.locked{opacity:.60;filter:grayscale(1);transform:scale(.92);position:relative}
+  .card .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .card .overlay .inner{pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:10px;background:rgba(10,19,32,.55);
+                        padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.07)}
+
+  /* Left tap pad */
+  .tapPad{width:clamp(64px,12vw,90px);aspect-ratio:1/1;border-radius:16px;background:#12243b;border:1px solid #1a2f4a;display:flex;align-items:center;justify-content:center;
+          font-size:clamp(28px,8vw,40px);user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .02s ease,filter .12s ease,background .2s ease;cursor:pointer}
+  .tapPad:active{transform:translateY(1px) scale(.98);filter:brightness(1.08)}
+
+  /* Right column */
+  .right{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .ex-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ex-title{font-size:var(--fs-2);margin:0}
+  .muted{color:var(--muted)}
+
+  /* Cooldown bar (burnt orange) + slanted stripes + stronger fade */
+  .coolwrap{background:#0c1525;border:1px solid #223556;border-radius:10px;overflow:hidden}
+  .coolbar{height:16px;background:#101a2a;position:relative}
+  .coolfill{height:100%;width:0%;position:relative;
+            background:linear-gradient(90deg,var(--accent) 0%, var(--accent-hi) 90%)}
+  .coolfill::after{
+    content:"";position:absolute;inset:0;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 6px, transparent 6px 12px);
+    mix-blend-mode:overlay;opacity:.6;
+    animation:stripeMove 1.2s linear infinite;
+  }
+  @keyframes stripeMove{from{background-position:0 0}to{background-position:60px 0}}
+  .cooltxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#ffe6c7;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+
+  /* Rep row (green) */
+  .repRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .repbar{flex:1;height:10px;border-radius:8px;background:#15341f;border:1px solid #204e2b;overflow:hidden;min-width:180px}
+  .repfill{height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
+
+  .kvs{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .kv{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:6px 10px;border-radius:10px;font-size:14px}
+
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#11243e;color:#eaf3ff;border:1px solid #2b4a77;border-radius:12px;
+         padding:10px 14px;box-shadow:0 10px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .2s,transform .2s;z-index:20}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+</style>
+</head>
+<body>
+
+<!-- Sticky Header -->
+<div class="topbar">
+  <div class="topwrap">
+    <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
+    <div class="hpbox">
+      <div class="muted">Health (HP):</div>
+      <div id="hp" class="hpval">0</div>
+      <button id="saveBtn" class="btn secondary">Save</button>
+      <button id="resetBtn" class="btn secondary">Reset</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap"><div id="stack" class="stack"></div></div>
+<div id="toast" class="toast">Upgraded! Cooldown halved.</div>
+
+<script>
+/* ===== Data ===== */
+const VERSION='ff-v1-3';
+const SAVE_KEY='fitness_frenzy_'+VERSION;
+
+/* Rep growth ~7% per rep */
+const REP_GROWTH = 1.07;
+
+const exercises = [
+  { id:'walk', name:'Walking', icon:'🚶', baseHP:1,   baseCooldown:600,
+    reps:0, repTarget:10, repBaseCost:4,  unlocked:true,  unlockCost:0,
+    cooldown:600, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+  { id:'jog',  name:'Jogging', icon:'🏃', baseHP:60,  baseCooldown:3000,
+    reps:0, repTarget:10, repBaseCost:30, unlocked:false, unlockCost:60,
+    cooldown:3000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+  { id:'sit',  name:'Sit-ups', icon:'🤸', baseHP:180, baseCooldown:2500,
+    reps:0, repTarget:10, repBaseCost:90, unlocked:false, unlockCost:300,
+    cooldown:2500, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+  { id:'push', name:'Push-ups', icon:'💪', baseHP:400, baseCooldown:2000,
+    reps:0, repTarget:10, repBaseCost:200, unlocked:false, unlockCost:1200,
+    cooldown:2000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+];
+
+const state = { hp:0, lastTS:performance.now() };
+
+/* ===== Utils ===== */
+const fmt = n => n>=1e9?(n/1e9).toFixed(2)+'B' : n>=1e6?(n/1e6).toFixed(2)+'M' : n>=1e3?(n/1e3).toFixed(2)+'K' : Math.floor(n).toString();
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const perTap = e => e.baseHP * Math.pow(2, e.reps);
+const cooldownMs = e => e.cooldown;
+const canTap = (e, now)=> (now - e.lastTapAt) >= cooldownMs(e) - 1;
+
+/* ===== SFX ===== */
+let audioCtx=null;
+function sfx(type){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const t=audioCtx.currentTime;
+    const makeOsc=(f,type='sine',dur=.22,vol=.07)=>{
+      const o=audioCtx.createOscillator(); o.type=type; o.frequency.setValueAtTime(f,t);
+      const g=audioCtx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(t+dur);
+    };
+    if(type==='tap')     makeOsc(660,'sine',.12,.06);
+    if(type==='buy')     makeOsc(440,'sine',.18,.08);
+    if(type==='upgrade'){ makeOsc(520,'sine',.2,.08); const o=audioCtx.createOscillator(); o.type='sine';
+                          const g=audioCtx.createGain(); g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.0001,t+.22);
+                          o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(880,t+.18);
+                          o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(t+.24);}
+    if(type==='ready'){  makeOsc(760,'triangle',.16,.06); setTimeout(()=>makeOsc(980,'triangle',.14,.05), 60); }
+  }catch{}
+}
+
+/* ===== Persistence ===== */
+function save(){
+  localStorage.setItem(SAVE_KEY, JSON.stringify({
+    hp: state.hp,
+    exercises: exercises.map(e=>({id:e.id,reps:e.reps,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown}))
+  }));
+  toast('Saved.');
+}
+function load(){
+  const raw=localStorage.getItem(SAVE_KEY); if(!raw) return;
+  try{
+    const s=JSON.parse(raw);
+    state.hp = s.hp ?? 0;
+    if(Array.isArray(s.exercises)){
+      for(const se of s.exercises){
+        const e = exercises.find(x=>x.id===se.id); if(!e) continue;
+        e.reps=se.reps ?? e.reps; e.repTarget=se.repTarget ?? e.repTarget;
+        e.unlocked=se.unlocked ?? e.unlocked; e.cooldown=se.cooldown ?? e.baseCooldown;
+      }
+    }
+  }catch{}
+}
+
+/* ===== UI Build ===== */
+const ui = {
+  hp: document.getElementById('hp'),
+  saveBtn: document.getElementById('saveBtn'),
+  resetBtn: document.getElementById('resetBtn'),
+  stack: document.getElementById('stack'),
+  toast: document.getElementById('toast')
+};
+
+function makeExerciseCard(e){
+  const card = document.createElement('div');
+  card.className='card'+(e.unlocked?'':' locked');
+
+  const tapPad = document.createElement('div');
+  tapPad.className='tapPad'; tapPad.textContent = e.icon;
+
+  const right = document.createElement('div'); right.className='right';
+
+  const head = document.createElement('div'); head.className='ex-head';
+  head.innerHTML = `<div class="ex-title">${e.name}</div>
+                    <div class="muted">Cooldown: <span class="coolNum">${(cooldownMs(e)/1000).toFixed(2)}</span>s</div>`;
+
+  const coolWrap = document.createElement('div'); coolWrap.className='coolwrap';
+  coolWrap.innerHTML = `<div class="coolbar"><div class="coolfill"></div><div class="cooltxt"></div></div>`;
+
+  const kvs = document.createElement('div'); kvs.className='kvs';
+  kvs.innerHTML = `<div class="kv">Per Tap: <strong class="kvTap">${fmt(perTap(e))}</strong> HP</div>
+                   <div class="kv">Reps: <strong class="kvReps">${e.reps}</strong></div>`;
+
+  const repRow = document.createElement('div'); repRow.className='repRow';
+  repRow.innerHTML = `<div class="repbar"><div class="repfill"></div></div>`;
+  const buyRepBtn = document.createElement('button'); buyRepBtn.className='btn'; buyRepBtn.textContent='Buy Rep';
+  repRow.appendChild(buyRepBtn);
+
+  let overlay=null, unlockBtn=null;
+  if(!e.unlocked){
+    overlay=document.createElement('div'); overlay.className='overlay';
+    overlay.innerHTML = `<div class="inner"><div>Unlock <strong>${e.name}</strong> for <strong>${fmt(e.unlockCost)}</strong> HP</div><button class="btn">Unlock</button></div>`;
+    unlockBtn = overlay.querySelector('button');
+  }
+
+  right.appendChild(head); right.appendChild(coolWrap); right.appendChild(kvs); right.appendChild(repRow);
+  card.appendChild(tapPad); card.appendChild(right); if(overlay) card.appendChild(overlay);
+
+  e.els = {
+    card, tapPad,
+    coolFill: coolWrap.querySelector('.coolfill'),
+    coolTxt:  coolWrap.querySelector('.cooltxt'),
+    coolNum:  head.querySelector('.coolNum'),
+    kvTap:    kvs.querySelector('.kvTap'),
+    kvReps:   kvs.querySelector('.kvReps'),
+    repFill:  repRow.querySelector(' .repfill'),
+    buyRepBtn, overlay, unlockBtn
+  };
+
+  bindPress(tapPad, ()=> tap(e));
+  bindPress(buyRepBtn, ()=> buyRep(e));
+  if(unlockBtn){
+    bindPress(unlockBtn, ()=>{
+      if(state.hp >= e.unlockCost){
+        state.hp -= e.unlockCost; e.unlocked = true; sfx('buy');
+        card.classList.remove('locked'); overlay.remove(); e.els.overlay=e.els.unlockBtn=null;
+        refreshExerciseUI(e); renderTop();
+      }
+    });
+  }
+  return card;
+}
+
+function renderStack(){
+  ui.stack.innerHTML='';
+  exercises.forEach(e=>{ const c=makeExerciseCard(e); ui.stack.appendChild(c); refreshExerciseUI(e); });
+}
+
+function refreshExerciseUI(e){
+  e.els.kvTap.textContent = fmt(perTap(e));
+  e.els.kvReps.textContent = e.reps;
+  e.els.repFill.style.width = (Math.min(e.reps / e.repTarget, 1)*100).toFixed(1)+'%';
+
+  const cost = repCostFor(e);
+  const canRep = e.unlocked && state.hp >= cost;
+  e.els.buyRepBtn.textContent = `Buy Rep (${fmt(cost)} HP)`;
+  e.els.buyRepBtn.disabled = !canRep;
+  if(canRep && !e._repReady){ e._repReady=true; e.els.buyRepBtn.classList.add('ready'); sfx('ready'); }
+  if(!canRep && e._repReady){ e._repReady=false; e.els.buyRepBtn.classList.remove('ready'); }
+
+  if(e.els.unlockBtn){
+    const canUn = state.hp >= e.unlockCost;
+    e.els.unlockBtn.disabled = !canUn;
+    if(canUn && !e._unlockReady){ e._unlockReady=true; e.els.unlockBtn.classList.add('ready'); sfx('ready'); }
+    if(!canUn && e._unlockReady){ e._unlockReady=false; e.els.unlockBtn.classList.remove('ready'); }
+  }
+}
+
+function renderTop(){ ui.hp.textContent = fmt(state.hp); }
+function refreshAll(){ renderTop(); exercises.forEach(refreshExerciseUI); }
+
+/* ===== Economy ===== */
+function repCostFor(e){ return Math.floor(e.repBaseCost * Math.pow(REP_GROWTH, e.reps)); }
+function buyRep(e){
+  if(!e.unlocked) return;
+  const cost = repCostFor(e); if(state.hp < cost) return;
+  state.hp -= cost; e.reps += 1; sfx('buy'); checkUpgrade(e); refreshAll();
+}
+function checkUpgrade(e){
+  if(e.reps >= e.repTarget){
+    e.reps = 0; e.repTarget *= 2; e.cooldown = Math.max(100, Math.floor(e.cooldown/2));
+    toast('Upgraded! Cooldown halved.'); sfx('upgrade');
+  }
+}
+
+/* ===== Tapping & Cooldown ===== */
+function tap(e){
+  const now=performance.now();
+  if(!e.unlocked || !canTap(e, now)) return;
+  e.lastTapAt = now; state.hp += perTap(e); sfx('tap'); refreshAll();
+}
+function updateCooldownUI(e){
+  const cd = cooldownMs(e), now = performance.now(), since = now - e.lastTapAt, pct = clamp(since/cd,0,1);
+  // When very fast, show HP/sec
+  if(cd <= 100){
+    e.els.coolFill.style.width = '100%';
+    e.els.coolTxt.textContent = `HP/sec: ${(perTap(e)/(cd/1000)).toFixed(1)}`;
+    e.els.coolNum.textContent = '0.00'; return;
+  }
+  e.els.coolFill.style.width = (pct*100).toFixed(1)+'%';
+  if(pct < 1){
+    const remain = Math.max(0, (cd - since)/1000);
+    const shown = Math.max(0.01, remain); // never show 0.00 while filling
+    e.els.coolTxt.textContent = shown.toFixed(2);
+    e.els.coolNum.textContent = shown.toFixed(2);
+  } else {
+    e.els.coolTxt.textContent = 'Ready';
+    e.els.coolNum.textContent = '0.00';
+  }
+}
+
+/* ===== Loop ===== */
+function tick(ts){
+  state.lastTS = ts;
+  exercises.forEach(e=>{ if(e.unlocked) updateCooldownUI(e); });
+  requestAnimationFrame(tick);
+}
+
+/* ===== Toast ===== */
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'), 1200);
+}
+
+/* ===== Bind & Boot ===== */
+function bindPress(el, fn){
+  el.addEventListener('pointerdown', e=>{ e.preventDefault(); fn(e); }, {passive:false});
+  el.addEventListener('keydown', e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); fn(e);} });
+}
+ui.saveBtn.addEventListener('click', save);
+ui.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.removeItem(SAVE_KEY); location.reload(); });
+
+function boot(){ load(); renderTop(); renderStack(); requestAnimationFrame(tick); setInterval(save, 20000); }
+boot();
+</script>
+</body>
+</html>
 <title>Fitness Frenzy – V1.2 (Stacked + Shiny Ready States)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
