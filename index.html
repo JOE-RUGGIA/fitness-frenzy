@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — Core (1 exercise)</title>
+<title>Fitness Frenzy — Core + Debug</title>
 <style>
   :root{
     --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
@@ -32,6 +32,7 @@
     box-shadow:0 10px 22px rgba(0,0,0,.36), inset 0 0 0 1px var(--edge);
     display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;min-height:140px}
   @media (max-width:700px){.card{grid-template-columns:1fr}}
+
   .meta h3{margin:0 0 6px;font:800 clamp(16px,3.8vw,18px)/1.15 system-ui}
   .meta .sub{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -53,7 +54,7 @@
 
   .actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
   .btn{height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--edge);
-    border-radius:12px;padding:0 12px;font-weight:900;background:#0e1724;color:#fff;cursor:pointer}
+    border-radius:12px;padding:0 12px;font-weight:900;background:#0e1724;color:#fff;cursor:pointer;position:relative;z-index:1}
   .btn[disabled]{opacity:.5;cursor:not-allowed}
   .action{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent}
   .btn.glitter.available::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:12px;
@@ -63,6 +64,11 @@
 
   /* +HP float */
   .float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+
+  /* Safety: prevent any intro/backdrop from blocking clicks if left on */
+  #intro, .modal-backdrop, .overlay, .backdrop { pointer-events:none !important; }
+  /* Ensure tap is always clickable */
+  #tap, #tap * { pointer-events:auto !important; z-index:2; }
 </style>
 </head>
 <body>
@@ -110,13 +116,13 @@ function canFire(){ return Date.now() >= nextReadyMs; }
 /* ------- Audio (tiny, reliable) ------- */
 let AC=null, master=null;
 function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C();
-  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch{} }
+  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch(e){/* ignore */} }
 function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type="triangle"; o.frequency.value=420; o.connect(g); g.connect(master); g.gain.setValueAtTime(.18,t);
-  g.gain.exponentialRampToValueAtTime(.0001,t+.14); o.start(t); o.stop(t+.16);}catch{} }
+  g.gain.exponentialRampToValueAtTime(.0001,t+.14); o.start(t); o.stop(t+.16);}catch(e){} }
 function s_up(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type="square"; o.frequency.value=980; o.connect(g); g.connect(master); g.gain.setValueAtTime(.22,t);
-  g.gain.exponentialRampToValueAtTime(.0001,t+.22); o.start(t); o.stop(t+.24);}catch{} }
+  g.gain.exponentialRampToValueAtTime(.0001,t+.22); o.start(t); o.stop(t+.24);}catch(e){} }
 
 /* ------- Actions ------- */
 function perform(){
@@ -189,11 +195,73 @@ function floatHP(anchor, text){
   setTimeout(()=>n.remove(),820);
 }
 
+/* ------- Safe binding (shows warning if element is missing) ------- */
+function bind(id, ev, fn){
+  const el = document.getElementById(id);
+  if(!el){
+    console.warn('Missing element #' + id);
+    return;
+  }
+  el.addEventListener(ev, fn);
+}
+
 /* ------- Wire + Loop ------- */
-$('#tap').addEventListener('click', ()=>{ ensureAC(); perform(); });
-$('#rep').addEventListener('click', ()=>{ ensureAC(); buyRep(); });
+bind('tap','click', ()=>{ ensureAC(); perform(); });
+bind('rep','click', ()=>{ ensureAC(); buyRep(); });
 setInterval(render, 60);
 render();
 </script>
+
+<!-- ==================== DEBUG START ==================== -->
+<style>
+  #ffDebug{position:fixed;inset:auto 8px 8px 8px;background:#0b0f18;color:#ffb4b4;
+    border:1px solid #311; border-radius:10px; padding:10px; font:12px/1.35 ui-monospace,monospace;
+    z-index:999999}
+  #ffDebug b{color:#fff}
+  #ffOverlayProbe{position:fixed;inset:0;pointer-events:none;z-index:999998;display:none}
+</style>
+<div id="ffDebug">
+  <div><b>Fitness Frenzy Debug</b></div>
+  <div id="ffErr">No errors yet.</div>
+  <div id="ffClick">No clicks yet.</div>
+  <div id="ffTop">Top element: (waiting)</div>
+</div>
+<canvas id="ffOverlayProbe"></canvas>
+<script>
+(function(){
+  // 1) Show JavaScript errors
+  window.addEventListener('error', function(e){
+    document.getElementById('ffErr').textContent = 'JS error: ' + e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'?');
+  });
+
+  // 2) Log clicks reaching the page
+  document.addEventListener('click', function(e){
+    const id = e.target && (e.target.id || e.target.tagName);
+    document.getElementById('ffClick').textContent = 'Last click on: ' + id;
+  }, true);
+
+  // 3) Probe what’s on top of the main tap area
+  function probe(){
+    var tap = document.getElementById('tap'); // main button id
+    var info = document.getElementById('ffTop');
+    if(!tap){ info.textContent = 'No #tap element found.'; return; }
+    var r = tap.getBoundingClientRect();
+    var x = Math.round(r.left + r.width/2), y = Math.round(r.top + r.height/2);
+    var el = document.elementFromPoint(x, y);
+    info.textContent = 'Top element over tap: ' + (el ? (el.id || el.tagName) : 'none');
+  }
+  setInterval(probe, 500);
+
+  // 4) Safety: ensure anything obvious can’t block clicks
+  var css = document.createElement('style');
+  css.textContent = `
+    #intro, .modal-backdrop, .overlay, .backdrop {
+      pointer-events: none !important;
+    }
+  `;
+  document.head.appendChild(css);
+})();
+</script>
+<!-- ===================== DEBUG END ===================== -->
 </body>
 </html>
