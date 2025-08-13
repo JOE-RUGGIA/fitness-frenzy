@@ -2,19 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Idle Clicker – V0.2 (Mobile + GitHub Assets)</title>
+  <title>Idle Clicker – V0.2.1 (Emoji Icons)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111" />
   <style>
     :root {
-      --bg: #0f1114;
-      --card: #15181d;
-      --ink: #e9eef3;
-      --muted: #9aa7b3;
-      --accent: #2e7d32;
-      --accent-2: #256628;
-      --border: #232a33;
-      --radius: 14px;
+      --bg: #0f1114; --card: #15181d; --ink: #e9eef3; --muted: #9aa7b3;
+      --accent: #2e7d32; --border: #232a33; --radius: 14px;
       --space: clamp(10px, 2.2vw, 18px);
       --fs-1: clamp(16px, 2.4vw, 18px);
       --fs-2: clamp(18px, 3.2vw, 22px);
@@ -23,27 +17,19 @@
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg); color: var(--ink);
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
       padding: env(safe-area-inset-top) var(--space) env(safe-area-inset-bottom) var(--space);
     }
     .wrap { max-width: 920px; margin: 0 auto; }
     header { display: flex; align-items: center; gap: var(--space); margin: var(--space) 0; }
-    header img { width: clamp(28px, 6vw, 48px); height: auto; }
     h1 { font-size: var(--fs-3); margin: 0; font-weight: 700; letter-spacing: 0.2px; }
 
     .row { display: flex; gap: var(--space); flex-wrap: wrap; }
     .card {
-      background: var(--card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      padding: var(--space);
-      flex: 1 1 280px;
-      min-width: 260px;
+      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+      padding: var(--space); flex: 1 1 280px; min-width: 260px;
       box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset, 0 10px 24px rgba(0,0,0,0.25);
     }
     h3 { margin: 0 0 10px 0; font-size: var(--fs-2); }
@@ -51,41 +37,26 @@
     .stat { font-variant-numeric: tabular-nums; }
 
     .btn {
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 12px;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+      background: var(--accent); color: white; border: none; border-radius: 12px;
       padding: clamp(10px, 2.5vh, 14px) clamp(14px, 3vw, 18px);
-      font-size: var(--fs-1);
-      font-weight: 600;
-      line-height: 1;
-      cursor: pointer;
-      transition: transform .02s ease-out, filter .12s ease;
-      touch-action: manipulation;
-      width: 100%;
+      font-size: var(--fs-1); font-weight: 600; line-height: 1;
+      cursor: pointer; transition: transform .02s ease-out, filter .12s ease;
+      touch-action: manipulation; width: 100%;
     }
     .btn:active { transform: translateY(1px); filter: brightness(0.95); }
     .btn[disabled] { background: #3a434f; color: #a7b1be; cursor: not-allowed; transform: none; }
     .btn.secondary { background: #2b3c4f; }
     .btn.secondary:active { filter: brightness(1.08); }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--space);
-    }
-    @media (max-width: 560px) {
-      .grid-2 { grid-template-columns: 1fr; }
-    }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space); }
+    @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
 
-    .flex { display: flex; align-items: center; gap: 10px; }
-    .spacer { height: var(--space); }
-    .status { min-height: 1.2em; }
     .row-compact { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .kpi { display:flex; align-items:center; gap:10px; }
-    .kpi img { width: clamp(20px, 5vw, 28px); height: auto; filter: drop-shadow(0 2px 1px rgba(0,0,0,0.6)); }
+    .icon { font-size: clamp(22px, 6vw, 34px); line-height: 1; filter: drop-shadow(0 2px 1px rgba(0,0,0,0.6)); }
+    .spacer { height: var(--space); }
+    .status { min-height: 1.2em; }
     .switch { display:flex; align-items:center; gap:8px; font-size: var(--fs-1); }
     input[type="checkbox"] { width: 18px; height: 18px; }
   </style>
@@ -93,7 +64,7 @@
 <body>
   <div class="wrap">
     <header>
-      <img id="coinImg" alt="Coin" />
+      <span class="icon" id="coinIconHeader" aria-hidden="true">🪙</span>
       <h1>Idle Clicker</h1>
     </header>
 
@@ -101,7 +72,7 @@
       <div class="card">
         <h3>Bank</h3>
         <div class="kpi">
-          <img id="coinImg2" alt="Coin" />
+          <span class="icon" id="coinIconBank" aria-hidden="true">🪙</span>
           <div>Coins: <span id="coins" class="stat">0</span></div>
         </div>
         <div class="muted">Per tap: <span id="perTap" class="stat">1</span></div>
@@ -111,10 +82,7 @@
           <button id="tapBtn" class="btn">Tap (+)</button>
           <button id="saveBtn" class="btn secondary">Save</button>
           <button id="resetBtn" class="btn secondary">Hard Reset</button>
-          <label class="switch">
-            <input id="muteToggle" type="checkbox" />
-            Mute
-          </label>
+          <label class="switch"><input id="muteToggle" type="checkbox" /> Mute</label>
         </div>
         <div id="status" class="muted status"></div>
       </div>
@@ -143,19 +111,14 @@
   </div>
 
   <script>
-  // =======================
-  // CONFIG (point to GitHub)
-  // =======================
-  // If left empty, the app will try local files (e.g., ./assets/images/coin.png)
+  // ==========================
+  // CONFIG: emoji vs. GitHub
+  // ==========================
   const CONFIG = {
-    ASSET_BASE: "", // e.g., "https://YOUR-USERNAME.github.io/YOUR-REPO/assets"
-    IMAGES: {
-      coin: "images/coin.png"
-    },
-    SOUNDS: {
-      tap: "sounds/click.wav",
-      buy: "sounds/buy.wav"
-    }
+    USE_EMOJI_ICONS: true,  // <- keep true for prototype (emoji). Set to false to use images.
+    ASSET_BASE: "",         // e.g., "https://YOUR-USER.github.io/YOUR-REPO/assets"
+    IMAGES: { coin: "images/coin.png" },
+    SOUNDS: { tap: "sounds/click.wav", buy: "sounds/buy.wav" }
   };
   const url = (path) => {
     const base = (CONFIG.ASSET_BASE || "").replace(/\/$/, "");
@@ -163,176 +126,95 @@
     return base ? `${base}/${clean}` : `./assets/${clean}`;
   };
 
-  // ================
-  // VERSION / SAVE
-  // ================
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
   const SAVE_KEY = 'idle_clicker_save_v' + VERSION;
 
-  // ==========
-  // STATE
-  // ==========
   const state = {
     coins: 0,
     perTapBase: 1,
-    multiplierLevel: 1,    // effective multiplier = level
-    autoOwned: 0,          // each = 1 tap/sec baseline
+    multiplierLevel: 1,
+    autoOwned: 0,
     lastTS: performance.now(),
     lastSavedAt: Date.now(),
     muted: false
   };
 
-  const costs = {
-    auto: { base: 15, growth: 1.15 },
-    mult: { base: 50, growth: 1.20 }
-  };
+  const costs = { auto: { base: 15, growth: 1.15 }, mult: { base: 50, growth: 1.20 } };
 
-  // ==========
-  // UTIL
-  // ==========
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
   const pow = Math.pow;
-  const fmt = (n) => {
-    if (n >= 1e12) return (n/1e12).toFixed(2) + 'T';
-    if (n >= 1e9)  return (n/1e9 ).toFixed(2) + 'B';
-    if (n >= 1e6)  return (n/1e6 ).toFixed(2) + 'M';
-    if (n >= 1e3)  return (n/1e3 ).toFixed(2) + 'K';
-    return Math.floor(n).toString();
-  };
-  function costFor(countOwned, { base, growth }) {
-    return Math.floor(base * pow(growth, countOwned));
-  }
-  function totalPerTap() {
-    return state.perTapBase * state.multiplierLevel;
-  }
-  function totalPerSec() {
-    return state.autoOwned * totalPerTap();
-  }
+  const fmt = (n) => (n>=1e12)?(n/1e12).toFixed(2)+'T':(n>=1e9)?(n/1e9).toFixed(2)+'B':(n>=1e6)?(n/1e6).toFixed(2)+'M':(n>=1e3)?(n/1e3).toFixed(2)+'K':Math.floor(n).toString();
+  const costFor = (owned, {base,growth}) => Math.floor(base * pow(growth, owned));
+  const totalPerTap = () => state.perTapBase * state.multiplierLevel;
+  const totalPerSec = () => state.autoOwned * totalPerTap();
 
-  // ==========
-  // AUDIO
-  // ==========
-  const sfx = {
-    tap: new Audio(url(CONFIG.SOUNDS.tap)),
-    buy: new Audio(url(CONFIG.SOUNDS.buy))
-  };
-  [sfx.tap, sfx.buy].forEach(a => {
+  // ---- Audio (uses local or GitHub sounds; safe if files don't exist) ----
+  function safeAudio(src) {
+    const a = new Audio(src);
     a.preload = 'auto';
     a.volume = 0.8;
-  });
-
+    a.onerror = () => { /* stay silent if missing */ };
+    return a;
+  }
+  const sfx = {
+    tap: safeAudio(url(CONFIG.SOUNDS.tap)),
+    buy: safeAudio(url(CONFIG.SOUNDS.buy))
+  };
   let audioUnlocked = false;
   function unlockAudioOnce() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    // Attempt a tiny silent play to satisfy iOS autoplay policies
-    try { sfx.tap.muted = true; sfx.tap.play().then(() => { sfx.tap.pause(); sfx.tap.currentTime = 0; sfx.tap.muted = state.muted; }); } catch {}
+    if (audioUnlocked) return; audioUnlocked = true;
+    try { sfx.tap.muted = true; sfx.tap.play().then(()=>{ sfx.tap.pause(); sfx.tap.currentTime=0; sfx.tap.muted = state.muted; }); } catch {}
   }
-  function playSfx(aud) {
-    if (state.muted) return;
-    try {
-      // Reuse element; quick sounds are fine with currentTime reset
-      aud.currentTime = 0;
-      aud.play();
-    } catch {}
-  }
+  function playSfx(aud){ if(state.muted) return; try{ aud.currentTime=0; aud.play(); }catch{} }
 
-  // ================
-  // PERSISTENCE
-  // ================
-  function save() {
-    const payload = {
-      coins: state.coins,
-      multiplierLevel: state.multiplierLevel,
-      autoOwned: state.autoOwned,
-      lastSavedAt: Date.now(),
-      muted: state.muted,
-      version: VERSION
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
-    ui.status.textContent = 'Saved.';
-    setTimeout(() => (ui.status.textContent = ''), 800);
+  // ---- Persistence ----
+  function save(){
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      coins:state.coins, multiplierLevel:state.multiplierLevel, autoOwned:state.autoOwned,
+      lastSavedAt: Date.now(), muted: state.muted, version: VERSION
+    }));
+    ui.status.textContent = 'Saved.'; setTimeout(()=>ui.status.textContent='',800);
   }
-  function load() {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return;
-    try {
+  function load(){
+    const raw = localStorage.getItem(SAVE_KEY); if(!raw) return;
+    try{
       const s = JSON.parse(raw);
       state.coins = s.coins ?? state.coins;
       state.multiplierLevel = s.multiplierLevel ?? state.multiplierLevel;
       state.autoOwned = s.autoOwned ?? state.autoOwned;
       state.lastSavedAt = s.lastSavedAt ?? Date.now();
       state.muted = !!s.muted;
-
-      // Offline progress (cap at 24h)
-      const secs = clamp((Date.now() - state.lastSavedAt) / 1000, 0, 60 * 60 * 24);
+      const secs = clamp((Date.now()-state.lastSavedAt)/1000, 0, 60*60*24);
       state.coins += totalPerSec() * secs;
-    } catch { /* ignore */ }
+    }catch{}
   }
 
-  // ================
-  // ECONOMY
-  // ================
-  function canAfford(cost) { return state.coins >= cost; }
-  function tap() {
-    state.coins += totalPerTap();
-    playSfx(sfx.tap);
-  }
-  function buyAuto() {
-    const c = costFor(state.autoOwned, costs.auto);
-    if (!canAfford(c)) return false;
-    state.coins -= c;
-    state.autoOwned += 1;
-    playSfx(sfx.buy);
-    return true;
-  }
-  function buyMult() {
-    const c = costFor(state.multiplierLevel - 1, costs.mult);
-    if (!canAfford(c)) return false;
-    state.coins -= c;
-    state.multiplierLevel += 1;
-    playSfx(sfx.buy);
-    return true;
-  }
+  // ---- Economy ----
+  const canAfford = (c)=> state.coins>=c;
+  function tap(){ state.coins += totalPerTap(); playSfx(sfx.tap); }
+  function buyAuto(){ const c=costFor(state.autoOwned,costs.auto); if(!canAfford(c))return false; state.coins-=c; state.autoOwned++; playSfx(sfx.buy); return true; }
+  function buyMult(){ const c=costFor(state.multiplierLevel-1,costs.mult); if(!canAfford(c))return false; state.coins-=c; state.multiplierLevel++; playSfx(sfx.buy); return true; }
 
-  // ==========
-  // LOOP
-  // ==========
-  const STEP = 100; // ms (10Hz fixed update)
-  let acc = 0;
-  function update(dtMs) {
-    acc += dtMs;
-    while (acc >= STEP) {
-      state.coins += (totalPerSec() * (STEP / 1000));
-      acc -= STEP;
-    }
-  }
-  function render() {
+  // ---- Loop ----
+  const STEP=100; let acc=0;
+  function update(dt){ acc+=dt; while(acc>=STEP){ state.coins += totalPerSec()*(STEP/1000); acc-=STEP; } }
+  function render(){
     ui.coins.textContent = fmt(state.coins);
     ui.perTap.textContent = fmt(totalPerTap());
     ui.perSec.textContent = fmt(totalPerSec());
     ui.autoOwned.textContent = state.autoOwned;
     ui.multOwned.textContent = state.multiplierLevel;
-
-    const nextAutoCost = costFor(state.autoOwned, costs.auto);
-    const nextMultCost = costFor(state.multiplierLevel - 1, costs.mult);
+    const nextAutoCost=costFor(state.autoOwned,costs.auto);
+    const nextMultCost=costFor(state.multiplierLevel-1,costs.mult);
     ui.autoCost.textContent = fmt(nextAutoCost);
     ui.multCost.textContent = fmt(nextMultCost);
     ui.buyAutoBtn.disabled = !canAfford(nextAutoCost);
     ui.buyMultBtn.disabled = !canAfford(nextMultCost);
     ui.muteToggle.checked = state.muted;
   }
-  function tick(ts) {
-    const dt = ts - state.lastTS;
-    state.lastTS = ts;
-    update(dt);
-    render();
-    requestAnimationFrame(tick);
-  }
+  function tick(ts){ const dt=ts-state.lastTS; state.lastTS=ts; update(dt); render(); requestAnimationFrame(tick); }
 
-  // ==========
-  // UI
-  // ==========
+  // ---- UI wiring ----
   const ui = {
     coins: document.getElementById('coins'),
     perTap: document.getElementById('perTap'),
@@ -348,59 +230,45 @@
     resetBtn: document.getElementById('resetBtn'),
     status: document.getElementById('status'),
     muteToggle: document.getElementById('muteToggle'),
-    coinImg: document.getElementById('coinImg'),
-    coinImg2: document.getElementById('coinImg2')
+    coinIconHeader: document.getElementById('coinIconHeader'),
+    coinIconBank: document.getElementById('coinIconBank')
   };
-
-  // Mobile-friendly: single "press" binding with Pointer Events
-  function bindPress(el, handler) {
-    el.addEventListener('pointerdown', (e) => {
-      e.preventDefault(); // prevents 300ms delay + accidental text selection
-      unlockAudioOnce();
-      handler(e);
-    }, { passive: false });
-    // Keyboard accessibility
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); }
-    });
+  function bindPress(el, handler){
+    el.addEventListener('pointerdown', (e)=>{ e.preventDefault(); unlockAudioOnce(); handler(e); }, { passive:false });
+    el.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handler(e);} });
   }
-
-  bindPress(ui.tapBtn, () => { tap(); render(); });
-  bindPress(ui.buyAutoBtn, () => { if (buyAuto()) render(); });
-  bindPress(ui.buyMultBtn, () => { if (buyMult()) render(); });
+  bindPress(ui.tapBtn, ()=>{ tap(); render(); });
+  bindPress(ui.buyAutoBtn, ()=>{ if(buyAuto()) render(); });
+  bindPress(ui.buyMultBtn, ()=>{ if(buyMult()) render(); });
   bindPress(ui.saveBtn, save);
-  bindPress(ui.resetBtn, () => {
-    if (!confirm('Hard reset? This clears your save.')) return;
-    localStorage.removeItem(SAVE_KEY);
-    location.reload();
+  bindPress(ui.resetBtn, ()=>{
+    if(!confirm('Hard reset? This clears your save.')) return;
+    localStorage.removeItem(SAVE_KEY); location.reload();
   });
-  ui.muteToggle.addEventListener('change', () => {
-    state.muted = ui.muteToggle.checked;
-    sfx.tap.muted = state.muted;
-    sfx.buy.muted = state.muted;
-  });
+  ui.muteToggle.addEventListener('change', ()=>{ state.muted = ui.muteToggle.checked; sfx.tap.muted=state.muted; sfx.buy.muted=state.muted; });
 
-  // ==========
-  // BOOT
-  // ==========
-  function boot() {
-    // Set coin images (works with GitHub or local assets/)
-    const coinURL = url(CONFIG.IMAGES.coin);
-    ui.coinImg.src = coinURL;
-    ui.coinImg2.src = coinURL;
-
-    load();
-    render();
-
-    requestAnimationFrame((ts) => {
-      state.lastTS = ts;
-      requestAnimationFrame(tick);
+  // ---- Optional: switch to GitHub images later ----
+  function maybeSwapIconsToImages(){
+    if (CONFIG.USE_EMOJI_ICONS) return; // keep emojis now
+    const coinURL = url("images/coin.png");
+    // Replace emoji spans with <img> elements
+    [ui.coinIconHeader, ui.coinIconBank].forEach(span=>{
+      const img = new Image();
+      img.alt = "Coin"; img.decoding="async"; img.loading="lazy";
+      img.style.width = getComputedStyle(span).fontSize; // size roughly like emoji
+      img.style.height = "auto";
+      img.onerror = ()=>{/* keep emoji if image fails */};
+      img.onload = ()=>{ span.replaceWith(img); };
+      img.src = coinURL;
     });
-
-    // auto-save every 15s
-    setInterval(save, 15000);
   }
 
+  function boot(){
+    load(); render();
+    requestAnimationFrame((ts)=>{ state.lastTS=ts; requestAnimationFrame(tick); });
+    setInterval(save, 15000);
+    maybeSwapIconsToImages(); // will do nothing while USE_EMOJI_ICONS = true
+  }
   boot();
   </script>
 </body>
