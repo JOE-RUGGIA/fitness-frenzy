@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — Reps ×2, Stripe Bar, 0.10s Floor, Unlock Fix</title>
+<title>Fitness Frenzy — Reset Button, Coaches from #3, Clean Green Bar</title>
 <style>
   :root{
     --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
@@ -27,6 +27,9 @@
   .hp-icon{font-size:26px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
   .hp{flex:1;font:900 clamp(22px,4.2vw,36px)/1 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hp small{font-weight:800;opacity:.9;background:rgba(255,255,255,.08);padding:.16em .45em;border-radius:.35em;margin-left:.45rem}
+  .reset{display:flex;gap:8px}
+  .btn-reset{height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--edge);background:#1a2234;color:#fff;font-weight:800;cursor:pointer}
+  .btn-reset:hover{filter:brightness(1.1)}
 
   .wrap{max-width:900px;margin:14px auto 120px;padding:0 14px}
   .grid{display:grid;gap:12px}
@@ -58,17 +61,11 @@
     background-blend-mode:overlay;
   }
 
-  /* Green speed bar + fraction */
+  /* Green speed bar (no stripes) */
   .mini{position:relative;height:14px;background:#0b1219;border-radius:8px;overflow:hidden;margin-top:8px}
-  .mini i{
-    display:block;height:100%;width:0;
-    background:
-      linear-gradient(90deg,#9cffbd,#2dd36f),
-      repeating-linear-gradient(135deg, transparent 0 10px, rgba(255,255,255,.18) 10px 16px, transparent 16px 26px);
-    background-blend-mode:overlay;
-  }
+  .mini i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9cffbd,#2dd36f)}
   .mini .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font:900 11px/1 system-ui;color:#cfead7;text-shadow:0 1px 2px rgba(0,0,0,.5);pointer-events:none}
+    font:900 11px/1 system-ui;color:#0b2415;text-shadow:0 1px 2px rgba(255,255,255,.35);pointer-events:none}
 
   .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
   .btn{height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--edge);
@@ -76,7 +73,7 @@
   .btn[disabled]{opacity:.5;cursor:not-allowed}
   .primary{background:linear-gradient(180deg,#ff8b3a,#ff7a1a);color:#1b0e03;border-color:transparent}
 
-  /* Clean “available” animations (no long glare) */
+  /* Clean “available” pulse (no long glare) */
   .btn.available.pulse{animation:pulse 1.1s ease-in-out infinite}
   @keyframes pulse{
     0%{transform:translateZ(0) scale(1); box-shadow:0 0 0 0 rgba(255,158,61,.35)}
@@ -98,6 +95,9 @@
   <div class="hp-wrap">
     <div class="hp-icon">💪</div>
     <div class="hp" id="hp">0.00 <small>HP</small></div>
+  </div>
+  <div class="reset">
+    <button class="btn-reset" id="newGame">New Game</button>
   </div>
 </header>
 
@@ -131,26 +131,20 @@ function s_buy(){try{ensureAC();const t=AC.currentTime;const o=AC.createOscillat
 
 /* ========= Config ========= */
 const COOLDOWN_MIN = 100; // 0.10s floor
+const COACH_UNLOCK_INDEX = 2; // coaches appear starting from exercise index 2 (3rd exercise)
 
 const EXERCISES=[
   { key:'walk', name:'Walking', icon:'👟',
-    baseCost:12,           // tougher start since payout doubles
-    baseHP:1,
-    cooldownBase:1000,     // 1.00s
-    repsType:'doubling',   // 1,2,4,8…
-    trainerCost:200,
-    unlocked:true,
-    freeReps:1,
-    stepsReqBase:6
+    baseCost:12, baseHP:1, cooldownBase:1000, repsType:'doubling',
+    trainerCost:200, unlocked:true, freeReps:1, stepsReqBase:6
   },
   { key:'sit', name:'Sit-Ups', icon:'🧎‍♂️',
-    baseCost:60,
-    baseHP:60,
-    cooldownBase:3000,
-    repsType:'power', coeff:1.15, // AdCap-style for variety later
-    trainerCost:600,
-    unlocked:false,
-    stepsReqBase:8
+    baseCost:60, baseHP:60, cooldownBase:3000, repsType:'power', coeff:1.15,
+    trainerCost:600, unlocked:false, stepsReqBase:8
+  },
+  { key:'jog', name:'Jogging', icon:'🏃‍♂️',
+    baseCost:720, baseHP:540, cooldownBase:6000, repsType:'power', coeff:1.14,
+    trainerCost:3000, unlocked:false, stepsReqBase:10
   }
 ];
 
@@ -164,11 +158,12 @@ let state={
     cooldown:cfg.cooldownBase, steps:0, stepsReq:cfg.stepsReqBase||6
   }))
 };
-const SAVE_KEY='ff-save-v3';
+const SAVE_KEY='ff-save-v4';
 function save(){state.lastSave=now();localStorage.setItem(SAVE_KEY,JSON.stringify(state));}
 function load(){
   const raw=localStorage.getItem(SAVE_KEY);
   if(!raw){
+    // first run defaults
     EXERCISES.forEach((cfg,i)=>{
       if(cfg.freeReps) state.exercises[i].reps = cfg.freeReps;
       state.exercises[i].cooldown = cfg.cooldownBase;
@@ -191,7 +186,7 @@ function load(){
         if(!ex.stepsReq) ex.stepsReq = cfg.stepsReqBase||6;
       }
     });
-    // offline gains (coaches)
+    // offline gains (coaches only)
     const elapsed=Math.min(OFFLINE_CAP_MS, now()-(s.lastTick||now()));
     if(elapsed>1000){
       let gain=0;
@@ -211,16 +206,14 @@ window.addEventListener('beforeunload',save); setInterval(save,15000);
 
 /* ========= Math ========= */
 function costNext(cfg,ex){
-  // More expensive per doubling: base * 1.35^reps
+  // tougher because doubling: base * 1.35^reps
   return Math.ceil(cfg.baseCost * Math.pow(1.35, ex.reps));
 }
 function calcCycleHP(cfg,ex){
   if(ex.reps<=0) return 0;
   if(cfg.repsType==='doubling'){
-    // exact 1,2,4,8… with freeReps=1 starting at 1
-    return cfg.baseHP * Math.pow(2, ex.reps-1);
+    return cfg.baseHP * Math.pow(2, ex.reps-1); // 1,2,4,8…
   }
-  // fallback AdCap style for others
   const c = Number(cfg.coeff||1.07);
   return Math.max(1, Math.floor(cfg.baseHP * Math.pow(ex.reps, c)));
 }
@@ -247,7 +240,7 @@ function buildUI(){
       <div class="mini"><i id="mini-${cfg.key}"></i><div class="lbl" id="miniLbl-${cfg.key}">${ex.steps}/${ex.stepsReq}</div></div>
       <div class="actions">
         <button class="btn primary" id="buy-${cfg.key}">${cfg.repsType==='doubling'?'Do More Reps ×2':'Buy Rep'} | — HP</button>
-        <button class="btn" id="mgr-${cfg.key}">Hire Coach | — HP</button>
+        <button class="btn" id="mgr-${cfg.key}" style="display:${i<COACH_UNLOCK_INDEX?'none':''}">Hire Coach | — HP</button>
       </div>`;
     card.appendChild(tap); card.appendChild(meta); cards.appendChild(card);
   });
@@ -273,23 +266,24 @@ function updateUI(){
     const pct=1-Math.min(1, left/ex.cooldown);
     if(coolI) coolI.style.width=Math.round(pct*100)+'%';
 
-    // green speed bar + fraction
+    // green speed bar + fraction (no stripes)
     const spct = ex.stepsReq ? Math.min(100, Math.round((ex.steps/ex.stepsReq)*100)) : 0;
     if(miniI) miniI.style.width = spct + '%';
     if(miniL) miniL.textContent = `${ex.steps}/${ex.stepsReq}`;
 
-    // Buy Rep button
+    // Buy Rep
     const cost=costNext(cfg,ex);
     if(buyBt){
       buyBt.textContent=`${cfg.repsType==='doubling'?'Do More Reps ×2':'Buy Rep'} | ${fmt(cost)} HP`;
       const can = state.hp>=cost && ex.unlocked!==false;
       buyBt.disabled = !can;
       buyBt.classList.toggle('available', can);
-      buyBt.classList.toggle('pulse', can); // small pulse, no glare
+      buyBt.classList.toggle('pulse', can);
       buyBt.onclick=()=>{ensureAC(); buyRep(i);};
     }
-    // Coach button (kept for later)
-    if(mgrBt){
+
+    // Coach (only visible from 3rd exercise)
+    if(mgrBt && i>=COACH_UNLOCK_INDEX){
       const mCost=cfg.trainerCost;
       mgrBt.textContent=ex.trainer?'Coach Hired':`Hire Coach | ${fmt(mCost)} HP`;
       const can=!ex.trainer && state.hp>=mCost && ex.reps>0;
@@ -297,22 +291,6 @@ function updateUI(){
       mgrBt.classList.toggle('available', can);
       mgrBt.classList.toggle('pulse', can);
       mgrBt.onclick=()=>{ensureAC(); hireCoach(i);};
-    }
-
-    // Lock visuals (if you add more locked items later)
-    const card=$(`card-${cfg.key}`);
-    if(card){
-      if(!ex.unlocked){
-        card.style.filter='grayscale(1) blur(1px) opacity(.85)';
-        if(buyBt) buyBt.style.visibility='hidden';
-        if(mgrBt) mgrBt.style.visibility='hidden';
-        if(miniI) miniI.style.width='0%';
-        if(miniL) miniL.textContent='Locked';
-      }else{
-        card.style.filter='none';
-        if(buyBt) buyBt.style.visibility='';
-        if(mgrBt) mgrBt.style.visibility='';
-      }
     }
   });
 }
@@ -352,16 +330,25 @@ function buyRep(i){
   if(state.hp<cost) return;
   state.hp-=cost; ex.reps+=1; s_buy();
 
-  // progress toward faster cooldown
+  // Progress towards faster cooldown
   ex.steps += 1;
   if(ex.steps >= ex.stepsReq){
     ex.steps = 0;
     ex.cooldown = Math.max(COOLDOWN_MIN, Math.floor(ex.cooldown/2));
-    // ramp requirement for next tier
     ex.stepsReq = Math.ceil(ex.stepsReq*1.6 + 2);
   }
 
-  if(ex.nextReady===0) ex.nextReady=now(); // first time nudge
+  if(ex.nextReady===0) ex.nextReady=now();
+
+  // Unlock the next exercise when req met (>=5 reps here OR HP ≥ next base cost)
+  if(i+1<EXERCISES.length){
+    const nextCfg=EXERCISES[i+1], next=state.exercises[i+1];
+    if(!next.unlocked && (ex.reps>=5 || state.hp >= nextCfg.baseCost)){
+      next.unlocked = true;
+      const nextCard = document.getElementById(`card-${nextCfg.key}`);
+      if(nextCard) nextCard.style.filter='none';
+    }
+  }
 }
 
 function hireCoach(i){
@@ -374,6 +361,7 @@ function hireCoach(i){
 /* ========= Loop ========= */
 function tick(){
   const t=now(); state.lastTick=t;
+
   // Coaches automation
   EXERCISES.forEach((cfg,i)=>{
     const ex=state.exercises[i];
@@ -385,25 +373,22 @@ function tick(){
     }
   });
 
-  // Unlock rule for next exercise:
-  // unlock when previous has ≥5 reps OR total HP ≥ next.baseCost
-  for(let i=0;i<EXERCISES.length-1;i++){
-    const nextCfg=EXERCISES[i+1];
-    const cur=state.exercises[i], next=state.exercises[i+1];
-    if(!next.unlocked && (cur.reps>=5 || state.hp >= nextCfg.baseCost)){
-      next.unlocked = true;
-      const nextCard = document.getElementById(`card-${nextCfg.key}`);
-      if(nextCard) nextCard.style.filter='none';
-    }
-  }
-
   updateUI();
 }
 setInterval(tick,60);
 
-/* ========= Boot + Debug ========= */
+/* ========= Reset / Boot / Debug ========= */
+function hardReset(){
+  if(!confirm('Start a new game? This will erase your progress.')) return;
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  location.reload();
+}
+
 function boot(){
   buildUI(); load(); updateUI();
+  // Reset button
+  const ng=$('newGame'); if(ng) ng.addEventListener('click', hardReset);
+
   document.addEventListener('click',e=>{$('ffClick').textContent='Last click on: '+(e.target.id||e.target.tagName);},true);
   setInterval(()=>{
     const first=EXERCISES[0]; const tap=document.getElementById(`tap-${first.key}`), info=$('ffTop');
