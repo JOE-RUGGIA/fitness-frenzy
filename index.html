@@ -3,23 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — Core + DOM-Safe Debug (Reps = +2 HP/tap)</title>
+<title>Fitness Frenzy — Core + DOM-Safe Debug (Reps ×2, 6-step speed bar)</title>
 <style>
-  :root{
-    --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
-    --card:#152136; --edge:rgba(255,255,255,.08);
-    --accent:#ff7a1a; --accent2:#ffc38f; --good:#2dd36f;
-  }
+  :root{ --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6; --card:#152136; --edge:rgba(255,255,255,.08);
+         --accent:#ff7a1a; --accent2:#ffc38f; --good:#2dd36f; }
   *{box-sizing:border-box}
   html,body{height:100%} html{-webkit-text-size-adjust:100%}
-  body{
-    margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
-    background:
-      radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
-      radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
-      linear-gradient(180deg,var(--bg),var(--bg2));
-    -webkit-tap-highlight-color: transparent;
-  }
+  body{ margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
+        background:
+          radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
+          radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
+          linear-gradient(180deg,var(--bg),var(--bg2));
+        -webkit-tap-highlight-color: transparent; }
   header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;
     padding:10px 14px;background:rgba(15,21,33,.85);border-bottom:1px solid var(--edge);backdrop-filter:blur(8px)}
   .hp-wrap{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
@@ -65,9 +60,8 @@
   /* +HP float */
   .float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 
-  /* Safety: prevent any intro/backdrop from blocking clicks if left on */
+  /* Safety */
   #intro, .modal-backdrop, .overlay, .backdrop { pointer-events:none !important; }
-  /* Ensure tap is always clickable */
   #tap, #tap * { pointer-events:auto !important; z-index:2; }
 </style>
 </head>
@@ -88,28 +82,31 @@
       <div class="bar"><i id="cool"></i></div>
       <div class="mini"><i id="mini"></i><div class="lbl" id="miniLbl">0/0</div></div>
       <div class="actions">
-        <button class="btn action" id="rep">Reps (+2 HP/tap) | 10 HP</button>
+        <button class="btn action" id="rep">Reps ×2 | 10 HP</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-/* ------- State (one exercise) ------- */
-let hp=0, reps=1, tier=0, steps=0, stepsReq=10, nextReadyMs=0;
+/* ------- State ------- */
+let hp=0, reps=1, tier=0, steps=0, stepsReq=6, nextReadyMs=0; // stepsReq starts at 6 per your spec
 
 /* ------- Tunables ------- */
-const BASE_GAIN=1;                 // Lv1 base gain
-const REP_HP_INC=2;                // each Rep adds +2 HP/tap (linear)
-const BASE_CD_S=1.00, MIN_CD_S=0.10;
-const REP_BASE=10, REP_MULT=1.28;  // cost curve
-const STEP_GROW=1.5, STEP_BONUS=3; // harder green bar each tier
+const BASE_GAIN=1;                       // Lv1 gain
+const BASE_CD_S=1.00, MIN_CD_S=0.10;    // Cooldown halves each tier
+const REP_BASE=10, REP_MULT=1.28;       // Rep cost curve
+const STEP_GROW=1.6, STEP_BONUS=2;      // Make later tiers a bit harder than 6 (e.g., 6 → ~12 → ~21 …)
 
 /* ------- Helpers ------- */
 const $ = s => document.getElementById(s);
 function fmtHP(n){ const a=Math.abs(n), d=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   if(a>=1e9) return d(n/1e9)+"B"; if(a>=1e6) return d(n/1e6)+"M"; if(a>=1e3) return d(n/1e3)+"K"; return d(n); }
-function gainPerTap(){ return Math.max(1, BASE_GAIN + (Math.max(1,reps)-1)*REP_HP_INC); } // linear +2 each Rep
+function gainPerTap(){
+  // Reps multiply gain by 2 each level: Lv1=1×, Lv2=2×, Lv3=4×, …
+  const mult = Math.pow(2, Math.max(0, reps-1));
+  return Math.max(1, BASE_GAIN * mult);
+}
 function nextRepCost(){ return Math.floor(REP_BASE * Math.pow(REP_MULT, Math.max(0,reps))); }
 function intervalMs(){ let s = BASE_CD_S / Math.pow(2, tier); if(s<MIN_CD_S) s=MIN_CD_S; return Math.round(s*1000); }
 function canFire(){ return Date.now() >= nextReadyMs; }
@@ -117,7 +114,7 @@ function canFire(){ return Date.now() >= nextReadyMs; }
 /* ------- Audio (tiny) ------- */
 let AC=null, master=null;
 function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C();
-  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch(e){/* ignore */} }
+  master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch(e){} }
 function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
   o.type="triangle"; o.frequency.value=420; o.connect(g); g.connect(master); g.gain.setValueAtTime(.18,t);
   g.gain.exponentialRampToValueAtTime(.0001,t+.14); o.start(t); o.stop(t+.16);}catch(e){} }
@@ -147,26 +144,21 @@ function perform(){
   nextReadyMs = Date.now() + intervalMs();
   const g = gainPerTap();
   hp += g;
-
-  s_click();
-  bopTap();
-  floatHP($('tap'), `+${g} HP`);
-
+  s_click(); bopTap(); floatHP($('tap'), `+${g} HP`);
   render();
 }
 function buyRep(){
   const cost = nextRepCost();
   if(hp < cost) return;
   hp -= cost;
-  reps += 1;           // +2 HP/tap each Rep
-  steps += 1;          // progress to 2× speed
+  reps += 1;        // doubles Gain/tap each time
+  steps += 1;       // progress to 2× speed (cooldown halved)
   if(steps >= stepsReq){
     steps = 0;
-    tier += 1;         // halves cooldown
-    stepsReq = Math.ceil(stepsReq * STEP_GROW + STEP_BONUS);
+    tier += 1;      // 1.00s → 0.50s → 0.25s …
+    stepsReq = Math.ceil(stepsReq * STEP_GROW + STEP_BONUS); // gets harder after the first 6
   }
-  s_up();
-  render();
+  s_up(); render();
 }
 
 /* ------- Render ------- */
@@ -182,7 +174,7 @@ function render(){
 
   const cost = nextRepCost();
   if(repBtn){
-    repBtn.textContent = `Reps (+2 HP/tap) | ${cost.toLocaleString()} HP`;
+    repBtn.textContent = `Reps ×2 | ${cost.toLocaleString()} HP`;
     const can = hp >= cost;
     repBtn.disabled = !can;
     repBtn.classList.toggle('glitter', can);
@@ -199,34 +191,18 @@ function render(){
   const p2 = stepsReq ? Math.round((steps/stepsReq)*100) : 0;
   if(mini) mini.style.width = Math.min(100, p2)+'%';
   if(miniLbl) miniLbl.textContent = `${steps}/${stepsReq}`;
-
-  if(!tapEl){ const errBox=document.getElementById('ffErr'); if(errBox){ errBox.textContent='DOM issue: #tap not found (render)'; } }
 }
 
-/* ------- Safe binding ------- */
+/* ------- Safe binding & boot ------- */
 function bind(id, ev, fn){
   const el = document.getElementById(id);
-  if(!el){
-    const errBox=document.getElementById('ffErr');
-    if(errBox) errBox.textContent = `DOM issue: element #${id} not found when binding`;
-    console.warn('Missing element #' + id);
-    return;
-  }
+  if(!el){ const err=document.getElementById('ffErr'); if(err) err.textContent=`DOM issue: #${id} not found`; return; }
   el.addEventListener(ev, fn);
 }
-
-/* ------- Boot after DOM is ready ------- */
-function boot(){
-  bind('tap','click', ()=>{ ensureAC(); perform(); });
-  bind('rep','click', ()=>{ ensureAC(); buyRep(); });
-  setInterval(render, 60);
-  render();
-}
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', boot);
-}else{
-  boot();
-}
+function boot(){ bind('tap','click', ()=>{ ensureAC(); perform(); });
+                 bind('rep','click', ()=>{ ensureAC(); buyRep(); });
+                 setInterval(render, 60); render(); }
+if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', boot); } else { boot(); }
 </script>
 
 <!-- ==================== DEBUG START ==================== -->
@@ -235,7 +211,6 @@ if(document.readyState === 'loading'){
     border:1px solid #311; border-radius:10px; padding:10px; font:12px/1.35 ui-monospace,monospace;
     z-index:999999}
   #ffDebug b{color:#fff}
-  #ffOverlayProbe{position:fixed;inset:0;pointer-events:none;z-index:999998;display:none}
 </style>
 <div id="ffDebug">
   <div><b>Fitness Frenzy Debug</b></div>
@@ -243,22 +218,16 @@ if(document.readyState === 'loading'){
   <div id="ffClick">No clicks yet.</div>
   <div id="ffTop">Top element: (waiting)</div>
 </div>
-<canvas id="ffOverlayProbe"></canvas>
 <script>
 (function(){
-  // 1) JS errors
   window.addEventListener('error', function(e){
-    var where = (e.filename||'') + (e.lineno?(':'+e.lineno):'');
+    var where=(e.filename||'')+(e.lineno?(':'+e.lineno):'');
     document.getElementById('ffErr').textContent = 'JS error: ' + e.message + ' @ ' + where;
   });
-
-  // 2) Clicks reaching the page
   document.addEventListener('click', function(e){
     const id = e.target && (e.target.id || e.target.tagName);
     document.getElementById('ffClick').textContent = 'Last click on: ' + id;
   }, true);
-
-  // 3) What sits on top of the tap area?
   function probe(){
     var tap = document.getElementById('tap');
     var info = document.getElementById('ffTop');
@@ -269,13 +238,6 @@ if(document.readyState === 'loading'){
     info.textContent = 'Top element over tap: ' + (el ? (el.id || el.tagName) : 'none');
   }
   setInterval(probe, 500);
-
-  // 4) Kill obvious overlays if left active
-  var css = document.createElement('style');
-  css.textContent = `
-    #intro, .modal-backdrop, .overlay, .backdrop { pointer-events: none !important; }
-  `;
-  document.head.appendChild(css);
 })();
 </script>
 <!-- ===================== DEBUG END ===================== -->
