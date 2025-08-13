@@ -3,23 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — AdCap Core + Save + Offline + Debug</title>
+<title>Fitness Frenzy — AdCap Core (free first rep) + Save + Offline + Debug</title>
 <style>
-  :root{
-    --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
-    --card:#152136; --edge:rgba(255,255,255,.08);
-    --accent:#ff7a1a; --accent2:#ffc38f; --good:#2dd36f;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%} html{-webkit-text-size-adjust:100%}
-  body{
-    margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
-    background:
-      radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
-      radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
-      linear-gradient(180deg,var(--bg),var(--bg2));
-    -webkit-tap-highlight-color: transparent;
-  }
+  :root{--bg:#0f1421;--bg2:#0b1220;--ink:#eaf1fb;--muted:#9fb0c6;--card:#152136;--edge:rgba(255,255,255,.08);
+        --accent:#ff7a1a;--accent2:#ffc38f;--good:#2dd36f}
+  *{box-sizing:border-box} html,body{height:100%} html{-webkit-text-size-adjust:100%}
+  body{margin:0;color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Arial;
+       background:
+        radial-gradient(900px 600px at -10% -20%,rgba(58,160,255,.15),transparent),
+        radial-gradient(1000px 700px at 110% 10%,rgba(255,122,26,.10),transparent),
+        linear-gradient(180deg,var(--bg),var(--bg2));
+       -webkit-tap-highlight-color:transparent}
   header{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;
     padding:10px 14px;background:rgba(15,21,33,.85);border-bottom:1px solid var(--edge);backdrop-filter:blur(8px)}
   .hp-wrap{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
@@ -39,7 +33,7 @@
     background:linear-gradient(180deg,#0c1e16,#0f271a);color:#cffff1;cursor:pointer;user-select:none;overflow:hidden}
   .tap.ready{box-shadow:0 0 0 3px rgba(39,210,103,.28) inset}
   .emoji{font-size:56px}
-  .tap.bop .emoji{animation:bop .18s ease} @keyframes bop{50%{transform:scale(1.12)}}
+  .tap.bop .emoji{animation:bop .18s ease}@keyframes bop{50%{transform:scale(1.12)}}
 
   .meta h3{margin:0 0 6px;font:800 18px/1.15 system-ui;display:flex;align-items:center;gap:8px}
   .meta h3 small{font-weight:800;color:#fff;background:#2c3a57;border:1px solid rgba(255,255,255,.15);
@@ -65,9 +59,8 @@
 
   .float{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 
-  /* Debug box */
   #ffDebug{position:fixed;inset:auto 8px 8px 8px;background:#0b0f18;color:#ffb4b4;
-    border:1px solid #311; border-radius:10px; padding:10px; font:12px/1.35 ui-monospace,monospace; z-index:999999}
+    border:1px solid #311;border-radius:10px;padding:10px;font:12px/1.35 ui-monospace,monospace;z-index:999999}
   #ffDebug b{color:#fff}
 </style>
 </head>
@@ -92,130 +85,87 @@
 </div>
 
 <script>
-/* ================= Core Utilities ================= */
-const $ = s => document.getElementById(s);
-function fmt(n){
-  // compact formatter to Qd range
-  const a=Math.abs(n);
-  const f=(v)=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(a>=1e18) return f(n/1e18)+'E'; // exa-ish
-  if(a>=1e15) return f(n/1e15)+'Q';
-  if(a>=1e12) return f(n/1e12)+'T';
-  if(a>=1e9)  return f(n/1e9)+'B';
-  if(a>=1e6)  return f(n/1e6)+'M';
-  if(a>=1e3)  return f(n/1e3)+'K';
-  return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-}
+/* ========= Utils ========= */
+const $=s=>document.getElementById(s);
+const now=()=>Date.now();
+function fmt(n){const a=Math.abs(n),f=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(a>=1e15)return f(n/1e15)+'Q'; if(a>=1e12)return f(n/1e12)+'T'; if(a>=1e9)return f(n/1e9)+'B';
+  if(a>=1e6)return f(n/1e6)+'M'; if(a>=1e3)return f(n/1e3)+'K'; return f(n);}
 
-function now(){ return Date.now(); }
-
-/* ================= Audio (minimal, inline) ================= */
+/* ========= Audio (tiny) ========= */
 let AC=null, master=null;
-function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C(); master=AC.createGain(); master.gain.value=.9; master.connect(AC.destination);}catch(e){} }
-function s_click(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain(); o.type="triangle"; o.frequency.value=420; o.connect(g); g.connect(master); g.gain.setValueAtTime(.16,t); g.gain.exponentialRampToValueAtTime(.0001,t+.12); o.start(t); o.stop(t+.14);}catch(e){} }
-function s_buy(){ try{ ensureAC(); const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain(); o.type="square"; o.frequency.value=980; o.connect(g); g.connect(master); g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.0001,t+.2); o.start(t); o.stop(t+.22);}catch(e){} }
+function ensureAC(){try{if(AC)return;const C=window.AudioContext||window.webkitAudioContext;AC=new C();master=AC.createGain();master.gain.value=.9;master.connect(AC.destination);}catch(e){}}
+function s_click(){try{ensureAC();const t=AC.currentTime;const o=AC.createOscillator(),g=AC.createGain();o.type="triangle";o.frequency.value=420;o.connect(g);g.connect(master);g.gain.setValueAtTime(.16,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);o.start(t);o.stop(t+.14);}catch(e){}}
+function s_buy(){try{ensureAC();const t=AC.currentTime;const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=980;o.connect(g);g.connect(master);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);o.start(t);o.stop(t+.22);}catch(e){}}
 
-/* ================= Data & Balance ================= */
-// AdCap-style config (Beginner Zone sample)
-const EXERCISES = [
-  {
-    key:'walk', name:'Walking', icon:'👟',
-    baseCost:5, baseHP:1, cooldown:4000, coeff:1.07,  // 4s cycle
-    trainerCost:100, unlocked:true
-  },
-  {
-    key:'sit', name:'Sit-Ups', icon:'🤸‍♂️',
-    baseCost:60, baseHP:60, cooldown:3000, coeff:1.15, // 3s cycle
-    trainerCost:600, unlocked:false
-  },
-  // Add more later per your table…
+/* ========= Config ========= */
+const EXERCISES=[
+  {key:'walk',name:'Walking',icon:'👟',baseCost:5,baseHP:1,cooldown:4000,coeff:1.07,trainerCost:100,unlocked:true,freeReps:1},
+  {key:'sit', name:'Sit-Ups',icon:'🤸‍♂️',baseCost:60,baseHP:60,cooldown:3000,coeff:1.15,trainerCost:600,unlocked:false}
 ];
+const OFFLINE_RATE=0.5, OFFLINE_CAP_MS=24*3600e3;
 
-const OFFLINE_RATE = 0.5;           // 50% rate offline
-const OFFLINE_CAP_MS = 24*3600e3;   // cap offline calc to 24h
-
-/* ================= State ================= */
-let state = {
-  hp: 0,
-  lastSave: now(),
-  lastTick: now(),
-  exercises: EXERCISES.map(e=>({
-    key:e.key, reps:0, trainer:false, nextReady:0, unlocked:!!e.unlocked
-  }))
+/* ========= State / Save ========= */
+let state={
+  hp:0,lastSave:now(),lastTick:now(),
+  exercises:EXERCISES.map(cfg=>({key:cfg.key,reps:0,trainer:false,nextReady:0,unlocked:!!cfg.unlocked}))
 };
-
-/* ================= Save / Load / Offline ================= */
 const SAVE_KEY='ff-save-v1';
-function save(){
-  state.lastSave = now();
-  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-}
+function save(){state.lastSave=now();localStorage.setItem(SAVE_KEY,JSON.stringify(state));}
 function load(){
-  const raw = localStorage.getItem(SAVE_KEY);
-  if(!raw) return;
+  const raw=localStorage.getItem(SAVE_KEY); if(!raw){ // first run → grant any free reps
+    EXERCISES.forEach((cfg,i)=>{ if(cfg.freeReps && state.exercises[i]) state.exercises[i].reps=cfg.freeReps; });
+    return;
+  }
   try{
-    const s = JSON.parse(raw);
-    if(s && typeof s.hp === 'number' && Array.isArray(s.exercises)){
-      state = {...state, ...s};
-      // Ensure future compatibility
+    const s=JSON.parse(raw); if(!s) return;
+    state={...state,...s};
+    // ensure structure + apply freeReps if missing
+    EXERCISES.forEach((cfg,i)=>{
+      if(!state.exercises[i]||state.exercises[i].key!==cfg.key){
+        state.exercises[i]={key:cfg.key,reps:cfg.freeReps||0,trainer:false,nextReady:0,unlocked:!!cfg.unlocked};
+      }else{
+        if((state.exercises[i].reps||0)===0 && cfg.freeReps) state.exercises[i].reps=cfg.freeReps;
+      }
+    });
+    // offline gains
+    const elapsed=Math.min(OFFLINE_CAP_MS, now()-(s.lastTick||now()));
+    if(elapsed>1000){
+      let gain=0;
       EXERCISES.forEach((cfg,i)=>{
-        if(!state.exercises[i] || state.exercises[i].key!==cfg.key){
-          state.exercises[i] = {key:cfg.key, reps:0, trainer:false, nextReady:0, unlocked:!!cfg.unlocked};
+        const ex=state.exercises[i];
+        if(ex.trainer && ex.reps>0){
+          const per=calcCycleHP(cfg,ex);
+          const cycles=Math.floor(elapsed/cfg.cooldown);
+          gain+=per*cycles*OFFLINE_RATE;
         }
       });
-      // Offline gains for trainers
-      const elapsed = Math.min(OFFLINE_CAP_MS, now() - (s.lastTick||now()));
-      if(elapsed>1000){
-        let hpGain = 0;
-        EXERCISES.forEach((cfg,i)=>{
-          const ex = state.exercises[i];
-          if(ex.trainer && ex.reps>0){
-            const perCycle = calcCycleHP(cfg, ex);
-            const cycles = Math.floor(elapsed / cfg.cooldown);
-            hpGain += perCycle * cycles * OFFLINE_RATE;
-          }
-        });
-        state.hp += hpGain;
-      }
+      state.hp+=gain;
     }
-  }catch(e){ console.warn('Load failed', e); }
+  }catch(e){console.warn('Load failed',e);}
 }
-window.addEventListener('beforeunload', save);
-setInterval(save, 15000);
+window.addEventListener('beforeunload',save); setInterval(save,15000);
 
-/* ================= Math ================= */
-// cost to buy next rep (quantity)
-function costNext(cfg, ex){
-  // classic AdCap: baseCost * 1.07^reps
-  return Math.ceil(cfg.baseCost * Math.pow(1.07, ex.reps));
-}
-// HP per cycle (AdCap-esque, with your coeff exponent)
-function calcCycleHP(cfg, ex){
-  if(ex.reps<=0) return 0;
-  const mult = Math.pow(ex.reps, cfg.coeff); // gentle exponential
-  return cfg.baseHP * mult;                  // room for global multipliers later
+/* ========= Math ========= */
+function costNext(cfg,ex){return Math.ceil(cfg.baseCost*Math.pow(1.07,ex.reps));}
+function calcCycleHP(cfg,ex){
+  if(ex.reps<=0)return 0;
+  const mult=Math.pow(ex.reps,cfg.coeff);
+  return cfg.baseHP*mult;
 }
 
-/* ================= UI ================= */
+/* ========= UI ========= */
 function buildUI(){
-  const cards = $('cards');
-  cards.innerHTML='';
+  const cards=$('cards'); cards.innerHTML='';
   EXERCISES.forEach((cfg,i)=>{
-    const ex = state.exercises[i];
+    const ex=state.exercises[i];
+    const card=document.createElement('div'); card.className='card'; card.id=`card-${cfg.key}`;
+    const tap=document.createElement('button'); tap.className='tap'; tap.id=`tap-${cfg.key}`;
+    tap.innerHTML=`<div class="emoji">${cfg.icon}</div>`;
+    tap.addEventListener('click',()=>{ensureAC();tapExercise(i);});
 
-    const card = document.createElement('div');
-    card.className='card';
-    card.id = `card-${cfg.key}`;
-
-    const tap = document.createElement('button');
-    tap.className='tap';
-    tap.id = `tap-${cfg.key}`;
-    tap.innerHTML = `<div class="emoji">${cfg.icon}</div>`;
-    tap.addEventListener('click', ()=>{ ensureAC(); tapExercise(i); });
-
-    const meta = document.createElement('div');
-    meta.className='meta';
-    meta.innerHTML = `
+    const meta=document.createElement('div'); meta.className='meta';
+    meta.innerHTML=`
       <h3>${cfg.name} ${ex.trainer?'<small>Coach</small>':''}</h3>
       <div class="sub">
         <span>Reps: <b id="reps-${cfg.key}">${ex.reps}</b></span>
@@ -227,74 +177,51 @@ function buildUI(){
       <div class="actions">
         <button class="btn primary glitter" id="buy-${cfg.key}">Buy Rep | — HP</button>
         <button class="btn" id="mgr-${cfg.key}">Hire Coach | — HP</button>
-      </div>
-    `;
-    card.appendChild(tap);
-    card.appendChild(meta);
-    cards.appendChild(card);
+      </div>`;
+    card.appendChild(tap); card.appendChild(meta); cards.appendChild(card);
   });
 }
-
 function updateUI(){
-  $('hp').innerHTML = `${fmt(state.hp)} <small>HP</small>`;
+  $('hp').innerHTML=`${fmt(state.hp)} <small>HP</small>`;
   EXERCISES.forEach((cfg,i)=>{
-    const ex = state.exercises[i];
-    const ready = now() >= ex.nextReady;
+    const ex=state.exercises[i], ready=now()>=ex.nextReady;
+    const tapEl=$(`tap-${cfg.key}`), repsEl=$(`reps-${cfg.key}`), hpcEl=$(`hpc-${cfg.key}`),
+          cdEl=$(`cd-${cfg.key}`), coolI=$(`cool-${cfg.key}`),
+          miniI=$(`mini-${cfg.key}`), miniL=$(`miniLbl-${cfg.key}`),
+          buyBt=$(`buy-${cfg.key}`), mgrBt=$(`mgr-${cfg.key}`);
+    if(tapEl) tapEl.classList.toggle('ready',ready);
 
-    const tapEl = $(`tap-${cfg.key}`);
-    const repsEl = $(`reps-${cfg.key}`);
-    const hpcEl = $(`hpc-${cfg.key}`);
-    const cdEl  = $(`cd-${cfg.key}`);
-    const coolI = $(`cool-${cfg.key}`);
-    const miniI = $(`mini-${cfg.key}`);
-    const miniL = $(`miniLbl-${cfg.key}`);
-    const buyBt = $(`buy-${cfg.key}`);
-    const mgrBt = $(`mgr-${cfg.key}`);
-
-    if(tapEl) tapEl.classList.toggle('ready', ready);
-
-    const perCycle = calcCycleHP(cfg, ex);
-    if(repsEl) repsEl.textContent = ex.reps;
-    if(hpcEl)  hpcEl.textContent  = fmt(perCycle);
-    if(cdEl)   cdEl.textContent   = (cfg.cooldown/1000).toFixed(2)+'s';
+    const per=calcCycleHP(cfg,ex);
+    if(repsEl) repsEl.textContent=ex.reps;
+    if(hpcEl)  hpcEl.textContent=fmt(per);
+    if(cdEl)   cdEl.textContent=(cfg.cooldown/1000).toFixed(2)+'s';
 
     // cooldown bar
-    const left = Math.max(0, ex.nextReady - now());
-    const pct = 1 - Math.min(1, left / cfg.cooldown);
-    if(coolI) coolI.style.width = Math.round(pct*100)+'%';
+    const left=Math.max(0,ex.nextReady-now());
+    const pct=1-Math.min(1,left/cfg.cooldown);
+    if(coolI) coolI.style.width=Math.round(pct*100)+'%';
 
-    // Buy Rep
-    const cost = costNext(cfg, ex);
-    if(buyBt){
-      buyBt.textContent = `Buy Rep | ${fmt(cost)} HP`;
-      const can = state.hp >= cost && state.exercises[i].unlocked !== false;
-      buyBt.disabled = !can;
-      buyBt.classList.toggle('available', can);
-      buyBt.onclick = ()=>{ ensureAC(); buyRep(i); };
-    }
+    const cost=costNext(cfg,ex);
+    if(buyBt){ buyBt.textContent=`Buy Rep | ${fmt(cost)} HP`;
+      const can=state.hp>=cost && ex.unlocked!==false;
+      buyBt.disabled=!can; buyBt.classList.toggle('available',can);
+      buyBt.onclick=()=>{ensureAC();buyRep(i);}; }
+    if(mgrBt){ const mCost=cfg.trainerCost;
+      mgrBt.textContent=ex.trainer?'Coach Hired':`Hire Coach | ${fmt(mCost)} HP`;
+      const can=!ex.trainer && state.hp>=mCost && ex.reps>0;
+      mgrBt.disabled=!can; mgrBt.classList.toggle('available',can);
+      mgrBt.onclick=()=>{ensureAC();hireCoach(i);}; }
 
-    // Trainer
-    const mCost = cfg.trainerCost;
-    if(mgrBt){
-      mgrBt.textContent = ex.trainer ? 'Coach Hired' : `Hire Coach | ${fmt(mCost)} HP`;
-      const can = !ex.trainer && state.hp >= mCost && ex.reps>0;
-      mgrBt.disabled = !can;
-      mgrBt.classList.toggle('available', can);
-      mgrBt.onclick = ()=>{ ensureAC(); hireCoach(i); };
-    }
-
-    // Unlock rule: unlock next exercise when this has >=1 rep
+    // Unlock next exercise when you have >=1 rep here
     if(i+1<EXERCISES.length){
-      const next = state.exercises[i+1];
+      const next=state.exercises[i+1];
       if(!next.unlocked && ex.reps>=1){
-        next.unlocked = true;
-        const nextCard = $(`card-${EXERCISES[i+1].key}`);
-        if(nextCard) nextCard.style.filter='none';
+        next.unlocked=true;
+        const nextCard=$(`card-${EXERCISES[i+1].key}`); if(nextCard) nextCard.style.filter='none';
       }
     }
-
-    // Lock visual for locked exercises
-    const card = $(`card-${cfg.key}`);
+    // Lock visuals
+    const card=$(`card-${cfg.key}`);
     if(card){
       if(!ex.unlocked){
         card.style.filter='grayscale(1) blur(1px) opacity(.85)';
@@ -306,112 +233,74 @@ function updateUI(){
         card.style.filter='none';
         if(buyBt) buyBt.style.visibility='';
         if(mgrBt) mgrBt.style.visibility='';
-        if(miniL) miniL.textContent='—'; // (reserved for future per-exercise milestones)
+        if(miniL) miniL.textContent='—';
       }
     }
   });
 }
 
-/* ================= Gameplay ================= */
-function floatHP(anchor, text){
-  const r = anchor.getBoundingClientRect();
-  const n = document.createElement('div');
-  n.className='float'; n.textContent=text;
-  n.style.left = (r.left + r.width/2) + 'px';
-  n.style.top  = (r.top + 10 + window.scrollY) + 'px';
+/* ========= Gameplay ========= */
+function floatHP(anchor,text){
+  const r=anchor.getBoundingClientRect(); const n=document.createElement('div');
+  n.className='float'; n.textContent=text; n.style.left=(r.left+r.width/2)+'px'; n.style.top=(r.top+10+window.scrollY)+'px';
   document.body.appendChild(n);
-  n.animate([{transform:'translate(-50%,0) scale(1)', opacity:1, color:'#fff'},
-             {transform:'translate(-50%,-40px) scale(1.05)', opacity:0, color:'#ffdea8'}],
-            {duration:800, easing:'ease-out'});
-  setTimeout(()=>n.remove(),820);
+  n.animate([{transform:'translate(-50%,0) scale(1)',opacity:1,color:'#fff'},
+             {transform:'translate(-50%,-40px) scale(1.05)',opacity:0,color:'#ffdea8'}],
+            {duration:800,easing:'ease-out'}); setTimeout(()=>n.remove(),820);
 }
 
 function tapExercise(i){
-  const cfg = EXERCISES[i], ex = state.exercises[i];
-  if(!ex.unlocked){ return; }
-  if(now() < ex.nextReady){ return; }
-  if(ex.reps<=0){ return; }          // need at least 1 rep to produce
-  // start a cycle; pay out immediately (AdCap pays on completion; here we pay on start for snappier feel)
-  const gain = calcCycleHP(cfg, ex);
-  state.hp += gain;
-  s_click();
-  const tapEl = $(`tap-${cfg.key}`);
-  if(tapEl){ tapEl.classList.remove('bop'); void tapEl.offsetWidth; tapEl.classList.add('bop'); floatHP(tapEl, `+${fmt(gain)} HP`);}
-  ex.nextReady = now() + cfg.cooldown;
+  const cfg=EXERCISES[i], ex=state.exercises[i];
+  if(!ex.unlocked) return;
+  if(now()<ex.nextReady) return;
+  if(ex.reps<=0) return; // should not happen now (freeReps)
+  const gain=calcCycleHP(cfg,ex);
+  state.hp+=gain; s_click();
+  const tapEl=$(`tap-${cfg.key}`); if(tapEl){tapEl.classList.remove('bop'); void tapEl.offsetWidth; tapEl.classList.add('bop'); floatHP(tapEl,`+${fmt(gain)} HP`);}
+  ex.nextReady=now()+cfg.cooldown;
 }
-
 function buyRep(i){
-  const cfg = EXERCISES[i], ex = state.exercises[i];
-  if(!ex.unlocked){ return; }
-  const cost = costNext(cfg, ex);
-  if(state.hp < cost) return;
-  state.hp -= cost;
-  ex.reps += 1;
-  s_buy();
-  // gentle nudge: first time you buy any reps, set ready so a tap pays instantly
-  if(ex.nextReady === 0) ex.nextReady = now();
+  const cfg=EXERCISES[i], ex=state.exercises[i];
+  if(!ex.unlocked)return;
+  const cost=costNext(cfg,ex); if(state.hp<cost)return;
+  state.hp-=cost; ex.reps+=1; s_buy();
+  if(ex.nextReady===0) ex.nextReady=now(); // first-time nudge
 }
-
 function hireCoach(i){
-  const cfg = EXERCISES[i], ex = state.exercises[i];
-  if(ex.trainer || ex.reps<=0) return;
-  const mCost = cfg.trainerCost;
-  if(state.hp < mCost) return;
-  state.hp -= mCost;
-  ex.trainer = true;
-  s_buy();
+  const cfg=EXERCISES[i], ex=state.exercises[i];
+  if(ex.trainer||ex.reps<=0) return;
+  const mCost=cfg.trainerCost; if(state.hp<mCost) return;
+  state.hp-=mCost; ex.trainer=true; s_buy();
 }
 
-/* ================= Main Loop ================= */
+/* ========= Loop ========= */
 function tick(){
-  const t = now();
-  const dt = t - state.lastTick;
-  state.lastTick = t;
-
-  // trainers automation: run on cycle boundaries
+  const t=now(), dt=t-state.lastTick; state.lastTick=t;
   EXERCISES.forEach((cfg,i)=>{
-    const ex = state.exercises[i];
-    if(!ex.trainer || ex.reps<=0 || !ex.unlocked) return;
-    if(t >= ex.nextReady){
-      const gain = calcCycleHP(cfg, ex);
-      state.hp += gain;
-      ex.nextReady = t + cfg.cooldown;
-      // minimal glow on auto complete
-      const tapEl = $(`tap-${cfg.key}`);
-      if(tapEl){ tapEl.classList.add('ready'); setTimeout(()=>tapEl.classList.remove('ready'), 60); }
+    const ex=state.exercises[i];
+    if(!ex.trainer||ex.reps<=0||!ex.unlocked) return;
+    if(t>=ex.nextReady){
+      const gain=calcCycleHP(cfg,ex); state.hp+=gain; ex.nextReady=t+cfg.cooldown;
+      const tapEl=$(`tap-${cfg.key}`); if(tapEl){tapEl.classList.add('ready'); setTimeout(()=>tapEl.classList.remove('ready'),60);}
     }
   });
-
   updateUI();
 }
-setInterval(tick, 60);
+setInterval(tick,60);
 
-/* ================= Boot ================= */
+/* ========= Boot + Debug ========= */
 function boot(){
-  buildUI();
-  load();
-  updateUI();
-  // Debug clicks
-  document.addEventListener('click', e=>{
-    $('ffClick').textContent = 'Last click on: ' + (e.target.id || e.target.tagName);
-  }, true);
-  // Probe top element over first card’s tap
+  buildUI(); load(); updateUI();
+  document.addEventListener('click',e=>{$('ffClick').textContent='Last click on: '+(e.target.id||e.target.tagName);},true);
   setInterval(()=>{
-    const first = EXERCISES[0];
-    const tap = $(`tap-${first.key}`);
-    const info = $('ffTop');
-    if(!tap){ info.textContent='Top element over tap: (no element)'; return; }
-    const r = tap.getBoundingClientRect();
-    const x = Math.round(r.left + r.width/2), y = Math.round(r.top + r.height/2);
-    const el = document.elementFromPoint(x, y);
-    info.textContent = 'Top element over tap: ' + (el ? (el.id || el.tagName) : 'none');
-  }, 500);
-  window.addEventListener('error', (e)=>{
-    const where=(e.filename||'')+(e.lineno?(':'+e.lineno):'');
-    $('ffErr').textContent = 'JS error: ' + e.message + ' @ ' + where;
-  });
+    const first=EXERCISES[0]; const tap=$(`tap-${first.key}`), info=$('ffTop');
+    if(!tap){info.textContent='Top element over tap: (no element)'; return;}
+    const r=tap.getBoundingClientRect(); const x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2);
+    const el=document.elementFromPoint(x,y); info.textContent='Top element over tap: '+(el?(el.id||el.tagName):'none');
+  },500);
+  window.addEventListener('error',e=>{const where=(e.filename||'')+(e.lineno?(':'+e.lineno):''); $('ffErr').textContent='JS error: '+e.message+' @ '+where;});
 }
-if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', boot); } else { boot(); }
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot);}else{boot();}
 </script>
 </body>
 </html>
