@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Frenzy — Core + DOM-Safe Debug</title>
+<title>Fitness Frenzy — Core + DOM-Safe Debug (Reps = +2 HP/tap)</title>
 <style>
   :root{
     --bg:#0f1421; --bg2:#0b1220; --ink:#eaf1fb; --muted:#9fb0c6;
@@ -88,7 +88,7 @@
       <div class="bar"><i id="cool"></i></div>
       <div class="mini"><i id="mini"></i><div class="lbl" id="miniLbl">0/0</div></div>
       <div class="actions">
-        <button class="btn action" id="rep">Reps | 10 HP</button>
+        <button class="btn action" id="rep">Reps (+2 HP/tap) | 10 HP</button>
       </div>
     </div>
   </div>
@@ -99,21 +99,22 @@
 let hp=0, reps=1, tier=0, steps=0, stepsReq=10, nextReadyMs=0;
 
 /* ------- Tunables ------- */
-const BASE_GAIN=1, GAIN_MULT=1.15;       // Reps boost HP/tap
-const BASE_CD_S=1.00, MIN_CD_S=0.10;     // Cooldown halves each tier, floor at 0.10s
-const REP_BASE=10, REP_MULT=1.28;        // Rep cost growth
-const STEP_GROW=1.5, STEP_BONUS=3;       // Speed-up requirement growth
+const BASE_GAIN=1;                 // Lv1 base gain
+const REP_HP_INC=2;                // each Rep adds +2 HP/tap (linear)
+const BASE_CD_S=1.00, MIN_CD_S=0.10;
+const REP_BASE=10, REP_MULT=1.28;  // cost curve
+const STEP_GROW=1.5, STEP_BONUS=3; // harder green bar each tier
 
 /* ------- Helpers ------- */
 const $ = s => document.getElementById(s);
 function fmtHP(n){ const a=Math.abs(n), d=v=>v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   if(a>=1e9) return d(n/1e9)+"B"; if(a>=1e6) return d(n/1e6)+"M"; if(a>=1e3) return d(n/1e3)+"K"; return d(n); }
-function gainPerTap(){ return Math.max(1, Math.floor(BASE_GAIN * Math.pow(GAIN_MULT, Math.max(0,reps-1)))); }
+function gainPerTap(){ return Math.max(1, BASE_GAIN + (Math.max(1,reps)-1)*REP_HP_INC); } // linear +2 each Rep
 function nextRepCost(){ return Math.floor(REP_BASE * Math.pow(REP_MULT, Math.max(0,reps))); }
 function intervalMs(){ let s = BASE_CD_S / Math.pow(2, tier); if(s<MIN_CD_S) s=MIN_CD_S; return Math.round(s*1000); }
 function canFire(){ return Date.now() >= nextReadyMs; }
 
-/* ------- Audio (tiny, reliable) ------- */
+/* ------- Audio (tiny) ------- */
 let AC=null, master=null;
 function ensureAC(){ try{ if(AC) return; const C=window.AudioContext||window.webkitAudioContext; AC=new C();
   master=AC.createGain(); master.gain.value=.95; master.connect(AC.destination);}catch(e){/* ignore */} }
@@ -157,11 +158,11 @@ function buyRep(){
   const cost = nextRepCost();
   if(hp < cost) return;
   hp -= cost;
-  reps += 1;
-  steps += 1;
+  reps += 1;           // +2 HP/tap each Rep
+  steps += 1;          // progress to 2× speed
   if(steps >= stepsReq){
     steps = 0;
-    tier += 1;
+    tier += 1;         // halves cooldown
     stepsReq = Math.ceil(stepsReq * STEP_GROW + STEP_BONUS);
   }
   s_up();
@@ -181,7 +182,7 @@ function render(){
 
   const cost = nextRepCost();
   if(repBtn){
-    repBtn.textContent = `Reps | ${cost.toLocaleString()} HP`;
+    repBtn.textContent = `Reps (+2 HP/tap) | ${cost.toLocaleString()} HP`;
     const can = hp >= cost;
     repBtn.disabled = !can;
     repBtn.classList.toggle('glitter', can);
@@ -199,11 +200,10 @@ function render(){
   if(mini) mini.style.width = Math.min(100, p2)+'%';
   if(miniLbl) miniLbl.textContent = `${steps}/${stepsReq}`;
 
-  // If tapEl is missing, surface it in debug immediately
   if(!tapEl){ const errBox=document.getElementById('ffErr'); if(errBox){ errBox.textContent='DOM issue: #tap not found (render)'; } }
 }
 
-/* ------- Safe binding (warn if missing) ------- */
+/* ------- Safe binding ------- */
 function bind(id, ev, fn){
   const el = document.getElementById(id);
   if(!el){
@@ -246,21 +246,21 @@ if(document.readyState === 'loading'){
 <canvas id="ffOverlayProbe"></canvas>
 <script>
 (function(){
-  // 1) Show JavaScript errors
+  // 1) JS errors
   window.addEventListener('error', function(e){
     var where = (e.filename||'') + (e.lineno?(':'+e.lineno):'');
     document.getElementById('ffErr').textContent = 'JS error: ' + e.message + ' @ ' + where;
   });
 
-  // 2) Log clicks reaching the page
+  // 2) Clicks reaching the page
   document.addEventListener('click', function(e){
     const id = e.target && (e.target.id || e.target.tagName);
     document.getElementById('ffClick').textContent = 'Last click on: ' + id;
   }, true);
 
-  // 3) Probe what’s on top of the main tap area
+  // 3) What sits on top of the tap area?
   function probe(){
-    var tap = document.getElementById('tap'); // main button id
+    var tap = document.getElementById('tap');
     var info = document.getElementById('ffTop');
     if(!tap){ info.textContent = 'Top element over tap: (no #tap on page)'; return; }
     var r = tap.getBoundingClientRect();
@@ -270,12 +270,10 @@ if(document.readyState === 'loading'){
   }
   setInterval(probe, 500);
 
-  // 4) Safety: ensure anything obvious can’t block clicks
+  // 4) Kill obvious overlays if left active
   var css = document.createElement('style');
   css.textContent = `
-    #intro, .modal-backdrop, .overlay, .backdrop {
-      pointer-events: none !important;
-    }
+    #intro, .modal-backdrop, .overlay, .backdrop { pointer-events: none !important; }
   `;
   document.head.appendChild(css);
 })();
