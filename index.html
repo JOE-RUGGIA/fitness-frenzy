@@ -1,275 +1,354 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Idle Clicker – V0.2.1 (Emoji Icons)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111" />
-  <style>
-    :root {
-      --bg: #0f1114; --card: #15181d; --ink: #e9eef3; --muted: #9aa7b3;
-      --accent: #2e7d32; --border: #232a33; --radius: 14px;
-      --space: clamp(10px, 2.2vw, 18px);
-      --fs-1: clamp(16px, 2.4vw, 18px);
-      --fs-2: clamp(18px, 3.2vw, 22px);
-      --fs-3: clamp(22px, 5vw, 28px);
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg); color: var(--ink);
-      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-      padding: env(safe-area-inset-top) var(--space) env(safe-area-inset-bottom) var(--space);
-    }
-    .wrap { max-width: 920px; margin: 0 auto; }
-    header { display: flex; align-items: center; gap: var(--space); margin: var(--space) 0; }
-    h1 { font-size: var(--fs-3); margin: 0; font-weight: 700; letter-spacing: 0.2px; }
-
-    .row { display: flex; gap: var(--space); flex-wrap: wrap; }
-    .card {
-      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-      padding: var(--space); flex: 1 1 280px; min-width: 260px;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset, 0 10px 24px rgba(0,0,0,0.25);
-    }
-    h3 { margin: 0 0 10px 0; font-size: var(--fs-2); }
-    .muted { color: var(--muted); }
-    .stat { font-variant-numeric: tabular-nums; }
-
-    .btn {
-      user-select: none; -webkit-tap-highlight-color: transparent;
-      background: var(--accent); color: white; border: none; border-radius: 12px;
-      padding: clamp(10px, 2.5vh, 14px) clamp(14px, 3vw, 18px);
-      font-size: var(--fs-1); font-weight: 600; line-height: 1;
-      cursor: pointer; transition: transform .02s ease-out, filter .12s ease;
-      touch-action: manipulation; width: 100%;
-    }
-    .btn:active { transform: translateY(1px); filter: brightness(0.95); }
-    .btn[disabled] { background: #3a434f; color: #a7b1be; cursor: not-allowed; transform: none; }
-    .btn.secondary { background: #2b3c4f; }
-    .btn.secondary:active { filter: brightness(1.08); }
-
-    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space); }
-    @media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
-
-    .row-compact { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .kpi { display:flex; align-items:center; gap:10px; }
-    .icon { font-size: clamp(22px, 6vw, 34px); line-height: 1; filter: drop-shadow(0 2px 1px rgba(0,0,0,0.6)); }
-    .spacer { height: var(--space); }
-    .status { min-height: 1.2em; }
-    .switch { display:flex; align-items:center; gap:8px; font-size: var(--fs-1); }
-    input[type="checkbox"] { width: 18px; height: 18px; }
-  </style>
+<meta charset="utf-8" />
+<title>Fitness Frenzy – Core Loop V1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root{
+    --bg:#0f1114; --card:#161a20; --ink:#e9eef3; --muted:#9aa7b3; --accent:#2e7d32; --border:#232a33;
+    --space:clamp(10px,2.2vw,18px); --r:14px; --fs-1:clamp(16px,2.4vw,18px); --fs-2:clamp(18px,3.2vw,22px); --fs-3:clamp(22px,5vw,28px);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);
+    padding:env(safe-area-inset-top) var(--space) env(safe-area-inset-bottom) var(--space)}
+  .wrap{max-width:980px;margin:0 auto}
+  header{display:flex;align-items:center;gap:12px;margin:var(--space) 0}
+  h1{margin:0;font-size:var(--fs-3)}
+  .row{display:flex;gap:var(--space);flex-wrap:wrap}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:var(--space);flex:1 1 300px;min-width:280px}
+  .muted{color:var(--muted)}
+  .btn{width:100%;padding:12px 16px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:#3a434f;color:#a7b1be;cursor:not-allowed}
+  .btn.secondary{background:#2b3c4f}
+  .icon{font-size:clamp(22px,5.5vw,34px)}
+  .kpi{display:flex;align-items:center;gap:10px}
+  .stat{font-variant-numeric:tabular-nums}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space)}
+  @media (max-width:560px){.grid-2{grid-template-columns:1fr}}
+  .coolwrap{background:#0d0f12;border:1px solid #28303a;border-radius:10px;overflow:hidden}
+  .coolbar{height:16px;background:#1e2a36;position:relative}
+  .coolfill{height:100%;width:0%;background:linear-gradient(90deg,#2e7d32,#4caf50)}
+  .cooltxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#cde8d1}
+  .exercise{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border-radius:12px;border:1px solid var(--border);background:#11161c}
+  .exercise.locked{opacity:.5;filter:grayscale(1)}
+  .exercise .left{display:flex;align-items:center;gap:10px}
+  .pill{padding:4px 8px;border-radius:999px;background:#213042;color:#cfe7ff;font-size:12px}
+  .repbar{height:10px;border-radius:8px;background:#1b2530;overflow:hidden}
+  .repfill{height:100%;width:0%;background:#3e7bd9}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1b232d;color:#eaf3ff;border:1px solid #2b3a4b;border-radius:12px;padding:10px 14px;box-shadow:0 10px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .2s, transform .2s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <span class="icon" id="coinIconHeader" aria-hidden="true">🪙</span>
-      <h1>Idle Clicker</h1>
-    </header>
+<div class="wrap">
+  <header>
+    <span class="icon">💪</span>
+    <h1>Fitness Frenzy</h1>
+  </header>
 
-    <div class="row">
-      <div class="card">
-        <h3>Bank</h3>
-        <div class="kpi">
-          <span class="icon" id="coinIconBank" aria-hidden="true">🪙</span>
-          <div>Coins: <span id="coins" class="stat">0</span></div>
-        </div>
-        <div class="muted">Per tap: <span id="perTap" class="stat">1</span></div>
-        <div class="muted">Idle/sec: <span id="perSec" class="stat">0</span></div>
-        <div class="spacer"></div>
-        <div class="grid-2">
-          <button id="tapBtn" class="btn">Tap (+)</button>
-          <button id="saveBtn" class="btn secondary">Save</button>
-          <button id="resetBtn" class="btn secondary">Hard Reset</button>
-          <label class="switch"><input id="muteToggle" type="checkbox" /> Mute</label>
-        </div>
-        <div id="status" class="muted status"></div>
-      </div>
-
-      <div class="card">
-        <h3>Upgrades</h3>
-        <div class="row-compact">
-          <div>
-            <div><strong>Auto-Tapper</strong></div>
-            <div class="muted">Each adds 1 tap/sec (multiplier applies)</div>
-            <div class="muted">Owned: <span id="autoOwned" class="stat">0</span></div>
-          </div>
-          <button id="buyAutoBtn" class="btn">Buy (cost <span id="autoCost" class="stat">15</span>)</button>
-        </div>
-        <div class="spacer"></div>
-        <div class="row-compact">
-          <div>
-            <div><strong>Multiplier</strong></div>
-            <div class="muted">+100% to taps & idle per level</div>
-            <div class="muted">Level: <span id="multOwned" class="stat">1</span></div>
-          </div>
-          <button id="buyMultBtn" class="btn">Buy (cost <span id="multCost" class="stat">50</span>)</button>
+  <div class="row">
+    <div class="card">
+      <h3>Bank</h3>
+      <div class="kpi"><span class="icon">🪙</span> <div>HP: <span id="hp" class="stat">0</span></div></div>
+      <div class="muted">Per Tap: <span id="perTap" class="stat">1</span></div>
+      <div class="muted">Cooldown: <span id="coolInfo" class="stat">0.6s</span></div>
+      <div class="muted">Exercise: <span id="exName" class="stat">Walking</span></div>
+      <div style="height:12px"></div>
+      <div class="coolwrap">
+        <div class="coolbar">
+          <div id="coolfill" class="coolfill"></div>
+          <div id="cooltxt" class="cooltxt"></div>
         </div>
       </div>
+      <div style="height:12px"></div>
+      <div class="grid-2">
+        <button id="tapBtn" class="btn">Tap to Exercise</button>
+        <button id="saveBtn" class="btn secondary">Save</button>
+        <button id="resetBtn" class="btn secondary">Reset</button>
+        <label class="muted" style="display:flex;align-items:center;gap:8px">
+          <input id="mute" type="checkbox"> Mute
+        </label>
+      </div>
+      <div class="muted" id="status"></div>
+    </div>
+
+    <div class="card">
+      <h3>Reps & Upgrade</h3>
+      <div class="exercise" id="repInfo">
+        <div style="flex:1">
+          <div><strong>Reps</strong> – each rep **doubles** your HP per tap.</div>
+          <div class="muted">Progress: <span id="repCount" class="stat">0</span>/<span id="repTarget" class="stat">10</span></div>
+          <div class="repbar"><div id="repfill" class="repfill"></div></div>
+        </div>
+        <button id="buyRepBtn" class="btn" style="max-width:160px">Buy Rep (Cost <span id="repCost">4</span> HP)</button>
+      </div>
+      <div style="height:10px"></div>
+      <button id="upgradeBtn" class="btn" disabled>Upgrade: Halve Cooldown</button>
+      <div class="muted" style="margin-top:8px">Upgrade triggers when Reps reach the target. After upgrade: reps reset to 0, target doubles (10→20→40…), cooldown can’t go below 0.1s.</div>
     </div>
   </div>
 
-  <script>
-  // ==========================
-  // CONFIG: emoji vs. GitHub
-  // ==========================
-  const CONFIG = {
-    USE_EMOJI_ICONS: true,  // <- keep true for prototype (emoji). Set to false to use images.
-    ASSET_BASE: "",         // e.g., "https://YOUR-USER.github.io/YOUR-REPO/assets"
-    IMAGES: { coin: "images/coin.png" },
-    SOUNDS: { tap: "sounds/click.wav", buy: "sounds/buy.wav" }
-  };
-  const url = (path) => {
-    const base = (CONFIG.ASSET_BASE || "").replace(/\/$/, "");
-    const clean = (path || "").replace(/^\//, "");
-    return base ? `${base}/${clean}` : `./assets/${clean}`;
-  };
+  <div style="height:var(--space)"></div>
 
-  const VERSION = '0.2.1';
-  const SAVE_KEY = 'idle_clicker_save_v' + VERSION;
+  <div class="card">
+    <h3>Exercises</h3>
+    <div id="exercisesList" class="col" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
 
-  const state = {
-    coins: 0,
-    perTapBase: 1,
-    multiplierLevel: 1,
-    autoOwned: 0,
-    lastTS: performance.now(),
-    lastSavedAt: Date.now(),
-    muted: false
-  };
+<div id="toast" class="toast">Upgraded! Cooldown halved.</div>
 
-  const costs = { auto: { base: 15, growth: 1.15 }, mult: { base: 50, growth: 1.20 } };
+<script>
+/* ========= Core Data ========= */
+const VERSION='ff-core-1';
+const SAVE_KEY='fitness_frenzy_'+VERSION;
 
-  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-  const pow = Math.pow;
-  const fmt = (n) => (n>=1e12)?(n/1e12).toFixed(2)+'T':(n>=1e9)?(n/1e9).toFixed(2)+'B':(n>=1e6)?(n/1e6).toFixed(2)+'M':(n>=1e3)?(n/1e3).toFixed(2)+'K':Math.floor(n).toString();
-  const costFor = (owned, {base,growth}) => Math.floor(base * pow(growth, owned));
-  const totalPerTap = () => state.perTapBase * state.multiplierLevel;
-  const totalPerSec = () => state.autoOwned * totalPerTap();
-
-  // ---- Audio (uses local or GitHub sounds; safe if files don't exist) ----
-  function safeAudio(src) {
-    const a = new Audio(src);
-    a.preload = 'auto';
-    a.volume = 0.8;
-    a.onerror = () => { /* stay silent if missing */ };
-    return a;
+const exercises = [
+  {
+    id:'walk', name:'Walking', icon:'🚶', baseHP:1, baseCooldown:600, // ms
+    reps:0, repTarget:10, repBaseCost:4, repGrowth:2, unlocked:true, unlockCost:0,
+    cooldown:600, lastTapAt: -Infinity
+  },
+  {
+    id:'jog', name:'Jogging', icon:'🏃', baseHP:60, baseCooldown:3000,
+    reps:0, repTarget:10, repBaseCost:30, repGrowth:2, unlocked:false, unlockCost:60,
+    cooldown:3000, lastTapAt: -Infinity
   }
-  const sfx = {
-    tap: safeAudio(url(CONFIG.SOUNDS.tap)),
-    buy: safeAudio(url(CONFIG.SOUNDS.buy))
-  };
-  let audioUnlocked = false;
-  function unlockAudioOnce() {
-    if (audioUnlocked) return; audioUnlocked = true;
-    try { sfx.tap.muted = true; sfx.tap.play().then(()=>{ sfx.tap.pause(); sfx.tap.currentTime=0; sfx.tap.muted = state.muted; }); } catch {}
-  }
-  function playSfx(aud){ if(state.muted) return; try{ aud.currentTime=0; aud.play(); }catch{} }
+  // future: cycling, swimming, etc.
+];
 
-  // ---- Persistence ----
-  function save(){
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      coins:state.coins, multiplierLevel:state.multiplierLevel, autoOwned:state.autoOwned,
-      lastSavedAt: Date.now(), muted: state.muted, version: VERSION
-    }));
-    ui.status.textContent = 'Saved.'; setTimeout(()=>ui.status.textContent='',800);
-  }
-  function load(){
-    const raw = localStorage.getItem(SAVE_KEY); if(!raw) return;
-    try{
-      const s = JSON.parse(raw);
-      state.coins = s.coins ?? state.coins;
-      state.multiplierLevel = s.multiplierLevel ?? state.multiplierLevel;
-      state.autoOwned = s.autoOwned ?? state.autoOwned;
-      state.lastSavedAt = s.lastSavedAt ?? Date.now();
-      state.muted = !!s.muted;
-      const secs = clamp((Date.now()-state.lastSavedAt)/1000, 0, 60*60*24);
-      state.coins += totalPerSec() * secs;
-    }catch{}
-  }
+let current = 0; // index of selected exercise
+const state = { hp:0, muted:false, lastTS: performance.now() };
 
-  // ---- Economy ----
-  const canAfford = (c)=> state.coins>=c;
-  function tap(){ state.coins += totalPerTap(); playSfx(sfx.tap); }
-  function buyAuto(){ const c=costFor(state.autoOwned,costs.auto); if(!canAfford(c))return false; state.coins-=c; state.autoOwned++; playSfx(sfx.buy); return true; }
-  function buyMult(){ const c=costFor(state.multiplierLevel-1,costs.mult); if(!canAfford(c))return false; state.coins-=c; state.multiplierLevel++; playSfx(sfx.buy); return true; }
+/* ========= Helpers ========= */
+const fmt = (n)=> n>=1e9?(n/1e9).toFixed(2)+'B': n>=1e6?(n/1e6).toFixed(2)+'M': n>=1e3?(n/1e3).toFixed(2)+'K': Math.floor(n).toString();
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const perTap = (ex)=> ex.baseHP * Math.pow(2, ex.reps);
+const cooldownMs = (ex)=> ex.cooldown;
+const canTap = (ex, now)=> (now - ex.lastTapAt) >= cooldownMs(ex) - 1; // allow 1ms drift
 
-  // ---- Loop ----
-  const STEP=100; let acc=0;
-  function update(dt){ acc+=dt; while(acc>=STEP){ state.coins += totalPerSec()*(STEP/1000); acc-=STEP; } }
-  function render(){
-    ui.coins.textContent = fmt(state.coins);
-    ui.perTap.textContent = fmt(totalPerTap());
-    ui.perSec.textContent = fmt(totalPerSec());
-    ui.autoOwned.textContent = state.autoOwned;
-    ui.multOwned.textContent = state.multiplierLevel;
-    const nextAutoCost=costFor(state.autoOwned,costs.auto);
-    const nextMultCost=costFor(state.multiplierLevel-1,costs.mult);
-    ui.autoCost.textContent = fmt(nextAutoCost);
-    ui.multCost.textContent = fmt(nextMultCost);
-    ui.buyAutoBtn.disabled = !canAfford(nextAutoCost);
-    ui.buyMultBtn.disabled = !canAfford(nextMultCost);
-    ui.muteToggle.checked = state.muted;
-  }
-  function tick(ts){ const dt=ts-state.lastTS; state.lastTS=ts; update(dt); render(); requestAnimationFrame(tick); }
+/* ========= Sound (WebAudio tiny bleeps) ========= */
+let audioCtx=null;
+function sfx(type){
+  if(state.muted) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+    o.type='sine';
+    const t=audioCtx.currentTime;
+    if(type==='tap'){ o.frequency.setValueAtTime(660,t); g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.0001,t+.08); }
+    if(type==='buy'){ o.frequency.setValueAtTime(440,t); g.gain.setValueAtTime(.08,t); g.gain.exponentialRampToValueAtTime(.0001,t+.12); }
+    if(type==='upgrade'){ o.frequency.setValueAtTime(520,t); g.gain.setValueAtTime(.08,t); o.frequency.exponentialRampToValueAtTime(880,t+.18); g.gain.exponentialRampToValueAtTime(.0001,t+.22); }
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+.25);
+  }catch{}
+}
 
-  // ---- UI wiring ----
-  const ui = {
-    coins: document.getElementById('coins'),
-    perTap: document.getElementById('perTap'),
-    perSec: document.getElementById('perSec'),
-    tapBtn: document.getElementById('tapBtn'),
-    buyAutoBtn: document.getElementById('buyAutoBtn'),
-    buyMultBtn: document.getElementById('buyMultBtn'),
-    autoOwned: document.getElementById('autoOwned'),
-    multOwned: document.getElementById('multOwned'),
-    autoCost: document.getElementById('autoCost'),
-    multCost: document.getElementById('multCost'),
-    saveBtn: document.getElementById('saveBtn'),
-    resetBtn: document.getElementById('resetBtn'),
-    status: document.getElementById('status'),
-    muteToggle: document.getElementById('muteToggle'),
-    coinIconHeader: document.getElementById('coinIconHeader'),
-    coinIconBank: document.getElementById('coinIconBank')
-  };
-  function bindPress(el, handler){
-    el.addEventListener('pointerdown', (e)=>{ e.preventDefault(); unlockAudioOnce(); handler(e); }, { passive:false });
-    el.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handler(e);} });
-  }
-  bindPress(ui.tapBtn, ()=>{ tap(); render(); });
-  bindPress(ui.buyAutoBtn, ()=>{ if(buyAuto()) render(); });
-  bindPress(ui.buyMultBtn, ()=>{ if(buyMult()) render(); });
-  bindPress(ui.saveBtn, save);
-  bindPress(ui.resetBtn, ()=>{
-    if(!confirm('Hard reset? This clears your save.')) return;
-    localStorage.removeItem(SAVE_KEY); location.reload();
+/* ========= Persistence ========= */
+function save(){
+  const payload = { hp:state.hp, muted:state.muted, exercises:exercises.map(e=>({
+    id:e.id, reps:e.reps, repTarget:e.repTarget, unlocked:e.unlocked, cooldown:e.cooldown
+  })) };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+  ui.status.textContent='Saved.'; setTimeout(()=>ui.status.textContent='',800);
+}
+function load(){
+  const raw=localStorage.getItem(SAVE_KEY); if(!raw) return;
+  try{
+    const s=JSON.parse(raw);
+    state.hp = s.hp ?? 0;
+    state.muted = !!s.muted;
+    if(Array.isArray(s.exercises)){
+      for(const eSaved of s.exercises){
+        const e = exercises.find(x=>x.id===eSaved.id);
+        if(!e) continue;
+        e.reps = eSaved.reps ?? e.reps;
+        e.repTarget = eSaved.repTarget ?? e.repTarget;
+        e.unlocked = eSaved.unlocked ?? e.unlocked;
+        e.cooldown = eSaved.cooldown ?? e.baseCooldown;
+      }
+    }
+  }catch{}
+}
+
+/* ========= UI refs ========= */
+const ui = {
+  hp: document.getElementById('hp'),
+  perTap: document.getElementById('perTap'),
+  coolInfo: document.getElementById('coolInfo'),
+  exName: document.getElementById('exName'),
+  tapBtn: document.getElementById('tapBtn'),
+  saveBtn: document.getElementById('saveBtn'),
+  resetBtn: document.getElementById('resetBtn'),
+  mute: document.getElementById('mute'),
+  status: document.getElementById('status'),
+  coolfill: document.getElementById('coolfill'),
+  cooltxt: document.getElementById('cooltxt'),
+  repCount: document.getElementById('repCount'),
+  repTarget: document.getElementById('repTarget'),
+  repfill: document.getElementById('repfill'),
+  buyRepBtn: document.getElementById('buyRepBtn'),
+  repCost: document.getElementById('repCost'),
+  upgradeBtn: document.getElementById('upgradeBtn'),
+  exercisesList: document.getElementById('exercisesList'),
+  toast: document.getElementById('toast')
+};
+
+/* ========= Exercise List UI ========= */
+function renderExercisesList(){
+  ui.exercisesList.innerHTML='';
+  exercises.forEach((e, idx)=>{
+    const row=document.createElement('div');
+    row.className='exercise'+(e.unlocked?'':' locked');
+    row.innerHTML=`
+      <div class="left"><span class="icon">${e.icon}</span>
+        <div>
+          <div><strong>${e.name}</strong> ${idx===current?'<span class="pill">Selected</span>':''}</div>
+          <div class="muted">Tap = ${fmt(e.baseHP)} × 2^${e.reps} = <strong>${fmt(perTap(e))}</strong> HP</div>
+          <div class="muted">Cooldown: ${(cooldownMs(e)/1000).toFixed(2)}s</div>
+        </div>
+      </div>
+      <div>
+        ${e.unlocked
+          ? `<button class="btn secondary" data-act="select">Use</button>`
+          : `<button class="btn" data-act="unlock">Unlock (${fmt(e.unlockCost)} HP)</button>`
+        }
+      </div>`;
+    row.querySelector('button').addEventListener('pointerdown',(ev)=>{
+      ev.preventDefault();
+      if(row.classList.contains('locked')){
+        if(state.hp>=e.unlockCost){
+          state.hp -= e.unlockCost; e.unlocked=true; current = idx; sfx('buy'); renderAll();
+        }
+      }else{
+        current=idx; renderAll();
+      }
+    },{passive:false});
+    ui.exercisesList.appendChild(row);
   });
-  ui.muteToggle.addEventListener('change', ()=>{ state.muted = ui.muteToggle.checked; sfx.tap.muted=state.muted; sfx.buy.muted=state.muted; });
+}
 
-  // ---- Optional: switch to GitHub images later ----
-  function maybeSwapIconsToImages(){
-    if (CONFIG.USE_EMOJI_ICONS) return; // keep emojis now
-    const coinURL = url("images/coin.png");
-    // Replace emoji spans with <img> elements
-    [ui.coinIconHeader, ui.coinIconBank].forEach(span=>{
-      const img = new Image();
-      img.alt = "Coin"; img.decoding="async"; img.loading="lazy";
-      img.style.width = getComputedStyle(span).fontSize; // size roughly like emoji
-      img.style.height = "auto";
-      img.onerror = ()=>{/* keep emoji if image fails */};
-      img.onload = ()=>{ span.replaceWith(img); };
-      img.src = coinURL;
-    });
+/* ========= Reps & Upgrade ========= */
+function repCostFor(e){ // geometric cost: base * growth^reps
+  return Math.floor(e.repBaseCost * Math.pow(e.repGrowth, e.reps));
+}
+
+function buyRep(){
+  const e = exercises[current];
+  const cost = repCostFor(e);
+  if(state.hp < cost) return;
+  state.hp -= cost;
+  e.reps += 1;             // doubles tap power each time
+  sfx('buy');
+  checkUpgrade(e);
+  renderAll();
+}
+
+function checkUpgrade(e){
+  if(e.reps >= e.repTarget){
+    // Upgrade: halve cooldown (floor at 100ms), reset reps, double target
+    e.reps = 0;
+    e.repTarget = e.repTarget * 2;
+    e.cooldown = Math.max(100, Math.floor(e.cooldown / 2));
+    toast('Upgraded! Cooldown halved.');
+    sfx('upgrade');
+  }
+}
+
+/* ========= Tap & Cooldown ========= */
+function tap(){
+  const e = exercises[current];
+  const now = performance.now();
+  if(!canTap(e, now)) return;
+  e.lastTapAt = now;
+  state.hp += perTap(e);
+  sfx('tap');
+}
+
+function updateCooldownUI(){
+  const e = exercises[current];
+  const cd = cooldownMs(e);
+  const now = performance.now();
+  const since = now - e.lastTapAt;
+  const pct = clamp(since / cd, 0, 1);
+
+  // If cooldown very short (<=100ms), keep bar full and show HP/sec text
+  if(cd <= 100){
+    ui.coolfill.style.width = '100%';
+    const hps = perTap(e) / (cd/1000);
+    ui.cooltxt.textContent = `HP/sec: ${hps.toFixed(1)}`;
+    return;
   }
 
-  function boot(){
-    load(); render();
-    requestAnimationFrame((ts)=>{ state.lastTS=ts; requestAnimationFrame(tick); });
-    setInterval(save, 15000);
-    maybeSwapIconsToImages(); // will do nothing while USE_EMOJI_ICONS = true
-  }
-  boot();
-  </script>
+  ui.coolfill.style.width = (pct*100).toFixed(1)+'%';
+  ui.cooltxt.textContent = pct<1 ? '' : 'Ready';
+}
+
+/* ========= Render ========= */
+function renderTop(){
+  const e = exercises[current];
+  ui.hp.textContent = fmt(state.hp);
+  ui.perTap.textContent = fmt(perTap(e));
+  ui.coolInfo.textContent = (cooldownMs(e)/1000).toFixed(2)+'s';
+  ui.exName.textContent = e.name;
+  ui.mute.checked = state.muted;
+}
+function renderReps(){
+  const e = exercises[current];
+  ui.repCount.textContent = e.reps;
+  ui.repTarget.textContent = e.repTarget;
+  ui.repfill.style.width = (Math.min(e.reps / e.repTarget, 1)*100).toFixed(1)+'%';
+  const cost = repCostFor(e);
+  ui.repCost.textContent = fmt(cost);
+  ui.buyRepBtn.disabled = state.hp < cost;
+  ui.upgradeBtn.disabled = true; // upgrade happens automatically on reaching target
+}
+function renderAll(){
+  renderTop(); renderReps(); renderExercisesList(); updateCooldownUI();
+}
+
+/* ========= Loop ========= */
+function tick(ts){
+  state.lastTS = ts;
+  updateCooldownUI();
+  requestAnimationFrame(tick);
+}
+
+/* ========= Toast ========= */
+let toastTimer=null;
+function toast(msg){
+  ui.toast.textContent = msg;
+  ui.toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>ui.toast.classList.remove('show'), 1200);
+}
+
+/* ========= Wire Up ========= */
+function bindPress(el, fn){
+  el.addEventListener('pointerdown', (e)=>{ e.preventDefault(); fn(e); }, {passive:false});
+  el.addEventListener('keydown', (e)=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); fn(e);} });
+}
+
+bindPress(ui.tapBtn, ()=>{ tap(); renderAll(); });
+bindPress(ui.buyRepBtn, ()=>{ buyRep(); });
+bindPress(ui.saveBtn, save);
+bindPress(ui.resetBtn, ()=>{
+  if(!confirm('Reset your progress?')) return;
+  localStorage.removeItem(SAVE_KEY); location.reload();
+});
+ui.mute.addEventListener('change', ()=>{ state.muted = ui.mute.checked; });
+
+/* ========= Boot ========= */
+function boot(){
+  load();
+  renderAll();
+  requestAnimationFrame(tick);
+  // Autosave every 20s
+  setInterval(save, 20000);
+}
+boot();
+</script>
 </body>
 </html>
