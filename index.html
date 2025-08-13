@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V1.7 (Flat Upgrade + Polished Locked Cards)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fitness Frenzy – V1.8 (Rep=+1, Cooldown Upgrade, Mobile Zoom Lock)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
   :root{
     --bg:#0a1320; --card:#0f1b2b; --ink:#e9eef3; --muted:#a7b7cc; --border:#213149;
@@ -15,6 +15,8 @@
   html,body{height:100%}
   body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);
        padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0;}
+  /* Disable text selection on UI bits */
+  button, .tapPad{-webkit-user-select:none; user-select:none; touch-action:manipulation;}
 
   /* Sticky Top Bar */
   .topbar{position:sticky;top:0;z-index:10;background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
@@ -23,7 +25,7 @@
   .title .icon{font-size:clamp(22px,5vw,28px)}
   h1{margin:0;font-size:var(--fs-3)}
 
-  /* HP pill (big, left-aligned, steady width) */
+  /* HP pill (left-aligned, steady width) */
   .hpPill{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
           background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid #2a4a78;
           box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04)}
@@ -65,8 +67,7 @@
 
   /* Left tap pad */
   .tapPad{position:relative;width:clamp(64px,12vw,90px);aspect-ratio:1/1;border-radius:16px;background:#12243b;border:1px solid #1a2f4a;
-          display:flex;align-items:center;justify-content:center;font-size:clamp(28px,8vw,40px);user-select:none;-webkit-tap-highlight-color:transparent;
-          transition:transform .02s ease,filter .12s ease,background .2s ease;cursor:pointer;overflow:visible}
+          display:flex;align-items:center;justify-content:center;font-size:clamp(28px,8vw,40px);cursor:pointer;overflow:visible}
   .tapPad:active{transform:translateY(1px) scale(.98);filter:brightness(1.08)}
 
   /* Rep badge inside pad */
@@ -99,10 +100,10 @@
 
   /* Locked cost line */
   .costLine{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .costPill{font-weight:900;font-size:clamp(16px,3.5vw,20px);color:#ffd6a8;background:#142743;border:1px solid #27456d;
+  .costPill{font-weight:900;font-size:clamp(18px,4vw,22px);color:#ffd6a8;background:#142743;border:1px solid #27456d;
             padding:6px 12px;border-radius:999px}
 
-  /* Unlock overlay button */
+  /* Unlock overlay button (burnt orange) */
   .unlockOverlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
   .unlockOverlay .btn{pointer-events:auto}
 </style>
@@ -136,31 +137,37 @@
 
 <script>
 /* ===== Data / Config ===== */
-const VERSION='ff-v1-7';
+const VERSION='ff-v1-8';
 const SAVE_KEY='fitness_frenzy_'+VERSION;
-const REP_GROWTH = 1.07;  // ~7% growth
+
+/* ~7% price growth per Rep */
+const REP_GROWTH = 1.07;
 let BUY_QTY = 1;
 
+/* Model:
+   - baseHP: starting HP per tap
+   - repHP: +1 per rep purchased (affects perTap directly)
+   - repProgress: counts toward next upgrade (repTarget)
+   - Upgrade: when repProgress hits repTarget => cooldown halves, repTarget doubles, repProgress resets
+*/
 const exercises = [
-  // repPower: total reps ever bought (drives doubling only on base part)
-  // repProgress: counts toward next upgrade; upgrade adds +1 flat bonus and halves cooldown
   { id:'walk', name:'Walking', icon:'🚶', baseHP:1,   baseCooldown:600,
-    repPower:0, repProgress:0, repTarget:10, repBaseCost:4, upgradeBonus:0,
+    repHP:0, repProgress:0, repTarget:10, repBaseCost:4,
     unlocked:true,  unlockCost:0,
     cooldown:600, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
   { id:'jog',  name:'Jogging', icon:'🏃', baseHP:60,  baseCooldown:3000,
-    repPower:0, repProgress:0, repTarget:10, repBaseCost:30, upgradeBonus:0,
+    repHP:0, repProgress:0, repTarget:10, repBaseCost:30,
     unlocked:false, unlockCost:60,
     cooldown:3000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
   { id:'sit',  name:'Sit-ups', icon:'🤸', baseHP:180, baseCooldown:2500,
-    repPower:0, repProgress:0, repTarget:10, repBaseCost:90, upgradeBonus:0,
+    repHP:0, repProgress:0, repTarget:10, repBaseCost:90,
     unlocked:false, unlockCost:300,
     cooldown:2500, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
   { id:'push', name:'Push-ups', icon:'💪', baseHP:400, baseCooldown:2000,
-    repPower:0, repProgress:0, repTarget:10, repBaseCost:200, upgradeBonus:0,
+    repHP:0, repProgress:0, repTarget:10, repBaseCost:200,
     unlocked:false, unlockCost:1200,
     cooldown:2000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 ];
@@ -171,7 +178,7 @@ const state = { hp:0 };
 const fmtTop = n => n>=1e9?(n/1e9).toFixed(2)+'B' : n>=1e6?(n/1e6).toFixed(2)+'M' : n>=1e3?(n/1e3).toFixed(2)+'K' : Math.floor(n).toString();
 const fmtCost = n => n<1e3 ? n.toFixed(2) : (n<1e6 ? (n/1e3).toFixed(2)+'K' : (n<1e9 ? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const perTap = e => (e.baseHP * Math.pow(2, e.repPower)) + e.upgradeBonus; // flat bonus unaffected by reps
+const perTap = e => e.baseHP + e.repHP;
 const cooldownMs = e => e.cooldown;
 const canTap = (e, now)=> (now - e.lastTapAt) >= cooldownMs(e) - 1;
 
@@ -201,11 +208,10 @@ function save(){
   localStorage.setItem(SAVE_KEY, JSON.stringify({
     hp: state.hp,
     exercises: exercises.map(e=>({
-      id:e.id, repPower:e.repPower, repProgress:e.repProgress, repTarget:e.repTarget,
-      unlocked:e.unlocked, cooldown:e.cooldown, upgradeBonus:e.upgradeBonus
+      id:e.id, repHP:e.repHP, repProgress:e.repProgress, repTarget:e.repTarget,
+      unlocked:e.unlocked, cooldown:e.cooldown
     }))
   }));
-  // subtle toast: console only for now
   console.log('Saved');
 }
 function load(){
@@ -216,11 +222,11 @@ function load(){
     if(Array.isArray(s.exercises)){
       for(const se of s.exercises){
         const e = exercises.find(x=>x.id===se.id); if(!e) continue;
-        if(se.reps!==undefined && se.repPower===undefined){ e.repPower = se.reps; } // migrate
-        e.repPower    = se.repPower ?? e.repPower;
+        // Migrate from older versions that used repPower/upgradeBonus
+        if(se.repPower!==undefined && e.repHP===0){ e.repHP = se.repPower; }
+        e.repHP       = se.repHP ?? e.repHP;
         e.repProgress = se.repProgress ?? e.repProgress;
         e.repTarget   = se.repTarget ?? e.repTarget;
-        e.upgradeBonus= se.upgradeBonus ?? e.upgradeBonus;
         e.unlocked    = se.unlocked ?? e.unlocked;
         e.cooldown    = se.cooldown ?? e.baseCooldown;
       }
@@ -264,7 +270,6 @@ function makeExerciseCard(e){
 
   const kvs = document.createElement('div');
   kvs.innerHTML = `<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>`;
-  // (No "Reps" display here by design)
 
   const repRow = document.createElement('div'); repRow.className='repRow';
   const buyRepBtn = document.createElement('button'); buyRepBtn.className='btn'; buyRepBtn.textContent='Add Reps';
@@ -349,12 +354,9 @@ function renderStack(){
 
 /* ===== UI Updates ===== */
 function refreshExerciseUI(e){
-  // header right shows countdown (no label)
-  if(e.unlocked){
-    e.els.headRight.textContent = (cooldownMs(e)/1000).toFixed(2)+'s';
-  }else{
-    e.els.headRight.textContent = '';
-  }
+  // countdown only in header (no label)
+  if(e.unlocked){ e.els.headRight.textContent = (cooldownMs(e)/1000).toFixed(2)+'s'; }
+  else{ e.els.headRight.textContent = ''; }
 
   // rep badge progress always visible
   e.els.repText.textContent = `${e.repProgress}/${e.repTarget}`;
@@ -362,7 +364,6 @@ function refreshExerciseUI(e){
 
   if(e.unlocked){
     e.els.kvTap.textContent = perTap(e).toFixed(0);
-
     const cost = bulkRepCost(e, BUY_QTY);
     const canBuy = state.hp >= cost;
     e.els.buyRepBtn.textContent =
@@ -379,7 +380,7 @@ function refreshExerciseUI(e){
       e.els.unlockOverlay.style.display='flex';
       e.els.card.classList.add('unlock-ready','unlock-bounce');
       e.els.unlockBtn.classList.add('ready');
-      e.els.unlockBtn.textContent = `Unlock (${fmtCost(e.unlockCost)} HP)`;
+      e.els.unlockBtn.textContent = `Unlock (${fmtCost(e.unlockCost)} HP)`; // orange by default
       sfx('ready');
     }
     if(!canUn && e._unlockReady){
@@ -396,7 +397,7 @@ function refreshAll(){ renderTop(); exercises.forEach(refreshExerciseUI); }
 
 /* ===== Economy ===== */
 function bulkRepCost(e, qty){
-  const base = e.repBaseCost * Math.pow(REP_GROWTH, e.repPower);
+  const base = e.repBaseCost * Math.pow(REP_GROWTH, e.repHP);
   const cost = base * (Math.pow(REP_GROWTH, qty) - 1) / (REP_GROWTH - 1);
   return +cost.toFixed(2);
 }
@@ -405,8 +406,8 @@ function addReps(e, qty=1){
   const cost = bulkRepCost(e, qty);
   if(state.hp + 1e-9 < cost) return;
   state.hp -= cost;
-  e.repPower    += qty; // permanent doubling power (base part only)
-  e.repProgress += qty; // progress toward upgrade
+  e.repHP       += qty; // +1 HP per rep purchased
+  e.repProgress += qty; // progress toward cooldown upgrade
   sfx('buy');
   handleUpgrades(e);
   refreshAll();
@@ -416,7 +417,6 @@ function handleUpgrades(e){
     e.repProgress -= e.repTarget;      // reset progress
     e.repTarget   *= 2;                // 10 → 20 → 40 …
     e.cooldown     = Math.max(100, Math.floor(e.cooldown/2)); // halve cooldown
-    e.upgradeBonus += 1;               // NEW: +1 flat HP per tap (not doubled by reps)
     sfx('upgrade');
   }
 }
@@ -450,8 +450,7 @@ function updateCooldownUI(e){
   e.els.coolFill.style.width = (pct*100).toFixed(1)+'%';
   if(pct < 1){
     const remain = Math.max(0, (cd - since)/1000);
-    const shown = Math.max(0.01, remain);
-    e.els.headRight.textContent = shown.toFixed(2)+'s';
+    e.els.headRight.textContent = Math.max(0.01, remain).toFixed(2)+'s';
   } else {
     e.els.headRight.textContent = '0.00s';
   }
@@ -493,6 +492,19 @@ function bindPress(el, fn){
 
 ui.saveBtn.addEventListener('click', save);
 ui.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.removeItem(SAVE_KEY); location.reload(); });
+
+/* Prevent double-tap / pinch zoom on mobile */
+let lastTouchEnd=0;
+document.addEventListener('touchend', (e)=>{
+  const now = Date.now();
+  if(now - lastTouchEnd <= 300){
+    e.preventDefault(); // block double-tap zoom
+  }
+  lastTouchEnd = now;
+}, {passive:false});
+document.addEventListener('gesturestart', (e)=>{ e.preventDefault(); }, {passive:false}); // iOS Safari
+
+/* Global qty initial */
 [...document.getElementById('qtyTop').querySelectorAll('.segBtn')].forEach(b=>{
   b.addEventListener('pointerdown', e=>e.preventDefault(), {passive:false});
 });
