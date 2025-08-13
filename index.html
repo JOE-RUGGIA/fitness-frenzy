@@ -2,12 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V1.1 (Stacked Cards)</title>
+<title>Fitness Frenzy – V1.2 (Stacked + Shiny Ready States)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
   :root{
-    --bg:#0f1114; --card:#161a20; --ink:#e9eef3; --muted:#9aa7b3; --accent:#2e7d32; --border:#232a33;
-    --space:clamp(10px,2.2vw,18px); --r:14px; --fs-1:clamp(16px,2.4vw,18px); --fs-2:clamp(18px,3.2vw,22px); --fs-3:clamp(22px,5vw,28px);
+    /* THEME */
+    --bg:#0a1320;           /* deep blue background */
+    --card:#0f1b2b;         /* deep navy card */
+    --ink:#e9eef3;
+    --muted:#a7b7cc;
+    --border:#213149;
+    --accent:#cc6b2c;       /* burnt orange primary */
+    --accent-hi:#f59e0b;    /* brighter orange for shine */
+    --rep:#22c55e;          /* green rep bar */
+
+    --space:clamp(10px,2.2vw,18px);
+    --r:14px;
+    --fs-1:clamp(16px,2.4vw,18px);
+    --fs-2:clamp(18px,3.2vw,22px);
+    --fs-3:clamp(22px,5vw,28px);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -20,7 +33,7 @@
   /* Sticky Top Bar */
   .topbar{
     position:sticky; top:0; z-index:10;
-    background:rgba(15,17,20,.9); backdrop-filter: blur(6px);
+    background:rgba(10,19,32,.92); backdrop-filter: blur(6px);
     border-bottom:1px solid var(--border);
   }
   .topwrap{ max-width:980px; margin:0 auto; padding:8px var(--space); display:flex; align-items:center; gap:12px; }
@@ -30,52 +43,86 @@
   .hpbox{ margin-left:auto; display:flex; align-items:center; gap:12px; }
   .hpval{ font-variant-numeric: tabular-nums; font-weight:700; }
   .btn{
+    position:relative; overflow:hidden;
     padding:10px 14px; border:none; border-radius:12px;
     background:var(--accent); color:#fff; font-weight:700; cursor:pointer;
+    transition: transform .04s ease, box-shadow .2s ease, filter .2s ease;
   }
-  .btn.secondary{ background:#2b3c4f; }
+  .btn.secondary{ background:#1a2a40; color:#d7e3f5 }
   .btn:active{ transform: translateY(1px); }
-  .btn[disabled]{ background:#3a434f; color:#a7b1be; cursor:not-allowed }
+  .btn[disabled]{ background:#2a3a51; color:#9ab; cursor:not-allowed }
+
+  /* Shine effect for “ready” */
+  .btn.ready{
+    box-shadow: 0 0 0 1px rgba(255,255,255,.06) inset, 0 6px 18px rgba(245,158,11,.25);
+    filter: saturate(1.1) brightness(1.05);
+  }
+  .btn.ready::after{
+    content:""; position:absolute; inset:0;
+    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.15) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: shine 1.2s linear infinite;
+    pointer-events:none;
+  }
+  @keyframes shine { to { transform: translateX(100%); } }
 
   /* Content */
   .wrap{ max-width:980px; margin:0 auto; padding: var(--space); }
+  .stack{ display:flex; flex-direction:column; gap: var(--space); }
   .card{
     background:var(--card); border:1px solid var(--border); border-radius:var(--r);
-    padding: var(--space); display:flex; flex-direction:column; gap:12px;
+    padding: var(--space); display:flex; gap:14px; align-items:stretch;
+    transition: transform .18s ease, filter .18s ease, opacity .18s ease;
   }
-  .stack{ display:flex; flex-direction:column; gap: var(--space); }
+  .card.locked{
+    opacity:.65; filter:grayscale(1);
+    transform: scale(.96);
+    position:relative;
+  }
+  .card .overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    pointer-events:none;
+  }
+  .card .overlay .inner{
+    pointer-events:auto; display:flex; flex-direction:column; align-items:center; gap:10px;
+    background:rgba(10,19,32,.5); padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.06);
+  }
 
-  /* Exercise card */
-  .ex-head{ display:flex; align-items:center; gap:12px; }
-  .ex-icon{ font-size:clamp(22px,6vw,34px) }
+  /* Left pad (tap target) */
+  .tapPad{
+    width:clamp(64px,12vw,90px); aspect-ratio:1/1;
+    border-radius:16px; background:#12243b; border:1px solid #1a2f4a;
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(28px,8vw,40px);
+    user-select:none; -webkit-tap-highlight-color: transparent;
+    transition: transform .02s ease, filter .12s ease, background .2s ease;
+    cursor:pointer;
+  }
+  .tapPad:active{ transform: translateY(1px) scale(.98); filter: brightness(1.08); }
+
+  /* Right column */
+  .right{ flex:1; display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .ex-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .ex-title{ font-size:var(--fs-2); margin:0; }
   .muted{ color:var(--muted); }
 
-  .coolwrap{ background:#0d0f12; border:1px solid #28303a; border-radius:10px; overflow:hidden }
-  .coolbar{ height:16px; background:#1e2a36; position:relative }
-  .coolfill{ height:100%; width:0%; background:linear-gradient(90deg,#2e7d32,#4caf50) }
-  .cooltxt{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#cde8d1 }
+  /* Cooldown bar (burnt orange) */
+  .coolwrap{ background:#0c1525; border:1px solid #223556; border-radius:10px; overflow:hidden }
+  .coolbar{ height:16px; background:#1b2738; position:relative }
+  .coolfill{ height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent-hi)) }
+  .cooltxt{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#ffe6c7 }
 
-  .repwrap{ display:flex; align-items:center; gap:12px; }
-  .repbar{ flex:1; height:10px; border-radius:8px; background:#1b2530; overflow:hidden }
-  .repfill{ height:100%; width:0%; background:#3e7bd9 }
+  /* Reps row (green bar) */
+  .repRow{ display:flex; align-items:center; gap:12px; flex-wrap:wrap }
+  .repbar{ flex:1; height:10px; border-radius:8px; background:#15341f; border:1px solid #204e2b; overflow:hidden; min-width:180px }
+  .repfill{ height:100%; width:0%; background:linear-gradient(90deg,#1fa24e,var(--rep)) }
 
-  .row{ display:flex; gap:12px; flex-wrap:wrap }
-  .grow{ flex:1 1 200px }
+  .kvs{ display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+  .kv{ color:#cfe0ff; background:#13223a; border:1px solid #203659; padding:6px 10px; border-radius:10px; font-size:14px }
 
-  .locked{
-    opacity:.55; filter:grayscale(1);
-    position:relative;
-  }
-  .locked .overlay{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(to bottom, rgba(15,17,20,.6), rgba(15,17,20,.8));
-    backdrop-filter: blur(2px);
-    border-radius:var(--r);
-  }
-
+  /* Toast */
   .toast{ position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
-    background:#1b232d; color:#eaf3ff; border:1px solid #2b3a4b; border-radius:12px;
+    background:#11243e; color:#eaf3ff; border:1px solid #2b4a77; border-radius:12px;
     padding:10px 14px; box-shadow:0 10px 24px rgba(0,0,0,.35);
     opacity:0; transition:opacity .2s, transform .2s; z-index:20;
   }
@@ -101,33 +148,48 @@
 </div>
 
 <div class="wrap">
-  <div id="stack" class="stack"><!-- exercise cards render here --></div>
+  <div id="stack" class="stack"><!-- exercise cards --></div>
 </div>
 
 <div id="toast" class="toast">Upgraded! Cooldown halved.</div>
 
 <script>
 /* ============== Core Data ============== */
-const VERSION='ff-v1-1';
+const VERSION='ff-v1-2';
 const SAVE_KEY='fitness_frenzy_'+VERSION;
 
+/* You can tweak numbers here (placeholders for now) */
 const exercises = [
   {
     id:'walk', name:'Walking', icon:'🚶',
-    baseHP:1, baseCooldown:600, // ms
+    baseHP:1,   baseCooldown:600,
     reps:0, repTarget:10, repBaseCost:4, repGrowth:2,
-    unlocked:true, unlockCost:0,
-    cooldown:600, lastTapAt:-Infinity,
-
-    // UI refs per card (filled on render)
+    unlocked:true,  unlockCost:0,
+    cooldown:600, lastTapAt:-Infinity, _repReady:false, _unlockReady:false,
     els:{}
   },
   {
-    id:'jog', name:'Jogging', icon:'🏃',
+    id:'jog',  name:'Jogging', icon:'🏃',
     baseHP:60, baseCooldown:3000,
     reps:0, repTarget:10, repBaseCost:30, repGrowth:2,
     unlocked:false, unlockCost:60,
-    cooldown:3000, lastTapAt:-Infinity,
+    cooldown:3000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false,
+    els:{}
+  },
+  {
+    id:'sit',  name:'Sit-ups', icon:'🤸',
+    baseHP:180, baseCooldown:2500,
+    reps:0, repTarget:10, repBaseCost:90, repGrowth:2,
+    unlocked:false, unlockCost:300,
+    cooldown:2500, lastTapAt:-Infinity, _repReady:false, _unlockReady:false,
+    els:{}
+  },
+  {
+    id:'push', name:'Push-ups', icon:'💪',
+    baseHP:400, baseCooldown:2000,
+    reps:0, repTarget:10, repBaseCost:200, repGrowth:2,
+    unlocked:false, unlockCost:1200,
+    cooldown:2000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false,
     els:{}
   }
 ];
@@ -146,12 +208,24 @@ let audioCtx=null;
 function sfx(type){
   try{
     if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain(), t=audioCtx.currentTime;
-    o.type='sine';
-    if(type==='tap'){ o.frequency.setValueAtTime(660,t); g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.0001,t+.08);}
-    if(type==='buy'){ o.frequency.setValueAtTime(440,t); g.gain.setValueAtTime(.08,t); g.gain.exponentialRampToValueAtTime(.0001,t+.12);}
-    if(type==='upgrade'){ o.frequency.setValueAtTime(520,t); g.gain.setValueAtTime(.08,t); o.frequency.exponentialRampToValueAtTime(880,t+.18); g.gain.exponentialRampToValueAtTime(.0001,t+.22);}
-    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(t+.25);
+    const t=audioCtx.currentTime;
+    const g=audioCtx.createGain(); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(.08,t); g.gain.exponentialRampToValueAtTime(.0001,t+.28);
+
+    const o=audioCtx.createOscillator();
+    o.type = (type==='ready') ? 'triangle' : 'sine';
+    if(type==='tap'){ o.frequency.setValueAtTime(660,t); }
+    if(type==='buy'){ o.frequency.setValueAtTime(440,t); }
+    if(type==='upgrade'){ o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(880,t+.18); }
+    if(type==='ready'){ 
+      // cute sparkle mini-arpeggio
+      const o2=audioCtx.createOscillator(); o2.type='triangle';
+      o.frequency.setValueAtTime(740,t);   o2.frequency.setValueAtTime(980,t+.06);
+      const g2=audioCtx.createGain(); g2.gain.setValueAtTime(.05,t); g2.gain.exponentialRampToValueAtTime(.0001,t+.22);
+      o.connect(g); o2.connect(g2); g2.connect(audioCtx.destination);
+      o.start(); o2.start(t+.02); o.stop(t+.24); o2.stop(t+.26); return;
+    }
+    o.connect(g); o.start(); o.stop(t+.25);
   }catch{}
 }
 
@@ -196,18 +270,24 @@ function makeExerciseCard(e){
   const card = document.createElement('div');
   card.className='card'+(e.unlocked?'':' locked');
 
-  // header
+  // Left tap pad (emoji)
+  const tapPad = document.createElement('div');
+  tapPad.className='tapPad'; tapPad.textContent = e.icon;
+
+  // Right column
+  const right = document.createElement('div');
+  right.className='right';
+
+  // Header line
   const head = document.createElement('div');
   head.className='ex-head';
   head.innerHTML = `
-    <div class="ex-icon">${e.icon}</div>
-    <div>
-      <div class="ex-title">${e.name}</div>
-      <div class="muted">Tap = ${fmt(e.baseHP)} × 2^${e.reps} = <strong>${fmt(perTap(e))}</strong> HP • Cooldown: ${(cooldownMs(e)/1000).toFixed(2)}s</div>
-    </div>`;
-  card.appendChild(head);
+    <div class="ex-title">${e.name}</div>
+    <div class="muted">Tap = ${fmt(e.baseHP)} × 2^${e.reps} = <strong>${fmt(perTap(e))}</strong> HP</div>
+    <div class="muted">• Cooldown: ${(cooldownMs(e)/1000).toFixed(2)}s</div>
+  `;
 
-  // cooldown bar
+  // Cooldown bar
   const coolWrap = document.createElement('div');
   coolWrap.className='coolwrap';
   coolWrap.innerHTML = `
@@ -215,71 +295,71 @@ function makeExerciseCard(e){
       <div class="coolfill"></div>
       <div class="cooltxt"></div>
     </div>`;
-  card.appendChild(coolWrap);
 
-  // buttons row
-  const row = document.createElement('div');
-  row.className='row';
-  const tapBtn = document.createElement('button');
-  tapBtn.className='btn grow'; tapBtn.textContent='Tap';
-  row.appendChild(tapBtn);
+  // KVs (optional little stats row)
+  const kvs = document.createElement('div');
+  kvs.className='kvs';
+  kvs.innerHTML = `
+    <div class="kv">Per Tap: <strong class="kvTap">${fmt(perTap(e))}</strong></div>
+    <div class="kv">Reps: <strong class="kvReps">${e.reps}</strong></div>
+  `;
 
-  // reps row
+  // Rep row
   const repRow = document.createElement('div');
-  repRow.className='row';
-  const repWrap = document.createElement('div');
-  repWrap.className='repwrap grow';
-  repWrap.innerHTML = `
-    <div class="muted">Reps: <span class="repCount">0</span>/<span class="repTarget">10</span></div>
-    <div class="repbar"><div class="repfill"></div></div>`;
+  repRow.className='repRow';
+  repRow.innerHTML = `
+    <div class="repbar"><div class="repfill"></div></div>
+  `;
   const buyRepBtn = document.createElement('button');
   buyRepBtn.className='btn'; buyRepBtn.textContent='Buy Rep';
-  repRow.appendChild(repWrap);
   repRow.appendChild(buyRepBtn);
 
-  card.appendChild(row);
-  card.appendChild(repRow);
-
-  // lock overlay if locked
+  // Lock overlay (visible if locked)
   let overlay=null, unlockBtn=null;
   if(!e.unlocked){
     overlay = document.createElement('div');
     overlay.className='overlay';
     overlay.innerHTML = `
-      <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
-        <div>Unlock for <strong>${fmt(e.unlockCost)}</strong> HP</div>
+      <div class="inner">
+        <div>Unlock <strong>${e.name}</strong> for <strong>${fmt(e.unlockCost)}</strong> HP</div>
         <button class="btn">Unlock</button>
       </div>`;
-    card.appendChild(overlay);
     unlockBtn = overlay.querySelector('button');
   }
 
+  // Assemble card
+  right.appendChild(head);
+  right.appendChild(coolWrap);
+  right.appendChild(kvs);
+  right.appendChild(repRow);
+
+  card.appendChild(tapPad);
+  card.appendChild(right);
+  if(overlay) card.appendChild(overlay);
+
   // store refs
   e.els = {
-    card,
-    head,
+    card, tapPad, head,
     coolFill: coolWrap.querySelector('.coolfill'),
     coolTxt:  coolWrap.querySelector('.cooltxt'),
-    tapBtn,
-    repCount: repWrap.querySelector('.repCount'),
-    repTarget: repWrap.querySelector('.repTarget'),
-    repFill: repWrap.querySelector('.repfill'),
+    kvTap:    kvs.querySelector('.kvTap'),
+    kvReps:   kvs.querySelector('.kvReps'),
+    repFill:  repRow.querySelector('.repfill'),
     buyRepBtn,
-    overlay,
-    unlockBtn
+    overlay, unlockBtn
   };
 
   // wire events
-  bindPress(tapBtn, ()=>{ tap(e); });
+  bindPress(tapPad, ()=>{ tap(e); });
   bindPress(buyRepBtn, ()=>{ buyRep(e); });
   if(unlockBtn){
     bindPress(unlockBtn, ()=>{
       if(state.hp >= e.unlockCost){
         state.hp -= e.unlockCost; e.unlocked = true; sfx('buy');
-        // remove locked styling and overlay
         card.classList.remove('locked');
         overlay.remove();
-        updateExerciseHeader(e);
+        e.els.overlay = e.els.unlockBtn = null;
+        refreshExerciseUI(e);
         renderTop();
       }
     });
@@ -293,31 +373,45 @@ function renderStack(){
   exercises.forEach(e=>{
     const card = makeExerciseCard(e);
     ui.stack.appendChild(card);
-    refreshExerciseUI(e); // set initial values
+    refreshExerciseUI(e);
   });
 }
 
 function updateExerciseHeader(e){
-  e.els.head.querySelector('.muted').innerHTML =
-    `Tap = ${fmt(e.baseHP)} × 2^${e.reps} = <strong>${fmt(perTap(e))}</strong> HP • Cooldown: ${(cooldownMs(e)/1000).toFixed(2)}s`;
+  e.els.head.innerHTML =
+    `<div class="ex-title">${e.name}</div>
+     <div class="muted">Tap = ${fmt(e.baseHP)} × 2^${e.reps} = <strong>${fmt(perTap(e))}</strong> HP</div>
+     <div class="muted">• Cooldown: ${(cooldownMs(e)/1000).toFixed(2)}s</div>`;
 }
 
 function refreshExerciseUI(e){
-  // reps
-  e.els.repCount.textContent = e.reps;
-  e.els.repTarget.textContent = e.repTarget;
-  e.els.repFill.style.width = (Math.min(e.reps / e.repTarget, 1)*100).toFixed(1)+'%';
-  // buy button label + enabled
-  const cost = repCostFor(e);
-  e.els.buyRepBtn.textContent = `Buy Rep (${fmt(cost)} HP)`;
-  e.els.buyRepBtn.disabled = !e.unlocked || state.hp < cost;
-  // header text (tap value & cooldown)
+  // Header/KVs
   updateExerciseHeader(e);
+  e.els.kvTap.textContent = fmt(perTap(e));
+  e.els.kvReps.textContent = e.reps;
+
+  // Reps bar
+  e.els.repFill.style.width = (Math.min(e.reps / e.repTarget, 1)*100).toFixed(1)+'%';
+
+  // Buy Rep button state + shine + one-time ready SFX
+  const repCost = repCostFor(e);
+  const repAffordable = e.unlocked && state.hp >= repCost;
+  e.els.buyRepBtn.textContent = `Buy Rep (${fmt(repCost)} HP)`;
+  e.els.buyRepBtn.disabled = !repAffordable;
+  if(repAffordable && !e._repReady){ e._repReady = true; e.els.buyRepBtn.classList.add('ready'); sfx('ready'); }
+  if(!repAffordable && e._repReady){ e._repReady = false; e.els.buyRepBtn.classList.remove('ready'); }
+
+  // Unlock button “ready” state for locked cards
+  if(e.els.unlockBtn){
+    const canUnlock = state.hp >= e.unlockCost;
+    e.els.unlockBtn.disabled = !canUnlock;
+    if(canUnlock && !e._unlockReady){ e._unlockReady = true; e.els.unlockBtn.classList.add('ready'); sfx('ready'); }
+    if(!canUnlock && e._unlockReady){ e._unlockReady = false; e.els.unlockBtn.classList.remove('ready'); }
+  }
 }
 
-function renderTop(){
-  ui.hp.textContent = fmt(state.hp);
-}
+function renderTop(){ ui.hp.textContent = fmt(state.hp); }
+function refreshAll(){ renderTop(); exercises.forEach(refreshExerciseUI); }
 
 /* ============== Reps / Upgrade ============== */
 function repCostFor(e){ return Math.floor(e.repBaseCost * Math.pow(e.repGrowth, e.reps)); }
@@ -327,16 +421,14 @@ function buyRep(e){
   const cost = repCostFor(e);
   if(state.hp < cost) return;
   state.hp -= cost;
-  e.reps += 1; // doubles tap
+  e.reps += 1;
   sfx('buy');
   checkUpgrade(e);
-  refreshExerciseUI(e);
-  renderTop();
+  refreshAll();
 }
 
 function checkUpgrade(e){
   if(e.reps >= e.repTarget){
-    // Upgrade: halve cooldown (min 100ms), reset reps, double target
     e.reps = 0;
     e.repTarget = e.repTarget * 2;
     e.cooldown = Math.max(100, Math.floor(e.cooldown / 2));
@@ -352,7 +444,7 @@ function tap(e){
   e.lastTapAt = now;
   state.hp += perTap(e);
   sfx('tap');
-  renderTop();
+  refreshAll();
 }
 
 function updateCooldownUI(e){
@@ -374,7 +466,6 @@ function updateCooldownUI(e){
 /* ============== Loop ============== */
 function tick(ts){
   state.lastTS = ts;
-  // update all cooldown bars
   exercises.forEach(e => { if(e.unlocked) updateCooldownUI(e); });
   requestAnimationFrame(tick);
 }
