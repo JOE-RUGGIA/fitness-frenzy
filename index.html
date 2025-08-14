@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.6-stable3</title>
+<title>Fitness Frenzy – V3.6-stable5</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -48,9 +48,12 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes shine{to{transform:translateX(110%)}}
 
 /* Menu dot (outside corner) */
-#menuBtn{position:relative}
-.notifDot{position:absolute;right:-10px;top:-10px;width:14px;height:14px;border-radius:50%;
-          display:none;background:var(--warn);box-shadow:0 0 0 2px rgba(10,19,32,.95);pointer-events:none;z-index:10}
+#menuBtn{position:relative; overflow:visible; z-index:1;}
+.notifDot{
+  position:absolute; right:-12px; top:-12px; width:16px; height:16px; border-radius:50%;
+  display:none; background:var(--warn); box-shadow:0 0 0 2px rgba(10,19,32,.95);
+  pointer-events:none; z-index:200;
+}
 .notifDot.show{display:block}
 
 /* Layout */
@@ -145,9 +148,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   <div class="topbar">
     <div class="topwrap">
       <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
-      <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.0</span></div>
+      <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.00</span></div>
       <div class="spacer"></div>
-      <!-- menu button + dot -->
       <button id="menuBtn" class="btn ghost">Menu<span id="menuDot" class="notifDot"></span></button>
       <div class="seg" id="qtyTop"><button class="segBtn active" data-q="1">×1</button><button class="segBtn" data-q="10">×10</button></div>
       <button id="saveBtn" class="btn secondary">Save</button>
@@ -164,7 +166,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
       <div class="menuHeader">
         <div class="menuTitle">Menu</div>
         <div class="spacer"></div>
-        <div class="hpPill small"><span class="label">HP:</span><span id="hpMenu" class="val">0.0</span></div>
+        <div class="hpPill small"><span class="label">HP:</span><span id="hpMenu" class="val">0.00</span></div>
         <button id="menuClose" class="btn secondary">Close</button>
       </div>
       <div class="menuTabs">
@@ -192,8 +194,18 @@ const App = {};
 
 /* Utils */
 App.Util = (()=> {
-  const fmtTop = n => n>=1e9?(n/1e9).toFixed(1)+'B': n>=1e6?(n/1e6).toFixed(1)+'M': n>=1e3?(n/1e3).toFixed(1)+'K': n.toFixed(1);
-  const fmtCost= n => n<1e3? n.toFixed(2) : (n<1e6? (n/1e3).toFixed(2)+'K' : (n<1e9? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
+  // Always show two decimals; abbreviate with K/M/B
+  const fmtTop = n => {
+    const a = Math.abs(n);
+    if (a >= 1e9) return (n/1e9).toFixed(2)+'B';
+    if (a >= 1e6) return (n/1e6).toFixed(2)+'M';
+    if (a >= 1e3) return (n/1e3).toFixed(2)+'K';
+    return n.toFixed(2);
+  };
+  const fmtCost= n =>
+    n<1e3 ? n.toFixed(2)
+          : (n<1e6 ? (n/1e3).toFixed(2)+'K'
+                   : (n<1e9 ? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
   return { fmtTop, fmtCost };
 })();
 
@@ -220,7 +232,7 @@ App.Audio = (()=> {
 
 /* State */
 App.State = (()=> {
-  const KEY='ff-v36-stable3';
+  const KEY='ff-v36-stable3'; // keep same key to preserve saves
   const s = { hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
@@ -250,7 +262,7 @@ App.Economy = (()=> {
   function addReps(e,q){
     const s=App.State.s; const cost=bulkRepCost(e,q);
     if(s.hp+1e-9<cost) return false;
-    s.hp-=cost; App.Notify.update(); // update dot after HP spend
+    s.hp-=cost; App.Notify.update();
     e.repHP+=q; e.repProgress+=q;
     while(e.repProgress>=e.repTarget){
       e.repProgress-=e.repTarget; e.repTarget*=2;
@@ -264,7 +276,7 @@ App.Economy = (()=> {
     const cd=e.cooldown;
     if(e.lastTapAt>=0 && now-e.lastTapAt < cd-1) return 0;
     e.lastTapAt=now;
-    const g=perTap(e); const S=App.State.s; S.hp+=g; S.stats.manualTaps++; App.Notify.update(); // update dot after HP gain
+    const g=perTap(e); const S=App.State.s; S.hp+=g; S.stats.manualTaps++; App.Notify.update();
     return g;
   }
   return { perTap, bulkRepCost, addReps, tap };
@@ -296,8 +308,8 @@ App.Engine = (()=> {
         e.lastTapAt = now; // keeps cooldown bar moving under auto
         const g = App.Economy.perTap(e);
         s.hp += g; s.stats.autoTaps++;
-        App.Notify.update(); // dot reacts to HP increase
-        if(!App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(0)}`); }
+        App.Notify.update();
+        if(!App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(2)}`); }
       }
     }
   }
@@ -308,7 +320,7 @@ App.Engine = (()=> {
   function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
-    // Keep bar solid when very fast to avoid flicker
+    // solid bar when extremely fast
     if(cd<=300){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; return; }
     const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
     const pct=Math.max(0,Math.min(1, since/cd));
@@ -375,14 +387,15 @@ App.Coaches = (()=> {
       mid.appendChild(name); mid.appendChild(info);
 
       const right=document.createElement('div'); right.className='coachRight';
-      const btn=document.createElement('button'); btn.className='hireBtn secondary'; btn.textContent = owned ? 'Owned' : `Hire • ${App.Util.fmtCost(c.price)} HP`;
+      const btn=document.createElement('button'); btn.className='hireBtn secondary';
+      btn.textContent = owned ? 'Owned' : `Hire • ${App.Util.fmtCost(c.price)} HP`;
       if(owned){ btn.disabled=true; }
       right.appendChild(btn);
 
       card.appendChild(head); card.appendChild(mid); card.appendChild(right);
       listEl.appendChild(card);
 
-      const canAfford = App.State.s.hp >= c.price;
+      const canAfford = (App.State.s.hp + 1e-6) >= c.price; // epsilon-safe
       if(!locked && !owned){ btn.disabled = !canAfford; btn.classList.toggle('ready', canAfford); btn.classList.toggle('secondary', !canAfford); }
       else { btn.disabled = true; btn.classList.add('secondary'); btn.classList.remove('ready'); }
 
@@ -407,7 +420,7 @@ App.Notify = (()=> {
       if(s.coachesOwned[c.id]) continue;
       const ex = exById[c.target];
       if(!ex || !ex.unlocked) continue;
-      if(s.hp >= c.price) return true;
+      if(s.hp + 1e-6 >= c.price) return true; // epsilon-safe
     }
     return false;
   }
@@ -433,20 +446,20 @@ App.UI.Cards = (()=> {
     const head=document.createElement('div'); head.className='ex-head'; head.innerHTML=`<div class="ex-title">${e.name}</div><div class="muted headRight"></div>`;
     const coachSlotTop=document.createElement('div'); coachSlotTop.className='coachSlotTop';
 
-    // cooldown
+    // cooldown bar
     const coolWrap=document.createElement('div'); coolWrap.className='coolwrap'; coolWrap.innerHTML=`<div class="coolbar"><div class="coolfill"></div></div>`;
 
-    // single meta row
+    // meta row: per tap + Add Reps
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
-    const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>`;
+    const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(2)}</strong> HP</span>`;
     const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Add Reps';
     metaRow.appendChild(kvs); metaRow.appendChild(buyBtn);
 
     const costLine=document.createElement('div'); costLine.className='costLine';
-    costLine.innerHTML=`<button class="costPill" type="button">Unlock for <span class="costAmt">${e.unlockCost}</span> HP</button>`;
+    costLine.innerHTML=`<button class="costPill" type="button">Unlock for <span class="costAmt"></span> HP</button>`;
     const costPill=costLine.querySelector('.costPill'), costAmt=costLine.querySelector('.costAmt');
 
-    // assemble: coachSlot sits in the header row with title + cooldown time
+    // assemble: coach chip in header row
     head.appendChild(coachSlotTop);
     right.appendChild(head); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
     card.appendChild(tapPad); card.appendChild(right);
@@ -460,7 +473,7 @@ App.UI.Cards = (()=> {
     if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
 
     // Manual tap
-    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(0)}`); App.UI.Renderer.forceTop(); } });
+    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(2)}`); App.UI.Renderer.forceTop(); } });
 
     // Buy reps
     bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
@@ -510,9 +523,9 @@ App.UI.Renderer = (()=> {
 
     // Level & per tap
     if(e.els.lvl) e.els.lvl.textContent=`Lvl ${e.level}`;
-    if(e.els.kvTap) e.els.kvTap.textContent=perTap(e).toFixed(0);
+    if(e.els.kvTap) e.els.kvTap.textContent=perTap(e).toFixed(2);
 
-    // Coach chips (now in header row)
+    // Coach chips (header row)
     if(e.els.coachSlotTop){
       const cs = App.Coaches.getOwnedForExercise(e.id);
       e.els.coachSlotTop.innerHTML = '';
@@ -532,7 +545,7 @@ App.UI.Renderer = (()=> {
     // Unlock pill
     if(!e.unlocked && e.els.costPill){
       const canUn = s.hp >= e.unlockCost;
-      e.els.costAmt.textContent=fmtCost(e.unlockCost);
+      e.els.costAmt.textContent=App.Util.fmtCost(e.unlockCost);
       e.els.card.classList.toggle('unlock-ready', canUn);
       e.els.card.classList.toggle('unlock-bounce', canUn);
       e.els.costPill.classList.toggle('ready', canUn);
@@ -599,6 +612,7 @@ App.Content = (()=> {
 
   App.Engine.start();
   App.Engine.scheduleSave();
+  App.Notify.update(); // initial check for menu dot
 })();
 </script>
 </body>
