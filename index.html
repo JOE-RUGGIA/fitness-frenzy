@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V2.4 (Long Cooldowns + Bulletproof SFX Resume)</title>
+<title>Fitness Frenzy – V2.5 (Corrected 3/6/12s Cooldowns + Save Migration)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
   :root{
@@ -123,29 +123,29 @@
 
 <script>
 /* ===== Data / Config ===== */
-const VERSION='ff-v2-4';
-const SAVE_KEY='fitness_frenzy_ff-v2-2'; // keep persistence
+const VERSION='ff-v2-5';
+const SAVE_KEY='fitness_frenzy_ff-v2-2'; // keep persistence across versions
 const REP_GROWTH = 1.07;
 const BANNER_STAY_MS = 3800;
 let BUY_QTY = 1;
 
-/* Model with new cooldowns (ms) */
+/* Model — corrected cooldowns in milliseconds */
 const exercises = [
   { id:'walk', name:'Walking', icon:'🚶', baseHP:1,   baseCooldown:   600,  // 0.60s
     repHP:0, repProgress:0, repTarget:10, repBaseCost:4,   level:1, unlocked:true,  unlockCost:0,
     cooldown:   600, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
-  { id:'jog',  name:'Jogging', icon:'🏃', baseHP:60,  baseCooldown:180000,  // 3 minutes
+  { id:'jog',  name:'Jogging', icon:'🏃', baseHP:60,  baseCooldown: 3000,  // 3.00s
     repHP:0, repProgress:0, repTarget:10, repBaseCost:30,  level:1, unlocked:false, unlockCost:60,
-    cooldown:180000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+    cooldown: 3000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
-  { id:'sit',  name:'Sit-ups', icon:'🧘', baseHP:180, baseCooldown:360000,  // 6 minutes
+  { id:'sit',  name:'Sit-ups', icon:'🧘', baseHP:180, baseCooldown: 6000,  // 6.00s
     repHP:0, repProgress:0, repTarget:10, repBaseCost:90,  level:1, unlocked:false, unlockCost:300,
-    cooldown:360000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+    cooldown: 6000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
-  { id:'push', name:'Push-ups', icon:'💪', baseHP:400, baseCooldown:720000,  // 12 minutes
+  { id:'push', name:'Push-ups', icon:'💪', baseHP:400, baseCooldown:12000,  // 12.00s
     repHP:0, repProgress:0, repTarget:10, repBaseCost:200, level:1, unlocked:false, unlockCost:1200,
-    cooldown:720000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
+    cooldown:12000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 ];
 
 const state = { hp:0 };
@@ -158,35 +158,25 @@ const perTap = e => e.baseHP + e.repHP;
 const cooldownMs = e => e.cooldown;
 const canTap = (e, now)=> (now - e.lastTapAt) >= cooldownMs(e) - 1;
 
-/* ===== Audio with bulletproof resume ===== */
+/* ===== Audio with robust resume ===== */
 let audioCtx=null, audioNeedsUnlock=true;
 function ensureAudioCtx(){
   if(!audioCtx || audioCtx.state==='closed'){
-    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
-    catch{ audioCtx = null; }
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch{ audioCtx = null; }
   }
-  if(audioCtx && audioCtx.state==='suspended'){
-    audioCtx.resume().catch(()=>{});
-  }
+  if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
 }
 function unlockAudio(){
   ensureAudioCtx();
   if(!audioCtx) return;
-  // Play a 1-frame silent buffer to fully unlock audio on iOS/Android
-  try{
-    const buf = audioCtx.createBuffer(1, 1, 22050);
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
-  }catch{}
-  if(audioCtx.state!=='running'){
-    audioCtx.resume().catch(()=>{});
-  }
+  try{ const buf=audioCtx.createBuffer(1,1,22050); const src=audioCtx.createBufferSource(); src.buffer=buf; src.connect(audioCtx.destination); src.start(0);}catch{}
+  if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{}); }
   audioNeedsUnlock=false;
 }
 function sfx(type){
   try{
     ensureAudioCtx(); if(!audioCtx) return;
-    if(audioCtx.state!=='running'){ audioNeedsUnlock=true; return; } // will unlock on next gesture
+    if(audioCtx.state!=='running'){ audioNeedsUnlock=true; return; }
     const t=audioCtx.currentTime;
     const beep=(f,type='sine',dur=.22,vol=.07)=>{
       const o=audioCtx.createOscillator(); o.type=type; o.frequency.setValueAtTime(f,t);
@@ -202,19 +192,16 @@ function sfx(type){
     if(type==='ready'){   beep(760,'triangle',.16,.06); setTimeout(()=>beep(980,'triangle',.14,.05), 60); }
   }catch{}
 }
-/* Set/clear unlock flag around lifecycle transitions */
+/* reset unlock flag on background; re-arm on return */
 ['visibilitychange','pagehide','freeze'].forEach(ev=>document.addEventListener(ev, ()=>{
   if(document.visibilityState==='hidden' || ev!=='visibilitychange'){ audioNeedsUnlock=true; }
 }));
 ['pageshow','focus'].forEach(ev=>window.addEventListener(ev, ()=>{ audioNeedsUnlock=true; ensureAudioCtx(); }));
-/* Unlock on any user gesture (capture to always see it) */
 ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{
-  window.addEventListener(ev, ()=>{
-    if(audioNeedsUnlock || (audioCtx && audioCtx.state!=='running')) unlockAudio();
-  }, {capture:true, passive:true});
+  window.addEventListener(ev, ()=>{ if(audioNeedsUnlock || (audioCtx && audioCtx.state!=='running')) unlockAudio(); }, {capture:true, passive:true});
 });
 
-/* ===== Persistence ===== */
+/* ===== Persistence (with migration for old minute timers) ===== */
 function save(){
   localStorage.setItem(SAVE_KEY, JSON.stringify({
     hp: state.hp,
@@ -229,6 +216,8 @@ function load(){
   try{
     const s=JSON.parse(raw); state.hp = s.hp ?? 0;
     if(Array.isArray(s.exercises)){
+      const OLD_BASE = { jog:180000, sit:360000, push:720000 }; // old minutes scheme
+      const NEW_BASE = { jog:  3000, sit:  6000, push: 12000 }; // new seconds scheme
       for(const se of s.exercises){
         const e = exercises.find(x=>x.id===se.id); if(!e) continue;
         if(se.repPower!==undefined && e.repHP===0){ e.repHP = se.repPower; }
@@ -236,7 +225,20 @@ function load(){
         e.repProgress = se.repProgress ?? e.repProgress;
         e.repTarget   = se.repTarget ?? e.repTarget;
         e.unlocked    = se.unlocked ?? e.unlocked;
-        e.cooldown    = se.cooldown ?? e.baseCooldown;
+
+        // cooldown migration:
+        if(typeof se.cooldown === 'number'){
+          // If saved cooldown looks like the old minutes scale, map proportionally to new base (preserve upgrade halvings)
+          if(OLD_BASE[e.id] && se.cooldown >= 60000){
+            const ratio = se.cooldown / OLD_BASE[e.id];
+            e.cooldown = Math.max(100, Math.floor((NEW_BASE[e.id] || e.baseCooldown) * ratio));
+          }else{
+            e.cooldown = se.cooldown;
+          }
+        }else{
+          e.cooldown = e.baseCooldown;
+        }
+
         e.level       = se.level ?? e.level ?? 1;
       }
     }
@@ -295,7 +297,8 @@ function makeExerciseCard(e){
   bindPress(buyRepBtn, ()=> addReps(e, BUY_QTY));
   costPill.addEventListener('click', ()=>{
     if(!e.unlocked && state.hp >= e.unlockCost){
-      state.hp -= e.unlockCost; e.unlocked = true; sfx('buy');
+      state.hp -= e.unlockCost; sfx('buy');
+      e.unlocked = true;
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
       e.els.coolWrap.style.display='block'; e.els.metaRow.style.display='flex'; e.els.costLine.style.display='none';
       burstConfetti(e.els.card);
@@ -319,7 +322,7 @@ function renderStack(){ ui.stack.innerHTML=''; exercises.forEach(e=>{ ui.stack.a
 
 /* ===== UI Updates ===== */
 function refreshExerciseUI(e){
-  // Cooldown label: show full when ready; after tap count 0 -> full
+  // Cooldown label: READY shows full duration; after tap count 0 -> full
   if(e.unlocked){
     const cd = cooldownMs(e), now = performance.now(), since = now - e.lastTapAt, ready = since >= cd;
     const shown = ready ? cd : since;
@@ -377,8 +380,7 @@ function tap(e){
 }
 function spawnFloat(e, text){
   const rect = e.els.tapPad.getBoundingClientRect(); const span=document.createElement('div');
-  span.className='float'; span.textContent=text;
-  const jitter = (Math.random()*16 - 8)|0;
+  span.className='float'; span.textContent=text; const jitter = (Math.random()*16 - 8)|0;
   span.style.left = (rect.left + rect.width/2 + jitter) + 'px';
   span.style.top  = (rect.top + rect.height*0.1) + 'px';
   document.body.appendChild(span); setTimeout(()=>span.remove(), 950);
@@ -402,9 +404,10 @@ function burstConfetti(card){
     p.style.left='50%'; p.style.top='50%'; p.style.transform='translate(-50%,-50%)';
     p.style.background=colors[i%colors.length]; p.style.borderRadius='2px';
     const angle = Math.random()*2*Math.PI, dist = 40 + Math.random()*80, dx = Math.cos(angle)*dist, dy = Math.sin(angle)*dist, rot=(Math.random()*360)|0;
-    p.animate([{ transform:`translate(-50%,-50%) translate(0,0) rotate(0deg)`, opacity:1 },
-               { transform:`translate(-50%,-50%) translate(${dx}px, ${dy}px) rotate(${rot}deg)`, opacity:0 }],
-               { duration: 700 + Math.random()*400, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards' });
+    p.animate([
+      { transform:`translate(-50%,-50%) translate(0,0) rotate(0deg)`, opacity:1 },
+      { transform:`translate(-50%,-50%) translate(${dx}px, ${dy}px) rotate(${rot}deg)`, opacity:0 }
+    ], { duration: 700 + Math.random()*400, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards' });
     container.appendChild(p);
   }
   setTimeout(()=>container.remove(), 1200);
