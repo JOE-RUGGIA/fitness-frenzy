@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.9.1-tutP12-fix</title>
+<title>Fitness Frenzy – V3.9.2-tutP12-copy+ui</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -68,9 +68,9 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes bob{0%{transform:translateY(0) scale(.90)}50%{transform:translateY(-2px) scale(.905)}100%{transform:translateY(0) scale(.90)}}
 
 /* Tap pad */
-.tapPad{position:relative;width:clamp(72px,14vw,110px);aspect-ratio:1;border-radius:var(--r);
+.tapPad{position:relative;width:clamp(72px,16vw,120px);aspect-ratio:1;border-radius:var(--r);
         background:#12243b;border:1px solid #1a2f4a;display:flex;align-items:center;justify-content:center;
-        font-size:clamp(38px,11vw,64px);cursor:pointer;overflow:visible}
+        font-size:clamp(44px,12vw,72px);cursor:pointer;overflow:visible}
 .lvl{position:absolute;left:6px;top:6px;font-size:12px;font-weight:900;color:#fff;
      background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;border-radius:8px;padding:2px 6px}
 .repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);background:#15341f;border-top:1px solid #204e2b;
@@ -156,20 +156,26 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 /* ===== Tutorial overlay (Phase 1–2) ===== */
 .tutOv{position:fixed;inset:0;z-index:8000;display:none;pointer-events:none}
 .tutOv.show{display:block}
-.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.25)} /* lighter & no blur */
-.tutBubble{position:absolute;left:50%;bottom:14vh;transform:translateX(-50%);
-  max-width:min(720px,92vw); background:#0f1b2b;border:1px solid #2a4a78;border-radius:14px;padding:12px 14px;
-  color:#fff;display:flex;gap:12px;align-items:flex-start;pointer-events:auto}
-.tutAvatar{font-size:28px;line-height:1}
-.tutText{flex:1}
-.tutWho{font-weight:900;color:#ffd6a8;margin-bottom:2px}
-.tutMore{font-size:12px;color:#a7b7cc}
+.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.22)} /* lighter dim, no blur */
+.tutBubble{
+  position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);
+  max-width:min(980px,96vw);
+  background:#0f1b2b;border:2px solid #2a4a78;border-radius:18px;
+  padding:22px 24px; /* bigger */
+  color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
+  box-shadow:0 18px 36px rgba(0,0,0,.35);
+}
+.tutAvatar{font-size:64px;line-height:1} /* bigger emoji */
+.tutText{flex:1;font-size:clamp(18px,3.8vw,24px);line-height:1.35}
+.tutWho{font-weight:900;color:#ffd6a8;margin-bottom:4px;font-size:clamp(16px,3.4vw,20px)}
+.tutMore{font-size:12px;color:#a7b7cc;margin-top:6px}
 .tutChevron{margin-left:8px;font-size:14px;color:#ffb357}
-.tutSpot{position:absolute;border-radius:12px;box-shadow:0 0 0 3px rgba(255,179,87,.9),0 0 0 10px rgba(255,179,87,.18),0 0 40px rgba(255,179,87,.35);
+.hl{color:var(--accent); font-weight:900} /* branded orange emphasis */
+.tutSpot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);
   animation:spotPulse 1.2s ease-in-out infinite;pointer-events:none}
-@keyframes spotPulse{0%{box-shadow:0 0 0 3px rgba(255,179,87,.9),0 0 0 10px rgba(255,179,87,.18),0 0 12px rgba(255,179,87,.25)}
-50%{box-shadow:0 0 0 3px rgba(255,179,87,.9),0 0 0 14px rgba(255,179,87,.24),0 0 26px rgba(255,179,87,.45)}
-100%{box-shadow:0 0 0 3px rgba(255,179,87,.9),0 0 0 10px rgba(255,179,87,.18),0 0 12px rgba(255,179,87,.25)}}
+@keyframes spotPulse{0%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 16px rgba(255,179,87,.35)}
+50%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 18px rgba(255,179,87,.28),0 0 32px rgba(255,179,87,.55)}
+100%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 16px rgba(255,179,87,.35)}}
 </style>
 </head>
 <body>
@@ -247,7 +253,7 @@ const App = {};
 
 /* Config */
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v391-tutP12fix',
+  SAVE_KEY: 'ff-v392-tutP12copy',
   SCHEMA_VERSION: 2,
   DEC: 2,
   EPS: 1e-6,
@@ -370,7 +376,7 @@ App.Game = (()=> {
   const { EPS, REP_GROWTH } = App.Config;
   const S = App.State.s;
 
-  const perTap = e => e.baseHP + e.repHP; // +1 per rep
+  const perTap = e => e.baseHP + e.repHP;
   const bulkRepCost=(e,q)=>{
     const base=e.repBaseCost*Math.pow(REP_GROWTH,e.repHP);
     return +(base*(Math.pow(REP_GROWTH,q)-1)/(REP_GROWTH-1)).toFixed(App.Config.DEC);
@@ -593,7 +599,7 @@ App.UI.Cards = (()=> {
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
     const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv"><strong class="kvTap">${perTap(e).toFixed(App.Config.DEC)}</strong> HP</span>`;
     const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Reps';
-    buyBtn.dataset.role='reps';  /* precise hook for tutorial */
+    buyBtn.dataset.role='reps';
     metaRow.appendChild(kvs); metaRow.appendChild(buyBtn);
 
     const costLine=document.createElement('div'); costLine.className='costLine';
@@ -787,7 +793,7 @@ App.Tutorial = (()=> {
   const line = document.getElementById('tutLine');
   const avatar = document.getElementById('tutAvatar');
   const spot = document.getElementById('tutSpot');
-  let active=false, gating=null, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null;
+  let active=false, gating=null, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null, waitUpgradeOff=null;
 
   /* Gating */
   function gateStart(allowSelectors){
@@ -812,7 +818,7 @@ App.Tutorial = (()=> {
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; App.UI.Overlay.suppressFloats=true; }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); }
   function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
-  function setText(t){ line.textContent=t; }
+  function setTextHTML(html){ line.innerHTML=html; }  /* allow inline <span class="hl"> */
 
   function showSpotFor(selector){
     lastSpotSel = selector;
@@ -837,20 +843,20 @@ App.Tutorial = (()=> {
       lineIdx++;
       const L = curStep.lines[lineIdx];
       setSpeaker(L.who, L.icon);
-      setText(L.text);
+      setTextHTML(L.html);
     } else if(curStep.onLinesDone){
       curStep.onLinesDone();
     }
   });
 
-  /* Steps (Phase 1–2) */
+  /* Steps (Phase 1–2 with refined copy & triggers) */
   const steps = [
     {
       id:'intro-walk',
       lines:[
-        { who:'JAX', icon:'🏋️‍♂️', text:'Hey—looking a bit low-energy. Let’s fix that 💪' },
-        { who:'You', icon: (S.tutorial.avatar==='female'?'👩':'👨'), text:'Where do I start?' },
-        { who:'JAX', icon:'🏋️‍♂️', text:'Tap **Walking** to earn **1 HP** each time.' }
+        { who:'JAX', icon:'🏋️‍♂️', html:'Hey—looking a bit low-energy. Let’s fix that 💪' },
+        { who:'You', icon: (S.tutorial.avatar==='female'?'👩':'👨'), html:'Where do I start?' },
+        { who:'JAX', icon:'🏋️‍♂️', html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time.' }
       ],
       onLinesDone(){
         // Guide to Walking until total taps >= 4
@@ -869,11 +875,12 @@ App.Tutorial = (()=> {
     {
       id:'reps-walk',
       lines:[
-        { who:'JAX', icon:'🏋️‍♂️', text:'Nice! Use **Reps** to add **+1 HP** per tap.' },
-        { who:'JAX', icon:'🏋️‍♂️', text:'Watch the green Rep bar. Hit **Reps** when it lights up.' }
+        { who:'JAX', icon:'🏋️‍♂️', html:'Nice! Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.' },
+        { who:'JAX', icon:'🏋️‍♂️', html:'When the <span class="hl">Reps</span> button turns orange, tap it to buy.' },
+        { who:'JAX', icon:'🏋️‍♂️', html:'Keep an eye on the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.' }
       ],
       onLinesDone(){
-        // Force ×1 to avoid accidental ×10 blocking the player
+        // Force ×1 to avoid accidental ×10
         try{
           S.buyQty = 1;
           const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');
@@ -881,21 +888,29 @@ App.Tutorial = (()=> {
           if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); }
           App.UI.Renderer.refreshAll();
         }catch{}
-        // Highlight only the Reps button
+        // Highlight only the Reps button for first purchase
         showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]');
         gateStart(['.card[data-id="walk"] .btn[data-role="reps"]']);
         bubble.style.display='none';
-        const off = App.Bus.on('reps:buy', ({exId})=>{
+
+        // After first Reps buy, remove gate and just wait for actual level-up (10/10)
+        const offBuy = App.Bus.on('reps:buy', ({exId})=>{
           if(exId!=='walk') return;
-          off(); bubble.style.display='';
-          next(); // proceed to upgrade step
+          offBuy();
+          hideSpot(); gateStop(); // free play
+          // Wait for true upgrade event
+          waitUpgradeOff = App.Bus.on('exercise:levelup', ({exId:levId})=>{
+            if(levId!=='walk') return;
+            waitUpgradeOff(); // consume
+            goTo('upgrade-walk');
+          });
         });
       }
     },
     {
       id:'upgrade-walk',
       lines:[
-        { who:'JAX', icon:'🏋️‍♂️', text:'Upgrade! Cooldown just halved. Faster taps → faster HP.' }
+        { who:'JAX', icon:'🏋️‍♂️', html:'<span class="hl">Upgrade!</span> Cooldown just halved. Faster taps → faster HP.' }
       ],
       onLinesDone(){ end(); }
     }
@@ -917,7 +932,7 @@ App.Tutorial = (()=> {
     S.tutorial.stepId = s.id;
     App.State.save();
     lineIdx=0; bubble.style.display='';
-    const L = s.lines[0]; setSpeaker(L.who, L.icon); setText(L.text);
+    const L = s.lines[0]; setSpeaker(L.who, L.icon); setTextHTML(L.html);
   }
   function goTo(id){ hideSpot(); gateStop(); setStepById(id); }
   function next(){
@@ -928,6 +943,7 @@ App.Tutorial = (()=> {
   }
   function end(){
     hide(); hideSpot(); gateStop();
+    if(waitUpgradeOff){ try{ waitUpgradeOff(); }catch{} waitUpgradeOff=null; }
     S.tutorial.done = true; S.tutorial.stepId=null;
     App.State.save();
   }
