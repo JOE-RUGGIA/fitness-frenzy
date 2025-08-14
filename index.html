@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.9-tutorialP12</title>
+<title>Fitness Frenzy – V3.9.1-tutP12-fix</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -156,7 +156,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 /* ===== Tutorial overlay (Phase 1–2) ===== */
 .tutOv{position:fixed;inset:0;z-index:8000;display:none;pointer-events:none}
 .tutOv.show{display:block}
-.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(1px)}
+.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.25)} /* lighter & no blur */
 .tutBubble{position:absolute;left:50%;bottom:14vh;transform:translateX(-50%);
   max-width:min(720px,92vw); background:#0f1b2b;border:1px solid #2a4a78;border-radius:14px;padding:12px 14px;
   color:#fff;display:flex;gap:12px;align-items:flex-start;pointer-events:auto}
@@ -247,8 +247,8 @@ const App = {};
 
 /* Config */
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v39-tutP12',
-  SCHEMA_VERSION: 2,   // bump for tutorial state
+  SAVE_KEY: 'ff-v391-tutP12fix',
+  SCHEMA_VERSION: 2,
   DEC: 2,
   EPS: 1e-6,
   SOLID_CD_MS: 300,
@@ -593,6 +593,7 @@ App.UI.Cards = (()=> {
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
     const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv"><strong class="kvTap">${perTap(e).toFixed(App.Config.DEC)}</strong> HP</span>`;
     const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Reps';
+    buyBtn.dataset.role='reps';  /* precise hook for tutorial */
     metaRow.appendChild(kvs); metaRow.appendChild(buyBtn);
 
     const costLine=document.createElement('div'); costLine.className='costLine';
@@ -788,7 +789,7 @@ App.Tutorial = (()=> {
   const spot = document.getElementById('tutSpot');
   let active=false, gating=null, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null;
 
-  // global input gate (capture) – allows only elements matching allowSelectors
+  /* Gating */
   function gateStart(allowSelectors){
     allowed = allowSelectors || [];
     gating = true;
@@ -807,6 +808,7 @@ App.Tutorial = (()=> {
     if(!okay){ e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); }
   }
 
+  /* Overlay controls */
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; App.UI.Overlay.suppressFloats=true; }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); }
   function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
@@ -828,7 +830,7 @@ App.Tutorial = (()=> {
   function hideSpot(){ spot.style.display='none'; lastSpotSel=null; }
   function repositionSpot(){ if(active && lastSpotSel) showSpotFor(lastSpotSel); }
 
-  // Lines UI
+  /* Bubble advance */
   bubble.addEventListener('click', ()=>{
     if(!active || !curStep) return;
     if(lineIdx < curStep.lines.length-1){
@@ -841,116 +843,101 @@ App.Tutorial = (()=> {
     }
   });
 
-  // Steps (Phase 1–2 only)
+  /* Steps (Phase 1–2) */
   const steps = [
     {
       id:'intro-walk',
-      when: ()=> true,
       lines:[
         { who:'JAX', icon:'🏋️‍♂️', text:'Hey—looking a bit low-energy. Let’s fix that 💪' },
         { who:'You', icon: (S.tutorial.avatar==='female'?'👩':'👨'), text:'Where do I start?' },
         { who:'JAX', icon:'🏋️‍♂️', text:'Tap **Walking** to earn **1 HP** each time.' }
       ],
       onLinesDone(){
-        // highlight walking tap pad
+        // Guide to Walking until total taps >= 4
         showSpotFor('.card[data-id="walk"] .tapPad');
         gateStart(['.card[data-id="walk"] .tapPad']);
-        // hide bubble so player can see the action clearly
         bubble.style.display='none';
-        // wait for a manual tap on walk
         const off = App.Bus.on('tap:manual', ({exId})=>{
           if(exId!=='walk') return;
-          off(); bubble.style.display=''; next();
+          if((S.tutorial.progress.walkTaps||0) >= 4){
+            off(); bubble.style.display='';
+            goTo('reps-walk');
+          }
         });
       }
     },
     {
       id:'reps-walk',
-      when: ()=> S.tutorial.progress.walkTaps>=4,
       lines:[
         { who:'JAX', icon:'🏋️‍♂️', text:'Nice! Use **Reps** to add **+1 HP** per tap.' },
         { who:'JAX', icon:'🏋️‍♂️', text:'Watch the green Rep bar. Hit **Reps** when it lights up.' }
       ],
       onLinesDone(){
-        showSpotFor('.card[data-id="walk"] .btn'); // Reps button
-        gateStart(['.card[data-id="walk"] .btn']);
+        // Force ×1 to avoid accidental ×10 blocking the player
+        try{
+          S.buyQty = 1;
+          const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');
+          const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
+          if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); }
+          App.UI.Renderer.refreshAll();
+        }catch{}
+        // Highlight only the Reps button
+        showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]');
+        gateStart(['.card[data-id="walk"] .btn[data-role="reps"]']);
         bubble.style.display='none';
         const off = App.Bus.on('reps:buy', ({exId})=>{
           if(exId!=='walk') return;
-          off(); bubble.style.display=''; next();
+          off(); bubble.style.display='';
+          next(); // proceed to upgrade step
         });
       }
     },
     {
       id:'upgrade-walk',
-      when: ()=> getEx('walk')?.level>=2,
       lines:[
         { who:'JAX', icon:'🏋️‍♂️', text:'Upgrade! Cooldown just halved. Faster taps → faster HP.' }
       ],
-      onLinesDone(){
-        end(); // phase 1–2 complete
-      }
+      onLinesDone(){ end(); }
     }
   ];
 
-  function getEx(id){ return App.State.s.exercises.find(e=>e.id===id); }
-
-  // track taps for step 2 gate
+  /* Track taps for 4-tap threshold */
   App.Bus.on('tap:manual', ({exId})=>{
     if(exId==='walk'){ S.tutorial.progress.walkTaps++; App.State.save(); }
   });
 
   function start(){
     if(S.tutorial.done) return;
-    show(); run();
+    show(); setStepById('intro-walk');
   }
 
-  function run(){
-    // choose current step: if saved id exists, use its index; else pick first whose 'when' is true OR default to 0
-    let idx = steps.findIndex(s=>s.id===S.tutorial.stepId);
-    if(idx<0){
-      // If player already progressed, skip to the first unmet step
-      idx = steps.findIndex(st => st.when());
-      if(idx<0) idx = 0;
-    }
-    setStep(idx);
-  }
-
-  function setStep(i){
-    curStep = steps[i] || null;
-    S.tutorial.stepId = curStep? curStep.id : null;
+  function setStepById(id){
+    const s = steps.find(x=>x.id===id) || steps[0];
+    curStep = s;
+    S.tutorial.stepId = s.id;
     App.State.save();
-    if(!curStep){ end(); return; }
-    // Prepare bubble with first line
     lineIdx=0; bubble.style.display='';
-    const L = curStep.lines[0];
-    setSpeaker(L.who, L.icon); setText(L.text);
+    const L = s.lines[0]; setSpeaker(L.who, L.icon); setText(L.text);
   }
-
+  function goTo(id){ hideSpot(); gateStop(); setStepById(id); }
   function next(){
     hideSpot(); gateStop();
-    const i = steps.findIndex(s=>s.id===S.tutorial.stepId);
-    const nextIdx = i+1;
-    if(nextIdx>=steps.length){ end(); return; }
-    setStep(nextIdx);
+    const i = steps.findIndex(x=>x.id===S.tutorial.stepId);
+    if(i<0 || i+1>=steps.length){ end(); return; }
+    setStepById(steps[i+1].id);
   }
-
   function end(){
     hide(); hideSpot(); gateStop();
     S.tutorial.done = true; S.tutorial.stepId=null;
     App.State.save();
   }
 
-  // External helpers
   function init(){
-    // Reposition on resize/scroll
     window.addEventListener('resize', repositionSpot);
     document.addEventListener('scroll', repositionSpot, true);
   }
 
-  return {
-    init, start, end, repositionSpot
-  };
+  return { init, start, end, repositionSpot };
 })();
 
 /* Boot */
@@ -984,7 +971,6 @@ App.Tutorial = (()=> {
   App.Notify.update();
   App.Offline.checkAndShow();
 
-  // Auto-start tutorial Phase 1–2 if not done
   if(!App.State.s.tutorial.done){
     setTimeout(()=>App.Tutorial.start(), 350);
   }
