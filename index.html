@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.6-stable</title>
+<title>Fitness Frenzy – V3.6-stable2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -46,6 +46,12 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
                   transform:translateX(-110%);animation:shine 1.25s linear infinite;pointer-events:none}
 .btn[disabled]{filter:saturate(.65) brightness(.85)}
 @keyframes shine{to{transform:translateX(110%)}}
+
+/* Menu dot (outside corner) */
+#menuBtn{position:relative}
+.notifDot{position:absolute;right:-10px;top:-10px;width:14px;height:14px;border-radius:50%;
+          display:none;background:var(--warn);box-shadow:0 0 0 2px rgba(10,19,32,.95);pointer-events:none;z-index:10}
+.notifDot.show{display:block}
 
 /* Layout */
 .wrap{max-width:980px;margin:0 auto;padding:var(--space)}
@@ -140,7 +146,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
       <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
       <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.0</span></div>
       <div class="spacer"></div>
-      <button id="menuBtn" class="btn ghost">Menu</button>
+      <!-- menu button + dot -->
+      <button id="menuBtn" class="btn ghost">Menu<span id="menuDot" class="notifDot"></span></button>
       <div class="seg" id="qtyTop"><button class="segBtn active" data-q="1">×1</button><button class="segBtn" data-q="10">×10</button></div>
       <button id="saveBtn" class="btn secondary">Save</button>
       <button id="resetBtn" class="btn secondary">Reset</button>
@@ -212,7 +219,7 @@ App.Audio = (()=> {
 
 /* State */
 App.State = (()=> {
-  const KEY='ff-v36-stable';
+  const KEY='ff-v36-stable2';
   const s = { hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
@@ -236,7 +243,7 @@ App.State = (()=> {
 
 /* Economy */
 App.Economy = (()=> {
-  const G=1.07; // 7% growth
+  const G=1.12; // reps cost +12% compounding (harder over time)
   const perTap = e => e.baseHP + e.repHP; // +1 per rep
   const bulkRepCost=(e,q)=>{ const base=e.repBaseCost*Math.pow(G,e.repHP); return +(base*(Math.pow(G,q)-1)/(G-1)).toFixed(2); };
   function addReps(e,q){
@@ -269,10 +276,9 @@ App.Engine = (()=> {
       const now=performance.now(), dt=Math.min(0.25,(now-last)/1000); last=now;
       autoTap(now, dt);
       App.UI.Renderer.tickTop(dt);
-      // update cooldown fills
       for(const e of App.State.s.exercises) updateCooldown(e);
-      // refresh UI every ~100ms
       if(!tick._u || now-tick._u>100){ App.UI.Renderer.refreshAll(); tick._u=now; }
+      if(!tick._n || now-tick._n>200){ App.Notify.update(); tick._n=now; } // update menu dot
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -299,7 +305,8 @@ App.Engine = (()=> {
   function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
-    if(cd<=100){ e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; return; }
+    // Anti-flicker: if cooldown extremely fast, keep bar full and show static cd
+    if(cd<=300){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; return; }
     const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
     const pct=Math.max(0,Math.min(1, since/cd));
     if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
@@ -329,7 +336,7 @@ App.UI.Overlay = (()=> {
   return { floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };
 })();
 
-/* Coaches UI (menu) */
+/* Coaches */
 App.Coaches = (()=> {
   const coaches = [
     { id:'c1',  name:'Rookie Coach',     icon:'🧑‍🏫', price:   1500,      target:'walk' },
@@ -345,10 +352,11 @@ App.Coaches = (()=> {
   ];
   function isAuto(exId){ const owned=App.State.s.coachesOwned; return coaches.some(c=>owned[c.id] && c.target===exId); }
   function getOwnedForExercise(exId){ const owned=App.State.s.coachesOwned; return coaches.filter(c=>owned[c.id] && c.target===exId); }
+  function list(){ return coaches.slice(); } // expose for notifier
   function renderList(){
     const host=document.getElementById('tab-coaches');
     host.innerHTML = `<div class="coachIntro">Coaches automatically tap a specific exercise for you. They respect the cooldown (no sounds).</div>`;
-    const list=document.createElement('div'); list.className='coachList'; host.appendChild(list);
+    const listEl=document.createElement('div'); listEl.className='coachList'; host.appendChild(listEl);
 
     const exById=Object.fromEntries(App.State.s.exercises.map(e=>[e.id,e]));
     for(const c of coaches){
@@ -369,7 +377,7 @@ App.Coaches = (()=> {
       right.appendChild(btn);
 
       card.appendChild(head); card.appendChild(mid); card.appendChild(right);
-      list.appendChild(card);
+      listEl.appendChild(card);
 
       const canAfford = App.State.s.hp >= c.price;
       if(!locked && !owned){ btn.disabled = !canAfford; btn.classList.toggle('ready', canAfford); btn.classList.toggle('secondary', !canAfford); }
@@ -383,7 +391,29 @@ App.Coaches = (()=> {
       });
     }
   }
-  return { isAuto, getOwnedForExercise, renderList };
+  return { isAuto, getOwnedForExercise, renderList, list };
+})();
+
+/* Menu notifier (green dot when a coach becomes buyable) */
+App.Notify = (()=> {
+  const dot = document.getElementById('menuDot');
+  function coachAvailable(){
+    const s=App.State.s;
+    const exById = Object.fromEntries(s.exercises.map(e=>[e.id,e]));
+    for(const c of App.Coaches.list()){
+      if(s.coachesOwned[c.id]) continue;
+      const ex = exById[c.target];
+      if(!ex || !ex.unlocked) continue;
+      if(s.hp >= c.price) return true;
+    }
+    return false;
+  }
+  function update(){
+    if(!dot) return;
+    const on = coachAvailable();
+    dot.classList.toggle('show', on);
+  }
+  return { update };
 })();
 
 /* Cards + Renderer */
@@ -458,10 +488,13 @@ App.UI.Renderer = (()=> {
     // Cooldown label & bar
     const cd=Math.max(100,e.cooldown);
     if(e.unlocked){
-      const since=(e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
-      const pct=Math.max(0,Math.min(1, since/cd));
-      if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
-      if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(2)+'s';
+      if(cd<=300){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; }
+      else{
+        const since=(e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
+        const pct=Math.max(0,Math.min(1, since/cd));
+        if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
+        if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(2)+'s';
+      }
     }
 
     // Rep band
@@ -503,7 +536,7 @@ App.UI.Renderer = (()=> {
 
   /* Menu open/close */
   function wireMenu(){
-    refs.menuBtn.addEventListener('click', ()=>{ refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; App.Coaches.renderList(); });
+    refs.menuBtn.addEventListener('click', ()=>{ refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; App.Coaches.renderList(); App.Notify.update(); });
     refs.menuClose.addEventListener('click', ()=>{ refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
     refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ refs.menuClose.click(); }});
     document.addEventListener('keydown',e=>{ if(e.key==='Escape') refs.menuClose.click(); });
@@ -554,7 +587,7 @@ App.Content = (()=> {
   refs.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.clear(); location.reload(); });
   [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.addEventListener('pointerdown',ev=>{
     ev.preventDefault(); [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active')); b.classList.add('active');
-    App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll();
+    App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update();
   },{passive:false}));
 
   App.Engine.start();
