@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.8-offline1</title>
+<title>Fitness Frenzy – V3.8-offline2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -407,11 +407,16 @@ App.Engine = (()=> {
   function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
-    if(cd<=SOLID_CD_MS){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s'; return; }
+    if(cd<=SOLID_CD_MS){
+      if(e.els.coolFill) e.els.coolFill.style.width='100%';
+      if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s';
+      return;
+    }
     const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
-    const pct=Math.max(0,Math.min(1, since/cd));
-    if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
-    if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(App.Config.DEC)+'s';
+    const pct = Math.max(0, Math.min(1, since / cd));
+    if(e.els.coolFill) e.els.coolFill.style.width = (pct*100).toFixed(1) + '%';
+    const elapsed = Math.max(0, Math.min(since, cd)); // clamp to [0,cd] so no negatives
+    if(e.els.headRight) e.els.headRight.textContent = (elapsed/1000).toFixed(App.Config.DEC) + 's';
   }
 
   function scheduleSave(){ setInterval(()=>App.State.save(), SAVE_MS); }
@@ -542,7 +547,6 @@ App.UI.Cards = (()=> {
     const coolWrap=document.createElement('div'); coolWrap.className='coolwrap'; coolWrap.innerHTML=`<div class="coolbar"><div class="coolfill"></div></div>`;
 
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
-    // per your request: just the HP amount (no "Per Tap")
     const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv"><strong class="kvTap">${perTap(e).toFixed(App.Config.DEC)}</strong> HP</span>`;
     const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Reps';
     metaRow.appendChild(kvs); metaRow.appendChild(buyBtn);
@@ -595,12 +599,15 @@ App.UI.Renderer = (()=> {
   function refreshExerciseUI(e){
     const cd=Math.max(100,e.cooldown);
     if(e.unlocked){
-      if(cd<=App.Config.SOLID_CD_MS){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s'; }
-      else{
+      if(cd<=App.Config.SOLID_CD_MS){
+        if(e.els.coolFill) e.els.coolFill.style.width='100%';
+        if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s';
+      } else {
         const since=(e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
         const pct=Math.max(0,Math.min(1, since/cd));
         if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
-        if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(App.Config.DEC)+'s';
+        const elapsed = Math.max(0, Math.min(since, cd)); // clamp
+        if(e.els.headRight) e.els.headRight.textContent=(elapsed/1000).toFixed(App.Config.DEC)+'s';
       }
     }
 
@@ -644,6 +651,23 @@ App.UI.Renderer = (()=> {
   }
 
   return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu };
+})();
+
+/* ===== Cooldown stamp normalizer (fix) ===== */
+App.Fix = (() => {
+  function normalizeCooldownStamps(){
+    const now = performance.now();
+    for (const e of App.State.s.exercises){
+      e._autoElapsed = 0;
+      if (e.unlocked){
+        // Make them appear "ready" right away so UI has valid, non-negative elapsed.
+        e.lastTapAt = now - Math.max(100, e.cooldown);
+      } else {
+        e.lastTapAt = -1;
+      }
+    }
+  }
+  return { normalizeCooldownStamps };
 })();
 
 /* Offline gains */
@@ -690,7 +714,13 @@ App.Offline = (()=> {
         durEl().textContent = fmtDuration(capped);
         capEl().style.display = (delta>capped) ? 'block' : 'none';
         ov().classList.add('open');
-        document.getElementById('offClaim').onclick=()=>{ App.Game.addHP(gained); ov().classList.remove('open'); };
+        document.getElementById('offClaim').onclick=()=>{
+          App.Game.addHP(gained);
+          // Re-baseline timers so no negative elapsed after claim
+          App.Fix.normalizeCooldownStamps();
+          App.UI.Renderer.refreshAll();
+          ov().classList.remove('open');
+        };
       }
     }
     saveNow();
@@ -711,6 +741,11 @@ App.Offline = (()=> {
 
   App.State.load(); App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
+
+  // Normalize cooldown timestamps immediately after building UI
+  App.Fix.normalizeCooldownStamps();
+  App.UI.Renderer.refreshAll();
+
   App.UI.Renderer.wireMenu();
 
   const { refs } = App.UI.Renderer;
