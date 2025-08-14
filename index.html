@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.8-offline3</title>
+<title>Fitness Frenzy – V3.9-tutorialP12</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -100,7 +100,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
                  mix-blend-mode:overlay;opacity:.65;animation:stripeMove 1.2s linear infinite}
 @keyframes stripeMove{from{background-position:0 0}to{background-position:60px 0}}
 
-/* One-row meta under cooldown */
+/* Meta row */
 .metaRow{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
 .kv{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:6px 10px;border-radius:10px;font-size:14px}
 
@@ -152,6 +152,24 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .offSub{color:#cfe0ff;margin:0 0 12px}
 .offGain{font-size:26px;font-weight:900;color:#fff;margin:12px 0}
 .offNote{color:#a7b7cc;font-size:13px;margin-top:8px}
+
+/* ===== Tutorial overlay (Phase 1–2) ===== */
+.tutOv{position:fixed;inset:0;z-index:8000;display:none;pointer-events:none}
+.tutOv.show{display:block}
+.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(1px)}
+.tutBubble{position:absolute;left:50%;bottom:14vh;transform:translateX(-50%);
+  max-width:min(720px,92vw); background:#0f1b2b;border:1px solid #2a4a78;border-radius:14px;padding:12px 14px;
+  color:#fff;display:flex;gap:12px;align-items:flex-start;pointer-events:auto}
+.tutAvatar{font-size:28px;line-height:1}
+.tutText{flex:1}
+.tutWho{font-weight:900;color:#ffd6a8;margin-bottom:2px}
+.tutMore{font-size:12px;color:#a7b7cc}
+.tutChevron{margin-left:8px;font-size:14px;color:#ffb357}
+.tutSpot{position:absolute;border-radius:12px;box-shadow:0 0 0 3px rgba(255,179,87,.9),0 0 0 10px rgba(255,179,87,.18),0 0 40px rgba(255,179,87,.35);
+  animation:spotPulse 1.2s ease-in-out infinite;pointer-events:none}
+@keyframes spotPulse{0%{box-shadow:0 0 0 3px rgba(255,179,87,.9),0 0 0 10px rgba(255,179,87,.18),0 0 12px rgba(255,179,87,.25)}
+50%{box-shadow:0 0 0 3px rgba(255,179,87,.9),0 0 0 14px rgba(255,179,87,.24),0 0 26px rgba(255,179,87,.45)}
+100%{box-shadow:0 0 0 3px rgba(255,179,87,.9),0 0 0 10px rgba(255,179,87,.18),0 0 12px rgba(255,179,87,.25)}}
 </style>
 </head>
 <body>
@@ -209,14 +227,28 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
     </div>
   </div>
 
+  <!-- Tutorial overlay -->
+  <div id="tutOv" class="tutOv" aria-hidden="true">
+    <div class="tutDim"></div>
+    <div id="tutSpot" class="tutSpot" style="display:none"></div>
+    <div id="tutBubble" class="tutBubble" role="dialog" aria-live="polite" aria-modal="true">
+      <div id="tutAvatar" class="tutAvatar">🏋️‍♂️</div>
+      <div class="tutText">
+        <div id="tutWho" class="tutWho">JAX</div>
+        <div id="tutLine">…</div>
+        <div class="tutMore"><span>Tap to continue</span> <span class="tutChevron">▾</span></div>
+      </div>
+    </div>
+  </div>
+
 <script>
 /* ================= Architecture Core ================= */
 const App = {};
 
 /* Config */
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v36-stable3',
-  SCHEMA_VERSION: 1,
+  SAVE_KEY: 'ff-v39-tutP12',
+  SCHEMA_VERSION: 2,   // bump for tutorial state
   DEC: 2,
   EPS: 1e-6,
   SOLID_CD_MS: 300,
@@ -233,7 +265,7 @@ App.Bus = (() => {
   return {
     on(ev, fn){ (m[ev]||(m[ev]=[])).push(fn); return () => this.off(ev, fn); },
     off(ev, fn){ const a=m[ev]; if(!a) return; const i=a.indexOf(fn); if(i>=0) a.splice(i,1); },
-    emit(ev, payload){ const a=m[ev]; if(!a) return; for(const f of a.slice()) try{ f(payload); }catch{} }
+    emit(ev, payload){ const a=m[ev]; if(!a) return; for(const f of a.slice()) try{ f(payload); }catch(e){ console.warn(e);} }
   };
 })();
 
@@ -276,26 +308,32 @@ App.Audio = (()=> {
 /* State */
 App.State = (()=> {
   const KEY=App.Config.SAVE_KEY;
-  const s = { schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
+  const s = {
+    schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{},
+    stats:{manualTaps:0, autoTaps:0},
+    tutorial:{ done:false, stepId:null, avatar:'male', progress:{walkTaps:0} }
+  };
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
       repHP:0, repProgress:0, repTarget:10, level:1,
-      cooldown:e.baseCooldown, lastTapAt:0, _autoElapsed:0, els:{} // lastTapAt=0 => ready
+      cooldown:e.baseCooldown, lastTapAt:0, _autoElapsed:0, els:{}
     }));
   }
   function save(){ localStorage.setItem(KEY, JSON.stringify({
     schemaVersion:s.schemaVersion,
-    hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,
+    hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,tutorial:s.tutorial,
     exercises:s.exercises.map(e=>({id:e.id,repHP:e.repHP,repProgress:e.repProgress,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown,level:e.level,lastTapAt:e.lastTapAt}))
   }));}
   function load(){ const raw=localStorage.getItem(KEY); if(!raw) return; try{ const j=JSON.parse(raw);
     s.schemaVersion=j.schemaVersion||1;
-    s.hp=j.hp??0; s.buyQty=j.buyQty??1; s.coachesOwned=j.coachesOwned||{}; s.stats=j.stats||s.stats; s.__loaded=j.exercises||[];
+    s.hp=j.hp??0; s.buyQty=j.buyQty??1; s.coachesOwned=j.coachesOwned||{}; s.stats=j.stats||s.stats;
+    s.tutorial = j.tutorial || s.tutorial;
+    s.__loaded=j.exercises||[];
   }catch{}}
   function merge(){ if(!s.__loaded) return; for(const se of s.__loaded){ const e=s.exercises.find(x=>x.id===se.id); if(!e) continue;
     e.repHP=se.repHP??0; e.repProgress=se.repProgress??0; e.repTarget=se.repTarget??10; e.unlocked=se.unlocked??e.unlocked;
-    e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt = (se.lastTapAt ?? 0);
-    if(!e.unlocked){ e.lastTapAt = -1; }
+    e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt=(se.lastTapAt ?? 0);
+    if(!e.unlocked){ e.lastTapAt=-1; }
   } delete s.__loaded; }
   return { s, setExercises, save, load, merge };
 })();
@@ -348,10 +386,13 @@ App.Game = (()=> {
     if(S.hp+EPS<cost) return false;
     addHP(-cost);
     e.repHP+=q; e.repProgress+=q;
+    App.Bus.emit('reps:buy', { exId:e.id, qty:q });
     while(e.repProgress>=e.repTarget){
       e.repProgress-=e.repTarget; e.repTarget*=2;
       e.cooldown=Math.max(100, Math.floor(e.cooldown/2));
-      e.level+=1; App.UI.Banners.upgrade(`${e.name} upgraded to Lvl ${e.level}! Speed ×2`);
+      e.level+=1;
+      App.Bus.emit('exercise:levelup', { exId:e.id, level:e.level });
+      App.UI.Banners.upgrade(`${e.name} upgraded to Lvl ${e.level}! Speed ×2`);
     }
     return true;
   }
@@ -359,11 +400,12 @@ App.Game = (()=> {
   function tap(e,now=performance.now()){
     if(!e.unlocked) return 0;
     const cd=e.cooldown;
-    if(e.lastTapAt>0 && now-e.lastTapAt < cd-1) return 0; // only enforce if we have a real timestamp
+    if(e.lastTapAt>0 && now-e.lastTapAt < cd-1) return 0;
     e.lastTapAt=now;
     const g=perTap(e);
     addHP(g);
     S.stats.manualTaps++;
+    App.Bus.emit('tap:manual', { exId:e.id, gain:g });
     return g;
   }
 
@@ -381,7 +423,7 @@ App.Engine = (()=> {
       autoTap(now, dt);
       App.UI.Renderer.tickTop(dt);
       for(const e of App.State.s.exercises) updateCooldown(e);
-      if(!tick._u || now-tick._u>UI_REFRESH_MS){ App.UI.Renderer.refreshAll(); tick._u=now; }
+      if(!tick._u || now-tick._u>UI_REFRESH_MS){ App.UI.Renderer.refreshAll(); App.Tutorial.repositionSpot(); tick._u=now; }
       if(!tick._n || now-tick._n>NOTIFY_REFRESH_MS){ App.Notify.update(); tick._n=now; }
       requestAnimationFrame(tick);
     }
@@ -408,15 +450,11 @@ App.Engine = (()=> {
   function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
-
-    // If we have a solid bar threshold, show full bar and the CD value
     if(cd<=SOLID_CD_MS){
       if(e.els.coolFill) e.els.coolFill.style.width='100%';
       if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s';
       return;
     }
-
-    // Sentinel: lastTapAt <= 0 means "ready"
     const ready = (e.lastTapAt <= 0);
     const since = ready ? cd : (performance.now()-e.lastTapAt);
     const pct = Math.max(0, Math.min(1, since / cd));
@@ -540,7 +578,7 @@ App.Notify = (()=> {
 App.UI.Cards = (()=> {
   const { bindPress } = App.Engine; const { perTap, tap, addReps, bulkRepCost } = App.Game; const { sfx, unlock } = App.Audio;
   function makeExerciseCard(e){
-    const card=document.createElement('div'); card.className='card'+(e.unlocked?'':' locked');
+    const card=document.createElement('div'); card.className='card'+(e.unlocked?'':' locked'); card.dataset.id=e.id;
 
     const tapPad=document.createElement('div'); tapPad.className='tapPad'; tapPad.textContent=e.icon;
     const lvl=document.createElement('div'); lvl.className='lvl'; lvl.textContent=`Lvl ${e.level}`; tapPad.appendChild(lvl);
@@ -579,8 +617,9 @@ App.UI.Cards = (()=> {
 
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
       App.Game.addHP(-e.unlockCost);
-      e.unlocked=true; e.lastTapAt=0; // ready immediately after unlock
-      sfx('buy');
+      e.unlocked=true; e.lastTapAt=0;
+      App.Audio.sfx('buy');
+      App.Bus.emit('exercise:unlock', { exId:e.id });
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
       coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none';
       App.UI.Renderer.forceTop();
@@ -661,7 +700,7 @@ App.UI.Renderer = (()=> {
   return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu };
 })();
 
-/* ===== Cooldown stamp normalizer ===== */
+/* ===== Cooldown ready normalizer ===== */
 App.Fix = (() => {
   function normalizeCooldownStamps(){
     for (const e of App.State.s.exercises){
@@ -722,7 +761,6 @@ App.Offline = (()=> {
         ov().classList.add('open');
         document.getElementById('offClaim').onclick=()=>{
           App.Game.addHP(gained);
-          // Re-baseline timers to READY (works for both auto & manual)
           App.Fix.normalizeCooldownStamps();
           App.UI.Renderer.refreshAll();
           ov().classList.remove('open');
@@ -739,6 +777,182 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow };
 })();
 
+/* ===== Tutorial (Phase 1–2) ===== */
+App.Tutorial = (()=> {
+  const S = App.State.s;
+  const ov = document.getElementById('tutOv');
+  const bubble = document.getElementById('tutBubble');
+  const who = document.getElementById('tutWho');
+  const line = document.getElementById('tutLine');
+  const avatar = document.getElementById('tutAvatar');
+  const spot = document.getElementById('tutSpot');
+  let active=false, gating=null, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null;
+
+  // global input gate (capture) – allows only elements matching allowSelectors
+  function gateStart(allowSelectors){
+    allowed = allowSelectors || [];
+    gating = true;
+    document.addEventListener('pointerdown', gateHandler, true);
+    document.addEventListener('click', gateHandler, true);
+  }
+  function gateStop(){
+    gating = false; allowed=[];
+    document.removeEventListener('pointerdown', gateHandler, true);
+    document.removeEventListener('click', gateHandler, true);
+  }
+  function gateHandler(e){
+    if(!active || !gating) return;
+    let okay=false;
+    for(const sel of allowed){ if(e.target.closest(sel)){ okay=true; break; } }
+    if(!okay){ e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); }
+  }
+
+  function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; App.UI.Overlay.suppressFloats=true; }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); }
+  function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
+  function setText(t){ line.textContent=t; }
+
+  function showSpotFor(selector){
+    lastSpotSel = selector;
+    const el = document.querySelector(selector);
+    if(!el){ hideSpot(); return; }
+    const r = el.getBoundingClientRect();
+    spot.style.display='block';
+    const pad=6;
+    spot.style.left = (r.left - pad) + 'px';
+    spot.style.top = (r.top - pad) + 'px';
+    spot.style.width = (r.width + pad*2) + 'px';
+    spot.style.height = (r.height + pad*2) + 'px';
+    try{ el.scrollIntoView({behavior:'smooth', block:'center'}); }catch{}
+  }
+  function hideSpot(){ spot.style.display='none'; lastSpotSel=null; }
+  function repositionSpot(){ if(active && lastSpotSel) showSpotFor(lastSpotSel); }
+
+  // Lines UI
+  bubble.addEventListener('click', ()=>{
+    if(!active || !curStep) return;
+    if(lineIdx < curStep.lines.length-1){
+      lineIdx++;
+      const L = curStep.lines[lineIdx];
+      setSpeaker(L.who, L.icon);
+      setText(L.text);
+    } else if(curStep.onLinesDone){
+      curStep.onLinesDone();
+    }
+  });
+
+  // Steps (Phase 1–2 only)
+  const steps = [
+    {
+      id:'intro-walk',
+      when: ()=> true,
+      lines:[
+        { who:'JAX', icon:'🏋️‍♂️', text:'Hey—looking a bit low-energy. Let’s fix that 💪' },
+        { who:'You', icon: (S.tutorial.avatar==='female'?'👩':'👨'), text:'Where do I start?' },
+        { who:'JAX', icon:'🏋️‍♂️', text:'Tap **Walking** to earn **1 HP** each time.' }
+      ],
+      onLinesDone(){
+        // highlight walking tap pad
+        showSpotFor('.card[data-id="walk"] .tapPad');
+        gateStart(['.card[data-id="walk"] .tapPad']);
+        // hide bubble so player can see the action clearly
+        bubble.style.display='none';
+        // wait for a manual tap on walk
+        const off = App.Bus.on('tap:manual', ({exId})=>{
+          if(exId!=='walk') return;
+          off(); bubble.style.display=''; next();
+        });
+      }
+    },
+    {
+      id:'reps-walk',
+      when: ()=> S.tutorial.progress.walkTaps>=4,
+      lines:[
+        { who:'JAX', icon:'🏋️‍♂️', text:'Nice! Use **Reps** to add **+1 HP** per tap.' },
+        { who:'JAX', icon:'🏋️‍♂️', text:'Watch the green Rep bar. Hit **Reps** when it lights up.' }
+      ],
+      onLinesDone(){
+        showSpotFor('.card[data-id="walk"] .btn'); // Reps button
+        gateStart(['.card[data-id="walk"] .btn']);
+        bubble.style.display='none';
+        const off = App.Bus.on('reps:buy', ({exId})=>{
+          if(exId!=='walk') return;
+          off(); bubble.style.display=''; next();
+        });
+      }
+    },
+    {
+      id:'upgrade-walk',
+      when: ()=> getEx('walk')?.level>=2,
+      lines:[
+        { who:'JAX', icon:'🏋️‍♂️', text:'Upgrade! Cooldown just halved. Faster taps → faster HP.' }
+      ],
+      onLinesDone(){
+        end(); // phase 1–2 complete
+      }
+    }
+  ];
+
+  function getEx(id){ return App.State.s.exercises.find(e=>e.id===id); }
+
+  // track taps for step 2 gate
+  App.Bus.on('tap:manual', ({exId})=>{
+    if(exId==='walk'){ S.tutorial.progress.walkTaps++; App.State.save(); }
+  });
+
+  function start(){
+    if(S.tutorial.done) return;
+    show(); run();
+  }
+
+  function run(){
+    // choose current step: if saved id exists, use its index; else pick first whose 'when' is true OR default to 0
+    let idx = steps.findIndex(s=>s.id===S.tutorial.stepId);
+    if(idx<0){
+      // If player already progressed, skip to the first unmet step
+      idx = steps.findIndex(st => st.when());
+      if(idx<0) idx = 0;
+    }
+    setStep(idx);
+  }
+
+  function setStep(i){
+    curStep = steps[i] || null;
+    S.tutorial.stepId = curStep? curStep.id : null;
+    App.State.save();
+    if(!curStep){ end(); return; }
+    // Prepare bubble with first line
+    lineIdx=0; bubble.style.display='';
+    const L = curStep.lines[0];
+    setSpeaker(L.who, L.icon); setText(L.text);
+  }
+
+  function next(){
+    hideSpot(); gateStop();
+    const i = steps.findIndex(s=>s.id===S.tutorial.stepId);
+    const nextIdx = i+1;
+    if(nextIdx>=steps.length){ end(); return; }
+    setStep(nextIdx);
+  }
+
+  function end(){
+    hide(); hideSpot(); gateStop();
+    S.tutorial.done = true; S.tutorial.stepId=null;
+    App.State.save();
+  }
+
+  // External helpers
+  function init(){
+    // Reposition on resize/scroll
+    window.addEventListener('resize', repositionSpot);
+    document.addEventListener('scroll', repositionSpot, true);
+  }
+
+  return {
+    init, start, end, repositionSpot
+  };
+})();
+
 /* Boot */
 (function boot(){
   // Prevent double-tap zoom
@@ -748,7 +962,7 @@ App.Offline = (()=> {
   App.State.load(); App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
 
-  // Normalize to "ready" state immediately after UI build
+  // Normalize to "ready"
   App.Fix.normalizeCooldownStamps();
   App.UI.Renderer.refreshAll();
 
@@ -764,10 +978,16 @@ App.Offline = (()=> {
 
   App.Bus.on('hp:change', ()=>{ App.UI.Renderer.forceTop(); });
 
+  App.Tutorial.init();
   App.Engine.start();
   App.Engine.scheduleSave();
   App.Notify.update();
   App.Offline.checkAndShow();
+
+  // Auto-start tutorial Phase 1–2 if not done
+  if(!App.State.s.tutorial.done){
+    setTimeout(()=>App.Tutorial.start(), 350);
+  }
 })();
 </script>
 </body>
