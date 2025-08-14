@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.6.1 (hotfix)</title>
+<title>Fitness Frenzy – V3.6.2 (cooldown + reps fix)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -38,7 +38,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .seg{display:inline-flex;border:1px solid #2b3d5a;border-radius:10px;overflow:hidden}
 .segBtn{background:#13233b;color:#cfe0ff;border:0;padding:8px 12px;font-weight:800;cursor:pointer}
 .segBtn.active{background:var(--accent);color:#fff}
-.btn{position:relative;overflow:hidden; /* clip shine properly */ padding:10px 14px;border:none;border-radius:12px;font-weight:700;cursor:pointer}
+.btn{position:relative;overflow:hidden;padding:10px 14px;border:none;border-radius:12px;font-weight:700;cursor:pointer}
 .btn.primary{background:var(--accent);color:#fff}
 .btn.secondary{background:#1a2a40;color:#d7e3f5}
 .btn.ghost{background:#13233b;color:#cfe0ff;border:1px solid #2b3d5a}
@@ -255,7 +255,7 @@ App.Notif = (()=> {
 
 /* State */
 App.State = (()=> {
-  const KEY='fitness_frenzy_ff-v361';
+  const KEY='fitness_frenzy_ff-v362';
   const s = { hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
@@ -282,10 +282,21 @@ App.Economy = (()=> {
   const G=1.12; // cost growth
   const perTap = e => e.baseHP + e.repHP;
   const bulkRepCost=(e,q)=>{ const base=e.repBaseCost*Math.pow(G,e.repHP); return +(base*(Math.pow(G,q)-1)/(G-1)).toFixed(2); };
-  function addReps(e,q){ const s=App.State.s; const cost=bulkRepCost(e,q); if(s.hp+1e-9<cost) return false; s.hp-=cost; e.repHP+=q; e.repProgress+=q;
-    while(e.repProgress>=e.repTarget){ e.repProgress-=e.repTarget; e.repTarget*=2; e.cooldown=Math.max(100,Math.floor(e.cooldown/2)); e.level+=1; }
-    return true; }
-  function tap(e,now=performance.now()){ if(!e.unlocked) return 0; const cd=e.cooldown; if(now-e.lastTapAt < cd-1) return 0; e.lastTapAt=now; const g=perTap(e); App.State.s.hp+=g; App.State.s.stats.manualTaps++; return g; }
+  function addReps(e,q){
+    const S=App.State.s; const cost=bulkRepCost(e,q); if(S.hp+1e-9<cost) return false;
+    S.hp-=cost; e.repHP+=q; e.repProgress+=q;
+    while(e.repProgress>=e.repTarget){
+      e.repProgress-=e.repTarget; e.repTarget*=2;
+      e.cooldown=Math.max(100, Math.round(e.cooldown/2)); e.level+=1;
+      App.UI.Overlay.showBanner(`${e.name} upgraded to Lvl ${e.level}! Speed ×2`);
+    }
+    return true;
+  }
+  function tap(e,now=performance.now()){
+    if(!e.unlocked) return 0;
+    const cd=e.cooldown; if(now-e.lastTapAt < cd-1) return 0;
+    e.lastTapAt=now; const g=perTap(e); const S=App.State.s; S.hp+=g; S.stats.manualTaps++; return g;
+  }
   return { perTap, bulkRepCost, addReps, tap };
 })();
 
@@ -297,14 +308,14 @@ App.Engine = (()=> {
       const now=performance.now(), dt=Math.min(0.25,(now-last)/1000); last=now;
       autoTap(now, dt);              // coaches trigger real taps
       App.UI.Renderer.tickTop(dt);   // smooth HP display (top + menu)
-      for(const e of App.State.s.exercises) updateCooldown(e);
-      if(!tick._u || now-tick._u>100){ for(const e of App.State.s.exercises) refreshUI(e); tick._u=now; }
+      // Update cooldown + UI every frame for smoothness
+      for(const e of App.State.s.exercises){ updateCooldown(e); refreshUI(e); }
       requestAnimationFrame(tick);
     } requestAnimationFrame(tick);
   }
   function autoTap(now, dt){
-    const s=App.State.s;
-    for(const e of s.exercises){
+    const S=App.State.s;
+    for(const e of S.exercises){
       if(!App.Coaches.isAuto(e.id)) continue;
       e._autoElapsed += dt*1000;
       const cd = Math.max(100, e.cooldown);
@@ -312,20 +323,25 @@ App.Engine = (()=> {
         e._autoElapsed -= cd;
         e.lastTapAt = now;
         const g = App.Economy.perTap(e);
-        s.hp += g; s.stats.autoTaps++;
+        S.hp += g; S.stats.autoTaps++;
         if(!App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(0)}`); }
-        App.UI.Renderer.forceTop(); // ensure immediate HP tick visibility
+        App.UI.Renderer.forceTop();
       }
     }
   }
-  function bindPress(el,fn){ el.addEventListener('pointerdown',e=>{e.preventDefault();fn(e);},{passive:false});
-                             el.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();fn(e);}}); }
+  function bindPress(el,fn){
+    el.addEventListener('pointerdown',e=>{e.preventDefault();fn(e);},{passive:false});
+    el.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();fn(e);}});
+  }
   function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
-    if(cd<=100){ e.els.coolFill.style.width='100%'; return; }
-    const since=performance.now()-e.lastTapAt, pct=Math.max(0,Math.min(1, since/cd));
-    e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
+    if(cd<=100){ e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent='0.10s'; return; }
+    const since=performance.now()-e.lastTapAt;
+    const shown=Math.max(0,Math.min(cd,since));
+    const pct=(shown/cd)*100;
+    e.els.coolFill.style.width=pct.toFixed(1)+'%';
+    if(e.els.headRight) e.els.headRight.textContent=(shown/1000).toFixed(2)+'s';
   }
   function scheduleSave(){ setInterval(()=>App.State.save(),20000); }
   return { start, bindPress, updateCooldown, scheduleSave };
@@ -356,280 +372,4 @@ App.UI.Cards = (()=> {
 
     const tapPad=document.createElement('div'); tapPad.className='tapPad'; tapPad.textContent=e.icon;
     const lvl=document.createElement('div'); lvl.className='lvl'; lvl.textContent=`Lvl ${e.level}`; tapPad.appendChild(lvl);
-    const repBand=document.createElement('div'); repBand.className='repBand'; repBand.innerHTML=`<div class="repFill"></div><div class="repLabel">0/10</div>`; tapPad.appendChild(repBand);
-
-    const right=document.createElement('div'); right.className='right';
-    const head=document.createElement('div'); head.className='ex-head'; head.innerHTML=`<div class="ex-title">${e.name}</div><div class="muted headRight"></div>`;
-
-    /* Coach chip now ABOVE cooldown */
-    const coachSlotTop=document.createElement('div'); coachSlotTop.className='coachSlotTop';
-
-    const coolWrap=document.createElement('div'); coolWrap.className='coolwrap'; coolWrap.innerHTML=`<div class="coolbar"><div class="coolfill"></div></div>`;
-
-    /* One row under cooldown */
-    const metaRow=document.createElement('div'); metaRow.className='metaRow';
-    const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>`;
-    const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Add Reps';
-    metaRow.appendChild(kvs); metaRow.appendChild(buyBtn);
-
-    const costLine=document.createElement('div'); costLine.className='costLine';
-    costLine.innerHTML=`<button class="costPill" type="button">Unlock for <span class="costAmt">${e.unlockCost}</span> HP</button>`;
-    const costPill=costLine.querySelector('.costPill'), costAmt=costLine.querySelector('.costAmt');
-
-    right.appendChild(head); right.appendChild(coachSlotTop); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
-    card.appendChild(tapPad); card.appendChild(right);
-
-    e.els={ card,tapPad,lvl,
-      repFill:repBand.querySelector('.repFill'), repLabel:repBand.querySelector('.repLabel'),
-      headRight:head.querySelector('.headRight'), coolFill:coolWrap.querySelector('.coolfill'),
-      kvTap:kvs.querySelector('.kvTap'), buyBtn, coachSlotTop, costLine,costPill,costAmt
-    };
-
-    if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
-
-    // Manual tap
-    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(0)}`); App.UI.Renderer.forceTop(); } });
-
-    // Buy reps
-    bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
-
-    // Unlock
-    costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp>=e.unlockCost){
-      s.hp-=e.unlockCost; e.unlocked=true; sfx('buy');
-      e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
-      coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none';
-      App.UI.Renderer.forceTop();
-    }});
-
-    return card;
-  }
-  return { makeExerciseCard };
-})();
-
-App.UI.Renderer = (()=> {
-  const refs={ stack:document.getElementById('stack'), hp:document.getElementById('hp'), hpMenu:document.getElementById('hpMenu'),
-               qtyTop:document.getElementById('qtyTop'), saveBtn:document.getElementById('saveBtn'), resetBtn:document.getElementById('resetBtn'),
-               menuBtn:document.getElementById('menuBtn') };
-  const { fmtTop, fmtCost } = App.Util; const { perTap, bulkRepCost } = App.Economy; const { showBanner } = App.UI.Overlay; const { s } = App.State;
-
-  let shownHP = 0; // smooth display
-
-  function initTop(){ shownHP = s.hp; renderTopNow(); }                  // FIX: initialize
-  function forceTop(){ shownHP = s.hp; renderTopNow(); }                 // FIX: flush when state changes
-  function renderStack(){ App.State.merge(); refs.stack.innerHTML=''; for(const e of s.exercises){ const card=App.UI.Cards.makeExerciseCard(e); refs.stack.appendChild(card); refreshExerciseUI(e); } }
-  function renderTopNow(){
-    const txt = fmtTop(shownHP);
-    refs.hp.textContent = txt;
-    if(refs.hpMenu) refs.hpMenu.textContent = txt;
-  }
-  function tickTop(dt){
-    const target = s.hp;
-    const speed = 8; // higher = faster catch-up
-    shownHP += (target - shownHP) * Math.min(1, dt*speed);
-    renderTopNow();
-  }
-
-  function refreshExerciseUI(e){
-    // Cooldown label (shows elapsed up to cd)
-    if(e.unlocked){
-      const cd=Math.max(100,e.cooldown), now=performance.now(), since=now-e.lastTapAt, shown=Math.max(0,Math.min(cd,since));
-      if(e.els.headRight) e.els.headRight.textContent=(shown/1000).toFixed(2)+'s';
-    }else if(e.els.headRight){ e.els.headRight.textContent=''; }
-
-    // Rep band
-    if(e.els.repLabel) e.els.repLabel.textContent=`${e.repProgress}/${e.repTarget}`;
-    if(e.els.repFill) e.els.repFill.style.width=(Math.min(e.repProgress/e.repTarget,1)*100).toFixed(1)+'%';
-
-    // Level & per tap
-    if(e.els.lvl) e.els.lvl.textContent=`Lvl ${e.level}`;
-    if(e.els.kvTap) e.els.kvTap.textContent=perTap(e).toFixed(0);
-
-    // Coach chip (top)
-    if(e.els.coachSlotTop){
-      const cs = App.Coaches.getOwnedForExercise(e.id);
-      e.els.coachSlotTop.innerHTML = '';
-      if(cs.length){
-        for(const c of cs){ const chip=document.createElement('div'); chip.className='coachChip'; chip.textContent=`${c.icon} ${c.name}`; e.els.coachSlotTop.appendChild(chip); }
-      }
-    }
-
-    // Reps button state (secondary until affordable → primary orange when ready)
-    if(e.unlocked && e.els.buyBtn){
-      const qty = s.buyQty||1, cost = bulkRepCost(e, qty), canBuy = s.hp >= cost;
-      e.els.buyBtn.textContent = (qty===1?`Add Reps (${fmtCost(cost)} HP)`: `Add ${qty} Reps (${fmtCost(cost)} HP)`);
-      e.els.buyBtn.disabled = !canBuy;
-      e.els.buyBtn.classList.toggle('primary', canBuy);
-      e.els.buyBtn.classList.toggle('secondary', !canBuy);
-      e.els.buyBtn.classList.toggle('ready', canBuy);
-    }
-
-    // Unlock pill (shine only when affordable)
-    if(!e.unlocked && e.els.costPill){
-      const canUn = s.hp >= e.unlockCost;
-      e.els.costAmt.textContent=fmtCost(e.unlockCost);
-      e.els.card.classList.toggle('unlock-ready', canUn);
-      e.els.card.classList.toggle('unlock-bounce', canUn);
-      e.els.costPill.classList.toggle('ready', canUn);
-    }
-
-    // Level-up banner
-    if(!refreshExerciseUI._lvls) refreshExerciseUI._lvls={};
-    const prev=refreshExerciseUI._lvls[e.id]??e.level; if(e.level>prev){ showBanner(`${e.name} upgraded to Lvl ${e.level}! Speed ×2`); }
-    refreshExerciseUI._lvls[e.id]=e.level;
-  }
-  function refreshAll(){ renderTopNow(); for(const e of App.State.s.exercises) refreshExerciseUI(e); }
-  return { refs, renderStack, refreshAll, tickTop, forceTop, initTop };
-})();
-
-/* Menu */
-App.Menu = (()=> {
-  const overlay=document.getElementById('menuOverlay'), closeBtn=document.getElementById('menuClose');
-  const tabs=[...document.querySelectorAll('.menuTab')];
-  function open(tab='coaches'){ overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; App.Notif.clear('coaches'); switchTab(tab); }
-  function close(){ overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; }
-  function switchTab(name){
-    tabs.forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
-    ['coaches','upgrades','achievements','quests','shop','stats'].forEach(id=>{ const el=document.getElementById('tab-'+id); if(el) el.style.display=(id===name?'block':'none'); });
-    if(name==='coaches') App.Coaches.renderList();
-  }
-  overlay.addEventListener('click',e=>{ if(e.target===overlay) close(); });
-  closeBtn.addEventListener('click',close);
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
-  tabs.forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
-  return { open, close, switchTab };
-})();
-
-/* Coaches */
-App.Coaches = (()=> {
-  const coaches = [
-    { id:'c1',  name:'Rookie Coach',     icon:'🧑‍🏫', price:   1500,      target:'walk' },
-    { id:'c2',  name:'Track Buddy',      icon:'👟',   price:   6000,      target:'jog' },
-    { id:'c3',  name:'Core Captain',     icon:'🧘‍♂️', price:  25000,      target:'sit' },
-    { id:'c4',  name:'Push-up Pro',      icon:'💪',   price: 100000,      target:'push' },
-    { id:'c5',  name:'Cardio Coach',     icon:'🤸',   price: 400000,      target:'jacks' },
-    { id:'c6',  name:'Squat Sensei',     icon:'🦵',   price:1500000,      target:'squat' },
-    { id:'c7',  name:'Kettlebell Guru',  icon:'🏋️',  price:6000000,      target:'kb' },
-    { id:'c8',  name:'Bench Boss',       icon:'🏋️‍♂️',price:20000000,     target:'bench' },
-    { id:'c9',  name:'Marathon Mentor',  icon:'🎽',   price:80000000,     target:'marathon' },
-    { id:'c10', name:'Ring Master',      icon:'🤸‍♂️', price:300000000,    target:'ironcross' }
-  ];
-  const alerted=new Set(); let anyAffordablePrev=false;
-
-  function isAuto(exId){ const owned=App.State.s.coachesOwned; return coaches.some(c=>owned[c.id] && c.target===exId); }
-  function getOwnedForExercise(exId){ const owned=App.State.s.coachesOwned; return coaches.filter(c=>owned[c.id] && c.target===exId); }
-
-  function renderList(){
-    const host=document.getElementById('tab-coaches');
-    host.innerHTML = `<div class="coachIntro">Coaches automatically work out for you on a specific exercise. Hire one when you can afford it to keep progress rolling.</div>`;
-    const list=document.createElement('div'); list.className='coachList'; host.appendChild(list);
-
-    const exById=Object.fromEntries(App.State.s.exercises.map(e=>[e.id,e]));
-    for(const c of coaches){
-      const owned=!!App.State.s.coachesOwned[c.id];
-      const unlockedTarget=!!(exById[c.target] && exById[c.target].unlocked);
-      const locked=!unlockedTarget;
-
-      const card=document.createElement('div'); card.className='coachCard'+(locked?' locked':'');
-      const head=document.createElement('div'); head.className='headshot'; head.textContent=c.icon;
-      const mid=document.createElement('div'); mid.className='coachMid';
-      const name=document.createElement('div'); name.className='coachName'; name.textContent=c.name;
-      const info=document.createElement('div'); info.className='coachInfo'; info.textContent=`Works on: ${exById[c.target]?.name || c.target}`;
-      mid.appendChild(name); mid.appendChild(info);
-
-      const right=document.createElement('div'); right.className='coachRight';
-      const btn=document.createElement('button'); btn.className='hireBtn secondary'; btn.textContent = owned ? 'Owned' : `Hire • ${App.Util.fmtCost(c.price)} HP`;
-      if(owned){ btn.disabled=true; }
-      right.appendChild(btn);
-
-      card.appendChild(head); card.appendChild(mid); card.appendChild(right);
-      list.appendChild(card);
-
-      const canAfford = App.State.s.hp >= c.price;
-      if(!locked && !owned){
-        btn.disabled = !canAfford;
-        btn.classList.toggle('ready', canAfford);
-        btn.classList.toggle('secondary', !canAfford);
-      }else{
-        btn.disabled = true;
-        btn.classList.add('secondary');
-        btn.classList.remove('ready');
-      }
-
-      btn.addEventListener('click', ()=>{
-        if(locked || owned) return;
-        const S=App.State.s; if(S.hp+1e-9<c.price) return;
-        S.hp-=c.price; S.coachesOwned[c.id]=true; App.Audio.sfx('buy');
-        App.UI.Renderer.forceTop(); App.Menu.open('coaches'); // re-render list
-      });
-    }
-  }
-
-  function tickNotify(){
-    const S=App.State.s; const exById=Object.fromEntries(S.exercises.map(e=>[e.id,e]));
-    const affordable = coaches.filter(c=>!S.coachesOwned[c.id] && exById[c.target]?.unlocked && S.hp>=c.price);
-    const any = affordable.length>0;
-    if(any && !anyAffordablePrev){
-      App.Notif.set('coaches', true);
-      const first = affordable.find(c=>!alerted.has(c.id)) || affordable[0];
-      if(first && !alerted.has(first.id)){ App.UI.Overlay.topRibbon(`Coach available: ${first.name}`); alerted.add(first.id); }
-    }
-    anyAffordablePrev=any;
-  }
-
-  return { isAuto, getOwnedForExercise, renderList, tickNotify };
-})();
-
-/* Content (20 exercises) */
-App.Content = (()=> {
-  const ex = [
-    { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
-    { id:'jog',  name:'Jogging',         icon:'🏃',   baseHP:60,     baseCooldown:  3000,   repBaseCost: 30,   unlockCost:   60,   unlocked:false },
-    { id:'sit',  name:'Sit-ups',         icon:'🧘',   baseHP:180,    baseCooldown:  6000,   repBaseCost: 90,   unlockCost:  300,   unlocked:false },
-    { id:'push', name:'Push-ups',        icon:'💪',   baseHP:400,    baseCooldown: 12000,   repBaseCost:200,   unlockCost: 1200,   unlocked:false },
-    { id:'jacks', name:'Jumping Jacks',  icon:'🤸',   baseHP:900,    baseCooldown: 24000,   repBaseCost:450,   unlockCost: 1800,   unlocked:false },
-    { id:'squat', name:'Bodyweight Squats',icon:'🦵', baseHP:1800,   baseCooldown: 48000,   repBaseCost:900,   unlockCost: 3600,   unlocked:false },
-    { id:'lunge', name:'Lunges',         icon:'🦵',   baseHP:3200,   baseCooldown: 96000,   repBaseCost:1600,  unlockCost: 6400,   unlocked:false },
-    { id:'plank', name:'Plank',          icon:'🧘‍♂️', baseHP:5000,   baseCooldown:192000,   repBaseCost:2500,  unlockCost:10000,   unlocked:false },
-    { id:'climb', name:'Mountain Climbers',icon:'🧗', baseHP:8000,   baseCooldown:384000,   repBaseCost:4000,  unlockCost:16000,   unlocked:false },
-    { id:'burpee',name:'Burpees',        icon:'🤾',   baseHP:12000,  baseCooldown:768000,   repBaseCost:6000,  unlockCost:24000,   unlocked:false },
-    { id:'pullup',name:'Pull-ups',       icon:'🧗‍♂️', baseHP:18000,  baseCooldown:1536000,  repBaseCost:9000,  unlockCost:36000,   unlocked:false },
-    { id:'kb',    name:'Kettlebell Swings',icon:'🏋️', baseHP:26000,  baseCooldown:3072000,  repBaseCost:13000, unlockCost:52000,   unlocked:false },
-    { id:'bench', name:'Bench Press',    icon:'🏋️‍♂️',baseHP:36000,  baseCooldown:6144000,  repBaseCost:18000, unlockCost:72000,   unlocked:false },
-    { id:'backsq',name:'Back Squat',     icon:'🏋️‍♀️',baseHP:48000,  baseCooldown:12288000, repBaseCost:24000, unlockCost:96000,   unlocked:false },
-    { id:'dead',  name:'Deadlift',       icon:'🏋️‍♂️',baseHP:65000,  baseCooldown:24576000, repBaseCost:32500, unlockCost:130000,  unlocked:false },
-    { id:'clean', name:'Clean & Jerk',   icon:'🏋️‍♂️',baseHP:85000,  baseCooldown:49152000, repBaseCost:42500, unlockCost:170000,  unlocked:false },
-    { id:'snatch',name:'Snatch',         icon:'🏋️‍♀️',baseHP:110000, baseCooldown:98304000, repBaseCost:55000, unlockCost:220000,  unlocked:false },
-    { id:'halfmar',name:'Half Marathon', icon:'🎽',   baseHP:150000, baseCooldown:196608000,repBaseCost:75000, unlockCost:300000,  unlocked:false },
-    { id:'marathon',name:'Marathon',     icon:'🏁',   baseHP:200000, baseCooldown:393216000,repBaseCost:100000,unlockCost:400000,  unlocked:false },
-    { id:'ironcross',name:'Iron Cross',  icon:'🤸‍♂️', baseHP:260000, baseCooldown:786432000,repBaseCost:130000,unlockCost:520000,  unlocked:false }
-  ];
-  return { exercises:ex };
-})();
-
-/* Boot */
-(function boot(){
-  // Prevent double-tap zoom
-  let lastTouchEnd=0; document.addEventListener('touchend',e=>{const n=Date.now(); if(n-lastTouchEnd<=300){e.preventDefault();} lastTouchEnd=n;},{passive:false});
-  document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false}); document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
-
-  App.State.load(); App.State.setExercises(App.Content.exercises);
-  App.UI.Renderer.renderStack(); App.UI.Renderer.initTop(); App.UI.Renderer.refreshAll();
-
-  const { refs } = App.UI.Renderer;
-  refs.saveBtn.addEventListener('click', App.State.save);
-  refs.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.clear(); location.reload(); });
-  [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.addEventListener('pointerdown',ev=>{
-    ev.preventDefault(); [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active')); b.classList.add('active');
-    App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll();
-  },{passive:false}));
-  refs.menuBtn.addEventListener('click', ()=>App.Menu.open('coaches'));
-
-  App.Engine.start(App.Engine.updateCooldown, App.UI.Renderer.refreshExerciseUI);
-  App.Engine.scheduleSave();
-
-  // Affordable-coach notifier pulse
-  setInterval(()=>App.Coaches.tickNotify(), 600);
-})();
-</script>
-</body>
-</html>
+    const repBand=document.createElement('div'); repBand.className='repBand'; repBand.innerHTML=`<div class="repFill"></div><div class="repLabel">0/10</div>`
