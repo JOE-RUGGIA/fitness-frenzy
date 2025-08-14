@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.5 (Auto-tap cooldown + coach chip)</title>
+<title>Fitness Frenzy – V3.6 (Top ribbon, smoother HP, clean buttons)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -15,38 +15,53 @@
 html,body{height:100%; touch-action:manipulation;}
 body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);
      padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0;}
-button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation;}
+button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 
 /* Sticky Top Bar */
-.topbar{position:sticky;top:0;z-index:50;background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
+.topbar{position:sticky;top:0;z-index:60;background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap;overflow:visible}
 .title{display:flex;align-items:center;gap:10px}
 .title .icon{font-size:clamp(22px,5vw,28px)}
 h1{margin:0;font-size:clamp(22px,5vw,28px)}
 
-/* HP pill */
+/* HP pills */
 .hpPill{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
         background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid #2a4a78;
         box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04)}
 .hpPill .label{font-weight:900;letter-spacing:.3px;color:var(--accent)}
 .hpPill .val{font-variant-numeric:tabular-nums;font-weight:900;color:#fff;font-size:clamp(20px,4.5vw,28px);
-             width:10ch;text-align:left;padding-right:1ch;white-space:nowrap;overflow:hidden}
-
-.spacer{flex:1}
+             width:11ch;text-align:left;padding-right:1ch;white-space:nowrap;overflow:hidden}
+.hpPill.small{transform:scale(.9); transform-origin:right center}
 
 /* Buttons */
+.spacer{flex:1}
 .seg{display:inline-flex;border:1px solid #2b3d5a;border-radius:10px;overflow:hidden}
 .segBtn{background:#13233b;color:#cfe0ff;border:0;padding:8px 12px;font-weight:800;cursor:pointer}
 .segBtn.active{background:var(--accent);color:#fff}
-.btn{position:relative;overflow:visible;padding:10px 14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+.btn{position:relative;overflow:visible;padding:10px 14px;border:none;border-radius:12px;font-weight:700;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff}
 .btn.secondary{background:#1a2a40;color:#d7e3f5}
 .btn.ghost{background:#13233b;color:#cfe0ff;border:1px solid #2b3d5a}
+.btn.ready{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 8px 20px rgba(204,107,44,.35)}
+.btn.ready::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.18) 45%,transparent 90%);
+                  transform:translateX(-110%);animation:shine 1.25s linear infinite;pointer-events:none}
+.btn[disabled]{filter:saturate(.7) brightness(.85)}
+@keyframes shine{to{transform:translateX(110%)}}
 
-/* Menu dot (sits OUTSIDE the button corner) */
+/* Menu dot (outside corner) */
 #menuBtn{position:relative}
 .notifDot{position:absolute;right:-10px;top:-10px;width:14px;height:14px;border-radius:50%;
           display:none;background:var(--warn);box-shadow:0 0 0 2px rgba(10,19,32,.95);pointer-events:none;z-index:10}
 .notifDot.show{display:block}
+
+/* Top ribbon (coach available) */
+.ribbonHost{position:sticky;top:56px; /* just under topbar */ z-index:59}
+.ribbon{max-width:980px;margin:6px auto 0; padding:8px 14px;border-radius:999px;
+        background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;
+        box-shadow:0 8px 24px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center;
+        transform:translateY(-16px); opacity:0; animation:drop .25s ease-out forwards, wave 2.2s ease-in-out infinite}
+@keyframes drop{to{transform:translateY(0); opacity:1}}
+@keyframes wave{0%{transform:translateY(0) translateX(0)}50%{transform:translateY(0) translateX(8px)}100%{transform:translateY(0) translateX(0)}}
 
 /* Layout */
 .wrap{max-width:980px;margin:0 auto;padding:var(--space)}
@@ -69,7 +84,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
 .repLabel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#cfead6}
 
-/* +HP float (stays under menu overlay) */
+/* +HP float */
 .float{position:fixed;color:#ffe6c7;font-weight:800;text-shadow:0 1px 0 rgba(0,0,0,.6);
        transform:translate(-50%,-10px);animation:rise .9s ease-out forwards;pointer-events:none;z-index:1000}
 @keyframes rise{0%{opacity:0;transform:translate(-50%,10px) scale(.9)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-40px) scale(1.05)}}
@@ -79,6 +94,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .ex-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ex-title{font-size:var(--fs-2);margin:0}
 .muted{color:#a7b7cc}
+.coachSlotTop{display:flex;flex-wrap:wrap;gap:8px}
+.coachChip{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-size:12px}
 
 /* Cooldown */
 .coolwrap{background:#0c1525;border:1px solid #223556;border-radius:10px;overflow:hidden}
@@ -88,11 +105,9 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
                  mix-blend-mode:overlay;opacity:.65;animation:stripeMove 1.2s linear infinite}
 @keyframes stripeMove{from{background-position:0 0}to{background-position:60px 0}}
 
-/* Meta row with coach chip */
-.metaRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* One-row meta under cooldown */
+.metaRow{display:flex;align-items:center;gap:10px;justify-content:space-between}
 .kv{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:6px 10px;border-radius:10px;font-size:14px}
-.coachSlot{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-height:32px}
-.coachChip{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-size:12px}
 
 /* Unlock pill */
 .costLine{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -100,11 +115,12 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
           background:#142743;border:1px solid #27456d;padding:8px 14px;border-radius:999px;cursor:not-allowed}
 .costPill.ready{color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent-hi));border-color:#e89d6b;
                 box-shadow:0 12px 26px rgba(204,107,44,.35)}
-/* Banner */
+
+/* Banner (upgrade) */
 .banner{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);background:linear-gradient(135deg,#132647,#1d3a61);
         color:#fff;border-top:1px solid #2a4a78;padding:12px 16px calc(12px + env(safe-area-inset-bottom));opacity:0;z-index:3000;
         display:flex;gap:8px;align-items:center;justify-content:center;text-align:center;
-        animation:bannerIn .22s ease-out forwards, bannerOut .9s ease-in forwards 2.6s}
+        animation:bannerIn .25s ease-out forwards, bannerOut .9s ease-in forwards 2.6s}
 @keyframes bannerIn{to{opacity:1; transform:translateY(0)}}
 @keyframes bannerOut{to{opacity:0; transform:translateY(8px)}}
 
@@ -131,15 +147,17 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .coachName{font-weight:900}
 .coachInfo{color:#a7b7cc;font-size:14px;margin-top:2px}
 .coachRight{display:flex;align-items:center}
-.btn.lg{padding:12px 18px;font-size:16px;border-radius:12px}
+.hireBtn{padding:12px 18px;font-size:16px;border-radius:12px}
+.hireBtn.secondary{background:#1a2a40;color:#d7e3f5}
+.hireBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
 </style>
 </head>
 <body>
-  <!-- Top Bar -->
+  <!-- Sticky Top Bar -->
   <div class="topbar">
     <div class="topwrap">
       <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
-      <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0</span></div>
+      <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.0</span></div>
       <div class="spacer"></div>
       <button id="menuBtn" class="btn ghost">Menu<span id="menuDot" class="notifDot"></span></button>
       <div class="seg" id="qtyTop"><button class="segBtn active" data-q="1">×1</button><button class="segBtn" data-q="10">×10</button></div>
@@ -147,6 +165,9 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
       <button id="resetBtn" class="btn secondary">Reset</button>
     </div>
   </div>
+
+  <!-- Coach-available ribbon host -->
+  <div id="ribbonHost" class="ribbonHost"></div>
 
   <div class="wrap"><div id="stack" class="stack"></div></div>
   <div id="bannerHost"></div>
@@ -157,6 +178,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
       <div class="menuHeader">
         <div class="menuTitle">Menu</div>
         <div class="spacer"></div>
+        <!-- live HP in menu -->
+        <div class="hpPill small"><span class="label">HP:</span><span id="hpMenu" class="val">0.0</span></div>
         <button id="menuClose" class="btn secondary">Close</button>
       </div>
       <div class="menuTabs">
@@ -179,15 +202,23 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   </div>
 
 <script>
-/* ============== Core App Namespaces ============== */
+/* ================= Core App ================= */
 const App = {};
+
 /* Util */
 App.Util = (()=> {
-  const fmtTop = n => n>=1e9?(n/1e9).toFixed(2)+'B' : n>=1e6?(n/1e6).toFixed(2)+'M' : n>=1e3?(n/1e3).toFixed(2)+'K' : Math.floor(n).toString();
-  const fmtCost= n => n<1e3 ? n.toFixed(2) : (n<1e6 ? (n/1e3).toFixed(2)+'K' : (n<1e9 ? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
+  const fmtTop = (n)=>{
+    const abs = Math.abs(n);
+    if (abs >= 1e9) return (n/1e9).toFixed(1)+'B';
+    if (abs >= 1e6) return (n/1e6).toFixed(1)+'M';
+    if (abs >= 1e3) return (n/1e3).toFixed(1)+'K';
+    return n.toFixed(1);
+  };
+  const fmtCost = (n)=> n<1e3 ? n.toFixed(2) : (n<1e6 ? (n/1e3).toFixed(2)+'K' : (n<1e9 ? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
   return { fmtTop, fmtCost };
 })();
-/* Audio */
+
+/* Audio (manual taps only) */
 App.Audio = (()=> {
   let audioCtx=null, audioNeedsUnlock=true;
   function ensure(){ if(!audioCtx || audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{});} }
@@ -205,13 +236,12 @@ App.Audio = (()=> {
       if(type==='upgrade'){ blip(520,'sine',.20,.08); }
     }catch{}
   }
-  ['visibilitychange','pagehide','freeze'].forEach(ev=>document.addEventListener(ev, ()=>{ if(document.visibilityState!=='visible') audioNeedsUnlock=true; }));
+  ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') audioNeedsUnlock=true; });
   ['pageshow','focus'].forEach(()=>{ audioNeedsUnlock=true; ensure(); });
-  ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{
-    window.addEventListener(ev, ()=>{ if(audioNeedsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true});
-  });
+  ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(audioNeedsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
   return { sfx, unlock };
 })();
+
 /* Notif dot */
 App.Notif = (()=> {
   const dot = document.getElementById('menuDot');
@@ -221,9 +251,10 @@ App.Notif = (()=> {
   function apply(){ dot.className = 'notifDot' + (state.coaches?' show':''); }
   return { set, clear };
 })();
+
 /* State */
 App.State = (()=> {
-  const KEY='fitness_frenzy_ff-v35';
+  const KEY='fitness_frenzy_ff-v36';
   const s = { hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
@@ -244,9 +275,10 @@ App.State = (()=> {
     e.unlocked=se.unlocked??e.unlocked; e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??e.level; } delete s.__loaded; }
   return { s, setExercises, save, load, merge };
 })();
+
 /* Economy */
 App.Economy = (()=> {
-  const G=1.07;
+  const G=1.12; // more expensive over time (was 1.07)
   const perTap = e => e.baseHP + e.repHP;
   const bulkRepCost=(e,q)=>{ const base=e.repBaseCost*Math.pow(G,e.repHP); return +(base*(Math.pow(G,q)-1)/(G-1)).toFixed(2); };
   function addReps(e,q){ const s=App.State.s; const cost=bulkRepCost(e,q); if(s.hp+1e-9<cost) return false; s.hp-=cost; e.repHP+=q; e.repProgress+=q;
@@ -255,13 +287,15 @@ App.Economy = (()=> {
   function tap(e,now=performance.now()){ if(!e.unlocked) return 0; const cd=e.cooldown; if(now-e.lastTapAt < cd-1) return 0; e.lastTapAt=now; const g=perTap(e); App.State.s.hp+=g; App.State.s.stats.manualTaps++; return g; }
   return { perTap, bulkRepCost, addReps, tap };
 })();
+
 /* Engine (tick + auto taps with cooldown) */
 App.Engine = (()=> {
   let last=performance.now();
   function start(updateCooldown, refreshUI){
     function tick(){
       const now=performance.now(), dt=Math.min(0.25,(now-last)/1000); last=now;
-      autoTap(now, dt); // coaches
+      autoTap(now, dt);              // coaches trigger real taps
+      App.UI.Renderer.tickTop(dt);   // smooth HP display (top + menu)
       for(const e of App.State.s.exercises) updateCooldown(e);
       if(!tick._u || now-tick._u>100){ for(const e of App.State.s.exercises) refreshUI(e); tick._u=now; }
       requestAnimationFrame(tick);
@@ -275,7 +309,7 @@ App.Engine = (()=> {
       const cd = Math.max(100, e.cooldown);
       while(e._autoElapsed >= cd){
         e._autoElapsed -= cd;
-        e.lastTapAt = now;                    // reset cooldown bar like a real tap
+        e.lastTapAt = now;
         const g = App.Economy.perTap(e);
         s.hp += g; s.stats.autoTaps++;
         if(!App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(0)}`); }
@@ -294,7 +328,8 @@ App.Engine = (()=> {
   function scheduleSave(){ setInterval(()=>App.State.save(),20000); }
   return { start, bindPress, updateCooldown, scheduleSave };
 })();
-/* Overlay UI */
+
+/* Overlay + Ribbons */
 App.UI = {};
 App.UI.Overlay = (()=> {
   let suppressFloats = false;
@@ -303,49 +338,65 @@ App.UI.Overlay = (()=> {
     const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
     span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);
   }
-  return { showBanner, floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };
+  function topRibbon(msg){
+    const host=document.getElementById('ribbonHost');
+    const el=document.createElement('div'); el.className='ribbon'; el.textContent=msg;
+    host.appendChild(el); setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(-10px)'; setTimeout(()=>el.remove(),300); }, 3200);
+  }
+  return { showBanner, floatFrom, topRibbon, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };
 })();
+
 /* Cards + Renderer */
 App.UI.Cards = (()=> {
   const { bindPress } = App.Engine; const { perTap, tap, addReps, bulkRepCost } = App.Economy; const { sfx, unlock } = App.Audio;
   function makeExerciseCard(e){
     const card=document.createElement('div'); card.className='card'+(e.unlocked?'':' locked');
+
     const tapPad=document.createElement('div'); tapPad.className='tapPad'; tapPad.textContent=e.icon;
     const lvl=document.createElement('div'); lvl.className='lvl'; lvl.textContent=`Lvl ${e.level}`; tapPad.appendChild(lvl);
     const repBand=document.createElement('div'); repBand.className='repBand'; repBand.innerHTML=`<div class="repFill"></div><div class="repLabel">0/10</div>`; tapPad.appendChild(repBand);
 
     const right=document.createElement('div'); right.className='right';
     const head=document.createElement('div'); head.className='ex-head'; head.innerHTML=`<div class="ex-title">${e.name}</div><div class="muted headRight"></div>`;
+
+    /* Coach chip now ABOVE cooldown */
+    const coachSlotTop=document.createElement('div'); coachSlotTop.className='coachSlotTop';
+
     const coolWrap=document.createElement('div'); coolWrap.className='coolwrap'; coolWrap.innerHTML=`<div class="coolbar"><div class="coolfill"></div></div>`;
 
+    /* One row under cooldown */
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
     const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>`;
-    const coachSlot=document.createElement('div'); coachSlot.className='coachSlot'; // chips appear here
-    const buyBtn=document.createElement('button'); buyBtn.className='btn'; buyBtn.textContent='Add Reps';
-
-    metaRow.appendChild(kvs); metaRow.appendChild(coachSlot); metaRow.appendChild(buyBtn);
+    const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Add Reps';
+    metaRow.appendChild(kvs); metaRow.appendChild(buyBtn);
 
     const costLine=document.createElement('div'); costLine.className='costLine';
     costLine.innerHTML=`<button class="costPill" type="button">Unlock for <span class="costAmt">${e.unlockCost}</span> HP</button>`;
     const costPill=costLine.querySelector('.costPill'), costAmt=costLine.querySelector('.costAmt');
 
-    right.appendChild(head); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
+    right.appendChild(head); right.appendChild(coachSlotTop); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
     card.appendChild(tapPad); card.appendChild(right);
 
-    e.els={ card,tapPad,lvl, repFill:repBand.querySelector('.repFill'), repLabel:repBand.querySelector('.repLabel'),
-            headRight:head.querySelector('.headRight'), coolFill:coolWrap.querySelector('.coolfill'),
-            kvTap:kvs.querySelector('.kvTap'), buyBtn, coachSlot, costLine,costPill,costAmt };
+    e.els={ card,tapPad,lvl,
+      repFill:repBand.querySelector('.repFill'), repLabel:repBand.querySelector('.repLabel'),
+      headRight:head.querySelector('.headRight'), coolFill:coolWrap.querySelector('.coolfill'),
+      kvTap:kvs.querySelector('.kvTap'), buyBtn, coachSlotTop, costLine,costPill,costAmt
+    };
 
-    if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; }
+    if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
 
     // Manual tap
-    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(0)}`); App.UI.Renderer.renderTop(); } });
+    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(0)}`); App.UI.Renderer.bumpTargetHP(); } });
+
     // Buy reps
-    bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.renderTop(); } });
+    bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.bumpTargetHP(); } });
+
     // Unlock
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp>=e.unlockCost){
-      s.hp-=e.unlockCost; e.unlocked=true; sfx('buy'); e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
-      coolWrap.style.display='block'; metaRow.style.display='flex'; costLine.style.display='none'; App.UI.Renderer.renderTop();
+      s.hp-=e.unlockCost; e.unlocked=true; sfx('buy');
+      e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
+      coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none';
+      App.UI.Renderer.bumpTargetHP();
     }});
 
     return card;
@@ -354,12 +405,26 @@ App.UI.Cards = (()=> {
 })();
 
 App.UI.Renderer = (()=> {
-  const refs={ stack:document.getElementById('stack'), hp:document.getElementById('hp'), qtyTop:document.getElementById('qtyTop'),
-               saveBtn:document.getElementById('saveBtn'), resetBtn:document.getElementById('resetBtn'), menuBtn:document.getElementById('menuBtn') };
+  const refs={ stack:document.getElementById('stack'), hp:document.getElementById('hp'), hpMenu:document.getElementById('hpMenu'),
+               qtyTop:document.getElementById('qtyTop'), saveBtn:document.getElementById('saveBtn'), resetBtn:document.getElementById('resetBtn'),
+               menuBtn:document.getElementById('menuBtn') };
   const { fmtTop, fmtCost } = App.Util; const { perTap, bulkRepCost } = App.Economy; const { showBanner } = App.UI.Overlay; const { s } = App.State;
 
+  let shownHP = 0; // smooth display
+
   function renderStack(){ App.State.merge(); refs.stack.innerHTML=''; for(const e of s.exercises){ const card=App.UI.Cards.makeExerciseCard(e); refs.stack.appendChild(card); refreshExerciseUI(e); } }
-  function renderTop(){ refs.hp.textContent = fmtTop(s.hp); }
+  function bumpTargetHP(){ /* quick nudge so the smoothing catches up */ } // placeholder for future easing tweaks
+  function renderTopNow(){
+    const txt = fmtTop(shownHP);
+    refs.hp.textContent = txt;
+    if(refs.hpMenu) refs.hpMenu.textContent = txt;
+  }
+  function tickTop(dt){
+    const target = s.hp;
+    const speed = 8; // higher = faster catch-up
+    shownHP += (target - shownHP) * Math.min(1, dt*speed);
+    renderTopNow();
+  }
 
   function refreshExerciseUI(e){
     // Cooldown label (shows elapsed up to cd)
@@ -376,25 +441,23 @@ App.UI.Renderer = (()=> {
     if(e.els.lvl) e.els.lvl.textContent=`Lvl ${e.level}`;
     if(e.els.kvTap) e.els.kvTap.textContent=perTap(e).toFixed(0);
 
-    // Coach chip inline
-    if(e.els.coachSlot){
+    // Coach chip (top)
+    if(e.els.coachSlotTop){
       const cs = App.Coaches.getOwnedForExercise(e.id);
-      e.els.coachSlot.innerHTML = '';
+      e.els.coachSlotTop.innerHTML = '';
       if(cs.length){
-        for(const c of cs){
-          const chip=document.createElement('div'); chip.className='coachChip'; chip.textContent=`${c.icon} ${c.name}`;
-          e.els.coachSlot.appendChild(chip);
-        }
+        for(const c of cs){ const chip=document.createElement('div'); chip.className='coachChip'; chip.textContent=`${c.icon} ${c.name}`; e.els.coachSlotTop.appendChild(chip); }
       }
     }
 
-    // Reps button state
+    // Reps button state (secondary until affordable → primary orange when ready)
     if(e.unlocked && e.els.buyBtn){
       const qty = s.buyQty||1, cost = bulkRepCost(e, qty), canBuy = s.hp >= cost;
       e.els.buyBtn.textContent = (qty===1?`Add Reps (${fmtCost(cost)} HP)`: `Add ${qty} Reps (${fmtCost(cost)} HP)`);
       e.els.buyBtn.disabled = !canBuy;
-      if(canBuy && !e._repReady){ e._repReady=true; e.els.buyBtn.classList.add('ready'); App.Audio.sfx('ready'); }
-      if(!canBuy && e._repReady){ e._repReady=false; e.els.buyBtn.classList.remove('ready'); }
+      if(canBuy && !e._repReady){ e._repReady=true; e.els.buyBtn.classList.remove('secondary'); e.els.buyRepBtn?.classList?.add('primary'); e.els.buyBtn.classList.add('primary','ready'); App.Audio.sfx('ready'); }
+      if(!canBuy && e._repReady){ e._repReady=false; e.els.buyBtn.classList.remove('primary','ready'); e.els.buyBtn.classList.add('secondary'); }
+      if(!e._repReady){ e.els.buyBtn.classList.add('secondary'); } // default grey
     }
 
     // Unlock pill
@@ -410,8 +473,8 @@ App.UI.Renderer = (()=> {
     const prev=refreshExerciseUI._lvls[e.id]??e.level; if(e.level>prev){ showBanner(`${e.name} upgraded to Lvl ${e.level}! Speed ×2`); }
     refreshExerciseUI._lvls[e.id]=e.level;
   }
-  function refreshAll(){ renderTop(); for(const e of App.State.s.exercises) refreshExerciseUI(e); }
-  return { refs, renderStack, renderTop, refreshExerciseUI, refreshAll };
+  function refreshAll(){ renderTopNow(); for(const e of App.State.s.exercises) refreshExerciseUI(e); }
+  return { refs, renderStack, refreshAll, tickTop, bumpTargetHP };
 })();
 
 /* Menu */
@@ -453,7 +516,7 @@ App.Coaches = (()=> {
 
   function renderList(){
     const host=document.getElementById('tab-coaches');
-    host.innerHTML = `<div class="coachIntro">Coaches automatically work out for you on a specific exercise. Hire one when you can afford it to keep progress rolling—even while you focus elsewhere.</div>`;
+    host.innerHTML = `<div class="coachIntro">Coaches automatically work out for you on a specific exercise. Hire one when you can afford it to keep progress rolling.</div>`;
     const list=document.createElement('div'); list.className='coachList'; host.appendChild(list);
 
     const exById=Object.fromEntries(App.State.s.exercises.map(e=>[e.id,e]));
@@ -470,7 +533,7 @@ App.Coaches = (()=> {
       mid.appendChild(name); mid.appendChild(info);
 
       const right=document.createElement('div'); right.className='coachRight';
-      const btn=document.createElement('button'); btn.className='btn lg'; btn.textContent = owned ? 'Owned' : `Hire • ${App.Util.fmtCost(c.price)} HP`;
+      const btn=document.createElement('button'); btn.className='hireBtn secondary'; btn.textContent = owned ? 'Owned' : `Hire • ${App.Util.fmtCost(c.price)} HP`;
       if(owned){ btn.disabled=true; }
       right.appendChild(btn);
 
@@ -478,14 +541,21 @@ App.Coaches = (()=> {
       list.appendChild(card);
 
       const canAfford = App.State.s.hp >= c.price;
-      if(!locked && !owned){ btn.disabled=!canAfford; if(canAfford){ btn.classList.add('ready'); card.classList.add('unlock-bounce'); } }
-      else { btn.disabled=true; }
+      if(!locked && !owned){
+        btn.disabled = !canAfford;
+        btn.classList.toggle('ready', canAfford);
+        btn.classList.toggle('secondary', !canAfford);
+      }else{
+        btn.disabled = true;
+        btn.classList.add('secondary');
+        btn.classList.remove('ready');
+      }
 
       btn.addEventListener('click', ()=>{
         if(locked || owned) return;
         const S=App.State.s; if(S.hp+1e-9<c.price) return;
         S.hp-=c.price; S.coachesOwned[c.id]=true; App.Audio.sfx('buy');
-        App.UI.Renderer.renderTop(); App.Menu.open('coaches'); // re-render
+        App.UI.Renderer.refreshAll(); App.Menu.open('coaches'); // re-render list
       });
     }
   }
@@ -497,7 +567,7 @@ App.Coaches = (()=> {
     if(any && !anyAffordablePrev){
       App.Notif.set('coaches', true);
       const first = affordable.find(c=>!alerted.has(c.id)) || affordable[0];
-      if(first && !alerted.has(first.id)){ App.UI.Overlay.showBanner(`Coach available: ${first.name}`); alerted.add(first.id); }
+      if(first && !alerted.has(first.id)){ App.UI.Overlay.topRibbon(`Coach available: ${first.name}`); alerted.add(first.id); }
     }
     anyAffordablePrev=any;
   }
@@ -539,7 +609,7 @@ App.Content = (()=> {
   document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false}); document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
 
   App.State.load(); App.State.setExercises(App.Content.exercises);
-  App.UI.Renderer.renderStack(); App.UI.Renderer.renderTop();
+  App.UI.Renderer.renderStack(); App.UI.Renderer.refreshAll();
 
   const { refs } = App.UI.Renderer;
   refs.saveBtn.addEventListener('click', App.State.save);
@@ -550,7 +620,6 @@ App.Content = (()=> {
   },{passive:false}));
   refs.menuBtn.addEventListener('click', ()=>App.Menu.open('coaches'));
 
-  App.State.merge(); App.UI.Renderer.refreshAll();
   App.Engine.start(App.Engine.updateCooldown, App.UI.Renderer.refreshExerciseUI);
   App.Engine.scheduleSave();
 
