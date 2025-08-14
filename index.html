@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.6-stable6</title>
+<title>Fitness Frenzy – V3.6-stable5</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -64,7 +64,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .card.locked{opacity:.58;filter:grayscale(1);transform:scale(.90)}
 .card.unlock-ready{border-color:var(--accent);box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 14px 30px rgba(204,107,44,.28),0 0 24px rgba(204,107,44,.25)}
 .card.unlock-bounce{animation:bob 1.1s ease-in-out infinite}
-@keyframes bob{0%{transform:translateY(0) scale(.90)}50%{transform:translateY(-2px) scale(.905)}100%{transform:translateY(0) scale(.90)}
+@keyframes bob{0%{transform:translateY(0) scale(.90)}50%{transform:translateY(-2px) scale(.905)}100%{transform:translateY(0) scale(.90)}}
 
 /* Tap pad */
 .tapPad{position:relative;width:clamp(72px,14vw,110px);aspect-ratio:1;border-radius:var(--r);
@@ -76,8 +76,6 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
          border-bottom-left-radius:var(--r);border-bottom-right-radius:var(--r);overflow:hidden}
 .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
 .repLabel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#cfead6}
-/* hide rep band for locked cards to prevent flicker */
-.card.locked .repBand{visibility:hidden}
 
 /* +HP float */
 .float{position:fixed;color:#ffe6c7;font-weight:800;text-shadow:0 1px 0 rgba(0,0,0,.6);
@@ -196,6 +194,7 @@ const App = {};
 
 /* Utils */
 App.Util = (()=> {
+  // Always show two decimals; abbreviate with K/M/B
   const fmtTop = n => {
     const a = Math.abs(n);
     if (a >= 1e9) return (n/1e9).toFixed(2)+'B';
@@ -241,25 +240,17 @@ App.State = (()=> {
       cooldown:e.baseCooldown, lastTapAt:-1, _autoElapsed:0, els:{}
     }));
   }
-  function save(){ // NOTE: do NOT save lastTapAt/_autoElapsed to avoid time-origin bugs
-    localStorage.setItem(KEY, JSON.stringify({
-      hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,
-      exercises:s.exercises.map(e=>({id:e.id,repHP:e.repHP,repProgress:e.repProgress,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown,level:e.level}))
-    }));
-  }
+  function save(){ localStorage.setItem(KEY, JSON.stringify({
+    hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,
+    exercises:s.exercises.map(e=>({id:e.id,repHP:e.repHP,repProgress:e.repProgress,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown,level:e.level,lastTapAt:e.lastTapAt}))
+  }));}
   function load(){ const raw=localStorage.getItem(KEY); if(!raw) return; try{ const j=JSON.parse(raw);
     s.hp=j.hp??0; s.buyQty=j.buyQty??1; s.coachesOwned=j.coachesOwned||{}; s.stats=j.stats||s.stats; s.__loaded=j.exercises||[];
   }catch{}}
-  function merge(){
-    if(!s.__loaded) return;
-    for(const se of s.__loaded){
-      const e=s.exercises.find(x=>x.id===se.id); if(!e) continue;
-      e.repHP=se.repHP??0; e.repProgress=se.repProgress??0; e.repTarget=se.repTarget??10; e.unlocked=se.unlocked??e.unlocked;
-      e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1;
-      e.lastTapAt=-1; e._autoElapsed=0; // reset volatile timers
-    }
-    delete s.__loaded;
-  }
+  function merge(){ if(!s.__loaded) return; for(const se of s.__loaded){ const e=s.exercises.find(x=>x.id===se.id); if(!e) continue;
+    e.repHP=se.repHP??0; e.repProgress=se.repProgress??0; e.repTarget=se.repTarget??10; e.unlocked=se.unlocked??e.unlocked;
+    e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt=se.lastTapAt??-1;
+  } delete s.__loaded; }
   return { s, setExercises, save, load, merge };
 })();
 
@@ -282,7 +273,7 @@ App.Economy = (()=> {
   }
   function tap(e,now=performance.now()){
     if(!e.unlocked) return 0;
-    const cd=Math.max(100,e.cooldown);
+    const cd=e.cooldown;
     if(e.lastTapAt>=0 && now-e.lastTapAt < cd-1) return 0;
     e.lastTapAt=now;
     const g=perTap(e); const S=App.State.s; S.hp+=g; S.stats.manualTaps++; App.Notify.update();
@@ -299,7 +290,7 @@ App.Engine = (()=> {
       const now=performance.now(), dt=Math.min(0.25,(now-last)/1000); last=now;
       autoTap(now, dt);
       App.UI.Renderer.tickTop(dt);
-      for(const e of App.State.s.exercises) updateCooldown(e, now);
+      for(const e of App.State.s.exercises) updateCooldown(e);
       if(!tick._u || now-tick._u>100){ App.UI.Renderer.refreshAll(); tick._u=now; }
       if(!tick._n || now-tick._n>200){ App.Notify.update(); tick._n=now; }
       requestAnimationFrame(tick);
@@ -326,23 +317,15 @@ App.Engine = (()=> {
     el.addEventListener('pointerdown',e=>{e.preventDefault();fn(e);},{passive:false});
     el.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();fn(e);}});
   }
-  function updateCooldown(e, now){
+  function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
     // solid bar when extremely fast
-    if(cd<=300){
-      if(e.els.coolFill) e.els.coolFill.style.width='100%';
-      if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s';
-      return;
-    }
-    // Robust, clamped elapsed (handle time-origin changes / NaN)
-    const lt = (typeof e.lastTapAt === 'number') ? e.lastTapAt : -1;
-    let since = (lt<0) ? 0 : (now - lt);
-    if(!isFinite(since)) since = 0;
-    since = Math.max(0, Math.min(since, cd));
-    const pct = since / cd;
+    if(cd<=300){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; return; }
+    const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
+    const pct=Math.max(0,Math.min(1, since/cd));
     if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
-    if(e.els.headRight) e.els.headRight.textContent=(since/1000).toFixed(2)+'s';
+    if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(2)+'s';
   }
   function scheduleSave(){ setInterval(()=>App.State.save(),20000); }
   return { start, bindPress, updateCooldown, scheduleSave };
@@ -443,7 +426,8 @@ App.Notify = (()=> {
   }
   function update(){
     if(!dot) return;
-    dot.classList.toggle('show', coachAvailable());
+    const on = coachAvailable();
+    dot.classList.toggle('show', on);
   }
   return { update };
 })();
@@ -462,8 +446,10 @@ App.UI.Cards = (()=> {
     const head=document.createElement('div'); head.className='ex-head'; head.innerHTML=`<div class="ex-title">${e.name}</div><div class="muted headRight"></div>`;
     const coachSlotTop=document.createElement('div'); coachSlotTop.className='coachSlotTop';
 
+    // cooldown bar
     const coolWrap=document.createElement('div'); coolWrap.className='coolwrap'; coolWrap.innerHTML=`<div class="coolbar"><div class="coolfill"></div></div>`;
 
+    // meta row: per tap + Add Reps
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
     const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(2)}</strong> HP</span>`;
     const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Add Reps';
@@ -473,6 +459,7 @@ App.UI.Cards = (()=> {
     costLine.innerHTML=`<button class="costPill" type="button">Unlock for <span class="costAmt"></span> HP</button>`;
     const costPill=costLine.querySelector('.costPill'), costAmt=costLine.querySelector('.costAmt');
 
+    // assemble: coach chip in header row
     head.appendChild(coachSlotTop);
     right.appendChild(head); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
     card.appendChild(tapPad); card.appendChild(right);
@@ -485,10 +472,13 @@ App.UI.Cards = (()=> {
 
     if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
 
+    // Manual tap
     bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(2)}`); App.UI.Renderer.forceTop(); } });
 
+    // Buy reps
     bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
 
+    // Unlock
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp>=e.unlockCost){
       s.hp-=e.unlockCost; App.Notify.update();
       e.unlocked=true; sfx('buy');
@@ -520,25 +510,22 @@ App.UI.Renderer = (()=> {
     if(e.unlocked){
       if(cd<=300){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; }
       else{
-        const now = performance.now();
-        let since = (typeof e.lastTapAt==='number' && e.lastTapAt>=0) ? (now - e.lastTapAt) : 0;
-        if(!isFinite(since)) since=0; since=Math.max(0, Math.min(since, cd));
-        if(e.els.coolFill) e.els.coolFill.style.width=((since/cd)*100).toFixed(1)+'%';
-        if(e.els.headRight) e.els.headRight.textContent=(since/1000).toFixed(2)+'s';
+        const since=(e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
+        const pct=Math.max(0,Math.min(1, since/cd));
+        if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
+        if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(2)+'s';
       }
     }
 
-    // Rep band (skip updating for locked to avoid flicker)
-    if(e.unlocked){
-      if(e.els.repLabel) e.els.repLabel.textContent=`${e.repProgress}/${e.repTarget}`;
-      if(e.els.repFill) e.els.repFill.style.width=(Math.min(e.repProgress/e.repTarget,1)*100).toFixed(1)+'%';
-    }
+    // Rep band
+    if(e.els.repLabel) e.els.repLabel.textContent=`${e.repProgress}/${e.repTarget}`;
+    if(e.els.repFill) e.els.repFill.style.width=(Math.min(e.repProgress/e.repTarget,1)*100).toFixed(1)+'%';
 
     // Level & per tap
     if(e.els.lvl) e.els.lvl.textContent=`Lvl ${e.level}`;
     if(e.els.kvTap) e.els.kvTap.textContent=perTap(e).toFixed(2);
 
-    // Coach chips
+    // Coach chips (header row)
     if(e.els.coachSlotTop){
       const cs = App.Coaches.getOwnedForExercise(e.id);
       e.els.coachSlotTop.innerHTML = '';
@@ -557,7 +544,7 @@ App.UI.Renderer = (()=> {
 
     // Unlock pill
     if(!e.unlocked && e.els.costPill){
-      const canUn = s.hp + 1e-6 >= e.unlockCost;
+      const canUn = s.hp >= e.unlockCost;
       e.els.costAmt.textContent=App.Util.fmtCost(e.unlockCost);
       e.els.card.classList.toggle('unlock-ready', canUn);
       e.els.card.classList.toggle('unlock-bounce', canUn);
@@ -567,32 +554,12 @@ App.UI.Renderer = (()=> {
 
   function refreshAll(){ renderTopNow(); for(const e of App.State.s.exercises) refreshExerciseUI(e); }
 
-  /* Menu open/close + tabs */
+  /* Menu open/close */
   function wireMenu(){
     refs.menuBtn.addEventListener('click', ()=>{ refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; App.Coaches.renderList(); App.Notify.update(); });
     refs.menuClose.addEventListener('click', ()=>{ refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
     refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ refs.menuClose.click(); }});
     document.addEventListener('keydown',e=>{ if(e.key==='Escape') refs.menuClose.click(); });
-
-    // Tab switching
-    const tabs = document.querySelectorAll('.menuTab');
-    const panels = {
-      coaches: document.getElementById('tab-coaches'),
-      upgrades: document.getElementById('tab-upgrades'),
-      achievements: document.getElementById('tab-achievements'),
-      quests: document.getElementById('tab-quests'),
-      shop: document.getElementById('tab-shop'),
-      stats: document.getElementById('tab-stats')
-    };
-    tabs.forEach(t=>{
-      t.addEventListener('click', ()=>{
-        tabs.forEach(x=>x.classList.remove('active'));
-        t.classList.add('active');
-        const id = t.dataset.tab;
-        Object.entries(panels).forEach(([k,el])=>{ el.style.display = (k===id)?'block':'none'; });
-        if(id==='coaches'){ App.Coaches.renderList(); } // re-render coaches when switching back
-      });
-    });
   }
 
   return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu };
@@ -632,7 +599,7 @@ App.Content = (()=> {
   document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false}); document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
 
   App.State.load(); App.State.setExercises(App.Content.exercises);
-  App.UI.Renderer.renderStack(); App.State.merge(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
+  App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
   App.UI.Renderer.wireMenu();
 
   const { refs } = App.UI.Renderer;
