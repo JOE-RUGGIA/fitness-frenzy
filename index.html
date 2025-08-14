@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.6-stable5</title>
+<title>Fitness Frenzy – V3.7-arch</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -47,7 +47,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .btn[disabled]{filter:saturate(.65) brightness(.85)}
 @keyframes shine{to{transform:translateX(110%)}}
 
-/* Menu dot (outside corner) */
+/* Menu dot */
 #menuBtn{position:relative; overflow:visible; z-index:1;}
 .notifDot{
   position:absolute; right:-12px; top:-12px; width:16px; height:16px; border-radius:50%;
@@ -189,23 +189,43 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   </div>
 
 <script>
-/* ================= Core App ================= */
+/* ================= Architecture Core ================= */
 const App = {};
+
+/* Config (single source of truth) */
+App.Config = Object.freeze({
+  SAVE_KEY: 'ff-v36-stable3',   // preserve saves
+  SCHEMA_VERSION: 1,
+  DEC: 2,                       // decimals everywhere
+  EPS: 1e-6,                    // float tolerance
+  SOLID_CD_MS: 300,             // cooldown bar solid threshold
+  REP_GROWTH: 1.12,             // rep price growth per rep
+  SAVE_MS: 20000,
+  UI_REFRESH_MS: 100,
+  NOTIFY_REFRESH_MS: 200,
+});
+
+/* Event bus (tiny pub/sub) */
+App.Bus = (() => {
+  const m = {};
+  function on(ev, fn){ (m[ev]||(m[ev]=[])).push(fn); return () => off(ev, fn); }
+  function off(ev, fn){ const a=m[ev]; if(!a) return; const i=a.indexOf(fn); if(i>=0) a.splice(i,1); }
+  function emit(ev, payload){ const a=m[ev]; if(!a) return; for(const f of a.slice()) try{ f(payload); }catch{} }
+  return { on, off, emit };
+})();
 
 /* Utils */
 App.Util = (()=> {
-  // Always show two decimals; abbreviate with K/M/B
+  const { DEC } = App.Config;
   const fmtTop = n => {
     const a = Math.abs(n);
-    if (a >= 1e9) return (n/1e9).toFixed(2)+'B';
-    if (a >= 1e6) return (n/1e6).toFixed(2)+'M';
-    if (a >= 1e3) return (n/1e3).toFixed(2)+'K';
-    return n.toFixed(2);
+    if (a >= 1e9) return (n/1e9).toFixed(DEC)+'B';
+    if (a >= 1e6) return (n/1e6).toFixed(DEC)+'M';
+    if (a >= 1e3) return (n/1e3).toFixed(DEC)+'K';
+    return n.toFixed(DEC);
   };
-  const fmtCost= n =>
-    n<1e3 ? n.toFixed(2)
-          : (n<1e6 ? (n/1e3).toFixed(2)+'K'
-                   : (n<1e9 ? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
+  const fmtCost = n => n<1e3? n.toFixed(DEC)
+    : (n<1e6? (n/1e3).toFixed(DEC)+'K' : (n<1e9? (n/1e6).toFixed(DEC)+'M' : (n/1e9).toFixed(DEC)+'B'));
   return { fmtTop, fmtCost };
 })();
 
@@ -232,8 +252,8 @@ App.Audio = (()=> {
 
 /* State */
 App.State = (()=> {
-  const KEY='ff-v36-stable3'; // keep same key to preserve saves
-  const s = { hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
+  const KEY=App.Config.SAVE_KEY;
+  const s = { schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
       repHP:0, repProgress:0, repTarget:10, level:1,
@@ -241,10 +261,12 @@ App.State = (()=> {
     }));
   }
   function save(){ localStorage.setItem(KEY, JSON.stringify({
+    schemaVersion:s.schemaVersion,
     hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,
     exercises:s.exercises.map(e=>({id:e.id,repHP:e.repHP,repProgress:e.repProgress,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown,level:e.level,lastTapAt:e.lastTapAt}))
   }));}
   function load(){ const raw=localStorage.getItem(KEY); if(!raw) return; try{ const j=JSON.parse(raw);
+    s.schemaVersion=j.schemaVersion||1;
     s.hp=j.hp??0; s.buyQty=j.buyQty??1; s.coachesOwned=j.coachesOwned||{}; s.stats=j.stats||s.stats; s.__loaded=j.exercises||[];
   }catch{}}
   function merge(){ if(!s.__loaded) return; for(const se of s.__loaded){ const e=s.exercises.find(x=>x.id===se.id); if(!e) continue;
@@ -254,15 +276,55 @@ App.State = (()=> {
   return { s, setExercises, save, load, merge };
 })();
 
-/* Economy */
-App.Economy = (()=> {
-  const G=1.12; // reps cost +12% compounding
+/* Content (20 exercises) */
+App.Content = (()=> {
+  const ex = [
+    { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
+    { id:'jog',  name:'Jogging',         icon:'🏃',   baseHP:60,     baseCooldown:  3000,   repBaseCost: 30,   unlockCost:   60,   unlocked:false },
+    { id:'sit',  name:'Sit-ups',         icon:'🧘',   baseHP:180,    baseCooldown:  6000,   repBaseCost: 90,   unlockCost:  300,   unlocked:false },
+    { id:'push', name:'Push-ups',        icon:'💪',   baseHP:400,    baseCooldown: 12000,   repBaseCost:200,   unlockCost: 1200,   unlocked:false },
+    { id:'jacks', name:'Jumping Jacks',  icon:'🤸',   baseHP:900,    baseCooldown: 24000,   repBaseCost:450,   unlockCost: 1800,   unlocked:false },
+    { id:'squat', name:'Bodyweight Squats',icon:'🦵', baseHP:1800,   baseCooldown: 48000,   repBaseCost:900,   unlockCost: 3600,   unlocked:false },
+    { id:'lunge', name:'Lunges',         icon:'🦵',   baseHP:3200,   baseCooldown: 96000,   repBaseCost:1600,  unlockCost: 6400,   unlocked:false },
+    { id:'plank', name:'Plank',          icon:'🧘‍♂️', baseHP:5000,   baseCooldown:192000,   repBaseCost:2500,  unlockCost:10000,   unlocked:false },
+    { id:'climb', name:'Mountain Climbers',icon:'🧗', baseHP:8000,   baseCooldown:384000,   repBaseCost:4000,  unlockCost:16000,   unlocked:false },
+    { id:'burpee',name:'Burpees',        icon:'🤾',   baseHP:12000,  baseCooldown:768000,   repBaseCost:6000,  unlockCost:24000,   unlocked:false },
+    { id:'pullup',name:'Pull-ups',       icon:'🧗‍♂️', baseHP:18000,  baseCooldown:1536000,  repBaseCost:9000,  unlockCost:36000,   unlocked:false },
+    { id:'kb',    name:'Kettlebell Swings',icon:'🏋️', baseHP:26000,  baseCooldown:3072000,  repBaseCost:13000, unlockCost:52000,   unlocked:false },
+    { id:'bench', name:'Bench Press',    icon:'🏋️‍♂️',baseHP:36000,  baseCooldown:6144000,  repBaseCost:18000, unlockCost:72000,   unlocked:false },
+    { id:'backsq',name:'Back Squat',     icon:'🏋️‍♀️',baseHP:48000,  baseCooldown:12288000, repBaseCost:24000, unlockCost:96000,   unlocked:false },
+    { id:'dead',  name:'Deadlift',       icon:'🏋️‍♂️',baseHP:65000,  baseCooldown:24576000, repBaseCost:32500, unlockCost:130000,  unlocked:false },
+    { id:'clean', name:'Clean & Jerk',   icon:'🏋️‍♂️',baseHP:85000,  baseCooldown:49152000, repBaseCost:42500, unlockCost:170000,  unlocked:false },
+    { id:'snatch',name:'Snatch',         icon:'🏋️‍♀️',baseHP:110000, baseCooldown:98304000, repBaseCost:55000, unlockCost:220000,  unlocked:false },
+    { id:'halfmar',name:'Half Marathon', icon:'🎽',   baseHP:150000, baseCooldown:196608000,repBaseCost:75000, unlockCost:300000,  unlocked:false },
+    { id:'marathon',name:'Marathon',     icon:'🏁',   baseHP:200000, baseCooldown:393216000,repBaseCost:100000,unlockCost:400000,  unlocked:false },
+    { id:'ironcross',name:'Iron Cross',  icon:'🤸‍♂️', baseHP:260000, baseCooldown:786432000,repBaseCost:130000,unlockCost:520000,  unlocked:false }
+  ];
+  return { exercises:ex };
+})();
+
+/* Game logic & economy */
+App.Game = (()=> {
+  const { EPS, REP_GROWTH } = App.Config;
+  const S = App.State.s;
+
+  // Core economic primitives
   const perTap = e => e.baseHP + e.repHP; // +1 per rep
-  const bulkRepCost=(e,q)=>{ const base=e.repBaseCost*Math.pow(G,e.repHP); return +(base*(Math.pow(G,q)-1)/(G-1)).toFixed(2); };
+  const bulkRepCost=(e,q)=>{
+    const base=e.repBaseCost*Math.pow(REP_GROWTH,e.repHP);
+    return +(base*(Math.pow(REP_GROWTH,q)-1)/(REP_GROWTH-1)).toFixed(App.Config.DEC);
+  };
+
+  // Single point of truth for HP mutations
+  function addHP(delta){
+    S.hp += delta;
+    App.Bus.emit('hp:change', S.hp);
+  }
+
   function addReps(e,q){
-    const s=App.State.s; const cost=bulkRepCost(e,q);
-    if(s.hp+1e-9<cost) return false;
-    s.hp-=cost; App.Notify.update();
+    const cost=bulkRepCost(e,q);
+    if(S.hp+EPS<cost) return false;
+    addHP(-cost);
     e.repHP+=q; e.repProgress+=q;
     while(e.repProgress>=e.repTarget){
       e.repProgress-=e.repTarget; e.repTarget*=2;
@@ -271,32 +333,39 @@ App.Economy = (()=> {
     }
     return true;
   }
+
   function tap(e,now=performance.now()){
     if(!e.unlocked) return 0;
     const cd=e.cooldown;
     if(e.lastTapAt>=0 && now-e.lastTapAt < cd-1) return 0;
     e.lastTapAt=now;
-    const g=perTap(e); const S=App.State.s; S.hp+=g; S.stats.manualTaps++; App.Notify.update();
+    const g=perTap(e);
+    addHP(g);
+    S.stats.manualTaps++;
     return g;
   }
-  return { perTap, bulkRepCost, addReps, tap };
+
+  return { perTap, bulkRepCost, addReps, tap, addHP };
 })();
 
 /* Engine */
 App.Engine = (()=> {
+  const { SOLID_CD_MS, SAVE_MS, UI_REFRESH_MS, NOTIFY_REFRESH_MS } = App.Config;
   let last=performance.now();
+
   function start(){
     function tick(){
       const now=performance.now(), dt=Math.min(0.25,(now-last)/1000); last=now;
       autoTap(now, dt);
       App.UI.Renderer.tickTop(dt);
       for(const e of App.State.s.exercises) updateCooldown(e);
-      if(!tick._u || now-tick._u>100){ App.UI.Renderer.refreshAll(); tick._u=now; }
-      if(!tick._n || now-tick._n>200){ App.Notify.update(); tick._n=now; }
+      if(!tick._u || now-tick._u>UI_REFRESH_MS){ App.UI.Renderer.refreshAll(); tick._u=now; }
+      if(!tick._n || now-tick._n>NOTIFY_REFRESH_MS){ App.Notify.update(); tick._n=now; }
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
   }
+
   function autoTap(now, dt){
     const s=App.State.s;
     for(const e of s.exercises){
@@ -305,30 +374,32 @@ App.Engine = (()=> {
       const cd = Math.max(100, e.cooldown);
       while(e._autoElapsed >= cd){
         e._autoElapsed -= cd;
-        e.lastTapAt = now; // keeps cooldown bar moving under auto
-        const g = App.Economy.perTap(e);
-        s.hp += g; s.stats.autoTaps++;
-        App.Notify.update();
-        if(!App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(2)}`); }
+        e.lastTapAt = now;
+        const g = App.Game.perTap(e);
+        App.Game.addHP(g);
+        s.stats.autoTaps++;
+        if(!App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(App.Config.DEC)}`); }
       }
     }
   }
+
+  function updateCooldown(e){
+    if(!e.unlocked) return;
+    const cd=Math.max(100,e.cooldown);
+    if(cd<=SOLID_CD_MS){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s'; return; }
+    const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
+    const pct=Math.max(0,Math.min(1, since/cd));
+    if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
+    if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(App.Config.DEC)+'s';
+  }
+
+  function scheduleSave(){ setInterval(()=>App.State.save(), SAVE_MS); }
   function bindPress(el,fn){
     el.addEventListener('pointerdown',e=>{e.preventDefault();fn(e);},{passive:false});
     el.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();fn(e);}});
   }
-  function updateCooldown(e){
-    if(!e.unlocked) return;
-    const cd=Math.max(100,e.cooldown);
-    // solid bar when extremely fast
-    if(cd<=300){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; return; }
-    const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
-    const pct=Math.max(0,Math.min(1, since/cd));
-    if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
-    if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(2)+'s';
-  }
-  function scheduleSave(){ setInterval(()=>App.State.save(),20000); }
-  return { start, bindPress, updateCooldown, scheduleSave };
+
+  return { start, scheduleSave, bindPress, updateCooldown };
 })();
 
 /* UI helpers */
@@ -395,14 +466,17 @@ App.Coaches = (()=> {
       card.appendChild(head); card.appendChild(mid); card.appendChild(right);
       listEl.appendChild(card);
 
-      const canAfford = (App.State.s.hp + 1e-6) >= c.price; // epsilon-safe
+      const canAfford = (App.State.s.hp + App.Config.EPS) >= c.price;
       if(!locked && !owned){ btn.disabled = !canAfford; btn.classList.toggle('ready', canAfford); btn.classList.toggle('secondary', !canAfford); }
       else { btn.disabled = true; btn.classList.add('secondary'); btn.classList.remove('ready'); }
 
       btn.addEventListener('click', ()=>{
         if(locked || owned) return;
-        const S=App.State.s; if(S.hp+1e-9<c.price) return;
-        S.hp-=c.price; S.coachesOwned[c.id]=true; App.Audio.sfx('buy'); App.Notify.update();
+        const S=App.State.s; if(S.hp+App.Config.EPS<c.price) return;
+        App.Game.addHP(-c.price);
+        S.coachesOwned[c.id]=true;
+        App.Audio.sfx('buy');
+        App.Bus.emit('coach:owned', c.id);
         App.UI.Renderer.forceTop(); renderList();
       });
     }
@@ -420,21 +494,20 @@ App.Notify = (()=> {
       if(s.coachesOwned[c.id]) continue;
       const ex = exById[c.target];
       if(!ex || !ex.unlocked) continue;
-      if(s.hp + 1e-6 >= c.price) return true; // epsilon-safe
+      if(s.hp + App.Config.EPS >= c.price) return true;
     }
     return false;
   }
-  function update(){
-    if(!dot) return;
-    const on = coachAvailable();
-    dot.classList.toggle('show', on);
-  }
+  function update(){ if(!dot) return; dot.classList.toggle('show', coachAvailable()); }
+  // react to events
+  App.Bus.on('hp:change', update);
+  App.Bus.on('coach:owned', update);
   return { update };
 })();
 
 /* Cards + Renderer */
 App.UI.Cards = (()=> {
-  const { bindPress } = App.Engine; const { perTap, tap, addReps, bulkRepCost } = App.Economy; const { sfx, unlock } = App.Audio;
+  const { bindPress } = App.Engine; const { perTap, tap, addReps, bulkRepCost } = App.Game; const { sfx, unlock } = App.Audio;
   function makeExerciseCard(e){
     const card=document.createElement('div'); card.className='card'+(e.unlocked?'':' locked');
 
@@ -446,12 +519,10 @@ App.UI.Cards = (()=> {
     const head=document.createElement('div'); head.className='ex-head'; head.innerHTML=`<div class="ex-title">${e.name}</div><div class="muted headRight"></div>`;
     const coachSlotTop=document.createElement('div'); coachSlotTop.className='coachSlotTop';
 
-    // cooldown bar
     const coolWrap=document.createElement('div'); coolWrap.className='coolwrap'; coolWrap.innerHTML=`<div class="coolbar"><div class="coolfill"></div></div>`;
 
-    // meta row: per tap + Add Reps
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
-    const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(2)}</strong> HP</span>`;
+    const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(App.Config.DEC)}</strong> HP</span>`;
     const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Add Reps';
     metaRow.appendChild(kvs); metaRow.appendChild(buyBtn);
 
@@ -459,7 +530,6 @@ App.UI.Cards = (()=> {
     costLine.innerHTML=`<button class="costPill" type="button">Unlock for <span class="costAmt"></span> HP</button>`;
     const costPill=costLine.querySelector('.costPill'), costAmt=costLine.querySelector('.costAmt');
 
-    // assemble: coach chip in header row
     head.appendChild(coachSlotTop);
     right.appendChild(head); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
     card.appendChild(tapPad); card.appendChild(right);
@@ -472,15 +542,10 @@ App.UI.Cards = (()=> {
 
     if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
 
-    // Manual tap
-    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(2)}`); App.UI.Renderer.forceTop(); } });
-
-    // Buy reps
+    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
     bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
-
-    // Unlock
-    costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp>=e.unlockCost){
-      s.hp-=e.unlockCost; App.Notify.update();
+    costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
+      App.Game.addHP(-e.unlockCost);
       e.unlocked=true; sfx('buy');
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
       coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none';
@@ -496,7 +561,7 @@ App.UI.Renderer = (()=> {
   const refs={ stack:document.getElementById('stack'), hp:document.getElementById('hp'), hpMenu:document.getElementById('hpMenu'),
                qtyTop:document.getElementById('qtyTop'), saveBtn:document.getElementById('saveBtn'), resetBtn:document.getElementById('resetBtn'),
                menuBtn:document.getElementById('menuBtn'), menuOverlay:document.getElementById('menuOverlay'), menuClose:document.getElementById('menuClose') };
-  const { fmtTop, fmtCost } = App.Util; const { perTap, bulkRepCost } = App.Economy; const { s } = App.State;
+  const { fmtTop, fmtCost } = App.Util; const { perTap, bulkRepCost } = App.Game; const { s } = App.State;
 
   let shownHP = 0;
   function renderStack(){ App.State.merge(); refs.stack.innerHTML=''; for(const e of s.exercises){ const card=App.UI.Cards.makeExerciseCard(e); refs.stack.appendChild(card); refreshExerciseUI(e); } }
@@ -505,36 +570,31 @@ App.UI.Renderer = (()=> {
   function tickTop(dt){ shownHP += (s.hp - shownHP) * Math.min(1, dt*8); renderTopNow(); }
 
   function refreshExerciseUI(e){
-    // Cooldown label & bar
     const cd=Math.max(100,e.cooldown);
     if(e.unlocked){
-      if(cd<=300){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; }
+      if(cd<=App.Config.SOLID_CD_MS){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s'; }
       else{
         const since=(e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
         const pct=Math.max(0,Math.min(1, since/cd));
         if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
-        if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(2)+'s';
+        if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(App.Config.DEC)+'s';
       }
     }
 
-    // Rep band
     if(e.els.repLabel) e.els.repLabel.textContent=`${e.repProgress}/${e.repTarget}`;
     if(e.els.repFill) e.els.repFill.style.width=(Math.min(e.repProgress/e.repTarget,1)*100).toFixed(1)+'%';
 
-    // Level & per tap
     if(e.els.lvl) e.els.lvl.textContent=`Lvl ${e.level}`;
-    if(e.els.kvTap) e.els.kvTap.textContent=perTap(e).toFixed(2);
+    if(e.els.kvTap) e.els.kvTap.textContent=perTap(e).toFixed(App.Config.DEC);
 
-    // Coach chips (header row)
     if(e.els.coachSlotTop){
       const cs = App.Coaches.getOwnedForExercise(e.id);
       e.els.coachSlotTop.innerHTML = '';
       if(cs.length){ for(const c of cs){ const chip=document.createElement('div'); chip.className='coachChip'; chip.textContent=`${c.icon} ${c.name}`; e.els.coachSlotTop.appendChild(chip); } }
     }
 
-    // Reps button state
     if(e.unlocked && e.els.buyBtn){
-      const qty = s.buyQty||1, cost = bulkRepCost(e, qty), canBuy = s.hp >= cost;
+      const qty = s.buyQty||1, cost = bulkRepCost(e, qty), canBuy = s.hp + App.Config.EPS >= cost;
       e.els.buyBtn.textContent = (qty===1?`Add Reps (${fmtCost(cost)} HP)`: `Add ${qty} Reps (${fmtCost(cost)} HP)`);
       e.els.buyBtn.disabled = !canBuy;
       e.els.buyBtn.classList.toggle('primary', canBuy);
@@ -542,9 +602,8 @@ App.UI.Renderer = (()=> {
       e.els.buyBtn.classList.toggle('ready', canBuy);
     }
 
-    // Unlock pill
     if(!e.unlocked && e.els.costPill){
-      const canUn = s.hp >= e.unlockCost;
+      const canUn = s.hp + App.Config.EPS >= e.unlockCost;
       e.els.costAmt.textContent=App.Util.fmtCost(e.unlockCost);
       e.els.card.classList.toggle('unlock-ready', canUn);
       e.els.card.classList.toggle('unlock-bounce', canUn);
@@ -554,7 +613,6 @@ App.UI.Renderer = (()=> {
 
   function refreshAll(){ renderTopNow(); for(const e of App.State.s.exercises) refreshExerciseUI(e); }
 
-  /* Menu open/close */
   function wireMenu(){
     refs.menuBtn.addEventListener('click', ()=>{ refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; App.Coaches.renderList(); App.Notify.update(); });
     refs.menuClose.addEventListener('click', ()=>{ refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
@@ -563,33 +621,6 @@ App.UI.Renderer = (()=> {
   }
 
   return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu };
-})();
-
-/* Content (20 exercises) */
-App.Content = (()=> {
-  const ex = [
-    { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
-    { id:'jog',  name:'Jogging',         icon:'🏃',   baseHP:60,     baseCooldown:  3000,   repBaseCost: 30,   unlockCost:   60,   unlocked:false },
-    { id:'sit',  name:'Sit-ups',         icon:'🧘',   baseHP:180,    baseCooldown:  6000,   repBaseCost: 90,   unlockCost:  300,   unlocked:false },
-    { id:'push', name:'Push-ups',        icon:'💪',   baseHP:400,    baseCooldown: 12000,   repBaseCost:200,   unlockCost: 1200,   unlocked:false },
-    { id:'jacks', name:'Jumping Jacks',  icon:'🤸',   baseHP:900,    baseCooldown: 24000,   repBaseCost:450,   unlockCost: 1800,   unlocked:false },
-    { id:'squat', name:'Bodyweight Squats',icon:'🦵', baseHP:1800,   baseCooldown: 48000,   repBaseCost:900,   unlockCost: 3600,   unlocked:false },
-    { id:'lunge', name:'Lunges',         icon:'🦵',   baseHP:3200,   baseCooldown: 96000,   repBaseCost:1600,  unlockCost: 6400,   unlocked:false },
-    { id:'plank', name:'Plank',          icon:'🧘‍♂️', baseHP:5000,   baseCooldown:192000,   repBaseCost:2500,  unlockCost:10000,   unlocked:false },
-    { id:'climb', name:'Mountain Climbers',icon:'🧗', baseHP:8000,   baseCooldown:384000,   repBaseCost:4000,  unlockCost:16000,   unlocked:false },
-    { id:'burpee',name:'Burpees',        icon:'🤾',   baseHP:12000,  baseCooldown:768000,   repBaseCost:6000,  unlockCost:24000,   unlocked:false },
-    { id:'pullup',name:'Pull-ups',       icon:'🧗‍♂️', baseHP:18000,  baseCooldown:1536000,  repBaseCost:9000,  unlockCost:36000,   unlocked:false },
-    { id:'kb',    name:'Kettlebell Swings',icon:'🏋️', baseHP:26000,  baseCooldown:3072000,  repBaseCost:13000, unlockCost:52000,   unlocked:false },
-    { id:'bench', name:'Bench Press',    icon:'🏋️‍♂️',baseHP:36000,  baseCooldown:6144000,  repBaseCost:18000, unlockCost:72000,   unlocked:false },
-    { id:'backsq',name:'Back Squat',     icon:'🏋️‍♀️',baseHP:48000,  baseCooldown:12288000, repBaseCost:24000, unlockCost:96000,   unlocked:false },
-    { id:'dead',  name:'Deadlift',       icon:'🏋️‍♂️',baseHP:65000,  baseCooldown:24576000, repBaseCost:32500, unlockCost:130000,  unlocked:false },
-    { id:'clean', name:'Clean & Jerk',   icon:'🏋️‍♂️',baseHP:85000,  baseCooldown:49152000, repBaseCost:42500, unlockCost:170000,  unlocked:false },
-    { id:'snatch',name:'Snatch',         icon:'🏋️‍♀️',baseHP:110000, baseCooldown:98304000, repBaseCost:55000, unlockCost:220000,  unlocked:false },
-    { id:'halfmar',name:'Half Marathon', icon:'🎽',   baseHP:150000, baseCooldown:196608000,repBaseCost:75000, unlockCost:300000,  unlocked:false },
-    { id:'marathon',name:'Marathon',     icon:'🏁',   baseHP:200000, baseCooldown:393216000,repBaseCost:100000,unlockCost:400000,  unlocked:false },
-    { id:'ironcross',name:'Iron Cross',  icon:'🤸‍♂️', baseHP:260000, baseCooldown:786432000,repBaseCost:130000,unlockCost:520000,  unlocked:false }
-  ];
-  return { exercises:ex };
 })();
 
 /* Boot */
@@ -610,9 +641,12 @@ App.Content = (()=> {
     App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update();
   },{passive:false}));
 
+  // Keep HP indicators fresh via events
+  App.Bus.on('hp:change', ()=>{ App.UI.Renderer.forceTop(); });
+
   App.Engine.start();
   App.Engine.scheduleSave();
-  App.Notify.update(); // initial check for menu dot
+  App.Notify.update(); // initial dot state
 })();
 </script>
 </body>
