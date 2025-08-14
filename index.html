@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.0 Foundations (single-file)</title>
+<title>Fitness Frenzy – V4.1 Achievements + Tutorial FX (single-file)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -165,7 +165,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
   box-shadow:0 18px 36px rgba(0,0,0,.35);
 }
-.tutAvatar{font-size:64px;line-height:1}
+.tutAvatar{font-size:72px;line-height:1} /* larger emoji */
 .tutText{flex:1;font-size:clamp(18px,3.8vw,24px);line-height:1.35}
 .tutWho{font-weight:900;color:#ffd6a8;margin-bottom:4px;font-size:clamp(16px,3.4vw,20px)}
 .tutMore{font-size:12px;color:#a7b7cc;margin-top:6px}
@@ -177,7 +177,25 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 50%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 18px rgba(255,179,87,.28),0 0 32px rgba(255,179,87,.55)}
 100%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 16px rgba(255,179,87,.35)}}
 
-/* ===== Debug overlay (optional via ?debug=1) ===== */
+/* Tutorial bubble FX */
+.tutPop{animation:tutPop .32s cubic-bezier(.2,1.2,.3,1)}
+@keyframes tutPop{0%{transform:translateX(-50%) scale(.92); opacity:.0}70%{transform:translateX(-50%) scale(1.04); opacity:1}100%{transform:translateX(-50%) scale(1)}}
+.tutIdle{animation:tutIdle 2.6s ease-in-out infinite}
+@keyframes tutIdle{0%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}100%{transform:translateX(-50%) translateY(0)}}
+
+/* ===== Achievements ===== */
+.achGrid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:700px){ .achGrid{grid-template-columns:1fr 1fr;} }
+.ach{display:flex;gap:12px;align-items:center;background:#0c1525;border:1px solid #223556;border-radius:12px;padding:12px}
+.achIcon{width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:34px;border-radius:12px;background:#12243b;border:1px solid #1a2f4a}
+.achMid{flex:1;min-width:0}
+.achTitle{font-weight:900}
+.achDesc{color:#a7b7cc;font-size:14px;margin-top:2px}
+.achRight{display:flex;align-items:center;gap:8px}
+.badgeDone{padding:6px 10px;border-radius:999px;background:#15341f;border:1px solid #2a6a3f;color:#b6ffd0;font-weight:900;font-size:12px}
+.badgeRew{padding:6px 10px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;font-size:12px}
+
+/* ===== Debug overlay ===== */
 .debugPanel{position:fixed;right:10px;bottom:10px;z-index:9999;background:#0f1b2b;color:#fff;
   border:1px solid #2a4a78;border-radius:12px;padding:8px 10px;box-shadow:0 8px 20px rgba(0,0,0,.35);font-size:12px}
 .debugPanel button{margin:4px 4px 0 0}
@@ -231,7 +249,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
       <div class="menuBody">
         <div id="tab-coaches"></div>
         <div id="tab-upgrades" style="display:none"><p>Upgrades coming soon.</p></div>
-        <div id="tab-achievements" style="display:none"><p>Achievements coming soon.</p></div>
+        <div id="tab-achievements" style="display:none"></div>
         <div id="tab-quests" style="display:none"><p>Side Quests coming later.</p></div>
         <div id="tab-shop" style="display:none"><p>Shop coming soon.</p></div>
         <div id="tab-stats" style="display:none"></div>
@@ -255,12 +273,12 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   </div>
 
 <script>
-/* ================== Feature Flags (scaffold) ================== */
+/* ================== Feature Flags ================== */
 const App = {};
 App.Flags = {
   tutorial: true,
   coaches: true,
-  achievements: false,
+  achievements: true,
   shop: false,
   settings: true,
   debug: /[?&]debug=1/.test(location.search)
@@ -268,8 +286,8 @@ App.Flags = {
 
 /* ================== Config ================== */
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v400-foundation',
-  SCHEMA_VERSION: 3,           // bump for migration scaffold
+  SAVE_KEY: 'ff-v400-foundation',   // keep same key to preserve saves
+  SCHEMA_VERSION: 4,                // bump for achievements/stat migration
   DEC: 2,
   EPS: 1e-6,
   SOLID_CD_MS: 300,
@@ -290,15 +308,12 @@ App.Bus = (() => {
   };
 })();
 
-/* ================== Settings (user prefs) ================== */
+/* ================== Settings ================== */
 App.Settings = (() => {
   const KEY = App.Config.SAVE_KEY + ':prefs';
   const defaults = { sfx:true, floats:true };
   let prefs = { ...defaults };
-  try{
-    const raw = localStorage.getItem(KEY);
-    if(raw) prefs = { ...defaults, ...JSON.parse(raw) };
-  }catch{}
+  try{ const raw = localStorage.getItem(KEY); if(raw) prefs = { ...defaults, ...JSON.parse(raw) }; }catch{}
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(prefs)); }catch{} }
   function get(k){ return prefs[k]; }
   function set(k,v){ prefs[k]=v; save(); App.Bus.emit('settings:change',{key:k,val:v}); }
@@ -307,7 +322,7 @@ App.Settings = (() => {
 
 /* ================== Utils ================== */
 App.Util = (()=> {
-  const DEC = () => App.Config.DEC; // fixed at 2 for now
+  const DEC = () => App.Config.DEC;
   const fmtTop = n => {
     const a = Math.abs(n);
     if (a >= 1e9) return (n/1e9).toFixed(DEC())+'B';
@@ -320,22 +335,27 @@ App.Util = (()=> {
   return { fmtTop, fmtCost };
 })();
 
-/* ================== Audio (manual taps only) ================== */
+/* ================== Audio (manual taps + FX) ================== */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx || audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{});} }
   function unlock(){ ensure(); if(!audioCtx) return; try{ const b=audioCtx.createBuffer(1,1,22050); const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);}catch{} if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} needsUnlock=false; }
+  function tone(f, dur=.18, gain=.07, type='sine'){
+    try{
+      ensure(); if(!audioCtx) return;
+      const t=audioCtx.currentTime; const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+      o.type=type; o.frequency.setValueAtTime(f,t);
+      g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+      o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(t+dur);
+    }catch{}
+  }
   function sfx(type){
     if(!App.Settings.get('sfx')) return;
-    try{
-      ensure(); if(!audioCtx) return; if(audioCtx.state!=='running'){ needsUnlock=true; return; }
-      const t=audioCtx.currentTime;
-      const blip=(f,w='sine',dur=.18,vol=.07)=>{ const o=audioCtx.createOscillator(); o.type=w; o.frequency.setValueAtTime(f,t);
-        const g=audioCtx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-        o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(t+dur); };
-      if(type==='tap') blip(660,'sine',.12,.06);
-      if(type==='buy') blip(440,'sine',.18,.08);
-    }catch{}
+    if(!audioCtx || audioCtx.state!=='running'){ needsUnlock=true; return; }
+    if(type==='tap') tone(660,.12,.06,'sine');
+    if(type==='buy') tone(440,.18,.08,'sine');
+    if(type==='popup'){ tone(520,.10,.06,'triangle'); setTimeout(()=>tone(780,.08,.05,'triangle'),90); }
+    if(type==='achv'){ tone(600,.10,.07,'square'); setTimeout(()=>tone(800,.10,.06,'square'),110); setTimeout(()=>tone(1000,.12,.06,'square'),220); }
   }
   ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') needsUnlock=true; });
   ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
@@ -343,13 +363,50 @@ App.Audio = (()=> {
   return { sfx, unlock };
 })();
 
+/* ================== Effects (confetti, etc.) ================== */
+App.UI = {};
+App.UI.Effects = (()=> {
+  const colors = ['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab'];
+  function confetti(x,y,count=28){
+    const host=document.createElement('div'); host.style.position='fixed'; host.style.left='0'; host.style.top='0'; host.style.pointerEvents='none'; host.style.zIndex='4000';
+    document.body.appendChild(host);
+    const ww=window.innerWidth, wh=window.innerHeight;
+    for(let i=0;i<count;i++){
+      const d=document.createElement('div');
+      const size = 6 + Math.random()*6;
+      d.style.position='absolute';
+      d.style.left = (x + (Math.random()*120-60))+'px';
+      d.style.top  = (y + (Math.random()*40-20))+'px';
+      d.style.width=size+'px'; d.style.height=size+'px';
+      d.style.background=colors[i%colors.length];
+      d.style.transform=`rotate(${Math.random()*360}deg)`;
+      d.style.borderRadius = Math.random() < .4 ? '50%' : '2px';
+      d.style.opacity='0.95';
+      const dx = (Math.random()*2-1)* (ww*0.12);
+      const dy = (wh*0.25 + Math.random()*wh*0.15);
+      d.animate([
+        { transform:`translate(0,0) rotate(0deg)`, opacity:1 },
+        { transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`, opacity:0 }
+      ], { duration: 1200 + Math.random()*600, easing:'cubic-bezier(.2,.7,.2,1)', fill:'forwards' });
+      host.appendChild(d);
+    }
+    setTimeout(()=>host.remove(), 2000);
+  }
+  function confettiAtEl(el){
+    const r=el.getBoundingClientRect();
+    confetti(r.left + r.width/2, r.top + r.height/2);
+  }
+  return { confetti, confettiAtEl };
+})();
+
 /* ================== State + Migrations ================== */
 App.State = (()=> {
   const KEY=App.Config.SAVE_KEY;
   const s = {
     schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{},
-    stats:{manualTaps:0, autoTaps:0},
-    tutorial:{ done:false, stepId:null, avatar:'male', progress:{walkTaps:0, unlockJogDone:false, coachC1Done:false} }
+    stats:{manualTaps:0, autoTaps:0, totalEarned:0},
+    tutorial:{ done:false, stepId:null, avatar:'male', progress:{walkTaps:0, unlockJogDone:false, coachC1Done:false} },
+    achievements:{} // id -> true
   };
 
   function setExercises(list){
@@ -362,7 +419,7 @@ App.State = (()=> {
   function save(){
     localStorage.setItem(KEY, JSON.stringify({
       schemaVersion:s.schemaVersion,
-      hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,tutorial:s.tutorial,
+      hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,tutorial:s.tutorial,achievements:s.achievements,
       exercises:s.exercises.map(e=>({id:e.id,repHP:e.repHP,repProgress:e.repProgress,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown,level:e.level,lastTapAt:e.lastTapAt}))
     }));
   }
@@ -384,6 +441,7 @@ App.State = (()=> {
       s.schemaVersion=j.schemaVersion||App.Config.SCHEMA_VERSION;
       s.hp=j.hp??0; s.buyQty=j.buyQty??1; s.coachesOwned=j.coachesOwned||{}; s.stats=j.stats||s.stats;
       s.tutorial = j.tutorial || s.tutorial;
+      s.achievements = j.achievements || {};
       s.__loaded=j.exercises||[];
     }catch{}
   }
@@ -402,23 +460,18 @@ App.State = (()=> {
   return { s, setExercises, save, load, merge };
 })();
 
-/* ======= Migrations scaffold ======= */
+/* ======= Migrations ======= */
 App.Migrations = {
-  // Example migration path:
-  // 1 -> 2
-  1: (obj) => {
-    // (example) ensure stats exists
-    obj.stats = obj.stats || { manualTaps:0, autoTaps:0 };
-    obj.schemaVersion = 2;
-    return obj;
-  },
-  // 2 -> 3
+  1: (obj) => { obj.stats = obj.stats || { manualTaps:0, autoTaps:0 }; obj.schemaVersion = 2; return obj; },
   2: (obj) => {
-    // (example) backfill tutorial.progress keys
     obj.tutorial = obj.tutorial || { done:false, stepId:null, avatar:'male', progress:{} };
     obj.tutorial.progress = { walkTaps:0, unlockJogDone:false, coachC1Done:false, ...(obj.tutorial.progress||{}) };
-    obj.schemaVersion = 3;
-    return obj;
+    obj.schemaVersion = 3; return obj;
+  },
+  3: (obj) => {
+    obj.stats = { manualTaps:0, autoTaps:0, totalEarned:0, ...(obj.stats||{}) };
+    obj.achievements = obj.achievements || {};
+    obj.schemaVersion = 4; return obj;
   }
 };
 
@@ -462,6 +515,7 @@ App.Game = (()=> {
 
   function addHP(delta){
     S.hp += delta;
+    if(delta>0){ S.stats.totalEarned = (S.stats.totalEarned||0) + delta; }
     App.Bus.emit('hp:change', S.hp);
   }
 
@@ -559,7 +613,6 @@ App.Engine = (()=> {
 })();
 
 /* ================== UI helpers ================== */
-App.UI = {};
 App.UI.Banners = (()=> {
   function upgrade(text){
     const host=document.getElementById('bannerHost'); const el=document.createElement('div');
@@ -568,7 +621,6 @@ App.UI.Banners = (()=> {
   }
   return { upgrade };
 })();
-
 App.UI.Overlay = (()=> {
   let suppressFloats=false;
   function floatFrom(fromEl,text){
@@ -640,6 +692,74 @@ App.Coaches = (()=> {
     }
   }
   return { isAuto, getOwnedForExercise, renderList, list };
+})();
+
+/* ================== Achievements ================== */
+App.Achievements = (()=> {
+  if(!App.Flags.achievements){
+    return { checkAll(){}, render(){} };
+  }
+  const defs = [
+    { id:'first_steps', icon:'👣',  title:'First Steps',   desc:'Upgrade Walking to Lvl 2 (10/10).',   reward:50,
+      done:()=> lvl('walk')>=2 },
+    { id:'jog_unlocked', icon:'🏃', title:'Add to Routine',desc:'Unlock Jogging.',                      reward:100,
+      done:()=> unlocked('jog') },
+    { id:'first_coach', icon:'🧑‍🏫', title:'Coach On Duty',desc:'Hire Rookie Coach.',                   reward:200,
+      done:()=> ownedCoach('c1') },
+    { id:'speed_demon', icon:'⚡',  title:'Speed Demon',   desc:'Any exercise reaches ≤0.30s cooldown.',reward:150,
+      done:()=> App.State.s.exercises.some(e=>e.unlocked && Math.max(100,e.cooldown)<=300) },
+    { id:'routine_builder', icon:'📋', title:'Routine Builder',desc:'Unlock 4 exercises.',               reward:120,
+      done:()=> App.State.s.exercises.filter(e=>e.unlocked).length>=4 },
+    { id:'tapmaster', icon:'👉',   title:'Tap Master',     desc:'1,000 manual taps.',                   reward:180,
+      done:()=> (App.State.s.stats.manualTaps||0) >= 1000 },
+    { id:'hp_hoarder', icon:'💎',  title:'HP Hoarder',     desc:'Earn 100K lifetime HP.',               reward:300,
+      done:()=> (App.State.s.stats.totalEarned||0) >= 100000 }
+  ];
+  function unlocked(id){ const e=App.State.s.exercises.find(x=>x.id===id); return e && e.unlocked; }
+  function lvl(id){ const e=App.State.s.exercises.find(x=>x.id===id); return e? e.level:0; }
+  function ownedCoach(id){ return !!App.State.s.coachesOwned[id]; }
+
+  function grant(ach){
+    if(App.State.s.achievements[ach.id]) return;
+    App.State.s.achievements[ach.id]=true;
+    App.Game.addHP(ach.reward);
+    App.UI.Banners.upgrade(`Achievement: ${ach.title} • +${App.Util.fmtTop(ach.reward)} HP`);
+    App.Audio.sfx('achv');
+    // Confetti from top center
+    App.UI.Effects.confetti(window.innerWidth/2, 50, 36);
+    App.UI.Renderer.forceTop();
+    App.State.save();
+  }
+  function checkAll(){
+    for(const a of defs){ if(!App.State.s.achievements[a.id] && a.done()){ grant(a); } }
+  }
+  function render(){
+    const host=document.getElementById('tab-achievements'); if(!host) return;
+    const grid=document.createElement('div'); grid.className='achGrid';
+    for(const a of defs){
+      const done=!!App.State.s.achievements[a.id];
+      const card=document.createElement('div'); card.className='ach';
+      card.innerHTML = `
+        <div class="achIcon">${a.icon}</div>
+        <div class="achMid"><div class="achTitle">${a.title}</div><div class="achDesc">${a.desc}</div></div>
+        <div class="achRight">
+          <div class="badgeRew">+${App.Util.fmtTop(a.reward)} HP</div>
+          ${done?'<div class="badgeDone">Completed</div>':''}
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+    host.innerHTML='';
+    host.appendChild(grid);
+  }
+  // hook events
+  App.Bus.on('hp:change', checkAll);
+  App.Bus.on('reps:buy', checkAll);
+  App.Bus.on('exercise:levelup', checkAll);
+  App.Bus.on('exercise:unlock', checkAll);
+  App.Bus.on('coach:owned', checkAll);
+
+  return { checkAll, render };
 })();
 
 /* ================== Menu notifier (green dot) ================== */
@@ -789,7 +909,8 @@ App.UI.Renderer = (()=> {
     host.innerHTML = `
       <div class="coachIntro">
         <strong>Lifetime Stats</strong>
-        <div>Total HP: ${App.Util.fmtTop(App.State.s.hp)}</div>
+        <div>Total HP (current): ${App.Util.fmtTop(App.State.s.hp)}</div>
+        <div>Lifetime HP earned: ${App.Util.fmtTop(App.State.s.stats.totalEarned||0)}</div>
         <div>Manual taps: ${App.State.s.stats.manualTaps}</div>
         <div>Auto taps: ${App.State.s.stats.autoTaps}</div>
         <div>Exercises unlocked: ${unlocked} / ${App.State.s.exercises.length}</div>
@@ -804,7 +925,7 @@ App.UI.Renderer = (()=> {
     host.innerHTML = `
       <div class="coachIntro"><strong>Preferences</strong></div>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <label><input id="set-sfx" type="checkbox" ${prefs.sfx?'checked':''}/> Sound effects (manual taps)</label>
+        <label><input id="set-sfx" type="checkbox" ${prefs.sfx?'checked':''}/> Sound effects (manual taps & FX)</label>
         <label><input id="set-floats" type="checkbox" ${prefs.floats?'checked':''}/> Show +HP float text</label>
       </div>
       <hr style="border:0;border-top:1px solid #223556;margin:12px 0">
@@ -835,26 +956,21 @@ App.UI.Renderer = (()=> {
     document.getElementById('btn-import').onclick = ()=>{
       io.style.display='block'; txt.value = '';
       txt.placeholder = 'Paste your exported JSON here and press "Import Save" again to confirm.';
-      // Confirm second click: attempt import
       document.getElementById('btn-import').onclick = ()=>{
         try{
           const obj = JSON.parse(txt.value||'{}');
           if(!obj || typeof obj!=='object') throw new Error('Invalid JSON');
           localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify(obj));
-          alert('Save imported. Reloading…');
-          location.reload();
+          alert('Save imported. Reloading…'); location.reload();
         }catch(e){ alert('Import failed: ' + e.message); }
       };
     };
     document.getElementById('btn-clear').onclick = ()=>{
       if(confirm('This clears your game save (not preferences). Proceed?')){
-        localStorage.removeItem(App.Config.SAVE_KEY);
-        location.reload();
+        localStorage.removeItem(App.Config.SAVE_KEY); location.reload();
       }
     };
-    document.getElementById('ioCopy').onclick = ()=>{
-      txt.select(); document.execCommand('copy');
-    };
+    document.getElementById('ioCopy').onclick = ()=>{ txt.select(); document.execCommand('copy'); };
     document.getElementById('ioDownload').onclick = ()=>{
       const blob = new Blob([txt.value||'{}'], {type:'application/json'});
       const a=document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='fitness-frenzy-save.json'; a.click();
@@ -863,19 +979,20 @@ App.UI.Renderer = (()=> {
     document.getElementById('ioClose').onclick = ()=>{ io.style.display='none'; };
   }
 
+  function buildAchievements(){ App.Achievements.render(); }
+
   function wireMenu(){
     refs.menuBtn.addEventListener('click', ()=>{
       refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false');
       App.UI.Overlay.suppressFloats=true;
-      // Default tab content
       switchTab('coaches');
       App.Notify.update();
+      document.dispatchEvent(new Event('menu:open'));
     });
     refs.menuClose.addEventListener('click', ()=>{ refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
     refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ refs.menuClose.click(); }});
     document.addEventListener('keydown',e=>{ if(e.key==='Escape') refs.menuClose.click(); });
 
-    // Tabs
     refs.tabsWrap.querySelectorAll('.menuTab').forEach(btn=>{
       btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
     });
@@ -887,6 +1004,7 @@ App.UI.Renderer = (()=> {
       if(tab==='coaches') App.Coaches.renderList();
       if(tab==='stats') buildStats();
       if(tab==='settings') buildSettings();
+      if(tab==='achievements') buildAchievements();
     }
   }
 
@@ -970,7 +1088,7 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* ================== Tutorial (P1–P3) ================== */
+/* ================== Tutorial (P1–P3) with FX ================== */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){
     return { init(){}, start(){}, end(){}, repositionSpot(){} };
@@ -1003,7 +1121,7 @@ App.Tutorial = (()=> {
   }
 
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; App.UI.Overlay.suppressFloats=true; }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); }
   function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
   function setTextHTML(html){ line.innerHTML=html; }
 
@@ -1030,10 +1148,21 @@ App.Tutorial = (()=> {
       const L = curStep.lines[lineIdx];
       setSpeaker(L.who, L.icon);
       setTextHTML(L.html);
+      App.Audio.sfx('popup');
     } else if(curStep.onLinesDone){
       curStep.onLinesDone();
     }
   });
+
+  function popInFX(){
+    bubble.classList.remove('tutPop'); void bubble.offsetWidth; // restart
+    bubble.classList.add('tutPop');
+    bubble.classList.add('tutIdle');       // gentle hover
+    App.Audio.sfx('popup');
+    // small confetti burst near the bubble
+    const r=bubble.getBoundingClientRect();
+    App.UI.Effects.confetti(r.left + r.width*0.5, r.top + 10, 20);
+  }
 
   function setStepById(id){
     const s = steps.find(x=>x.id===id);
@@ -1041,7 +1170,7 @@ App.Tutorial = (()=> {
     curStep = s; S.tutorial.stepId = s.id; App.State.save();
     lineIdx=0; bubble.style.display='';
     const L = s.lines[0]; setSpeaker(L.who, L.icon); setTextHTML(L.html);
-    show();
+    show(); setTimeout(popInFX, 10);
   }
   function goTo(id){ hideSpot(); gateStop(); setStepById(id); }
   function mark(flag){ S.tutorial.progress[flag]=true; App.State.save(); }
@@ -1102,7 +1231,6 @@ App.Tutorial = (()=> {
         hide(); S.tutorial.stepId = null; App.State.save();
       }
     },
-    // Phase 3A: Unlock Jogging when affordable & locked
     {
       id:'unlock-jog',
       lines:[
@@ -1129,7 +1257,6 @@ App.Tutorial = (()=> {
         hide(); S.tutorial.stepId=null; App.State.save();
       }
     },
-    // Phase 3B: Hire first coach when affordable and not owned
     {
       id:'coach-intro',
       lines:[
@@ -1159,6 +1286,8 @@ App.Tutorial = (()=> {
             if(id!=='c1') return;
             off(); hideSpot(); gateStop(); hide(); S.tutorial.stepId=null; mark('coachC1Done'); App.State.save();
             App.UI.Banners.upgrade('Rookie Coach hired! Walking is now automated.');
+            App.UI.Effects.confetti(window.innerWidth/2, 50, 30);
+            App.Audio.sfx('achv');
             finishIfAllDone();
           });
         }, 50);
@@ -1196,11 +1325,7 @@ App.Tutorial = (()=> {
     if(exId==='walk'){ S.tutorial.progress.walkTaps++; App.State.save(); }
   });
 
-  function start(){
-    if(S.tutorial.done){ return; }
-    if(!S.tutorial.stepId){ setStepById('intro-walk'); }
-  }
-
+  function start(){ if(S.tutorial.done){ return; } if(!S.tutorial.stepId){ setStepById('intro-walk'); } }
   function init(){
     window.addEventListener('resize', repositionSpot);
     document.addEventListener('scroll', repositionSpot, true);
@@ -1276,6 +1401,9 @@ App.Tutorial = (()=> {
   if(!App.State.s.tutorial.done){
     setTimeout(()=>App.Tutorial.start(), 350);
   }
+
+  // Initial achievements check for existing saves
+  if(App.Flags.achievements){ setTimeout(()=>App.Achievements.checkAll(), 600); }
 })();
 </script>
 </body>
