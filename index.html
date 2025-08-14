@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.9.3 – Tutorial Phase 3</title>
+<title>Fitness Frenzy – V4.0 Foundations (single-file)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -176,6 +176,11 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes spotPulse{0%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 16px rgba(255,179,87,.35)}
 50%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 18px rgba(255,179,87,.28),0 0 32px rgba(255,179,87,.55)}
 100%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 16px rgba(255,179,87,.35)}}
+
+/* ===== Debug overlay (optional via ?debug=1) ===== */
+.debugPanel{position:fixed;right:10px;bottom:10px;z-index:9999;background:#0f1b2b;color:#fff;
+  border:1px solid #2a4a78;border-radius:12px;padding:8px 10px;box-shadow:0 8px 20px rgba(0,0,0,.35);font-size:12px}
+.debugPanel button{margin:4px 4px 0 0}
 </style>
 </head>
 <body>
@@ -221,6 +226,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
         <button class="menuTab" data-tab="quests">Side Quests</button>
         <button class="menuTab" data-tab="shop">Shop</button>
         <button class="menuTab" data-tab="stats">Stats</button>
+        <button class="menuTab" data-tab="settings">Settings</button>
       </div>
       <div class="menuBody">
         <div id="tab-coaches"></div>
@@ -228,7 +234,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
         <div id="tab-achievements" style="display:none"><p>Achievements coming soon.</p></div>
         <div id="tab-quests" style="display:none"><p>Side Quests coming later.</p></div>
         <div id="tab-shop" style="display:none"><p>Shop coming soon.</p></div>
-        <div id="tab-stats" style="display:none"><p>Stats placeholder.</p></div>
+        <div id="tab-stats" style="display:none"></div>
+        <div id="tab-settings" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -248,13 +255,21 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   </div>
 
 <script>
-/* ================= Architecture Core ================= */
+/* ================== Feature Flags (scaffold) ================== */
 const App = {};
+App.Flags = {
+  tutorial: true,
+  coaches: true,
+  achievements: false,
+  shop: false,
+  settings: true,
+  debug: /[?&]debug=1/.test(location.search)
+};
 
-/* Config */
+/* ================== Config ================== */
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v393-tutP3',   /* new key for this build */
-  SCHEMA_VERSION: 2,
+  SAVE_KEY: 'ff-v400-foundation',
+  SCHEMA_VERSION: 3,           // bump for migration scaffold
   DEC: 2,
   EPS: 1e-6,
   SOLID_CD_MS: 300,
@@ -265,7 +280,7 @@ App.Config = Object.freeze({
   OFFLINE_MAX_MS: 12*60*60*1000
 });
 
-/* Event bus */
+/* ================== Bus ================== */
 App.Bus = (() => {
   const m = {};
   return {
@@ -275,27 +290,43 @@ App.Bus = (() => {
   };
 })();
 
-/* Utils */
+/* ================== Settings (user prefs) ================== */
+App.Settings = (() => {
+  const KEY = App.Config.SAVE_KEY + ':prefs';
+  const defaults = { sfx:true, floats:true };
+  let prefs = { ...defaults };
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw) prefs = { ...defaults, ...JSON.parse(raw) };
+  }catch{}
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(prefs)); }catch{} }
+  function get(k){ return prefs[k]; }
+  function set(k,v){ prefs[k]=v; save(); App.Bus.emit('settings:change',{key:k,val:v}); }
+  return { get, set, save, all:()=>({...prefs}) };
+})();
+
+/* ================== Utils ================== */
 App.Util = (()=> {
-  const { DEC } = App.Config;
+  const DEC = () => App.Config.DEC; // fixed at 2 for now
   const fmtTop = n => {
     const a = Math.abs(n);
-    if (a >= 1e9) return (n/1e9).toFixed(DEC)+'B';
-    if (a >= 1e6) return (n/1e6).toFixed(DEC)+'M';
-    if (a >= 1e3) return (n/1e3).toFixed(DEC)+'K';
-    return n.toFixed(DEC);
+    if (a >= 1e9) return (n/1e9).toFixed(DEC())+'B';
+    if (a >= 1e6) return (n/1e6).toFixed(DEC())+'M';
+    if (a >= 1e3) return (n/1e3).toFixed(DEC())+'K';
+    return n.toFixed(DEC());
   };
-  const fmtCost = n => n<1e3? n.toFixed(DEC)
-    : (n<1e6? (n/1e3).toFixed(DEC)+'K' : (n<1e9? (n/1e6).toFixed(DEC)+'M' : (n/1e9).toFixed(DEC)+'B'));
+  const fmtCost = n => n<1e3? n.toFixed(DEC())
+    : (n<1e6? (n/1e3).toFixed(DEC())+'K' : (n<1e9? (n/1e6).toFixed(DEC())+'M' : (n/1e9).toFixed(DEC())+'B'));
   return { fmtTop, fmtCost };
 })();
 
-/* Audio (manual taps only) */
+/* ================== Audio (manual taps only) ================== */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx || audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{});} }
   function unlock(){ ensure(); if(!audioCtx) return; try{ const b=audioCtx.createBuffer(1,1,22050); const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);}catch{} if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} needsUnlock=false; }
   function sfx(type){
+    if(!App.Settings.get('sfx')) return;
     try{
       ensure(); if(!audioCtx) return; if(audioCtx.state!=='running'){ needsUnlock=true; return; }
       const t=audioCtx.currentTime;
@@ -308,46 +339,90 @@ App.Audio = (()=> {
   }
   ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') needsUnlock=true; });
   ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
+  App.Bus.on('settings:change', ({key,val})=>{ if(key==='sfx' && val){ unlock(); } });
   return { sfx, unlock };
 })();
 
-/* State */
+/* ================== State + Migrations ================== */
 App.State = (()=> {
   const KEY=App.Config.SAVE_KEY;
   const s = {
     schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{},
     stats:{manualTaps:0, autoTaps:0},
-    tutorial:{ 
-      done:false, stepId:null, avatar:'male',
-      progress:{walkTaps:0, unlockJogDone:false, coachC1Done:false}
-    }
+    tutorial:{ done:false, stepId:null, avatar:'male', progress:{walkTaps:0, unlockJogDone:false, coachC1Done:false} }
   };
+
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
       repHP:0, repProgress:0, repTarget:10, level:1,
       cooldown:e.baseCooldown, lastTapAt:0, _autoElapsed:0, els:{}
     }));
   }
-  function save(){ localStorage.setItem(KEY, JSON.stringify({
-    schemaVersion:s.schemaVersion,
-    hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,tutorial:s.tutorial,
-    exercises:s.exercises.map(e=>({id:e.id,repHP:e.repHP,repProgress:e.repProgress,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown,level:e.level,lastTapAt:e.lastTapAt}))
-  }));}
-  function load(){ const raw=localStorage.getItem(KEY); if(!raw) return; try{ const j=JSON.parse(raw);
-    s.schemaVersion=j.schemaVersion||1;
-    s.hp=j.hp??0; s.buyQty=j.buyQty??1; s.coachesOwned=j.coachesOwned||{}; s.stats=j.stats||s.stats;
-    s.tutorial = j.tutorial || s.tutorial;
-    s.__loaded=j.exercises||[];
-  }catch{}}
-  function merge(){ if(!s.__loaded) return; for(const se of s.__loaded){ const e=s.exercises.find(x=>x.id===se.id); if(!e) continue;
-    e.repHP=se.repHP??0; e.repProgress=se.repProgress??0; e.repTarget=se.repTarget??10; e.unlocked=se.unlocked??e.unlocked;
-    e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt=(se.lastTapAt ?? 0);
-    if(!e.unlocked){ e.lastTapAt=-1; }
-  } delete s.__loaded; }
+
+  function save(){
+    localStorage.setItem(KEY, JSON.stringify({
+      schemaVersion:s.schemaVersion,
+      hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,tutorial:s.tutorial,
+      exercises:s.exercises.map(e=>({id:e.id,repHP:e.repHP,repProgress:e.repProgress,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown,level:e.level,lastTapAt:e.lastTapAt}))
+    }));
+  }
+
+  function migrateIfNeeded(obj){
+    let v = obj.schemaVersion || 1;
+    while(v < App.Config.SCHEMA_VERSION){
+      if(App.Migrations[v]){ obj = App.Migrations[v](obj) || obj; v = (obj.schemaVersion||v+1); }
+      else { v++; obj.schemaVersion=v; }
+    }
+    return obj;
+  }
+
+  function load(){
+    const raw=localStorage.getItem(KEY); if(!raw) return;
+    try{
+      let j=JSON.parse(raw);
+      j = migrateIfNeeded(j);
+      s.schemaVersion=j.schemaVersion||App.Config.SCHEMA_VERSION;
+      s.hp=j.hp??0; s.buyQty=j.buyQty??1; s.coachesOwned=j.coachesOwned||{}; s.stats=j.stats||s.stats;
+      s.tutorial = j.tutorial || s.tutorial;
+      s.__loaded=j.exercises||[];
+    }catch{}
+  }
+
+  function merge(){
+    if(!s.__loaded) return;
+    for(const se of s.__loaded){
+      const e=s.exercises.find(x=>x.id===se.id); if(!e) continue;
+      e.repHP=se.repHP??0; e.repProgress=se.repProgress??0; e.repTarget=se.repTarget??10; e.unlocked=se.unlocked??e.unlocked;
+      e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt=(se.lastTapAt ?? 0);
+      if(!e.unlocked){ e.lastTapAt=-1; }
+    }
+    delete s.__loaded;
+  }
+
   return { s, setExercises, save, load, merge };
 })();
 
-/* Content (20 exercises) */
+/* ======= Migrations scaffold ======= */
+App.Migrations = {
+  // Example migration path:
+  // 1 -> 2
+  1: (obj) => {
+    // (example) ensure stats exists
+    obj.stats = obj.stats || { manualTaps:0, autoTaps:0 };
+    obj.schemaVersion = 2;
+    return obj;
+  },
+  // 2 -> 3
+  2: (obj) => {
+    // (example) backfill tutorial.progress keys
+    obj.tutorial = obj.tutorial || { done:false, stepId:null, avatar:'male', progress:{} };
+    obj.tutorial.progress = { walkTaps:0, unlockJogDone:false, coachC1Done:false, ...(obj.tutorial.progress||{}) };
+    obj.schemaVersion = 3;
+    return obj;
+  }
+};
+
+/* ================== Content (20 exercises) ================== */
 App.Content = (()=> {
   const ex = [
     { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
@@ -374,7 +449,7 @@ App.Content = (()=> {
   return { exercises:ex };
 })();
 
-/* Game logic & economy */
+/* ================== Game logic & economy ================== */
 App.Game = (()=> {
   const { EPS, REP_GROWTH } = App.Config;
   const S = App.State.s;
@@ -421,7 +496,7 @@ App.Game = (()=> {
   return { perTap, bulkRepCost, addReps, tap, addHP };
 })();
 
-/* Engine */
+/* ================== Engine ================== */
 App.Engine = (()=> {
   const { SOLID_CD_MS, SAVE_MS, UI_REFRESH_MS, NOTIFY_REFRESH_MS } = App.Config;
   let last=performance.now();
@@ -451,7 +526,9 @@ App.Engine = (()=> {
         const g = App.Game.perTap(e);
         App.Game.addHP(g);
         s.stats.autoTaps++;
-        if(!App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(App.Config.DEC)}`); }
+        if(App.Settings.get('floats') && !App.UI.Overlay.suppressFloats && e.els.tapPad){
+          App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(App.Config.DEC)}`);
+        }
       }
     }
   }
@@ -481,7 +558,7 @@ App.Engine = (()=> {
   return { start, scheduleSave, bindPress, updateCooldown };
 })();
 
-/* UI helpers */
+/* ================== UI helpers ================== */
 App.UI = {};
 App.UI.Banners = (()=> {
   function upgrade(text){
@@ -495,13 +572,14 @@ App.UI.Banners = (()=> {
 App.UI.Overlay = (()=> {
   let suppressFloats=false;
   function floatFrom(fromEl,text){
+    if(!App.Settings.get('floats')) return;
     const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
     span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);
   }
   return { floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };
 })();
 
-/* Coaches */
+/* ================== Coaches ================== */
 App.Coaches = (()=> {
   const coaches = [
     { id:'c1',  name:'Rookie Coach',     icon:'🧑‍🏫', price:   1500,      target:'walk' },
@@ -538,7 +616,7 @@ App.Coaches = (()=> {
 
       const right=document.createElement('div'); right.className='coachRight';
       const btn=document.createElement('button'); btn.className='hireBtn secondary';
-      btn.dataset.coachId = c.id;  /* <<< hook for tutorial */
+      btn.dataset.coachId = c.id;
       btn.textContent = owned ? 'Owned' : `Hire • ${App.Util.fmtCost(c.price)} HP`;
       if(owned){ btn.disabled=true; }
       right.appendChild(btn);
@@ -564,7 +642,7 @@ App.Coaches = (()=> {
   return { isAuto, getOwnedForExercise, renderList, list };
 })();
 
-/* Menu notifier (green dot) */
+/* ================== Menu notifier (green dot) ================== */
 App.Notify = (()=> {
   const dot = document.getElementById('menuDot');
   function coachAvailable(){
@@ -585,7 +663,7 @@ App.Notify = (()=> {
   return { update };
 })();
 
-/* Cards + Renderer */
+/* ================== Cards + Renderer ================== */
 App.UI.Cards = (()=> {
   const { bindPress } = App.Engine; const { perTap, tap, addReps, bulkRepCost } = App.Game; const { sfx, unlock } = App.Audio;
   function makeExerciseCard(e){
@@ -623,7 +701,7 @@ App.UI.Cards = (()=> {
 
     if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
 
-    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
+    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); if(App.Settings.get('floats')) App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
 
     bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
 
@@ -645,10 +723,12 @@ App.UI.Cards = (()=> {
 App.UI.Renderer = (()=> {
   const refs={ stack:document.getElementById('stack'), hp:document.getElementById('hp'), hpMenu:document.getElementById('hpMenu'),
                qtyTop:document.getElementById('qtyTop'), saveBtn:document.getElementById('saveBtn'), resetBtn:document.getElementById('resetBtn'),
-               menuBtn:document.getElementById('menuBtn'), menuOverlay:document.getElementById('menuOverlay'), menuClose:document.getElementById('menuClose') };
+               menuBtn:document.getElementById('menuBtn'), menuOverlay:document.getElementById('menuOverlay'), menuClose:document.getElementById('menuClose'),
+               tabsWrap:document.querySelector('.menuTabs'), menuBody:document.querySelector('.menuBody') };
   const { fmtTop, fmtCost } = App.Util; const { perTap, bulkRepCost } = App.Game; const { s } = App.State;
 
   let shownHP = 0;
+
   function renderStack(){ App.State.merge(); refs.stack.innerHTML=''; for(const e of s.exercises){ const card=App.UI.Cards.makeExerciseCard(e); refs.stack.appendChild(card); refreshExerciseUI(e); } }
   function forceTop(){ shownHP=s.hp; renderTopNow(); }
   function renderTopNow(){ const txt = fmtTop(shownHP); refs.hp.textContent=txt; if(refs.hpMenu) refs.hpMenu.textContent=txt; }
@@ -702,17 +782,118 @@ App.UI.Renderer = (()=> {
 
   function refreshAll(){ renderTopNow(); for(const e of App.State.s.exercises) refreshExerciseUI(e); }
 
+  function buildStats(){
+    const host = document.getElementById('tab-stats');
+    const owned = Object.keys(App.State.s.coachesOwned).length;
+    const unlocked = App.State.s.exercises.filter(e=>e.unlocked).length;
+    host.innerHTML = `
+      <div class="coachIntro">
+        <strong>Lifetime Stats</strong>
+        <div>Total HP: ${App.Util.fmtTop(App.State.s.hp)}</div>
+        <div>Manual taps: ${App.State.s.stats.manualTaps}</div>
+        <div>Auto taps: ${App.State.s.stats.autoTaps}</div>
+        <div>Exercises unlocked: ${unlocked} / ${App.State.s.exercises.length}</div>
+        <div>Coaches hired: ${owned} / ${App.Coaches.list().length}</div>
+      </div>
+    `;
+  }
+
+  function buildSettings(){
+    const host = document.getElementById('tab-settings');
+    const prefs = App.Settings.all();
+    host.innerHTML = `
+      <div class="coachIntro"><strong>Preferences</strong></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label><input id="set-sfx" type="checkbox" ${prefs.sfx?'checked':''}/> Sound effects (manual taps)</label>
+        <label><input id="set-floats" type="checkbox" ${prefs.floats?'checked':''}/> Show +HP float text</label>
+      </div>
+      <hr style="border:0;border-top:1px solid #223556;margin:12px 0">
+      <div class="coachIntro"><strong>Save Management</strong></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btn-export" class="btn primary">Export Save</button>
+        <button id="btn-import" class="btn secondary">Import Save</button>
+        <button id="btn-clear" class="btn secondary">Clear Save</button>
+      </div>
+      <div id="ioArea" style="margin-top:10px;display:none">
+        <textarea id="ioText" style="width:100%;height:160px;background:#0c1525;color:#cfe0ff;border:1px solid #223556;border-radius:8px;padding:8px"></textarea>
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="ioCopy" class="btn secondary">Copy</button>
+          <button id="ioDownload" class="btn secondary">Download JSON</button>
+          <button id="ioClose" class="btn secondary">Close</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('set-sfx').onchange = e => App.Settings.set('sfx', !!e.target.checked);
+    document.getElementById('set-floats').onchange = e => App.Settings.set('floats', !!e.target.checked);
+
+    const io = document.getElementById('ioArea'), txt = document.getElementById('ioText');
+    document.getElementById('btn-export').onclick = ()=>{
+      const payload = localStorage.getItem(App.Config.SAVE_KEY) || '{}';
+      txt.value = payload; io.style.display='block';
+      txt.focus(); txt.select();
+    };
+    document.getElementById('btn-import').onclick = ()=>{
+      io.style.display='block'; txt.value = '';
+      txt.placeholder = 'Paste your exported JSON here and press "Import Save" again to confirm.';
+      // Confirm second click: attempt import
+      document.getElementById('btn-import').onclick = ()=>{
+        try{
+          const obj = JSON.parse(txt.value||'{}');
+          if(!obj || typeof obj!=='object') throw new Error('Invalid JSON');
+          localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify(obj));
+          alert('Save imported. Reloading…');
+          location.reload();
+        }catch(e){ alert('Import failed: ' + e.message); }
+      };
+    };
+    document.getElementById('btn-clear').onclick = ()=>{
+      if(confirm('This clears your game save (not preferences). Proceed?')){
+        localStorage.removeItem(App.Config.SAVE_KEY);
+        location.reload();
+      }
+    };
+    document.getElementById('ioCopy').onclick = ()=>{
+      txt.select(); document.execCommand('copy');
+    };
+    document.getElementById('ioDownload').onclick = ()=>{
+      const blob = new Blob([txt.value||'{}'], {type:'application/json'});
+      const a=document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='fitness-frenzy-save.json'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 500);
+    };
+    document.getElementById('ioClose').onclick = ()=>{ io.style.display='none'; };
+  }
+
   function wireMenu(){
-    refs.menuBtn.addEventListener('click', ()=>{ refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; App.Coaches.renderList(); App.Notify.update(); });
+    refs.menuBtn.addEventListener('click', ()=>{
+      refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false');
+      App.UI.Overlay.suppressFloats=true;
+      // Default tab content
+      switchTab('coaches');
+      App.Notify.update();
+    });
     refs.menuClose.addEventListener('click', ()=>{ refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
     refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ refs.menuClose.click(); }});
     document.addEventListener('keydown',e=>{ if(e.key==='Escape') refs.menuClose.click(); });
+
+    // Tabs
+    refs.tabsWrap.querySelectorAll('.menuTab').forEach(btn=>{
+      btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+    });
+
+    function switchTab(tab){
+      refs.tabsWrap.querySelectorAll('.menuTab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+      const ids = ['coaches','upgrades','achievements','quests','shop','stats','settings'];
+      ids.forEach(id=> document.getElementById('tab-'+id).style.display = (id===tab?'block':'none'));
+      if(tab==='coaches') App.Coaches.renderList();
+      if(tab==='stats') buildStats();
+      if(tab==='settings') buildSettings();
+    }
   }
 
-  return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu };
+  return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu, buildStats, buildSettings };
 })();
 
-/* ===== Cooldown ready normalizer ===== */
+/* ================== Fix: normalize cooldown ready ================== */
 App.Fix = (() => {
   function normalizeCooldownStamps(){
     for (const e of App.State.s.exercises){
@@ -727,7 +908,7 @@ App.Fix = (() => {
   return { normalizeCooldownStamps };
 })();
 
-/* Offline gains */
+/* ================== Offline gains ================== */
 App.Offline = (()=> {
   const KEY_TS='ff-last-active';
   const ov = () => document.getElementById('offOv');
@@ -786,11 +967,14 @@ App.Offline = (()=> {
   window.addEventListener('pagehide', saveNow);
   window.addEventListener('beforeunload', saveNow);
 
-  return { checkAndShow, saveNow };
+  return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* ===== Tutorial (Phase 1–3) ===== */
+/* ================== Tutorial (P1–P3) ================== */
 App.Tutorial = (()=> {
+  if(!App.Flags.tutorial){
+    return { init(){}, start(){}, end(){}, repositionSpot(){} };
+  }
   const S = App.State.s;
   const ov = document.getElementById('tutOv');
   const bubble = document.getElementById('tutBubble');
@@ -800,7 +984,6 @@ App.Tutorial = (()=> {
   const spot = document.getElementById('tutSpot');
   let active=false, gating=false, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null, waitUpgradeOff=null;
 
-  /* Gating */
   function gateStart(allowSelectors){
     allowed = allowSelectors || [];
     gating = true;
@@ -819,7 +1002,6 @@ App.Tutorial = (()=> {
     if(!okay){ e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); }
   }
 
-  /* Overlay controls */
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; App.UI.Overlay.suppressFloats=true; }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); }
   function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
@@ -841,7 +1023,6 @@ App.Tutorial = (()=> {
   function hideSpot(){ spot.style.display='none'; lastSpotSel=null; }
   function repositionSpot(){ if(active && lastSpotSel) showSpotFor(lastSpotSel); }
 
-  /* Bubble advance */
   bubble.addEventListener('click', ()=>{
     if(!active || !curStep) return;
     if(lineIdx < curStep.lines.length-1){
@@ -854,7 +1035,6 @@ App.Tutorial = (()=> {
     }
   });
 
-  /* Step helpers */
   function setStepById(id){
     const s = steps.find(x=>x.id===id);
     if(!s) return;
@@ -866,9 +1046,7 @@ App.Tutorial = (()=> {
   function goTo(id){ hideSpot(); gateStop(); setStepById(id); }
   function mark(flag){ S.tutorial.progress[flag]=true; App.State.save(); }
 
-  /* Steps (Phase 1–3) */
   const steps = [
-    // Phase 1: Intro & 4 taps
     {
       id:'intro-walk',
       lines:[
@@ -888,7 +1066,6 @@ App.Tutorial = (()=> {
         });
       }
     },
-    // Phase 2: Buy Reps & wait for real upgrade
     {
       id:'reps-walk',
       lines:[
@@ -897,7 +1074,6 @@ App.Tutorial = (()=> {
         { who:'JAX', icon:'🏋️‍♂️', html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.' }
       ],
       onLinesDone(){
-        // Force ×1 to avoid accidental ×10
         try{
           App.State.s.buyQty = 1;
           const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');
@@ -905,12 +1081,10 @@ App.Tutorial = (()=> {
           if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); }
           App.UI.Renderer.refreshAll();
         }catch{}
-        // Highlight Reps for the first buy
         showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]');
         gateStart(['.card[data-id="walk"] .btn[data-role="reps"]']);
         bubble.style.display='none';
 
-        // After first Reps buy, free play; then wait for true upgrade
         const offBuy = App.Bus.on('reps:buy', ({exId})=>{
           if(exId!=='walk') return;
           offBuy(); hideSpot(); gateStop();
@@ -925,10 +1099,7 @@ App.Tutorial = (()=> {
       id:'upgrade-walk',
       lines:[ { who:'JAX', icon:'🏋️‍♂️', html:'<span class="hl">Upgrade!</span> Cooldown just halved. Faster taps → faster HP.' } ],
       onLinesDone(){
-        hide(); // free play begins
-        S.tutorial.stepId = null;
-        App.State.save();
-        // After Phase 2, start watching for Phase 3 triggers
+        hide(); S.tutorial.stepId = null; App.State.save();
       }
     },
     // Phase 3A: Unlock Jogging when affordable & locked
@@ -979,7 +1150,6 @@ App.Tutorial = (()=> {
         { who:'JAX', icon:'🏋️‍♂️', html:'Hire <span class="hl">Rookie Coach</span> to automate <span class="hl">Walking</span>.' }
       ],
       onLinesDone(){
-        // Ensure list is rendered
         App.Coaches.renderList();
         setTimeout(()=>{
           showSpotFor('.hireBtn[data-coach-id="c1"].ready');
@@ -996,7 +1166,6 @@ App.Tutorial = (()=> {
     }
   ];
 
-  /* Watchers to trigger Phase 3 steps at the right time */
   function canStartUnlockJog(){
     const s=App.State.s;
     if(S.tutorial.progress.unlockJogDone) return false;
@@ -1012,9 +1181,7 @@ App.Tutorial = (()=> {
     return c1 && walk && walk.unlocked && (s.hp + App.Config.EPS) >= c1.price;
   }
   function checkTriggers(){
-    // If a step is active, do nothing
     if(active || S.tutorial.stepId) return;
-    // Priority: unlocking Jogging first, then hiring Coach
     if(canStartUnlockJog()){ setStepById('unlock-jog'); return; }
     if(canStartCoachC1()){ setStepById('coach-intro'); return; }
     finishIfAllDone();
@@ -1025,21 +1192,18 @@ App.Tutorial = (()=> {
     }
   }
 
-  /* Track taps for 4-tap threshold */
   App.Bus.on('tap:manual', ({exId})=>{
     if(exId==='walk'){ S.tutorial.progress.walkTaps++; App.State.save(); }
   });
 
   function start(){
     if(S.tutorial.done){ return; }
-    // If returning to a mid-tutorial state, bounce to the right step or check triggers
     if(!S.tutorial.stepId){ setStepById('intro-walk'); }
   }
 
   function init(){
     window.addEventListener('resize', repositionSpot);
     document.addEventListener('scroll', repositionSpot, true);
-    // Menu open/close hooks for the tutorial
     const { menuOverlay } = App.UI.Renderer.refs;
     const mo = new MutationObserver(()=>{ 
       const open = menuOverlay.classList.contains('open');
@@ -1047,7 +1211,6 @@ App.Tutorial = (()=> {
     });
     mo.observe(menuOverlay, { attributes:true, attributeFilter:['class'] });
 
-    // Trigger checks
     App.Bus.on('hp:change', checkTriggers);
     App.Bus.on('exercise:unlock', checkTriggers);
     App.Bus.on('coach:owned', checkTriggers);
@@ -1056,7 +1219,31 @@ App.Tutorial = (()=> {
   return { init, start, end:()=>{}, repositionSpot };
 })();
 
-/* Boot */
+/* ================== Debug overlay ================== */
+(function debugPanel(){
+  if(!App.Flags.debug) return;
+  const box=document.createElement('div');
+  box.className='debugPanel';
+  box.innerHTML=`
+    <div><strong>Debug</strong></div>
+    <div>HP: <span id="dbgHp">0</span></div>
+    <button id="dbg1k" class="btn secondary">+1K HP</button>
+    <button id="dbg10m" class="btn secondary">Sim +10m</button>
+    <button id="dbgSave" class="btn secondary">Save</button>
+  `;
+  document.body.appendChild(box);
+  const hpv=box.querySelector('#dbgHp');
+  setInterval(()=>{ hpv.textContent = App.Util.fmtTop(App.State.s.hp); }, 250);
+  box.querySelector('#dbg1k').onclick = ()=> App.Game.addHP(1000);
+  box.querySelector('#dbg10m').onclick = ()=>{
+    const gain = App.Offline._debugSummarize(10*60*1000);
+    App.Game.addHP(gain);
+    App.UI.Banners.upgrade(`Debug: +${App.Util.fmtTop(gain)} HP`);
+  };
+  box.querySelector('#dbgSave').onclick = ()=> App.State.save();
+})();
+
+/* ================== Boot ================== */
 (function boot(){
   // Prevent double-tap zoom
   let lastTouchEnd=0; document.addEventListener('touchend',e=>{const n=Date.now(); if(n-lastTouchEnd<=300){e.preventDefault();} lastTouchEnd=n;},{passive:false});
@@ -1065,7 +1252,6 @@ App.Tutorial = (()=> {
   App.State.load(); App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
 
-  // Normalize to "ready"
   App.Fix.normalizeCooldownStamps();
   App.UI.Renderer.refreshAll();
 
