@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.4 Start Screen + First-Unlock JAX</title>
+<title>Fitness Frenzy – V4.6 (Start overlay polish)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -38,7 +38,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .seg{display:inline-flex;border:1px solid #2b3d5a;border-radius:10px;overflow:hidden}
 .segBtn{background:#13233b;color:#cfe0ff;border:0;padding:8px 12px;font-weight:800;cursor:pointer}
 .segBtn.active{background:var(--accent);color:#fff}
-.btn{position:relative;overflow:hidden;padding:10px 14px;border:none;border-radius:12px;font-weight:700;cursor:pointer}
+.btn{position:relative;overflow:hidden;padding:12px 18px;border:none;border-radius:14px;font-weight:800;cursor:pointer;transform:translateZ(0)}
 .btn.primary{background:var(--accent);color:#fff}
 .btn.secondary{background:#1a2a40;color:#d7e3f5}
 .btn.ghost{background:#13233b;color:#cfe0ff;border:1px solid #2b3d5a}
@@ -156,30 +156,22 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 /* ===== Tutorial overlay ===== */
 .tutOv{position:fixed;inset:0;z-index:8000;display:none;pointer-events:none}
 .tutOv.show{display:block}
-.tutOv.modal{pointer-events:auto} /* modal: block interactions behind */
+.tutOv.modal{pointer-events:auto}
 .tutDim{position:absolute;inset:0;background:rgba(0,0,0,.22);pointer-events:none}
-.tutOv.modal .tutDim{pointer-events:auto} /* capture clicks to prevent background taps */
-.tutBubble{
-  position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);
-  max-width:min(980px,96vw);
-  background:#0f1b2b;border:2px solid #2a4a78;border-radius:18px;
-  padding:22px 24px;
-  color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
-  box-shadow:0 18px 36px rgba(0,0,0,.35);
-}
+.tutOv.modal .tutDim{pointer-events:auto}
+.tutBubble{position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);max-width:min(980px,96vw);
+  background:#0f1b2b;border:2px solid #2a4a78;border-radius:18px;padding:22px 24px;color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
+  box-shadow:0 18px 36px rgba(0,0,0,.35)}
 .tutAvatar{font-size:72px;line-height:1}
 .tutText{flex:1;font-size:clamp(18px,3.8vw,24px);line-height:1.35}
 .tutWho{font-weight:900;color:#ffd6a8;margin-bottom:4px;font-size:clamp(16px,3.4vw,20px)}
 .tutMore{font-size:12px;color:#a7b7cc;margin-top:6px}
 .tutChevron{margin-left:8px;font-size:14px;color:#ffb357}
 .hl{color:var(--accent); font-weight:900}
-.tutSpot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);
-  animation:spotPulse 1.2s ease-in-out infinite;pointer-events:none}
+.tutSpot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);animation:spotPulse 1.2s ease-in-out infinite;pointer-events:none}
 @keyframes spotPulse{0%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 16px rgba(255,179,87,.35)}
 50%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 18px rgba(255,179,87,.28),0 0 32px rgba(255,179,87,.55)}
 100%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 16px rgba(255,179,87,.35)}}
-
-/* Tutorial bubble FX */
 .tutPop{animation:tutPop .32s cubic-bezier(.2,1.2,.3,1)}
 @keyframes tutPop{0%{transform:translateX(-50%) scale(.92); opacity:.0}70%{transform:translateX(-50%) scale(1.04); opacity:1}100%{transform:translateX(-50%) scale(1)}}
 .tutIdle{animation:tutIdle 2.6s ease-in-out infinite}
@@ -200,20 +192,30 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 /* ===== Start Screen ===== */
 .startOv{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;pointer-events:auto}
 .startOv.open{display:flex}
-.startBg{position:absolute;inset:0;background:#0a1320 url('https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Cover-Art.png') center/cover no-repeat;filter:brightness(.84);}
-.startScrim{position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,.25), rgba(0,0,0,.55) 70%)}
-.startCard{
+.startPlate{position:absolute;inset:0;background:url('https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Cover-Art.png') center/cover no-repeat;filter:blur(14px) brightness(.75);opacity:.9}
+.startBackdrop{position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,.25), rgba(0,0,0,.55) 70%)}
+.startFrame{
   position:relative; z-index:1;
-  width:min(720px,92vw);
+  width:min(96vw,1100px); height:min(92vh,1200px);
   border-radius:18px; border:1px solid rgba(255,255,255,.08);
-  background:rgba(10,19,32,.52); backdrop-filter: blur(6px);
-  padding:20px; color:#fff; text-align:center; box-shadow:0 12px 28px rgba(0,0,0,.45);
+  background:rgba(10,19,32,.50); backdrop-filter: blur(6px);
+  box-shadow:0 12px 28px rgba(0,0,0,.45);
+  overflow:hidden; display:flex; align-items:center; justify-content:center;
 }
-.startTitle{font-weight:900;font-size:clamp(28px,6vw,40px);letter-spacing:.5px;margin:6px 0 14px}
-.startBtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0 6px}
-.startSub{margin-top:10px; display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap}
-.startSub .segBtn{padding:8px 12px}
-.startBrand{margin-top:6px;color:#ffb357;font-weight:800;font-size:13px;letter-spacing:.3px}
+.startImgWrap{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000;}
+.startImgWrap img{width:100%; height:100%; object-fit:contain; pointer-events:none;}
+.startUI{
+  position:absolute; left:50%; bottom:5.5vh; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:12px; width:min(92%,680px);
+}
+.startBtns{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+.btn.lg{font-size:clamp(18px,4.5vw,22px); padding:14px 24px; border-radius:16px}
+.startAvatar{display:flex; gap:10px; align-items:center; justify-content:center}
+.startAvatar .segBtn{font-size:22px; padding:10px 14px}
+.popIn{animation:popIn .45s cubic-bezier(.2,1.2,.3,1)}
+@keyframes popIn{0%{transform:translate(-50%,10px) scale(.92);opacity:0}70%{transform:translate(-50%,-2px) scale(1.04);opacity:1}100%{transform:translate(-50%,0) scale(1)}}
+.btnBounce:hover{animation:btnHover .7s ease-out}
+@keyframes btnHover{0%{transform:translateY(0)}50%{transform:translateY(-3px)}100%{transform:translateY(0)}}
 </style>
 </head>
 <body>
@@ -231,22 +233,25 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 
   <!-- Start Screen -->
   <div id="startOv" class="startOv open" aria-hidden="false">
-    <div class="startBg"></div>
-    <div class="startScrim"></div>
-    <div class="startCard">
-      <div class="startTitle">Fitness Frenzy</div>
-      <div class="startBtns">
-        <button id="btnStart" class="btn primary">Start</button>
-        <button id="btnContinue" class="btn secondary">Continue</button>
+    <div class="startPlate"></div>
+    <div class="startBackdrop"></div>
+    <div class="startFrame">
+      <div class="startImgWrap">
+        <img id="startCoverImg" alt="Fitness Frenzy Cover" src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Cover-Art.png">
       </div>
-      <div class="startSub">
-        <span>Avatar:</span>
-        <div class="seg" id="segAvatar">
-          <button class="segBtn" data-avatar="male">♂ Male</button>
-          <button class="segBtn" data-avatar="female">♀ Female</button>
+      <div id="startUI" class="startUI popIn">
+        <div class="startBtns">
+          <button id="btnStart" class="btn primary lg btnBounce">Start</button>
+          <button id="btnContinue" class="btn secondary lg btnBounce">Continue</button>
+        </div>
+        <div class="startAvatar">
+          <span style="opacity:.9">Avatar:</span>
+          <div class="seg" id="segAvatar">
+            <button class="segBtn" data-avatar="male" title="Male">🧍‍♂️</button>
+            <button class="segBtn" data-avatar="female" title="Female">🧍‍♀️</button>
+          </div>
         </div>
       </div>
-      <div class="startBrand">A little color makes a big difference.</div>
     </div>
   </div>
 
@@ -309,32 +314,22 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   </div>
 
 <script>
-/* ================== Feature Flags ================== */
+/* ================== Flags/Config ================== */
 const App = {};
-App.Flags = {
-  tutorial: true,
-  coaches: true,
-  achievements: true,
-  shop: false,
-  settings: true,
-  debug: /[?&]debug=1/.test(location.search)
-};
-
-/* ================== Config ================== */
+App.Flags = { tutorial:true, coaches:true, achievements:true, shop:false, settings:true, debug:/[?&]debug=1/.test(location.search) };
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v400-foundation',
-  SCHEMA_VERSION: 5,
-  DEC: 2,
-  EPS: 1e-6,
-  SOLID_CD_MS: 300,
-  REP_GROWTH: 1.12,
-  SAVE_MS: 20000,
-  UI_REFRESH_MS: 100,
-  NOTIFY_REFRESH_MS: 200,
-  OFFLINE_MAX_MS: 12*60*60*1000
+  SAVE_KEY:'ff-v400-foundation',
+  SCHEMA_VERSION:5,
+  DEC:2, EPS:1e-6,
+  SOLID_CD_MS:300,
+  REP_GROWTH:1.12,
+  SAVE_MS:20000,
+  UI_REFRESH_MS:100,
+  NOTIFY_REFRESH_MS:200,
+  OFFLINE_MAX_MS:12*60*60*1000
 });
 
-/* ================== Bus ================== */
+/* ================== Event Bus ================== */
 App.Bus = (() => {
   const m = {};
   return {
@@ -351,9 +346,7 @@ App.Settings = (() => {
   let prefs = { ...defaults };
   try{ const raw = localStorage.getItem(KEY); if(raw) prefs = { ...defaults, ...JSON.parse(raw) }; }catch{}
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(prefs)); }catch{} }
-  function get(k){ return prefs[k]; }
-  function set(k,v){ prefs[k]=v; save(); App.Bus.emit('settings:change',{key:k,val:v}); }
-  return { get, set, save, all:()=>({...prefs}) };
+  return { get:(k)=>prefs[k], set:(k,v)=>{ prefs[k]=v; save(); App.Bus.emit('settings:change',{key:k,val:v}); }, all:()=>({...prefs}) };
 })();
 
 /* ================== Utils ================== */
@@ -399,7 +392,7 @@ App.Audio = (()=> {
   return { sfx, unlock };
 })();
 
-/* ================== Effects ================== */
+/* ================== Visual FX ================== */
 App.UI = {};
 App.UI.Effects = (()=> {
   const colors = ['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab'];
@@ -435,7 +428,17 @@ App.UI.Effects = (()=> {
   return { confetti, confettiAtEl };
 })();
 
-/* ================== State + Migrations ================== */
+App.UI.Overlay = (()=> {
+  let suppressFloats=false;
+  function floatFrom(fromEl,text){
+    if(!App.Settings.get('floats')) return;
+    const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
+    span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);
+  }
+  return { floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };
+})();
+
+/* ================== State + Migration ================== */
 App.State = (()=> {
   const KEY=App.Config.SAVE_KEY;
   const s = {
@@ -500,24 +503,15 @@ App.State = (()=> {
   return { s, setExercises, save, load, merge };
 })();
 
-/* ======= Migrations ======= */
 App.Migrations = {
   1: (obj) => { obj.stats = obj.stats || { manualTaps:0, autoTaps:0 }; obj.schemaVersion = 2; return obj; },
-  2: (obj) => {
-    obj.tutorial = obj.tutorial || { done:false, stepId:null, avatar:'male', progress:{} };
-    obj.tutorial.progress = { walkTaps:0, unlockJogDone:false, coachC1Done:false, ...(obj.tutorial.progress||{}) };
-    obj.schemaVersion = 3; return obj;
-  },
-  3: (obj) => {
-    obj.stats = { manualTaps:0, autoTaps:0, totalEarned:0, ...(obj.stats||{}) };
-    obj.achievements = obj.achievements || {};
-    obj.schemaVersion = 4; return obj;
-  },
-  4: (obj) => {
-    obj.tutorial = obj.tutorial || {};
-    obj.tutorial.shown = obj.tutorial.shown || { unlock:{}, coach:{}, upgrade:{} };
-    obj.schemaVersion = 5; return obj;
-  }
+  2: (obj) => { obj.tutorial = obj.tutorial || { done:false, stepId:null, avatar:'male', progress:{} };
+               obj.tutorial.progress = { walkTaps:0, unlockJogDone:false, coachC1Done:false, ...(obj.tutorial.progress||{}) };
+               obj.schemaVersion = 3; return obj; },
+  3: (obj) => { obj.stats = { manualTaps:0, autoTaps:0, totalEarned:0, ...(obj.stats||{}) };
+               obj.achievements = obj.achievements || {}; obj.schemaVersion = 4; return obj; },
+  4: (obj) => { obj.tutorial = obj.tutorial || {}; obj.tutorial.shown = obj.tutorial.shown || { unlock:{}, coach:{}, upgrade:{} };
+               obj.schemaVersion = 5; return obj; }
 };
 
 /* ================== Content (20 exercises) ================== */
@@ -547,12 +541,12 @@ App.Content = (()=> {
   return { exercises:ex };
 })();
 
-/* ================== Game logic & economy ================== */
+/* ================== Game Logic ================== */
 App.Game = (()=> {
   const { EPS, REP_GROWTH } = App.Config;
   const S = App.State.s;
 
-  const perTap = e => e.baseHP + e.repHP; // +1 per rep
+  const perTap = e => e.baseHP + e.repHP; // +1 HP per Rep
   const bulkRepCost=(e,q)=>{
     const base=e.repBaseCost*Math.pow(REP_GROWTH,e.repHP);
     return +(base*(Math.pow(REP_GROWTH,q)-1)/(REP_GROWTH-1)).toFixed(App.Config.DEC);
@@ -657,7 +651,7 @@ App.Engine = (()=> {
   return { start, scheduleSave, bindPress, updateCooldown };
 })();
 
-/* ================== UI helpers ================== */
+/* ================== Banners ================== */
 App.UI.Banners = (()=> {
   function upgrade(text){
     const host=document.getElementById('bannerHost'); const el=document.createElement('div');
@@ -665,15 +659,6 @@ App.UI.Banners = (()=> {
     host.appendChild(el); setTimeout(()=>el.remove(),3600);
   }
   return { upgrade };
-})();
-App.UI.Overlay = (()=> {
-  let suppressFloats=false;
-  function floatFrom(fromEl,text){
-    if(!App.Settings.get('floats')) return;
-    const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
-    span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);
-  }
-  return { floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };
 })();
 
 /* ================== Coaches ================== */
@@ -1069,7 +1054,7 @@ App.Fix = (() => {
   return { normalizeCooldownStamps };
 })();
 
-/* ================== Offline gains ================== */
+/* ================== Offline Gains ================== */
 App.Offline = (()=> {
   const KEY_TS='ff-last-active';
   const ov = () => document.getElementById('offOv');
@@ -1131,7 +1116,7 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* ================== Tutorial (event-driven prompts; first unlock only) ================== */
+/* ================== Tutorial (first unlock only + upgrades + coaches) ================== */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){
     return { init(){}, start(){}, end(){}, repositionSpot(){} };
@@ -1170,7 +1155,6 @@ App.Tutorial = (()=> {
   function repositionSpot(){ if(active && lastSpotSel) showSpotFor(lastSpotSel); }
   window.addEventListener('resize', repositionSpot); document.addEventListener('scroll', repositionSpot, true);
 
-  // Gating for intro
   function gateStart(allowSelectors){
     allowed = allowSelectors || [];
     gating = true;
@@ -1218,7 +1202,7 @@ App.Tutorial = (()=> {
   });
   ov.querySelector('.tutDim').addEventListener('click', ()=>{ if(active && curStep && !gating) bubble.click(); });
 
-  /* ---------- Gated intro ---------- */
+  /* Intro: walk taps -> show Reps */
   function startIntro(){
     setStep({
       id:'intro-walk',
@@ -1271,31 +1255,29 @@ App.Tutorial = (()=> {
     }, true);
   }
 
-  /* ---------- Event-driven soft prompts (first unlock only) ---------- */
-  function now(){ return performance.now(); }
-  function menuOpen(){ return document.getElementById('menuOverlay')?.classList.contains('open'); }
+  /* Soft prompts: only first unlock (Jogging), upgrades, and coach availability */
+  let lastPrompt = 0; const now = ()=>performance.now();
   function canPrompt(){
     if(active || gating) return false;
-    if(menuOpen()) return false;
-    return (now()-lastPromptAt) >= PROMPT_GAP_MS;
+    if(document.getElementById('menuOverlay')?.classList.contains('open')) return false;
+    return (now()-lastPrompt) >= 3000;
   }
-  function markPrompt(){ lastPromptAt = now(); }
+  function markPrompt(){ lastPrompt = now(); }
 
-  function promptUnlockFor(ex){
-    if(S.tutorial.shown.unlock[ex.id]) return;
-    if(ex.unlocked) return;
+  function promptUnlockJog(jog){
+    if(S.tutorial.shown.unlock[jog.id]) return;
     setStep({
       lines:[
-        { who:'JAX', icon:'🏋️‍♂️', html:`Time to add to your routine. Unlock <span class="hl">${ex.name}</span> for <span class="hl">${App.Util.fmtTop(ex.unlockCost)} HP</span>.` },
+        { who:'JAX', icon:'🏋️‍♂️', html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.` },
         { who:'JAX', icon:'🏋️‍♂️', html:'Tap the <span class="hl">Unlock</span> pill when ready.' }
       ],
-      onLinesDone(){ S.tutorial.shown.unlock[ex.id]=true; App.State.save(); hide(); }
+      onLinesDone(){ S.tutorial.shown.unlock[jog.id]=true; App.State.save(); hide(); }
     }, true);
-    showSpotFor(`.card[data-id="${ex.id}"] .costPill`);
+    showSpotFor(`.card[data-id="${jog.id}"] .costPill`);
     markPrompt();
   }
 
-  function promptUpgradeFor(ex){
+  function promptUpgrade(ex){
     if(S.tutorial.shown.upgrade[ex.id]) return;
     setStep({
       lines:[ { who:'JAX', icon:'🏋️‍♂️', html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.` } ],
@@ -1305,7 +1287,7 @@ App.Tutorial = (()=> {
     markPrompt();
   }
 
-  function promptCoachIfAvailable(){
+  function promptCoach(){
     const s=App.State.s;
     const exById = Object.fromEntries(s.exercises.map(e=>[e.id,e]));
     for(const c of App.Coaches.list()){
@@ -1330,19 +1312,12 @@ App.Tutorial = (()=> {
     if(!canPrompt()) return;
     const s=App.State.s;
 
-    // Upgrade prompts (all exercises)
-    for(const e of s.exercises){
-      if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgradeFor(e); return; }
-    }
+    for(const e of s.exercises){ if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgrade(e); return; } }
 
-    // ✅ Only announce the FIRST unlock (Jogging). No prompts for later unlocks.
     const jog = s.exercises.find(e=>e.id==='jog');
-    if(jog && !jog.unlocked && !S.tutorial.shown.unlock[jog.id] && (s.hp + App.Config.EPS >= jog.unlockCost)){
-      promptUnlockFor(jog); return;
-    }
+    if(jog && !jog.unlocked && !S.tutorial.shown.unlock[jog.id] && (s.hp + App.Config.EPS >= jog.unlockCost)){ promptUnlockJog(jog); return; }
 
-    // Coach availability prompt as usual
-    promptCoachIfAvailable();
+    promptCoach();
   }
 
   App.Bus.on('hp:change', checkTriggers);
@@ -1350,21 +1325,22 @@ App.Tutorial = (()=> {
   App.Bus.on('coach:owned', checkTriggers);
   App.Bus.on('exercise:levelup', ({exId})=>{
     const ex = App.State.s.exercises.find(x=>x.id===exId);
-    if(ex) promptUpgradeFor(ex);
+    if(ex) promptUpgrade(ex);
   });
 
-  function init(){ /* listeners already set */ }
+  function init(){}
   function start(){ if(!S.tutorial.done){ startIntro(); } }
 
-  return { init, start, end:()=>{}, repositionSpot };
+  return { init, start, end:()=>{}, repositionSpot:()=>{} , repositionSpot};
 })();
 
-/* ================== Start Screen UI ================== */
+/* ================== Start Screen ================== */
 App.UI.Start = (() => {
   const ov = document.getElementById('startOv');
   const btnStart = document.getElementById('btnStart');
   const btnCont = document.getElementById('btnContinue');
   const seg = document.getElementById('segAvatar');
+  const ui = document.getElementById('startUI');
 
   function setAvatar(av){
     App.State.s.tutorial.avatar = av;
@@ -1372,8 +1348,29 @@ App.UI.Start = (() => {
     App.State.save();
   }
 
+  function emojiBurstAround(el){
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width/2, y = r.top + r.height/2;
+    const emojis = ['💪','🏃','🔥','⭐','🎉'];
+    for(let i=0;i<14;i++){
+      const span = document.createElement('div');
+      span.textContent = emojis[i%emojis.length];
+      span.style.position='fixed';
+      span.style.left=(x+(Math.random()*120-60))+'px';
+      span.style.top=(y+(Math.random()*30-15))+'px';
+      span.style.fontSize=(18+Math.random()*12)+'px';
+      span.style.pointerEvents='none';
+      span.style.zIndex='9100';
+      document.body.appendChild(span);
+      span.animate([
+        { transform:'translate(0,0) scale(1)', opacity:1 },
+        { transform:`translate(${(Math.random()*2-1)*160}px, -${60+Math.random()*80}px) scale(${.9+Math.random()*.4})`, opacity:0 }
+      ], { duration: 900+Math.random()*400, easing:'cubic-bezier(.2,.7,.2,1)', fill:'forwards' });
+      setTimeout(()=>span.remove(), 1500);
+    }
+  }
+
   function init(){
-    // Default avatar based on prior save or male
     const cur = App.State.s.tutorial.avatar || 'male';
     setAvatar(cur);
     seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> setAvatar(b.dataset.avatar)));
@@ -1381,7 +1378,6 @@ App.UI.Start = (() => {
     btnStart.addEventListener('click', ()=>{
       hide();
       if(!App.State.s.tutorial.done){ App.Tutorial.start(); }
-      // After entering, check offline gains
       setTimeout(()=>App.Offline.checkAndShow(), 50);
     });
     btnCont.addEventListener('click', ()=>{
@@ -1392,36 +1388,17 @@ App.UI.Start = (() => {
 
   function show(){
     ov.classList.add('open'); ov.setAttribute('aria-hidden','false');
+    // pizzazz
+    try{
+      ui.classList.remove('popIn'); void ui.offsetWidth; ui.classList.add('popIn');
+      App.Audio.sfx('popup');
+      emojiBurstAround(ui);
+      App.UI.Effects.confetti(window.innerWidth/2, window.innerHeight*0.15, 24);
+    }catch{}
   }
-  function hide(){
-    ov.classList.remove('open'); ov.setAttribute('aria-hidden','true');
-  }
+  function hide(){ ov.classList.remove('open'); ov.setAttribute('aria-hidden','true'); }
 
   return { init, show, hide };
-})();
-
-/* ================== Debug overlay ================== */
-(function debugPanel(){
-  if(!App.Flags.debug) return;
-  const box=document.createElement('div');
-  box.className='debugPanel';
-  box.innerHTML=`
-    <div><strong>Debug</strong></div>
-    <div>HP: <span id="dbgHp">0</span></div>
-    <button id="dbg1k" class="btn secondary">+1K HP</button>
-    <button id="dbg10m" class="btn secondary">Sim +10m</button>
-    <button id="dbgSave" class="btn secondary">Save</button>
-  `;
-  document.body.appendChild(box);
-  const hpv=box.querySelector('#dbgHp');
-  setInterval(()=>{ hpv.textContent = App.Util.fmtTop(App.State.s.hp); }, 250);
-  box.querySelector('#dbg1k').onclick = ()=> App.Game.addHP(1000);
-  box.querySelector('#dbg10m').onclick = ()=>{
-    const gain = App.Offline._debugSummarize(10*60*1000);
-    App.Game.addHP(gain);
-    App.UI.Banners.upgrade(`Debug: +${App.Util.fmtTop(gain)} HP`);
-  };
-  box.querySelector('#dbgSave').onclick = ()=> App.State.save();
 })();
 
 /* ================== Boot ================== */
