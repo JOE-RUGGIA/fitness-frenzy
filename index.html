@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.7-arch</title>
+<title>Fitness Frenzy – V3.8-offline1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -11,13 +11,14 @@
   --space:clamp(10px,2.2vw,18px); --r:16px; --fs-2:clamp(18px,3.2vw,22px); --repband:16%;
 }
 *{box-sizing:border-box}
-html,body{height:100%; touch-action:manipulation;}
+html,body{height:100%; touch-action:manipulation; overflow-x:hidden;}
 body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);
      padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0;}
 button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 
-/* Sticky Top Bar */
-.topbar{position:sticky;top:0;z-index:60;background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
+/* Sticky Top Bar (reinforced) */
+.topbar{position:sticky; position:-webkit-sticky; top:0; z-index:1000;
+  background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .title{display:flex;align-items:center;gap:10px}
 .title .icon{font-size:clamp(22px,5vw,28px)}
@@ -142,6 +143,15 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .hireBtn{padding:12px 18px;font-size:16px;border-radius:12px}
 .hireBtn.secondary{background:#1a2a40;color:#d7e3f5}
 .hireBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
+
+/* Offline modal */
+.offOverlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);z-index:7000;display:none;align-items:center;justify-content:center}
+.offOverlay.open{display:flex}
+.offCard{width:min(520px,94vw);background:#0f1b2b;border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center}
+.offTitle{font-weight:900;font-size:20px;margin:0 0 6px}
+.offSub{color:#cfe0ff;margin:0 0 12px}
+.offGain{font-size:26px;font-weight:900;color:#fff;margin:12px 0}
+.offNote{color:#a7b7cc;font-size:13px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -159,6 +169,17 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 
   <div class="wrap"><div id="stack" class="stack"></div></div>
   <div id="bannerHost"></div>
+
+  <!-- Offline modal -->
+  <div id="offOv" class="offOverlay" aria-hidden="true">
+    <div class="offCard" role="dialog" aria-modal="true">
+      <h3 class="offTitle">Welcome back! 👋</h3>
+      <p class="offSub">Your coaches trained while you were away (<span id="offDur">0s</span>).</p>
+      <div class="offGain">+<span id="offAmt">0.00</span> HP</div>
+      <button id="offClaim" class="btn primary">Claim</button>
+      <div id="offCapNote" class="offNote" style="display:none">Note: Offline gains capped for long absences.</div>
+    </div>
+  </div>
 
   <!-- Menu -->
   <div id="menuOverlay" class="menuOverlay" aria-hidden="true">
@@ -192,26 +213,28 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 /* ================= Architecture Core ================= */
 const App = {};
 
-/* Config (single source of truth) */
+/* Config */
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v36-stable3',   // preserve saves
   SCHEMA_VERSION: 1,
-  DEC: 2,                       // decimals everywhere
-  EPS: 1e-6,                    // float tolerance
-  SOLID_CD_MS: 300,             // cooldown bar solid threshold
-  REP_GROWTH: 1.12,             // rep price growth per rep
+  DEC: 2,
+  EPS: 1e-6,
+  SOLID_CD_MS: 300,             // cooldown bar goes solid at <= 0.30s
+  REP_GROWTH: 1.12,             // rep cost growth per rep (12%)
   SAVE_MS: 20000,
   UI_REFRESH_MS: 100,
   NOTIFY_REFRESH_MS: 200,
+  OFFLINE_MAX_MS: 12*60*60*1000 // cap offline gains at 12h (tunable)
 });
 
-/* Event bus (tiny pub/sub) */
+/* Event bus */
 App.Bus = (() => {
   const m = {};
-  function on(ev, fn){ (m[ev]||(m[ev]=[])).push(fn); return () => off(ev, fn); }
-  function off(ev, fn){ const a=m[ev]; if(!a) return; const i=a.indexOf(fn); if(i>=0) a.splice(i,1); }
-  function emit(ev, payload){ const a=m[ev]; if(!a) return; for(const f of a.slice()) try{ f(payload); }catch{} }
-  return { on, off, emit };
+  return {
+    on(ev, fn){ (m[ev]||(m[ev]=[])).push(fn); return () => this.off(ev, fn); },
+    off(ev, fn){ const a=m[ev]; if(!a) return; const i=a.indexOf(fn); if(i>=0) a.splice(i,1); },
+    emit(ev, payload){ const a=m[ev]; if(!a) return; for(const f of a.slice()) try{ f(payload); }catch{} }
+  };
 })();
 
 /* Utils */
@@ -308,14 +331,12 @@ App.Game = (()=> {
   const { EPS, REP_GROWTH } = App.Config;
   const S = App.State.s;
 
-  // Core economic primitives
   const perTap = e => e.baseHP + e.repHP; // +1 per rep
   const bulkRepCost=(e,q)=>{
     const base=e.repBaseCost*Math.pow(REP_GROWTH,e.repHP);
     return +(base*(Math.pow(REP_GROWTH,q)-1)/(REP_GROWTH-1)).toFixed(App.Config.DEC);
   };
 
-  // Single point of truth for HP mutations
   function addHP(delta){
     S.hp += delta;
     App.Bus.emit('hp:change', S.hp);
@@ -441,7 +462,7 @@ App.Coaches = (()=> {
   function list(){ return coaches.slice(); }
   function renderList(){
     const host=document.getElementById('tab-coaches');
-    host.innerHTML = `<div class="coachIntro">Coaches automatically tap a specific exercise for you. They respect the cooldown (no sounds).</div>`;
+    host.innerHTML = `<div class="coachIntro">Coaches automatically tap a specific exercise for you. They respect the cooldown and don’t play sounds.</div>`;
     const listEl=document.createElement('div'); listEl.className='coachList'; host.appendChild(listEl);
 
     const exById=Object.fromEntries(App.State.s.exercises.map(e=>[e.id,e]));
@@ -499,7 +520,6 @@ App.Notify = (()=> {
     return false;
   }
   function update(){ if(!dot) return; dot.classList.toggle('show', coachAvailable()); }
-  // react to events
   App.Bus.on('hp:change', update);
   App.Bus.on('coach:owned', update);
   return { update };
@@ -522,8 +542,9 @@ App.UI.Cards = (()=> {
     const coolWrap=document.createElement('div'); coolWrap.className='coolwrap'; coolWrap.innerHTML=`<div class="coolbar"><div class="coolfill"></div></div>`;
 
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
-    const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(App.Config.DEC)}</strong> HP</span>`;
-    const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Add Reps';
+    // per your request: just the HP amount (no "Per Tap")
+    const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv"><strong class="kvTap">${perTap(e).toFixed(App.Config.DEC)}</strong> HP</span>`;
+    const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Reps';
     metaRow.appendChild(kvs); metaRow.appendChild(buyBtn);
 
     const costLine=document.createElement('div'); costLine.className='costLine';
@@ -543,7 +564,9 @@ App.UI.Cards = (()=> {
     if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
 
     bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
+
     bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
+
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
       App.Game.addHP(-e.unlockCost);
       e.unlocked=true; sfx('buy');
@@ -595,7 +618,7 @@ App.UI.Renderer = (()=> {
 
     if(e.unlocked && e.els.buyBtn){
       const qty = s.buyQty||1, cost = bulkRepCost(e, qty), canBuy = s.hp + App.Config.EPS >= cost;
-      e.els.buyBtn.textContent = (qty===1?`Add Reps (${fmtCost(cost)} HP)`: `Add ${qty} Reps (${fmtCost(cost)} HP)`);
+      e.els.buyBtn.textContent = (qty===1?`Reps (${fmtCost(cost)} HP)`: `×${qty} Reps (${fmtCost(cost)} HP)`);
       e.els.buyBtn.disabled = !canBuy;
       e.els.buyBtn.classList.toggle('primary', canBuy);
       e.els.buyBtn.classList.toggle('secondary', !canBuy);
@@ -623,6 +646,63 @@ App.UI.Renderer = (()=> {
   return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu };
 })();
 
+/* Offline gains */
+App.Offline = (()=> {
+  const KEY_TS='ff-last-active';
+  const ov = () => document.getElementById('offOv');
+  const amtEl = () => document.getElementById('offAmt');
+  const durEl = () => document.getElementById('offDur');
+  const capEl = () => document.getElementById('offCapNote');
+
+  function saveNow(){ try{ localStorage.setItem(KEY_TS, Date.now().toString()); }catch{} }
+
+  function summarize(ms){
+    let earned=0;
+    const s=App.State.s;
+    for(const e of s.exercises){
+      if(!e.unlocked) continue;
+      if(!App.Coaches.isAuto(e.id)) continue;
+      const cd = Math.max(100, e.cooldown);
+      const taps = Math.floor(ms / cd);
+      if(taps<=0) continue;
+      earned += taps * App.Game.perTap(e);
+    }
+    return earned;
+  }
+
+  function fmtDuration(ms){
+    let sec=Math.floor(ms/1000);
+    const h=Math.floor(sec/3600); sec%=3600;
+    const m=Math.floor(sec/60); sec%=60;
+    const parts=[]; if(h) parts.push(h+'h'); if(m) parts.push(m+'m'); if(sec||!parts.length) parts.push(sec+'s');
+    return parts.join(' ');
+  }
+
+  function checkAndShow(){
+    const last = parseInt(localStorage.getItem(KEY_TS)||'0',10);
+    const now = Date.now();
+    if(last>0){
+      const delta = now - last;
+      const capped = Math.min(delta, App.Config.OFFLINE_MAX_MS);
+      const gained = summarize(capped);
+      if(gained>0){
+        amtEl().textContent = App.Util.fmtTop(gained);
+        durEl().textContent = fmtDuration(capped);
+        capEl().style.display = (delta>capped) ? 'block' : 'none';
+        ov().classList.add('open');
+        document.getElementById('offClaim').onclick=()=>{ App.Game.addHP(gained); ov().classList.remove('open'); };
+      }
+    }
+    saveNow();
+  }
+
+  window.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden'){ saveNow(); } });
+  window.addEventListener('pagehide', saveNow);
+  window.addEventListener('beforeunload', saveNow);
+
+  return { checkAndShow, saveNow };
+})();
+
 /* Boot */
 (function boot(){
   // Prevent double-tap zoom
@@ -641,12 +721,13 @@ App.UI.Renderer = (()=> {
     App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update();
   },{passive:false}));
 
-  // Keep HP indicators fresh via events
+  // keep HP indicators fresh
   App.Bus.on('hp:change', ()=>{ App.UI.Renderer.forceTop(); });
 
   App.Engine.start();
   App.Engine.scheduleSave();
-  App.Notify.update(); // initial dot state
+  App.Notify.update(); // initial dot
+  App.Offline.checkAndShow(); // show offline gains if any
 })();
 </script>
 </body>
