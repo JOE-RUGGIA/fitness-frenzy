@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.2 Event-Driven Tutorial + Modal Bubble</title>
+<title>Fitness Frenzy – V4.3 Event-Driven Tutorial Hotfix</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -289,7 +289,7 @@ App.Flags = {
 /* ================== Config ================== */
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v400-foundation',
-  SCHEMA_VERSION: 5,               // bumped for tutorial.shown (event-driven)
+  SCHEMA_VERSION: 5,
   DEC: 2,
   EPS: 1e-6,
   SOLID_CD_MS: 300,
@@ -340,7 +340,7 @@ App.Util = (()=> {
 /* ================== Audio ================== */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
-  function ensure(){ if(!audioCtx || audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{});} }
+  function ensure(){ if(!audioCtx || audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
   function unlock(){ ensure(); if(!audioCtx) return; try{ const b=audioCtx.createBuffer(1,1,22050); const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);}catch{} if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} needsUnlock=false; }
   function tone(f, dur=.18, gain=.07, type='sine'){
     try{
@@ -409,9 +409,9 @@ App.State = (()=> {
     stats:{manualTaps:0, autoTaps:0, totalEarned:0},
     tutorial:{ done:false, stepId:null, avatar:'male',
       progress:{walkTaps:0},
-      shown:{ unlock:{}, coach:{}, upgrade:{} }  // new event-driven prompt flags
+      shown:{ unlock:{}, coach:{}, upgrade:{} }
     },
-    achievements:{} // id -> true
+    achievements:{}
   };
 
   function setExercises(list){
@@ -1097,7 +1097,6 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-<script>
 /* ================== Tutorial (event-driven prompts + correctly gated intro) ================== */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){
@@ -1202,7 +1201,6 @@ App.Tutorial = (()=> {
 
         const offTap = App.Bus.on('tap:manual', ({exId})=>{
           if(exId!=='walk') return;
-          // ✅ increment the gated counter so the gate can open
           S.tutorial.progress.walkTaps = (S.tutorial.progress.walkTaps||0) + 1;
           if(S.tutorial.progress.walkTaps >= 4){
             offTap(); bubble.style.display='';
@@ -1230,8 +1228,7 @@ App.Tutorial = (()=> {
                 const offBuy = App.Bus.on('reps:buy', ({exId})=>{
                   if(exId!=='walk') return;
                   offBuy(); hideSpot(); gateStop();
-                  // ✅ End the intro here (don’t show “Upgrade” yet).
-                  // The actual Upgrade popup will be shown by the event-driven handler on levelup (10/10).
+                  // End the intro here; level-up popup will come from the event-driven handler when 10/10 is reached.
                   S.tutorial.done=true; S.tutorial.stepId=null; App.State.save();
                   hide();
                 });
@@ -1315,7 +1312,6 @@ App.Tutorial = (()=> {
   App.Bus.on('hp:change', checkTriggers);
   App.Bus.on('exercise:unlock', checkTriggers);
   App.Bus.on('coach:owned', checkTriggers);
-  // ✅ Correct timing for upgrade bubble: fire on real level-up only
   App.Bus.on('exercise:levelup', ({exId})=>{
     const ex = App.State.s.exercises.find(x=>x.id===exId);
     if(ex) promptUpgradeFor(ex);
@@ -1326,8 +1322,6 @@ App.Tutorial = (()=> {
 
   return { init, start, end:()=>{}, repositionSpot };
 })();
-</script>
-
 
 /* ================== Debug overlay ================== */
 (function debugPanel(){
