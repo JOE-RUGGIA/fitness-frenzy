@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.6-clean2 (hotfix)</title>
+<title>Fitness Frenzy – V3.6-stable</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -18,7 +18,7 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 
 /* Sticky Top Bar */
 .topbar{position:sticky;top:0;z-index:60;background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
-.topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap;overflow:visible}
+.topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .title{display:flex;align-items:center;gap:10px}
 .title .icon{font-size:clamp(22px,5vw,28px)}
 h1{margin:0;font-size:clamp(22px,5vw,28px)}
@@ -47,12 +47,6 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .btn[disabled]{filter:saturate(.65) brightness(.85)}
 @keyframes shine{to{transform:translateX(110%)}}
 
-/* Menu dot */
-#menuBtn{position:relative}
-.notifDot{position:absolute;right:-10px;top:-10px;width:14px;height:14px;border-radius:50%;
-          display:none;background:var(--warn);box-shadow:0 0 0 2px rgba(10,19,32,.95);pointer-events:none;z-index:10}
-.notifDot.show{display:block}
-
 /* Layout */
 .wrap{max-width:980px;margin:0 auto;padding:var(--space)}
 .stack{display:flex;flex-direction:column;gap:var(--space)}
@@ -64,7 +58,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes bob{0%{transform:translateY(0) scale(.90)}50%{transform:translateY(-2px) scale(.905)}100%{transform:translateY(0) scale(.90)}}
 
 /* Tap pad */
-.tapPad{position:relative;width:clamp(72px,14vw,110px);aspect-ratio:1/1;border-radius:var(--r);
+.tapPad{position:relative;width:clamp(72px,14vw,110px);aspect-ratio:1;border-radius:var(--r);
         background:#12243b;border:1px solid #1a2f4a;display:flex;align-items:center;justify-content:center;
         font-size:clamp(38px,11vw,64px);cursor:pointer;overflow:visible}
 .lvl{position:absolute;left:6px;top:6px;font-size:12px;font-weight:900;color:#fff;
@@ -122,9 +116,22 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .menuHeader{display:flex;align-items:center;gap:10px;padding:10px var(--space);border-bottom:1px solid var(--border)}
 .menuTitle{font-weight:900;font-size:20px}
 .menuTabs{display:flex;gap:8px;padding:8px var(--space);border-bottom:1px solid var(--border);flex-wrap:wrap}
-.menuTab.active{background:var(--accent);color:#fff;border-color:#e89d6b}
 .menuTab{padding:8px 12px;border-radius:999px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-weight:800;cursor:pointer}
+.menuTab.active{background:var(--accent);color:#fff;border-color:#e89d6b}
 .menuBody{padding:14px var(--space);overflow:auto}
+.coachIntro{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:14px}
+.coachList{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:700px){ .coachList{grid-template-columns:1fr 1fr;} }
+.coachCard{display:flex;gap:12px;align-items:center;background:#0c1525;border:1px solid #223556;border-radius:12px;padding:12px}
+.coachCard.locked{opacity:.58;filter:grayscale(1);transform:scale(.96)}
+.headshot{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:40px;border-radius:12px;background:#12243b;border:1px solid #1a2f4a}
+.coachMid{flex:1;min-width:0}
+.coachName{font-weight:900}
+.coachInfo{color:#a7b7cc;font-size:14px;margin-top:2px}
+.coachRight{display:flex;align-items:center}
+.hireBtn{padding:12px 18px;font-size:16px;border-radius:12px}
+.hireBtn.secondary{background:#1a2a40;color:#d7e3f5}
+.hireBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
 </style>
 </head>
 <body>
@@ -133,7 +140,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
       <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
       <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.0</span></div>
       <div class="spacer"></div>
-      <button id="menuBtn" class="btn ghost">Menu<span id="menuDot" class="notifDot"></span></button>
+      <button id="menuBtn" class="btn ghost">Menu</button>
       <div class="seg" id="qtyTop"><button class="segBtn active" data-q="1">×1</button><button class="segBtn" data-q="10">×10</button></div>
       <button id="saveBtn" class="btn secondary">Save</button>
       <button id="resetBtn" class="btn secondary">Reset</button>
@@ -175,27 +182,21 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 /* ================= Core App ================= */
 const App = {};
 
-/* Util */
+/* Utils */
 App.Util = (()=> {
-  const fmtTop = (n)=> {
-    const abs=Math.abs(n);
-    if(abs>=1e9) return (n/1e9).toFixed(1)+'B';
-    if(abs>=1e6) return (n/1e6).toFixed(1)+'M';
-    if(abs>=1e3) return (n/1e3).toFixed(1)+'K';
-    return n.toFixed(1);
-  };
-  const fmtCost = (n)=> n<1e3 ? n.toFixed(2) : (n<1e6 ? (n/1e3).toFixed(2)+'K' : (n<1e9 ? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
+  const fmtTop = n => n>=1e9?(n/1e9).toFixed(1)+'B': n>=1e6?(n/1e6).toFixed(1)+'M': n>=1e3?(n/1e3).toFixed(1)+'K': n.toFixed(1);
+  const fmtCost= n => n<1e3? n.toFixed(2) : (n<1e6? (n/1e3).toFixed(2)+'K' : (n<1e9? (n/1e6).toFixed(2)+'M' : (n/1e9).toFixed(2)+'B'));
   return { fmtTop, fmtCost };
 })();
 
 /* Audio (manual taps only) */
 App.Audio = (()=> {
-  let audioCtx=null, audioNeedsUnlock=true;
+  let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx || audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{});} }
-  function unlock(){ ensure(); if(!audioCtx) return; try{ const b=audioCtx.createBuffer(1,1,22050); const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);}catch{} if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} audioNeedsUnlock=false; }
+  function unlock(){ ensure(); if(!audioCtx) return; try{ const b=audioCtx.createBuffer(1,1,22050); const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);}catch{} if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} needsUnlock=false; }
   function sfx(type){
     try{
-      ensure(); if(!audioCtx) return; if(audioCtx.state!=='running'){ audioNeedsUnlock=true; return; }
+      ensure(); if(!audioCtx) return; if(audioCtx.state!=='running'){ needsUnlock=true; return; }
       const t=audioCtx.currentTime;
       const blip=(f,w='sine',dur=.18,vol=.07)=>{ const o=audioCtx.createOscillator(); o.type=w; o.frequency.setValueAtTime(f,t);
         const g=audioCtx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
@@ -204,22 +205,19 @@ App.Audio = (()=> {
       if(type==='buy') blip(440,'sine',.18,.08);
     }catch{}
   }
-  ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') audioNeedsUnlock=true; });
-  ['pageshow','focus'].forEach(()=>{ audioNeedsUnlock=true; ensure(); });
-  ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(audioNeedsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
+  ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') needsUnlock=true; });
+  ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
   return { sfx, unlock };
 })();
 
 /* State */
 App.State = (()=> {
-  const KEY='ff-v36c2';
+  const KEY='ff-v36-stable';
   const s = { hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
   function setExercises(list){
-    const now=performance.now();
     s.exercises = list.map(e=>({ ...e,
       repHP:0, repProgress:0, repTarget:10, level:1,
-      cooldown:e.baseCooldown, lastTapAt:-1, // -1 = never tapped (show 0.00)
-      _autoElapsed:0, els:{}
+      cooldown:e.baseCooldown, lastTapAt:-1, _autoElapsed:0, els:{}
     }));
   }
   function save(){ localStorage.setItem(KEY, JSON.stringify({
@@ -231,14 +229,15 @@ App.State = (()=> {
   }catch{}}
   function merge(){ if(!s.__loaded) return; for(const se of s.__loaded){ const e=s.exercises.find(x=>x.id===se.id); if(!e) continue;
     e.repHP=se.repHP??0; e.repProgress=se.repProgress??0; e.repTarget=se.repTarget??10; e.unlocked=se.unlocked??e.unlocked;
-    e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt=se.lastTapAt??-1; } delete s.__loaded; }
+    e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt=se.lastTapAt??-1;
+  } delete s.__loaded; }
   return { s, setExercises, save, load, merge };
 })();
 
 /* Economy */
 App.Economy = (()=> {
   const G=1.07; // 7% growth
-  const perTap = e => e.baseHP + e.repHP; // +1 HP per rep
+  const perTap = e => e.baseHP + e.repHP; // +1 per rep
   const bulkRepCost=(e,q)=>{ const base=e.repBaseCost*Math.pow(G,e.repHP); return +(base*(Math.pow(G,q)-1)/(G-1)).toFixed(2); };
   function addReps(e,q){
     const s=App.State.s; const cost=bulkRepCost(e,q);
@@ -246,9 +245,8 @@ App.Economy = (()=> {
     s.hp-=cost; e.repHP+=q; e.repProgress+=q;
     while(e.repProgress>=e.repTarget){
       e.repProgress-=e.repTarget; e.repTarget*=2;
-      e.cooldown=Math.max(100, Math.floor(e.cooldown/2)); // halves at 10,20,40...
-      e.level+=1;
-      App.UI.Banners.upgrade(`${e.name} upgraded to Lvl ${e.level}! Speed ×2`);
+      e.cooldown=Math.max(100, Math.floor(e.cooldown/2)); // halves at each upgrade
+      e.level+=1; App.UI.Banners.upgrade(`${e.name} upgraded to Lvl ${e.level}! Speed ×2`);
     }
     return true;
   }
@@ -266,15 +264,18 @@ App.Economy = (()=> {
 /* Engine */
 App.Engine = (()=> {
   let last=performance.now();
-  function start(updateCooldown, refreshUI){
+  function start(){
     function tick(){
       const now=performance.now(), dt=Math.min(0.25,(now-last)/1000); last=now;
       autoTap(now, dt);
       App.UI.Renderer.tickTop(dt);
+      // update cooldown fills
       for(const e of App.State.s.exercises) updateCooldown(e);
-      if(!tick._u || now-tick._u>100){ for(const e of App.State.s.exercises) refreshUI(e); tick._u=now; }
+      // refresh UI every ~100ms
+      if(!tick._u || now-tick._u>100){ App.UI.Renderer.refreshAll(); tick._u=now; }
       requestAnimationFrame(tick);
-    } requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
   }
   function autoTap(now, dt){
     const s=App.State.s;
@@ -293,16 +294,15 @@ App.Engine = (()=> {
   }
   function bindPress(el,fn){
     el.addEventListener('pointerdown',e=>{e.preventDefault();fn(e);},{passive:false});
-    el.addEventListener('click',e=>{e.preventDefault();fn(e);},{passive:false}); // fallback
     el.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();fn(e);}});
   }
   function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
     if(cd<=100){ e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; return; }
-    const since = (e.lastTapAt<0) ? 0 : (performance.now()-e.lastTapAt);
+    const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
     const pct=Math.max(0,Math.min(1, since/cd));
-    e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
+    if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
     if(e.els.headRight) e.els.headRight.textContent=(Math.min(since,cd)/1000).toFixed(2)+'s';
   }
   function scheduleSave(){ setInterval(()=>App.State.save(),20000); }
@@ -329,7 +329,7 @@ App.UI.Overlay = (()=> {
   return { floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };
 })();
 
-/* Coaches */
+/* Coaches UI (menu) */
 App.Coaches = (()=> {
   const coaches = [
     { id:'c1',  name:'Rookie Coach',     icon:'🧑‍🏫', price:   1500,      target:'walk' },
@@ -347,9 +347,7 @@ App.Coaches = (()=> {
   function getOwnedForExercise(exId){ const owned=App.State.s.coachesOwned; return coaches.filter(c=>owned[c.id] && c.target===exId); }
   function renderList(){
     const host=document.getElementById('tab-coaches');
-    host.innerHTML = `<div class="coachIntro" style="color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:14px">
-      Coaches automatically tap a specific exercise for you. They respect the exercise cooldown (no sounds). Hire when you can afford it.
-    </div>`;
+    host.innerHTML = `<div class="coachIntro">Coaches automatically tap a specific exercise for you. They respect the cooldown (no sounds).</div>`;
     const list=document.createElement('div'); list.className='coachList'; host.appendChild(list);
 
     const exById=Object.fromEntries(App.State.s.exercises.map(e=>[e.id,e]));
@@ -381,7 +379,7 @@ App.Coaches = (()=> {
         if(locked || owned) return;
         const S=App.State.s; if(S.hp+1e-9<c.price) return;
         S.hp-=c.price; S.coachesOwned[c.id]=true; App.Audio.sfx('buy');
-        App.UI.Renderer.forceTop(); App.Menu.open('coaches');
+        App.UI.Renderer.forceTop(); renderList();
       });
     }
   }
@@ -447,7 +445,7 @@ App.UI.Cards = (()=> {
 App.UI.Renderer = (()=> {
   const refs={ stack:document.getElementById('stack'), hp:document.getElementById('hp'), hpMenu:document.getElementById('hpMenu'),
                qtyTop:document.getElementById('qtyTop'), saveBtn:document.getElementById('saveBtn'), resetBtn:document.getElementById('resetBtn'),
-               menuBtn:document.getElementById('menuBtn') };
+               menuBtn:document.getElementById('menuBtn'), menuOverlay:document.getElementById('menuOverlay'), menuClose:document.getElementById('menuClose') };
   const { fmtTop, fmtCost } = App.Util; const { perTap, bulkRepCost } = App.Economy; const { s } = App.State;
 
   let shownHP = 0;
@@ -500,29 +498,21 @@ App.UI.Renderer = (()=> {
       e.els.costPill.classList.toggle('ready', canUn);
     }
   }
+
   function refreshAll(){ renderTopNow(); for(const e of App.State.s.exercises) refreshExerciseUI(e); }
-  return { refs, renderStack, refreshAll, tickTop, forceTop };
-})();
 
-/* Menu */
-App.Menu = (()=> {
-  const overlay=document.getElementById('menuOverlay'), closeBtn=document.getElementById('menuClose');
-  const tabs=[...document.querySelectorAll('.menuTab')];
-  function open(tab='coaches'){ overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; switchTab(tab); }
-  function close(){ overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; }
-  function switchTab(name){
-    tabs.forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
-    ['coaches','upgrades','achievements','quests','shop','stats'].forEach(id=>{ const el=document.getElementById('tab-'+id); if(el) el.style.display=(id===name?'block':'none'); });
-    if(name==='coaches') App.Coaches.renderList();
+  /* Menu open/close */
+  function wireMenu(){
+    refs.menuBtn.addEventListener('click', ()=>{ refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; App.Coaches.renderList(); });
+    refs.menuClose.addEventListener('click', ()=>{ refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
+    refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ refs.menuClose.click(); }});
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape') refs.menuClose.click(); });
   }
-  overlay.addEventListener('click',e=>{ if(e.target===overlay) close(); });
-  closeBtn.addEventListener('click',close);
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
-  tabs.forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
-  return { open, close, switchTab };
+
+  return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu };
 })();
 
-/* Content */
+/* Content (20 exercises) */
 App.Content = (()=> {
   const ex = [
     { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
@@ -557,6 +547,7 @@ App.Content = (()=> {
 
   App.State.load(); App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
+  App.UI.Renderer.wireMenu();
 
   const { refs } = App.UI.Renderer;
   refs.saveBtn.addEventListener('click', App.State.save);
@@ -566,10 +557,7 @@ App.Content = (()=> {
     App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll();
   },{passive:false}));
 
-  // Menu
-  refs.menuBtn.addEventListener('click', ()=>App.Menu.open('coaches'));
-
-  App.Engine.start(App.Engine.updateCooldown, App.UI.Renderer.refreshExerciseUI);
+  App.Engine.start();
   App.Engine.scheduleSave();
 })();
 </script>
