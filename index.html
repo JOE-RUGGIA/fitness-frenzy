@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.2 (Menu + Coaches)</title>
+<title>Fitness Frenzy – V3.3 (Coaches + Alerts + Badges)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
   --bg:#0a1320; --card:#0f1b2b; --ink:#e9eef3; --muted:#a7b7cc; --border:#213149;
-  --accent:#cc6b2c; --accent-hi:#ffb357; --rep:#22c55e;
+  --accent:#cc6b2c; --accent-hi:#ffb357; --rep:#22c55e; --warn:#39d98a; --alert:#ff6b6b;
   --space:clamp(10px,2.2vw,18px); --r:16px;
   --fs-1:clamp(16px,2.4vw,18px); --fs-2:clamp(18px,3.2vw,22px); --fs-3:clamp(22px,5vw,28px);
   --repband:16%;
@@ -35,7 +35,7 @@ h1{margin:0;font-size:var(--fs-3)}
 
 .spacer{flex:1 1 auto}
 
-/* Global qty toggle */
+/* Global qty toggle + buttons */
 .seg{display:inline-flex;border:1px solid #2b3d5a;border-radius:10px;overflow:hidden}
 .segBtn{background:#13233b;color:#cfe0ff;border:0;padding:8px 12px;font-weight:800;cursor:pointer}
 .segBtn.active{background:var(--accent);color:#fff}
@@ -92,6 +92,10 @@ h1{margin:0;font-size:var(--fs-3)}
 .ex-title{font-size:var(--fs-2);margin:0}
 .muted{color:#a7b7cc}
 
+/* Coach applied badges */
+.coachLine{display:flex;flex-wrap:wrap;gap:8px}
+.coachBadge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-size:12px}
+
 /* Cooldown bar */
 .coolwrap{background:#0c1525;border:1px solid #223556;border-radius:10px;overflow:hidden}
 .coolbar{height:16px;background:#101a2a;position:relative}
@@ -102,7 +106,6 @@ h1{margin:0;font-size:var(--fs-3)}
 
 .kv{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:6px 10px;border-radius:10px;font-size:14px}
 .metaRow{display:flex;align-items:center;gap:10px;justify-content:space-between}
-.kvAuto{color:#98ffd3;background:#12322a;border:1px solid #1e4e3c;padding:6px 10px;border-radius:10px;font-size:14px}
 
 /* Unlock pill */
 .costLine{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -147,6 +150,13 @@ h1{margin:0;font-size:var(--fs-3)}
 .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-size:12px}
 .badge.green{border-color:#1e4e3c;background:#12322a;color:#98ffd3}
 .badge.orange{border-color:#e89d6b;background:#432815;color:#ffd6a8}
+
+/* Menu button indicator dot */
+#menuBtn{position:relative}
+.notifDot{position:absolute;right:-4px;top:-4px;width:12px;height:12px;border-radius:50%;display:none;box-shadow:0 0 0 2px rgba(10,19,32,.9)}
+.notifDot.show{display:block}
+.notifDot.green{background:var(--warn)}
+.notifDot.red{background:var(--alert)}
 </style>
 </head>
 <body>
@@ -156,7 +166,7 @@ h1{margin:0;font-size:var(--fs-3)}
       <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
       <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0</span></div>
       <div class="spacer"></div>
-      <button id="menuBtn" class="btn ghost">Menu</button>
+      <button id="menuBtn" class="btn ghost">Menu<span id="menuDot" class="notifDot"></span></button>
       <div class="seg" id="qtyTop"><button class="segBtn active" data-q="1">×1</button><button class="segBtn" data-q="10">×10</button></div>
       <button id="saveBtn" class="btn secondary">Save</button>
       <button id="resetBtn" class="btn secondary">Reset</button>
@@ -180,11 +190,12 @@ h1{margin:0;font-size:var(--fs-3)}
         <button class="menuTab" data-tab="achievements">Achievements</button>
         <button class="menuTab" data-tab="quests">Side Quests</button>
         <button class="menuTab" data-tab="shop">Shop</button>
+        <button class="menuTab" data-tab="stats">Stats</button>
       </div>
       <div class="menuBody">
         <div id="tab-coaches"></div>
         <div id="tab-upgrades" style="display:none">
-          <p>Upgrades are coming soon. Think: shoes, protein, energy drinks, wrist wraps—persistent bonuses with clean math.</p>
+          <p>Upgrades are coming soon. Shoes, protein, energy drinks, wrist wraps—clean additive & multiplicative buffs.</p>
         </div>
         <div id="tab-achievements" style="display:none">
           <p>Achievements coming soon. Milestones unlock flair and small buffs.</p>
@@ -194,6 +205,9 @@ h1{margin:0;font-size:var(--fs-3)}
         </div>
         <div id="tab-shop" style="display:none">
           <p>Shop coming soon. Cosmetic themes and music packs (rock/punk/etc.).</p>
+        </div>
+        <div id="tab-stats" style="display:none">
+          <p>Stats placeholder. We’ll show lifetime taps, time played, best HPS, unlock timeline, etc.</p>
         </div>
       </div>
     </div>
@@ -261,10 +275,29 @@ App.Audio = (()=> {
   return { unlockAudio, sfx };
 })();
 
+/* ---------- Notifications (menu dot) ---------- */
+App.Notif = (()=> {
+  const dot = document.getElementById('menuDot');
+  const state = { coaches:false, color:'green' };
+  function set(section, on=true, color='green'){
+    if(section==='coaches'){ state.coaches=!!on; state.color=color; }
+    apply();
+  }
+  function clear(section){
+    if(section==='coaches'){ state.coaches=false; }
+    apply();
+  }
+  function apply(){
+    const show = state.coaches;
+    dot.className = 'notifDot' + (show?' show':'') + (show?' '+state.color:'');
+  }
+  return { set, clear };
+})();
+
 /* ---------- State ---------- */
 App.State = (()=> {
-  const SAVE_KEY = 'fitness_frenzy_ff-v3-20-coaches';
-  const state = { hp:0, buyQty:1, exercises:[], coachesOwned:{} };
+  const SAVE_KEY = 'fitness_frenzy_ff-v3-20-coaches-v33';
+  const state = { hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
 
   function setExercises(list){
     state.exercises = list.map(e=>({
@@ -275,6 +308,7 @@ App.State = (()=> {
       level: e.level ?? 1,
       cooldown: e.cooldown ?? e.baseCooldown,
       lastTapAt: e.lastTapAt ?? -Infinity,
+      _autoAcc:0, _autoFloatAt:0,
       _repReady:false, _unlockReady:false,
       els:{}
     }));
@@ -286,7 +320,7 @@ App.State = (()=> {
 
   function save(){
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      hp: state.hp, buyQty: state.buyQty, coachesOwned: state.coachesOwned,
+      hp: state.hp, buyQty: state.buyQty, coachesOwned: state.coachesOwned, stats: state.stats,
       exercises: state.exercises.map(e=>({
         id:e.id, repHP:e.repHP, repProgress:e.repProgress, repTarget:e.repTarget,
         unlocked:e.unlocked, cooldown:e.cooldown, level:e.level
@@ -301,6 +335,7 @@ App.State = (()=> {
       state.hp = s.hp ?? 0;
       state.buyQty = s.buyQty ?? 1;
       state.coachesOwned = s.coachesOwned || {};
+      state.stats = s.stats || state.stats;
       state.__loaded = s.exercises || [];
     }catch{}
   }
@@ -359,14 +394,16 @@ App.Economy = (()=> {
     if(!e.unlocked || !canTap(e, now)) return 0;
     e.lastTapAt = now;
     const gain = perTap(e);
-    App.State.getState().hp += gain;
+    const s = App.State.getState();
+    s.hp += gain;
+    s.stats.manualTaps++;
     return gain;
   }
 
   return { perTap, cooldownMs, canTap, bulkRepCost, addReps, handleUpgrades, tap };
 })();
 
-/* ---------- Engine (tick + auto DPS) ---------- */
+/* ---------- Engine (tick + auto DPS + alerts) ---------- */
 App.Engine = (()=> {
   let lastTick = performance.now();
 
@@ -376,8 +413,11 @@ App.Engine = (()=> {
       const dt = Math.min(0.25, (now - lastTick)/1000); // clamp 250ms
       lastTick = now;
 
-      // Auto DPS from coaches
-      applyAutoGains(dt);
+      // Auto DPS from coaches (no sound; show floats nicely)
+      applyAutoGains(dt, now);
+
+      // Coach availability alerts / menu dot
+      App.Coaches.tickNotify();
 
       // UI updates
       for(const e of App.State.getExercises()){ updateCooldownUI(e); }
@@ -390,16 +430,32 @@ App.Engine = (()=> {
     requestAnimationFrame(tick);
   }
 
-  function applyAutoGains(dt){
+  function applyAutoGains(dt, now){
     const s = App.State.getState();
     let add = 0;
     for(const e of s.exercises){
-      const autoAPS = App.Coaches.getAPSForExercise(e.id); // taps per sec requested
+      const autoAPS = App.Coaches.getAPSForExercise(e.id); // taps/sec requested
       if(autoAPS <= 0) continue;
-      const maxRate = 1000 / Math.max(100, e.cooldown); // respect cooldown cap
+
+      // Respect cooldown (bar stays full when <= 100ms)
+      const maxRate = 1000 / Math.max(100, e.cooldown);
       const effRate = Math.min(autoAPS, maxRate);
-      const dps = effRate * App.Economy.perTap(e);
-      add += dps * dt;
+      const tapsThisFrame = effRate * dt;
+
+      // Add HP
+      const hpPerTap = App.Economy.perTap(e);
+      add += tapsThisFrame * hpPerTap;
+
+      // Track taps for float animation (batch so it's smooth)
+      e._autoAcc += tapsThisFrame;
+      const whole = Math.floor(e._autoAcc);
+      const canFloat = (now - (e._autoFloatAt||0)) > 140; // throttle
+      if(whole >= 1 && e.els && e.els.tapPad && canFloat){
+        App.UI.Overlay.spawnFloat(e.els.tapPad, `+${(whole*hpPerTap).toFixed(0)}`);
+        e._autoAcc -= whole;
+        e._autoFloatAt = now;
+        App.State.getState().stats.autoTaps += whole;
+      }
     }
     if(add>0){ s.hp += add; }
   }
@@ -411,9 +467,11 @@ App.Engine = (()=> {
   }
   function updateCooldownUI(e){
     if(!e.unlocked) return;
-    const cd = App.Economy.cooldownMs(e), now = performance.now(), since = now - e.lastTapAt;
+    const cd = App.Economy.cooldownMs(e);
+    if(cd <= 100){ e.els.coolFill.style.width = '100%'; return; } // keep full at 0.10s or faster
+    const now = performance.now(), since = now - e.lastTapAt;
     const pct = Math.max(0, Math.min(1, since/cd));
-    e.els.coolFill.style.width = (pct*100).toFixed(1)+'%'; // 0 → 100% during cooldown
+    e.els.coolFill.style.width = (pct*100).toFixed(1)+'%';
   }
   return { startEngine, scheduleSave, bindPress, updateCooldownUI };
 })();
@@ -491,18 +549,17 @@ App.UI.Cards = (()=> {
     coolWrap.innerHTML = `<div class="coolbar"><div class="coolfill"></div></div>`;
 
     const metaRow = document.createElement('div'); metaRow.className='metaRow';
-    const kvs = document.createElement('div'); 
-    kvs.innerHTML = `
-      <span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>
-      <span class="kvAuto" title="Auto HP per second from coaches">Auto: <strong class="kvAutoVal">0.00</strong> HP/s</span>`;
+    const kvs = document.createElement('div'); kvs.innerHTML = `<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>`;
     const buyRepBtn = document.createElement('button'); buyRepBtn.className='btn'; buyRepBtn.textContent='Add Reps';
     metaRow.appendChild(kvs); metaRow.appendChild(buyRepBtn);
+
+    const coachLine = document.createElement('div'); coachLine.className='coachLine'; coachLine.style.display='none';
 
     const costLine = document.createElement('div'); costLine.className='costLine';
     costLine.innerHTML = `<button class="costPill" type="button">Unlock for <span class="costAmt">${e.unlockCost.toFixed?.(2) ?? e.unlockCost}</span> HP</button>`;
     const costPill = costLine.querySelector('.costPill');
 
-    right.appendChild(head); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
+    right.appendChild(head); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(coachLine); right.appendChild(costLine);
     card.appendChild(tapPad); card.appendChild(right);
 
     e.els = {
@@ -512,15 +569,15 @@ App.UI.Cards = (()=> {
       headRight: head.querySelector('.headRight'),
       coolFill: coolWrap.querySelector('.coolfill'),
       kvTap: kvs.querySelector('.kvTap'),
-      kvAutoVal: kvs.querySelector('.kvAutoVal'),
       buyRepBtn,
+      coachLine,
       costLine, costPill, costAmt: costLine.querySelector('.costAmt'),
       coolWrap, metaRow
     };
 
-    if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; }
+    if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachLine.style.display='none'; }
 
-    // Interactions
+    // Interactions (manual taps make sound; autos don't)
     bindPress(tapPad, ()=>{
       unlockAudio();
       const gain = tap(e);
@@ -545,7 +602,7 @@ App.UI.Cards = (()=> {
       if(!e.unlocked && s.hp >= e.unlockCost){
         s.hp -= e.unlockCost; e.unlocked = true; sfx('buy');
         e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
-        e.els.coolWrap.style.display='block'; e.els.metaRow.style.display='flex'; e.els.costLine.style.display='none';
+        e.els.coolWrap.style.display='block'; e.els.metaRow.style.display='flex'; e.els.coachLine.style.display='flex'; e.els.costLine.style.display='none';
         burstConfetti(e.els.card);
         App.UI.Renderer.renderTop();
       }
@@ -603,13 +660,15 @@ App.UI.Renderer = (()=> {
     if(e.els.lvl) e.els.lvl.textContent = `Lvl ${e.level}`;
     if(e.els.kvTap) e.els.kvTap.textContent = perTap(e).toFixed(0);
 
-    // Auto HP/s
-    if(e.els.kvAutoVal){
-      const aps = App.Coaches.getAPSForExercise(e.id);
-      const maxRate = 1000 / Math.max(100, e.cooldown);
-      const effRate = Math.min(aps, maxRate);
-      const hps = effRate * perTap(e);
-      e.els.kvAutoVal.textContent = hps.toFixed(2);
+    // Coach applied badges
+    if(e.els.coachLine){
+      const coaches = App.Coaches.getOwnedForExercise(e.id);
+      if(coaches.length){
+        e.els.coachLine.style.display='flex';
+        e.els.coachLine.innerHTML = `<span class="coachBadge">Coach applied:</span> ` + coaches.map(c=>`<span class="coachBadge">${c.icon} ${c.name}</span>`).join(' ');
+      }else{
+        e.els.coachLine.style.display='none';
+      }
     }
 
     // Add Reps button
@@ -665,12 +724,13 @@ App.Menu = (()=> {
 
   function open(tab='coaches'){
     overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
+    App.Notif.clear('coaches'); // clear menu dot when opening
     switchTab(tab);
   }
   function close(){ overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); }
   function switchTab(name){
     tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
-    ['coaches','upgrades','achievements','quests','shop'].forEach(id=>{
+    ['coaches','upgrades','achievements','quests','shop','stats'].forEach(id=>{
       const el = document.getElementById('tab-'+id);
       if(!el) return;
       el.style.display = (id===name?'block':'none');
@@ -686,21 +746,25 @@ App.Menu = (()=> {
   return { open, close, switchTab };
 })();
 
-/* ---------- COACHES (data + UI + math hook) ---------- */
+/* ---------- COACHES (data + UI + alerts) ---------- */
 App.Coaches = (()=> {
-  // Parody-ish names; each coach targets a specific exercise id.
+  // First coach price high so they realistically show up around the third exercise.
   const coaches = [
-    { id:'c1',  name:'Rookie Coach',     icon:'🧑‍🏫', aps:1.00, price:   50, target:'walk' },
-    { id:'c2',  name:'Track Buddy',      icon:'👟',   aps:0.80, price:  200, target:'jog' },
-    { id:'c3',  name:'Core Captain',     icon:'🧘‍♂️', aps:0.60, price:  800, target:'sit' },
-    { id:'c4',  name:'Push-up Pro',      icon:'💪',   aps:0.50, price: 2000, target:'push' },
-    { id:'c5',  name:'Cardio Coach',     icon:'🤸',   aps:0.50, price: 6000, target:'jacks' },
-    { id:'c6',  name:'Squat Sensei',     icon:'🦵',   aps:0.40, price:15000, target:'squat' },
-    { id:'c7',  name:'Kettlebell Guru',  icon:'🏋️',  aps:0.35, price:60000, target:'kb' },
-    { id:'c8',  name:'Bench Boss',       icon:'🏋️‍♂️',aps:0.30, price:120000, target:'bench' },
-    { id:'c9',  name:'Marathon Mentor',  icon:'🎽',   aps:0.25, price:500000, target:'marathon' },
-    { id:'c10', name:'Ring Master',      icon:'🤸‍♂️', aps:0.20, price:1000000,target:'ironcross' }
+    { id:'c1',  name:'Rookie Coach',     icon:'🧑‍🏫', aps:1.00, price: 1500,    target:'walk' },
+    { id:'c2',  name:'Track Buddy',      icon:'👟',   aps:0.80, price:  200,    target:'jog' },
+    { id:'c3',  name:'Core Captain',     icon:'🧘‍♂️', aps:0.60, price:  800,    target:'sit' },
+    { id:'c4',  name:'Push-up Pro',      icon:'💪',   aps:0.50, price: 2000,    target:'push' },
+    { id:'c5',  name:'Cardio Coach',     icon:'🤸',   aps:0.50, price: 6000,    target:'jacks' },
+    { id:'c6',  name:'Squat Sensei',     icon:'🦵',   aps:0.40, price:15000,    target:'squat' },
+    { id:'c7',  name:'Kettlebell Guru',  icon:'🏋️',  aps:0.35, price:60000,    target:'kb' },
+    { id:'c8',  name:'Bench Boss',       icon:'🏋️‍♂️',aps:0.30, price:120000,   target:'bench' },
+    { id:'c9',  name:'Marathon Mentor',  icon:'🎽',   aps:0.25, price:500000,   target:'marathon' },
+    { id:'c10', name:'Ring Master',      icon:'🤸‍♂️', aps:0.20, price:1000000,  target:'ironcross' }
   ];
+
+  // track which coaches we alerted about (banner) so we don't spam
+  const alerted = new Set();
+  let anyAffordablePrev = false;
 
   function getAPSForExercise(exId){
     const owned = App.State.getState().coachesOwned;
@@ -709,6 +773,10 @@ App.Coaches = (()=> {
       if(owned[c.id] && c.target===exId) sum += c.aps;
     }
     return sum;
+  }
+  function getOwnedForExercise(exId){
+    const owned = App.State.getState().coachesOwned;
+    return coaches.filter(c => owned[c.id] && c.target===exId);
   }
 
   function renderList(){
@@ -741,16 +809,13 @@ App.Coaches = (()=> {
       const prereqBadge = document.createElement('div'); prereqBadge.className='badge';
       prereqBadge.textContent = `Requires: ${targName}`;
 
-      const autoBadge = document.createElement('div'); autoBadge.className='badge green';
-      autoBadge.textContent = `+${c.aps}/s`;
-
       const btn = document.createElement('button'); btn.className='btn'; btn.textContent = owned ? 'Owned' : 'Hire';
       if(owned){ btn.disabled=true; }
 
       mid.appendChild(name);
       mid.appendChild(info);
       const midRow = document.createElement('div'); midRow.style.display='flex'; midRow.style.gap='8px'; midRow.style.marginTop='6px';
-      midRow.appendChild(priceBadge); midRow.appendChild(autoBadge);
+      midRow.appendChild(priceBadge);
       if(locked){ midRow.appendChild(prereqBadge); }
       mid.appendChild(midRow);
 
@@ -782,7 +847,33 @@ App.Coaches = (()=> {
     }
   }
 
-  return { getAPSForExercise, renderList };
+  // Check for affordability and notify with menu dot + banner once
+  function tickNotify(){
+    const s = App.State.getState();
+    const exById = Object.fromEntries(s.exercises.map(e=>[e.id,e]));
+    const affordable = coaches.filter(c=>{
+      const owned = !!s.coachesOwned[c.id];
+      const prereqUnlocked = !!(exById[c.target] && exById[c.target].unlocked);
+      return !owned && prereqUnlocked && s.hp >= c.price;
+    });
+
+    // If ANY affordable and wasn't before, raise green dot and banner for the first unseen
+    const anyAffordable = affordable.length>0;
+    if(anyAffordable && !anyAffordablePrev){
+      App.Notif.set('coaches', true, 'green');
+      const first = affordable.find(c=>!alerted.has(c.id)) || affordable[0];
+      if(first && !alerted.has(first.id)){
+        App.UI.Overlay.showBanner(`Coach available: ${first.name}`);
+        alerted.add(first.id);
+      }
+    }
+    if(!anyAffordable){
+      // keep dot off unless menu opens; we clear on menu open already
+    }
+    anyAffordablePrev = anyAffordable;
+  }
+
+  return { getAPSForExercise, getOwnedForExercise, renderList, tickNotify };
 })();
 
 /* ---------- Content (20 exercises) ---------- */
@@ -850,7 +941,7 @@ App.Content = (()=> {
   });
   refs.menuBtn.addEventListener('click', ()=> App.Menu.open('coaches'));
 
-  // Menu tab content host init
+  // Init coaches host
   const hostCoaches = document.getElementById('tab-coaches');
   hostCoaches.innerHTML = '<div class="coachList"></div>';
 
