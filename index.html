@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.3 Event-Driven Tutorial Hotfix</title>
+<title>Fitness Frenzy – V4.4 Start Screen + First-Unlock JAX</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -197,10 +197,23 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .badgeDone{padding:6px 10px;border-radius:999px;background:#15341f;border:1px solid #2a6a3f;color:#b6ffd0;font-weight:900;font-size:12px}
 .badgeRew{padding:6px 10px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;font-size:12px}
 
-/* ===== Debug overlay ===== */
-.debugPanel{position:fixed;right:10px;bottom:10px;z-index:9999;background:#0f1b2b;color:#fff;
-  border:1px solid #2a4a78;border-radius:12px;padding:8px 10px;box-shadow:0 8px 20px rgba(0,0,0,.35);font-size:12px}
-.debugPanel button{margin:4px 4px 0 0}
+/* ===== Start Screen ===== */
+.startOv{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;pointer-events:auto}
+.startOv.open{display:flex}
+.startBg{position:absolute;inset:0;background:#0a1320 url('https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Cover-Art.png') center/cover no-repeat;filter:brightness(.84);}
+.startScrim{position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,.25), rgba(0,0,0,.55) 70%)}
+.startCard{
+  position:relative; z-index:1;
+  width:min(720px,92vw);
+  border-radius:18px; border:1px solid rgba(255,255,255,.08);
+  background:rgba(10,19,32,.52); backdrop-filter: blur(6px);
+  padding:20px; color:#fff; text-align:center; box-shadow:0 12px 28px rgba(0,0,0,.45);
+}
+.startTitle{font-weight:900;font-size:clamp(28px,6vw,40px);letter-spacing:.5px;margin:6px 0 14px}
+.startBtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0 6px}
+.startSub{margin-top:10px; display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap}
+.startSub .segBtn{padding:8px 12px}
+.startBrand{margin-top:6px;color:#ffb357;font-weight:800;font-size:13px;letter-spacing:.3px}
 </style>
 </head>
 <body>
@@ -213,6 +226,27 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
       <div class="seg" id="qtyTop"><button class="segBtn active" data-q="1">×1</button><button class="segBtn" data-q="10">×10</button></div>
       <button id="saveBtn" class="btn secondary">Save</button>
       <button id="resetBtn" class="btn secondary">Reset</button>
+    </div>
+  </div>
+
+  <!-- Start Screen -->
+  <div id="startOv" class="startOv open" aria-hidden="false">
+    <div class="startBg"></div>
+    <div class="startScrim"></div>
+    <div class="startCard">
+      <div class="startTitle">Fitness Frenzy</div>
+      <div class="startBtns">
+        <button id="btnStart" class="btn primary">Start</button>
+        <button id="btnContinue" class="btn secondary">Continue</button>
+      </div>
+      <div class="startSub">
+        <span>Avatar:</span>
+        <div class="seg" id="segAvatar">
+          <button class="segBtn" data-avatar="male">♂ Male</button>
+          <button class="segBtn" data-avatar="female">♀ Female</button>
+        </div>
+      </div>
+      <div class="startBrand">A little color makes a big difference.</div>
     </div>
   </div>
 
@@ -1097,7 +1131,7 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* ================== Tutorial (event-driven prompts + correctly gated intro) ================== */
+/* ================== Tutorial (event-driven prompts; first unlock only) ================== */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){
     return { init(){}, start(){}, end(){}, repositionSpot(){} };
@@ -1136,11 +1170,11 @@ App.Tutorial = (()=> {
   function repositionSpot(){ if(active && lastSpotSel) showSpotFor(lastSpotSel); }
   window.addEventListener('resize', repositionSpot); document.addEventListener('scroll', repositionSpot, true);
 
-  // Gating: allow only certain selectors to receive clicks while intro is guided
+  // Gating for intro
   function gateStart(allowSelectors){
     allowed = allowSelectors || [];
     gating = true;
-    setModal(false); // let clicks through to allowed targets
+    setModal(false);
     document.addEventListener('pointerdown', gateHandler, true);
     document.addEventListener('click', gateHandler, true);
   }
@@ -1171,7 +1205,6 @@ App.Tutorial = (()=> {
     show(modal); setTimeout(popInFX, 10);
   }
 
-  // Tap to advance within a step
   bubble.addEventListener('click', ()=>{
     if(!active || !curStep) return;
     if(lineIdx < curStep.lines.length-1){
@@ -1185,7 +1218,7 @@ App.Tutorial = (()=> {
   });
   ov.querySelector('.tutDim').addEventListener('click', ()=>{ if(active && curStep && !gating) bubble.click(); });
 
-  /* ---------- Gated intro: Walk taps -> first Reps purchase (no premature Upgrade call) ---------- */
+  /* ---------- Gated intro ---------- */
   function startIntro(){
     setStep({
       id:'intro-walk',
@@ -1212,7 +1245,6 @@ App.Tutorial = (()=> {
                 { who:'JAX', icon:'🏋️‍♂️', html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.' }
               ],
               onLinesDone(){
-                // Force ×1 so the price matches the 4 HP start cost
                 App.State.s.buyQty = 1;
                 try{
                   const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');
@@ -1228,7 +1260,6 @@ App.Tutorial = (()=> {
                 const offBuy = App.Bus.on('reps:buy', ({exId})=>{
                   if(exId!=='walk') return;
                   offBuy(); hideSpot(); gateStop();
-                  // End the intro here; level-up popup will come from the event-driven handler when 10/10 is reached.
                   S.tutorial.done=true; S.tutorial.stepId=null; App.State.save();
                   hide();
                 });
@@ -1240,7 +1271,7 @@ App.Tutorial = (()=> {
     }, true);
   }
 
-  /* ---------- Event-driven soft prompts (de-spammed + correct timing) ---------- */
+  /* ---------- Event-driven soft prompts (first unlock only) ---------- */
   function now(){ return performance.now(); }
   function menuOpen(){ return document.getElementById('menuOverlay')?.classList.contains('open'); }
   function canPrompt(){
@@ -1298,17 +1329,22 @@ App.Tutorial = (()=> {
   function checkTriggers(){
     if(!canPrompt()) return;
     const s=App.State.s;
-    // Priority: Upgrade -> Unlock -> Coach
+
+    // Upgrade prompts (all exercises)
     for(const e of s.exercises){
       if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgradeFor(e); return; }
     }
-    for(const e of s.exercises){
-      if(!e.unlocked && !S.tutorial.shown.unlock[e.id] && (s.hp + App.Config.EPS >= e.unlockCost)){ promptUnlockFor(e); return; }
+
+    // ✅ Only announce the FIRST unlock (Jogging). No prompts for later unlocks.
+    const jog = s.exercises.find(e=>e.id==='jog');
+    if(jog && !jog.unlocked && !S.tutorial.shown.unlock[jog.id] && (s.hp + App.Config.EPS >= jog.unlockCost)){
+      promptUnlockFor(jog); return;
     }
+
+    // Coach availability prompt as usual
     promptCoachIfAvailable();
   }
 
-  // Event hooks
   App.Bus.on('hp:change', checkTriggers);
   App.Bus.on('exercise:unlock', checkTriggers);
   App.Bus.on('coach:owned', checkTriggers);
@@ -1321,6 +1357,47 @@ App.Tutorial = (()=> {
   function start(){ if(!S.tutorial.done){ startIntro(); } }
 
   return { init, start, end:()=>{}, repositionSpot };
+})();
+
+/* ================== Start Screen UI ================== */
+App.UI.Start = (() => {
+  const ov = document.getElementById('startOv');
+  const btnStart = document.getElementById('btnStart');
+  const btnCont = document.getElementById('btnContinue');
+  const seg = document.getElementById('segAvatar');
+
+  function setAvatar(av){
+    App.State.s.tutorial.avatar = av;
+    [...seg.querySelectorAll('.segBtn')].forEach(b=>b.classList.toggle('active', b.dataset.avatar===av));
+    App.State.save();
+  }
+
+  function init(){
+    // Default avatar based on prior save or male
+    const cur = App.State.s.tutorial.avatar || 'male';
+    setAvatar(cur);
+    seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> setAvatar(b.dataset.avatar)));
+
+    btnStart.addEventListener('click', ()=>{
+      hide();
+      if(!App.State.s.tutorial.done){ App.Tutorial.start(); }
+      // After entering, check offline gains
+      setTimeout(()=>App.Offline.checkAndShow(), 50);
+    });
+    btnCont.addEventListener('click', ()=>{
+      hide();
+      setTimeout(()=>App.Offline.checkAndShow(), 50);
+    });
+  }
+
+  function show(){
+    ov.classList.add('open'); ov.setAttribute('aria-hidden','false');
+  }
+  function hide(){
+    ov.classList.remove('open'); ov.setAttribute('aria-hidden','true');
+  }
+
+  return { init, show, hide };
 })();
 
 /* ================== Debug overlay ================== */
@@ -1375,11 +1452,10 @@ App.Tutorial = (()=> {
   App.Engine.start();
   App.Engine.scheduleSave();
   App.Notify.update();
-  App.Offline.checkAndShow();
 
-  if(!App.State.s.tutorial.done){
-    setTimeout(()=>App.Tutorial.start(), 350);
-  }
+  // Start Screen controls tutorial entry + offline check
+  App.UI.Start.init();
+  App.UI.Start.show();
 
   if(App.Flags.achievements){ setTimeout(()=>App.Achievements.checkAll(), 600); }
 })();
