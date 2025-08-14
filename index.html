@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.1 Achievements + Tutorial FX (single-file)</title>
+<title>Fitness Frenzy – V4.2 Event-Driven Tutorial + Modal Bubble</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -156,7 +156,9 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 /* ===== Tutorial overlay ===== */
 .tutOv{position:fixed;inset:0;z-index:8000;display:none;pointer-events:none}
 .tutOv.show{display:block}
-.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
+.tutOv.modal{pointer-events:auto} /* modal: block interactions behind */
+.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.22);pointer-events:none}
+.tutOv.modal .tutDim{pointer-events:auto} /* capture clicks to prevent background taps */
 .tutBubble{
   position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);
   max-width:min(980px,96vw);
@@ -165,7 +167,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
   box-shadow:0 18px 36px rgba(0,0,0,.35);
 }
-.tutAvatar{font-size:72px;line-height:1} /* larger emoji */
+.tutAvatar{font-size:72px;line-height:1}
 .tutText{flex:1;font-size:clamp(18px,3.8vw,24px);line-height:1.35}
 .tutWho{font-weight:900;color:#ffd6a8;margin-bottom:4px;font-size:clamp(16px,3.4vw,20px)}
 .tutMore{font-size:12px;color:#a7b7cc;margin-top:6px}
@@ -286,8 +288,8 @@ App.Flags = {
 
 /* ================== Config ================== */
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v400-foundation',   // keep same key to preserve saves
-  SCHEMA_VERSION: 4,                // bump for achievements/stat migration
+  SAVE_KEY: 'ff-v400-foundation',
+  SCHEMA_VERSION: 5,               // bumped for tutorial.shown (event-driven)
   DEC: 2,
   EPS: 1e-6,
   SOLID_CD_MS: 300,
@@ -335,7 +337,7 @@ App.Util = (()=> {
   return { fmtTop, fmtCost };
 })();
 
-/* ================== Audio (manual taps + FX) ================== */
+/* ================== Audio ================== */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx || audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{});} }
@@ -363,7 +365,7 @@ App.Audio = (()=> {
   return { sfx, unlock };
 })();
 
-/* ================== Effects (confetti, etc.) ================== */
+/* ================== Effects ================== */
 App.UI = {};
 App.UI.Effects = (()=> {
   const colors = ['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab'];
@@ -405,7 +407,10 @@ App.State = (()=> {
   const s = {
     schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{},
     stats:{manualTaps:0, autoTaps:0, totalEarned:0},
-    tutorial:{ done:false, stepId:null, avatar:'male', progress:{walkTaps:0, unlockJogDone:false, coachC1Done:false} },
+    tutorial:{ done:false, stepId:null, avatar:'male',
+      progress:{walkTaps:0},
+      shown:{ unlock:{}, coach:{}, upgrade:{} }  // new event-driven prompt flags
+    },
     achievements:{} // id -> true
   };
 
@@ -441,6 +446,7 @@ App.State = (()=> {
       s.schemaVersion=j.schemaVersion||App.Config.SCHEMA_VERSION;
       s.hp=j.hp??0; s.buyQty=j.buyQty??1; s.coachesOwned=j.coachesOwned||{}; s.stats=j.stats||s.stats;
       s.tutorial = j.tutorial || s.tutorial;
+      if(!s.tutorial.shown) s.tutorial.shown = { unlock:{}, coach:{}, upgrade:{} };
       s.achievements = j.achievements || {};
       s.__loaded=j.exercises||[];
     }catch{}
@@ -472,6 +478,11 @@ App.Migrations = {
     obj.stats = { manualTaps:0, autoTaps:0, totalEarned:0, ...(obj.stats||{}) };
     obj.achievements = obj.achievements || {};
     obj.schemaVersion = 4; return obj;
+  },
+  4: (obj) => {
+    obj.tutorial = obj.tutorial || {};
+    obj.tutorial.shown = obj.tutorial.shown || { unlock:{}, coach:{}, upgrade:{} };
+    obj.schemaVersion = 5; return obj;
   }
 };
 
@@ -725,7 +736,6 @@ App.Achievements = (()=> {
     App.Game.addHP(ach.reward);
     App.UI.Banners.upgrade(`Achievement: ${ach.title} • +${App.Util.fmtTop(ach.reward)} HP`);
     App.Audio.sfx('achv');
-    // Confetti from top center
     App.UI.Effects.confetti(window.innerWidth/2, 50, 36);
     App.UI.Renderer.forceTop();
     App.State.save();
@@ -752,7 +762,6 @@ App.Achievements = (()=> {
     host.innerHTML='';
     host.appendChild(grid);
   }
-  // hook events
   App.Bus.on('hp:change', checkAll);
   App.Bus.on('reps:buy', checkAll);
   App.Bus.on('exercise:levelup', checkAll);
@@ -1011,13 +1020,13 @@ App.UI.Renderer = (()=> {
   return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu, buildStats, buildSettings };
 })();
 
-/* ================== Fix: normalize cooldown ready ================== */
+/* ================== Fixes ================== */
 App.Fix = (() => {
   function normalizeCooldownStamps(){
     for (const e of App.State.s.exercises){
       e._autoElapsed = 0;
       if (e.unlocked){
-        e.lastTapAt = 0; // sentinel => ready
+        e.lastTapAt = 0; // ready
       } else {
         e.lastTapAt = -1;
       }
@@ -1088,7 +1097,7 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* ================== Tutorial (P1–P3) with FX ================== */
+/* ================== Tutorial (event-driven soft prompts + gated intro) ================== */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){
     return { init(){}, start(){}, end(){}, repositionSpot(){} };
@@ -1100,11 +1109,15 @@ App.Tutorial = (()=> {
   const line = document.getElementById('tutLine');
   const avatar = document.getElementById('tutAvatar');
   const spot = document.getElementById('tutSpot');
-  let active=false, gating=false, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null, waitUpgradeOff=null;
+  let active=false, gating=false, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null;
+  let lastPromptAt=0; const PROMPT_GAP_MS=3000;
+
+  function setModal(on){ ov.classList.toggle('modal', !!on); }
 
   function gateStart(allowSelectors){
     allowed = allowSelectors || [];
     gating = true;
+    setModal(false); // let clicks reach allowed targets; we block others via handler
     document.addEventListener('pointerdown', gateHandler, true);
     document.addEventListener('click', gateHandler, true);
   }
@@ -1120,8 +1133,9 @@ App.Tutorial = (()=> {
     if(!okay){ e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); }
   }
 
-  function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; App.UI.Overlay.suppressFloats=true; }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); }
+  function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); App.UI.Overlay.suppressFloats=true; }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); }
+
   function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
   function setTextHTML(html){ line.innerHTML=html; }
 
@@ -1150,33 +1164,29 @@ App.Tutorial = (()=> {
       setTextHTML(L.html);
       App.Audio.sfx('popup');
     } else if(curStep.onLinesDone){
-      curStep.onLinesDone();
+      const done = curStep.onLinesDone; curStep=null; done();
     }
   });
+  ov.querySelector('.tutDim').addEventListener('click', ()=>{ if(active && curStep && !gating) bubble.click(); });
 
   function popInFX(){
-    bubble.classList.remove('tutPop'); void bubble.offsetWidth; // restart
-    bubble.classList.add('tutPop');
-    bubble.classList.add('tutIdle');       // gentle hover
+    bubble.classList.remove('tutPop'); void bubble.offsetWidth;
+    bubble.classList.add('tutPop'); bubble.classList.add('tutIdle');
     App.Audio.sfx('popup');
-    // small confetti burst near the bubble
     const r=bubble.getBoundingClientRect();
     App.UI.Effects.confetti(r.left + r.width*0.5, r.top + 10, 20);
   }
 
-  function setStepById(id){
-    const s = steps.find(x=>x.id===id);
-    if(!s) return;
-    curStep = s; S.tutorial.stepId = s.id; App.State.save();
+  function setStep(step, modal=true){
+    curStep = step; S.tutorial.stepId = step.id || null; App.State.save();
     lineIdx=0; bubble.style.display='';
-    const L = s.lines[0]; setSpeaker(L.who, L.icon); setTextHTML(L.html);
-    show(); setTimeout(popInFX, 10);
+    const L = step.lines[0]; setSpeaker(L.who, L.icon); setTextHTML(L.html);
+    show(modal); setTimeout(popInFX, 10);
   }
-  function goTo(id){ hideSpot(); gateStop(); setStepById(id); }
-  function mark(flag){ S.tutorial.progress[flag]=true; App.State.save(); }
 
-  const steps = [
-    {
+  /* ---------- Gated intro (unchanged behavior) ---------- */
+  function startIntro(){
+    setStep({
       id:'intro-walk',
       lines:[
         { who:'JAX', icon:'🏋️‍♂️', html:'Hey—looking a bit low-energy. Let’s fix that 💪' },
@@ -1185,161 +1195,128 @@ App.Tutorial = (()=> {
       ],
       onLinesDone(){
         showSpotFor('.card[data-id="walk"] .tapPad');
-        gateStart(['.card[data-id="walk"] .tapPad']);
+        gateStart(['.card[data-id="walk"] .tapPad', '#tutBubble']);
         bubble.style.display='none';
         const off = App.Bus.on('tap:manual', ({exId})=>{
           if(exId!=='walk') return;
           if((S.tutorial.progress.walkTaps||0) >= 4){
-            off(); bubble.style.display=''; goTo('reps-walk');
+            off(); bubble.style.display='';
+            setStep({
+              id:'reps-walk',
+              lines:[
+                { who:'JAX', icon:'🏋️‍♂️', html:'Nice! Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.' },
+                { who:'JAX', icon:'🏋️‍♂️', html:'When the <span class="hl">Reps</span> button turns orange, tap it to buy.' },
+                { who:'JAX', icon:'🏋️‍♂️', html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.' }
+              ],
+              onLinesDone(){
+                try{
+                  App.State.s.buyQty = 1;
+                  const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');
+                  const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
+                  if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); }
+                  App.UI.Renderer.refreshAll();
+                }catch{}
+                showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]');
+                gateStart(['.card[data-id="walk"] .btn[data-role="reps"]','#tutBubble']);
+                bubble.style.display='none';
+
+                const offBuy = App.Bus.on('reps:buy', ({exId})=>{
+                  if(exId!=='walk') return;
+                  offBuy(); hideSpot(); gateStop();
+                  setStep({
+                    id:'upgrade-walk',
+                    lines:[ { who:'JAX', icon:'🏋️‍♂️', html:'<span class="hl">Upgrade!</span> Cooldown just halved. Faster taps → faster HP.' } ],
+                    onLinesDone(){ hide(); S.tutorial.done=true; S.tutorial.stepId=null; App.State.save(); }
+                  }, true);
+                });
+              }
+            }, true);
           }
         });
       }
-    },
-    {
-      id:'reps-walk',
-      lines:[
-        { who:'JAX', icon:'🏋️‍♂️', html:'Nice! Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.' },
-        { who:'JAX', icon:'🏋️‍♂️', html:'When the <span class="hl">Reps</span> button turns orange, tap it to buy.' },
-        { who:'JAX', icon:'🏋️‍♂️', html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.' }
-      ],
-      onLinesDone(){
-        try{
-          App.State.s.buyQty = 1;
-          const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');
-          const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
-          if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); }
-          App.UI.Renderer.refreshAll();
-        }catch{}
-        showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]');
-        gateStart(['.card[data-id="walk"] .btn[data-role="reps"]']);
-        bubble.style.display='none';
+    }, true);
+  }
 
-        const offBuy = App.Bus.on('reps:buy', ({exId})=>{
-          if(exId!=='walk') return;
-          offBuy(); hideSpot(); gateStop();
-          waitUpgradeOff = App.Bus.on('exercise:levelup', ({exId:levId})=>{
-            if(levId!=='walk') return;
-            waitUpgradeOff(); goTo('upgrade-walk');
-          });
-        });
-      }
-    },
-    {
-      id:'upgrade-walk',
-      lines:[ { who:'JAX', icon:'🏋️‍♂️', html:'<span class="hl">Upgrade!</span> Cooldown just halved. Faster taps → faster HP.' } ],
-      onLinesDone(){
-        hide(); S.tutorial.stepId = null; App.State.save();
-      }
-    },
-    {
-      id:'unlock-jog',
+  /* ---------- Event-driven soft prompts ---------- */
+  function now(){ return performance.now(); }
+  function canPrompt(){ return (now()-lastPromptAt) >= PROMPT_GAP_MS && !active; }
+  function markPrompt(){ lastPromptAt = now(); }
+
+  function promptUnlockFor(ex){
+    if(S.tutorial.shown.unlock[ex.id]) return;
+    if(ex.unlocked) return;
+    setStep({
       lines:[
-        { who:'JAX', icon:'🏋️‍♂️', html:'Time to add to your routine. Unlock <span class="hl">Jogging</span> for <span class="hl">60 HP</span>.' },
-        { who:'JAX', icon:'🏋️‍♂️', html:'Tap the orange <span class="hl">Unlock</span> pill to add it.' }
+        { who:'JAX', icon:'🏋️‍♂️', html:`Time to add to your routine. Unlock <span class="hl">${ex.name}</span> for <span class="hl">${App.Util.fmtTop(ex.unlockCost)} HP</span>.` },
+        { who:'JAX', icon:'🏋️‍♂️', html:'Tap the <span class="hl">Unlock</span> pill when ready.' }
       ],
-      onLinesDone(){
-        showSpotFor('.card[data-id="jog"] .costPill.ready');
-        gateStart(['.card[data-id="jog"] .costPill.ready']);
-        bubble.style.display='none';
-        const off = App.Bus.on('exercise:unlock', ({exId})=>{
-          if(exId!=='jog') return;
-          off(); hideSpot(); gateStop(); goTo('jog-unlocked');
-        });
-      }
-    },
-    {
-      id:'jog-unlocked',
-      lines:[
-        { who:'JAX', icon:'🏋️‍♂️', html:'Jogging unlocked! Bigger HP per tap, longer cooldown. Keep buying <span class="hl">Reps</span> to hit <span class="hl">10/10</span> and upgrade again.' }
-      ],
-      onLinesDone(){
-        mark('unlockJogDone');
-        hide(); S.tutorial.stepId=null; App.State.save();
-      }
-    },
-    {
-      id:'coach-intro',
-      lines:[
-        { who:'JAX', icon:'🏋️‍♂️', html:'Want to maximize gains? Hire a <span class="hl">Coach</span> to auto-tap for you.' },
-        { who:'JAX', icon:'🏋️‍♂️', html:'Open the <span class="hl">Menu</span>.' }
-      ],
-      onLinesDone(){
-        showSpotFor('#menuBtn');
-        gateStart(['#menuBtn']);
-        bubble.style.display='none';
-        const onOpen = ()=>{ hideSpot(); gateStop(); goTo('coach-hire-c1'); document.removeEventListener('menu:open', onOpen); };
-        document.addEventListener('menu:open', onOpen);
-      }
-    },
-    {
-      id:'coach-hire-c1',
-      lines:[
-        { who:'JAX', icon:'🏋️‍♂️', html:'Hire <span class="hl">Rookie Coach</span> to automate <span class="hl">Walking</span>.' }
-      ],
-      onLinesDone(){
-        App.Coaches.renderList();
-        setTimeout(()=>{
-          showSpotFor('.hireBtn[data-coach-id="c1"].ready');
-          gateStart(['.hireBtn[data-coach-id="c1"].ready']);
-          bubble.style.display='none';
-          const off = App.Bus.on('coach:owned', (id)=>{
-            if(id!=='c1') return;
-            off(); hideSpot(); gateStop(); hide(); S.tutorial.stepId=null; mark('coachC1Done'); App.State.save();
-            App.UI.Banners.upgrade('Rookie Coach hired! Walking is now automated.');
-            App.UI.Effects.confetti(window.innerWidth/2, 50, 30);
-            App.Audio.sfx('achv');
-            finishIfAllDone();
-          });
-        }, 50);
-      }
+      onLinesDone(){ S.tutorial.shown.unlock[ex.id]=true; App.State.save(); hide(); }
+    }, true);
+    showSpotFor(`.card[data-id="${ex.id}"] .costPill`);
+    markPrompt();
+  }
+
+  function promptUpgradeFor(ex){
+    if(S.tutorial.shown.upgrade[ex.id]) return;
+    setStep({
+      lines:[ { who:'JAX', icon:'🏋️‍♂️', html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.` } ],
+      onLinesDone(){ S.tutorial.shown.upgrade[ex.id]=true; App.State.save(); hide(); }
+    }, true);
+    showSpotFor(`.card[data-id="${ex.id}"] .coolwrap`);
+    markPrompt();
+  }
+
+  function promptCoachIfAvailable(){
+    const s=App.State.s;
+    const exById = Object.fromEntries(s.exercises.map(e=>[e.id,e]));
+    for(const c of App.Coaches.list()){
+      if(s.coachesOwned[c.id]) continue;
+      if(S.tutorial.shown.coach[c.id]) continue;
+      const ex=exById[c.target]; if(!ex || !ex.unlocked) continue;
+      if(s.hp + App.Config.EPS < c.price) continue;
+      setStep({
+        lines:[
+          { who:'JAX', icon:'🏋️‍♂️', html:`Want to maximize gains? Hire <span class="hl">${c.name}</span> to auto-tap <span class="hl">${ex.name}</span>.` },
+          { who:'JAX', icon:'🏋️‍♂️', html:`Open the <span class="hl">Menu</span> and hit <span class="hl">Hire</span>.` }
+        ],
+        onLinesDone(){ S.tutorial.shown.coach[c.id]=true; App.State.save(); hide(); }
+      }, true);
+      showSpotFor('#menuBtn');
+      markPrompt();
+      break;
     }
-  ];
+  }
 
-  function canStartUnlockJog(){
-    const s=App.State.s;
-    if(S.tutorial.progress.unlockJogDone) return false;
-    const jog = s.exercises.find(e=>e.id==='jog');
-    return jog && !jog.unlocked && (s.hp + App.Config.EPS) >= jog.unlockCost;
-  }
-  function canStartCoachC1(){
-    const s=App.State.s;
-    if(S.tutorial.progress.coachC1Done) return false;
-    if(s.coachesOwned['c1']) return false;
-    const c1 = App.Coaches.list().find(c=>c.id==='c1');
-    const walk = s.exercises.find(e=>e.id==='walk');
-    return c1 && walk && walk.unlocked && (s.hp + App.Config.EPS) >= c1.price;
-  }
   function checkTriggers(){
-    if(active || S.tutorial.stepId) return;
-    if(canStartUnlockJog()){ setStepById('unlock-jog'); return; }
-    if(canStartCoachC1()){ setStepById('coach-intro'); return; }
-    finishIfAllDone();
-  }
-  function finishIfAllDone(){
-    if(S.tutorial.progress.unlockJogDone && S.tutorial.progress.coachC1Done){
-      S.tutorial.done = true; App.State.save();
+    if(!canPrompt()) return;
+    const s=App.State.s;
+
+    // Priority: Upgrade -> Unlock -> Coach
+    for(const e of s.exercises){
+      if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgradeFor(e); return; }
     }
+    for(const e of s.exercises){
+      if(!e.unlocked && !S.tutorial.shown.unlock[e.id] && (s.hp + App.Config.EPS >= e.unlockCost)){ promptUnlockFor(e); return; }
+    }
+    promptCoachIfAvailable();
   }
 
-  App.Bus.on('tap:manual', ({exId})=>{
-    if(exId==='walk'){ S.tutorial.progress.walkTaps++; App.State.save(); }
+  // Event hooks
+  App.Bus.on('hp:change', checkTriggers);
+  App.Bus.on('exercise:unlock', checkTriggers);
+  App.Bus.on('coach:owned', checkTriggers);
+  App.Bus.on('exercise:levelup', ({exId})=>{
+    const ex = App.State.s.exercises.find(x=>x.id===exId);
+    if(ex) promptUpgradeFor(ex);
   });
 
-  function start(){ if(S.tutorial.done){ return; } if(!S.tutorial.stepId){ setStepById('intro-walk'); } }
   function init(){
     window.addEventListener('resize', repositionSpot);
     document.addEventListener('scroll', repositionSpot, true);
-    const { menuOverlay } = App.UI.Renderer.refs;
-    const mo = new MutationObserver(()=>{ 
-      const open = menuOverlay.classList.contains('open');
-      document.dispatchEvent(new Event(open?'menu:open':'menu:close'));
-    });
-    mo.observe(menuOverlay, { attributes:true, attributeFilter:['class'] });
-
-    App.Bus.on('hp:change', checkTriggers);
-    App.Bus.on('exercise:unlock', checkTriggers);
-    App.Bus.on('coach:owned', checkTriggers);
+    // clicking outside bubble when modal just advances
   }
+
+  function start(){ if(!S.tutorial.done){ startIntro(); } }
 
   return { init, start, end:()=>{}, repositionSpot };
 })();
@@ -1402,7 +1379,6 @@ App.Tutorial = (()=> {
     setTimeout(()=>App.Tutorial.start(), 350);
   }
 
-  // Initial achievements check for existing saves
   if(App.Flags.achievements){ setTimeout(()=>App.Achievements.checkAll(), 600); }
 })();
 </script>
