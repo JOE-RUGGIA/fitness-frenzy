@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – Single-File V3.1 (20 Exercises)</title>
+<title>Fitness Frenzy – V3.2 (Menu + Coaches)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -19,7 +19,7 @@ body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:
 button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation;}
 
 /* Sticky Top Bar */
-.topbar{position:sticky;top:0;z-index:10;background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .title{display:flex;align-items:center;gap:10px}
 .title .icon{font-size:clamp(22px,5vw,28px)}
@@ -44,6 +44,7 @@ h1{margin:0;font-size:var(--fs-3)}
 .btn{position:relative;overflow:hidden;padding:10px 14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;
      transition:transform .04s ease,box-shadow .2s ease,filter .2s ease}
 .btn.secondary{background:#1a2a40;color:#d7e3f5}
+.btn.ghost{background:#13233b;color:#cfe0ff;border:1px solid #2b3d5a}
 .btn:active{transform:translateY(1px)}
 .btn[disabled]{background:#2a3a51;color:#9ab;cursor:not-allowed}
 .btn.ready{box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 8px 20px rgba(204,107,44,.35);filter:saturate(1.15) brightness(1.08)}
@@ -101,6 +102,7 @@ h1{margin:0;font-size:var(--fs-3)}
 
 .kv{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:6px 10px;border-radius:10px;font-size:14px}
 .metaRow{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.kvAuto{color:#98ffd3;background:#12322a;border:1px solid #1e4e3c;padding:6px 10px;border-radius:10px;font-size:14px}
 
 /* Unlock pill */
 .costLine{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -118,6 +120,33 @@ h1{margin:0;font-size:var(--fs-3)}
         animation:bannerIn .22s ease-out forwards, bannerOut .9s ease-in forwards 2.6s}
 @keyframes bannerIn{to{opacity:1; transform:translateY(0)}}
 @keyframes bannerOut{to{opacity:0; transform:translateY(8px)}}
+
+/* ===== MENU MODAL ===== */
+.menuOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:40;display:none;align-items:flex-end;justify-content:center}
+.menuOverlay.open{display:flex}
+.menuPanel{width:min(980px,96vw);max-height:88vh;background:#0f1b2b;border:1px solid var(--border);border-radius:16px 16px 0 0;
+           box-shadow:0 -12px 30px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden}
+.menuHeader{display:flex;align-items:center;gap:10px;padding:10px var(--space);border-bottom:1px solid var(--border)}
+.menuTitle{font-weight:900;font-size:20px}
+.menuClose{margin-left:auto}
+.menuTabs{display:flex;gap:8px;padding:8px var(--space);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.menuTab{padding:8px 12px;border-radius:999px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-weight:800;cursor:pointer}
+.menuTab.active{background:var(--accent);color:#fff;border-color:#e89d6b}
+.menuBody{padding:14px var(--space);overflow:auto}
+
+/* Coaches list/cards */
+.coachList{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:700px){ .coachList{grid-template-columns:1fr 1fr;} }
+.coachCard{display:flex;gap:12px;align-items:center;background:#0c1525;border:1px solid #223556;border-radius:12px;padding:12px}
+.coachCard.locked{opacity:.58;filter:grayscale(1);transform:scale(.96)}
+.headshot{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:40px;border-radius:12px;background:#12243b;border:1px solid #1a2f4a}
+.coachMid{flex:1;min-width:0}
+.coachName{font-weight:900}
+.coachInfo{color:#a7b7cc;font-size:14px}
+.coachRight{display:flex;align-items:center;gap:10px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-size:12px}
+.badge.green{border-color:#1e4e3c;background:#12322a;color:#98ffd3}
+.badge.orange{border-color:#e89d6b;background:#432815;color:#ffd6a8}
 </style>
 </head>
 <body>
@@ -127,6 +156,7 @@ h1{margin:0;font-size:var(--fs-3)}
       <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
       <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0</span></div>
       <div class="spacer"></div>
+      <button id="menuBtn" class="btn ghost">Menu</button>
       <div class="seg" id="qtyTop"><button class="segBtn active" data-q="1">×1</button><button class="segBtn" data-q="10">×10</button></div>
       <button id="saveBtn" class="btn secondary">Save</button>
       <button id="resetBtn" class="btn secondary">Reset</button>
@@ -135,6 +165,39 @@ h1{margin:0;font-size:var(--fs-3)}
 
   <div class="wrap"><div id="stack" class="stack"></div></div>
   <div id="bannerHost"></div>
+
+  <!-- Menu Modal -->
+  <div id="menuOverlay" class="menuOverlay" aria-hidden="true">
+    <div class="menuPanel" role="dialog" aria-modal="true">
+      <div class="menuHeader">
+        <div class="menuTitle">Menu</div>
+        <div class="spacer"></div>
+        <button id="menuClose" class="btn secondary menuClose">Close</button>
+      </div>
+      <div class="menuTabs">
+        <button class="menuTab active" data-tab="coaches">Coaches</button>
+        <button class="menuTab" data-tab="upgrades">Upgrades</button>
+        <button class="menuTab" data-tab="achievements">Achievements</button>
+        <button class="menuTab" data-tab="quests">Side Quests</button>
+        <button class="menuTab" data-tab="shop">Shop</button>
+      </div>
+      <div class="menuBody">
+        <div id="tab-coaches"></div>
+        <div id="tab-upgrades" style="display:none">
+          <p>Upgrades are coming soon. Think: shoes, protein, energy drinks, wrist wraps—persistent bonuses with clean math.</p>
+        </div>
+        <div id="tab-achievements" style="display:none">
+          <p>Achievements coming soon. Milestones unlock flair and small buffs.</p>
+        </div>
+        <div id="tab-quests" style="display:none">
+          <p>Side Quests coming later. Bite-size tasks for burst rewards (daily/weekly).</p>
+        </div>
+        <div id="tab-shop" style="display:none">
+          <p>Shop coming soon. Cosmetic themes and music packs (rock/punk/etc.).</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script>
 /* ===========================================================
@@ -200,8 +263,8 @@ App.Audio = (()=> {
 
 /* ---------- State ---------- */
 App.State = (()=> {
-  const SAVE_KEY = 'fitness_frenzy_ff-v3-20';
-  const state = { hp:0, buyQty:1, exercises:[] };
+  const SAVE_KEY = 'fitness_frenzy_ff-v3-20-coaches';
+  const state = { hp:0, buyQty:1, exercises:[], coachesOwned:{} };
 
   function setExercises(list){
     state.exercises = list.map(e=>({
@@ -223,7 +286,7 @@ App.State = (()=> {
 
   function save(){
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      hp: state.hp, buyQty: state.buyQty,
+      hp: state.hp, buyQty: state.buyQty, coachesOwned: state.coachesOwned,
       exercises: state.exercises.map(e=>({
         id:e.id, repHP:e.repHP, repProgress:e.repProgress, repTarget:e.repTarget,
         unlocked:e.unlocked, cooldown:e.cooldown, level:e.level
@@ -237,6 +300,7 @@ App.State = (()=> {
       const s=JSON.parse(raw);
       state.hp = s.hp ?? 0;
       state.buyQty = s.buyQty ?? 1;
+      state.coachesOwned = s.coachesOwned || {};
       state.__loaded = s.exercises || [];
     }catch{}
   }
@@ -302,19 +366,44 @@ App.Economy = (()=> {
   return { perTap, cooldownMs, canTap, bulkRepCost, addReps, handleUpgrades, tap };
 })();
 
-/* ---------- Engine ---------- */
+/* ---------- Engine (tick + auto DPS) ---------- */
 App.Engine = (()=> {
+  let lastTick = performance.now();
+
   function startEngine(updateCooldownUI, refreshExerciseUI){
     function tick(){
+      const now = performance.now();
+      const dt = Math.min(0.25, (now - lastTick)/1000); // clamp 250ms
+      lastTick = now;
+
+      // Auto DPS from coaches
+      applyAutoGains(dt);
+
+      // UI updates
       for(const e of App.State.getExercises()){ updateCooldownUI(e); }
-      if(!tick._t || performance.now()-tick._t>100){
+      if(!tick._t || now - tick._t > 100){
         for(const e of App.State.getExercises()) refreshExerciseUI(e);
-        tick._t = performance.now();
+        tick._t = now;
       }
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
   }
+
+  function applyAutoGains(dt){
+    const s = App.State.getState();
+    let add = 0;
+    for(const e of s.exercises){
+      const autoAPS = App.Coaches.getAPSForExercise(e.id); // taps per sec requested
+      if(autoAPS <= 0) continue;
+      const maxRate = 1000 / Math.max(100, e.cooldown); // respect cooldown cap
+      const effRate = Math.min(autoAPS, maxRate);
+      const dps = effRate * App.Economy.perTap(e);
+      add += dps * dt;
+    }
+    if(add>0){ s.hp += add; }
+  }
+
   function scheduleSave(){ setInterval(()=> App.State.save(), 20000); }
   function bindPress(el, fn){
     el.addEventListener('pointerdown', e=>{ e.preventDefault(); fn(e); }, {passive:false});
@@ -402,7 +491,10 @@ App.UI.Cards = (()=> {
     coolWrap.innerHTML = `<div class="coolbar"><div class="coolfill"></div></div>`;
 
     const metaRow = document.createElement('div'); metaRow.className='metaRow';
-    const kvs = document.createElement('div'); kvs.innerHTML = `<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>`;
+    const kvs = document.createElement('div'); 
+    kvs.innerHTML = `
+      <span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>
+      <span class="kvAuto" title="Auto HP per second from coaches">Auto: <strong class="kvAutoVal">0.00</strong> HP/s</span>`;
     const buyRepBtn = document.createElement('button'); buyRepBtn.className='btn'; buyRepBtn.textContent='Add Reps';
     metaRow.appendChild(kvs); metaRow.appendChild(buyRepBtn);
 
@@ -420,6 +512,7 @@ App.UI.Cards = (()=> {
       headRight: head.querySelector('.headRight'),
       coolFill: coolWrap.querySelector('.coolfill'),
       kvTap: kvs.querySelector('.kvTap'),
+      kvAutoVal: kvs.querySelector('.kvAutoVal'),
       buyRepBtn,
       costLine, costPill, costAmt: costLine.querySelector('.costAmt'),
       coolWrap, metaRow
@@ -471,6 +564,7 @@ App.UI.Renderer = (()=> {
     qtyTop:document.getElementById('qtyTop'),
     saveBtn: document.getElementById('saveBtn'),
     resetBtn: document.getElementById('resetBtn'),
+    menuBtn: document.getElementById('menuBtn')
   };
   const { fmtTop, fmtCost } = App.Util;
   const { perTap, cooldownMs, bulkRepCost } = App.Economy;
@@ -489,7 +583,7 @@ App.UI.Renderer = (()=> {
   function renderTop(){ refs.hp.textContent = fmtTop(App.State.getState().hp); }
 
   function refreshExerciseUI(e){
-    // Cooldown label: READY shows full; after tap count 0 -> full
+    // Cooldown label
     if(e.unlocked){
       const cd = cooldownMs(e);
       const now = performance.now();
@@ -508,6 +602,15 @@ App.UI.Renderer = (()=> {
     // Level badge + per-tap
     if(e.els.lvl) e.els.lvl.textContent = `Lvl ${e.level}`;
     if(e.els.kvTap) e.els.kvTap.textContent = perTap(e).toFixed(0);
+
+    // Auto HP/s
+    if(e.els.kvAutoVal){
+      const aps = App.Coaches.getAPSForExercise(e.id);
+      const maxRate = 1000 / Math.max(100, e.cooldown);
+      const effRate = Math.min(aps, maxRate);
+      const hps = effRate * perTap(e);
+      e.els.kvAutoVal.textContent = hps.toFixed(2);
+    }
 
     // Add Reps button
     if(e.unlocked && e.els.buyRepBtn){
@@ -528,7 +631,7 @@ App.UI.Renderer = (()=> {
       if(canUn && !e._unlockReady){
         e._unlockReady=true;
         e.els.card.classList.add('unlock-ready','unlock-bounce');
-        e.els.costPill.classList.add('ready'); // orange
+        e.els.costPill.classList.add('ready');
         sfx('ready');
       }
       if(!canUn && e._unlockReady){
@@ -538,7 +641,7 @@ App.UI.Renderer = (()=> {
       }
     }
 
-    // Upgrade banner on level change
+    // Upgrade banner
     if(!refreshExerciseUI._levels) refreshExerciseUI._levels = {};
     const oldLvl = refreshExerciseUI._levels[e.id] ?? e.level;
     if(e.level > oldLvl){
@@ -554,9 +657,137 @@ App.UI.Renderer = (()=> {
   return { refs, renderStack, renderTop, refreshExerciseUI, refreshAll };
 })();
 
+/* ---------- MENU (tabs + modal) ---------- */
+App.Menu = (()=> {
+  const overlay = document.getElementById('menuOverlay');
+  const closeBtn = document.getElementById('menuClose');
+  const tabs = [...document.querySelectorAll('.menuTab')];
+
+  function open(tab='coaches'){
+    overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
+    switchTab(tab);
+  }
+  function close(){ overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); }
+  function switchTab(name){
+    tabs.forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+    ['coaches','upgrades','achievements','quests','shop'].forEach(id=>{
+      const el = document.getElementById('tab-'+id);
+      if(!el) return;
+      el.style.display = (id===name?'block':'none');
+    });
+    if(name==='coaches'){ App.Coaches.renderList(); }
+  }
+
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) close(); });
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
+  tabs.forEach(t => t.addEventListener('click', ()=> switchTab(t.dataset.tab)));
+
+  return { open, close, switchTab };
+})();
+
+/* ---------- COACHES (data + UI + math hook) ---------- */
+App.Coaches = (()=> {
+  // Parody-ish names; each coach targets a specific exercise id.
+  const coaches = [
+    { id:'c1',  name:'Rookie Coach',     icon:'🧑‍🏫', aps:1.00, price:   50, target:'walk' },
+    { id:'c2',  name:'Track Buddy',      icon:'👟',   aps:0.80, price:  200, target:'jog' },
+    { id:'c3',  name:'Core Captain',     icon:'🧘‍♂️', aps:0.60, price:  800, target:'sit' },
+    { id:'c4',  name:'Push-up Pro',      icon:'💪',   aps:0.50, price: 2000, target:'push' },
+    { id:'c5',  name:'Cardio Coach',     icon:'🤸',   aps:0.50, price: 6000, target:'jacks' },
+    { id:'c6',  name:'Squat Sensei',     icon:'🦵',   aps:0.40, price:15000, target:'squat' },
+    { id:'c7',  name:'Kettlebell Guru',  icon:'🏋️',  aps:0.35, price:60000, target:'kb' },
+    { id:'c8',  name:'Bench Boss',       icon:'🏋️‍♂️',aps:0.30, price:120000, target:'bench' },
+    { id:'c9',  name:'Marathon Mentor',  icon:'🎽',   aps:0.25, price:500000, target:'marathon' },
+    { id:'c10', name:'Ring Master',      icon:'🤸‍♂️', aps:0.20, price:1000000,target:'ironcross' }
+  ];
+
+  function getAPSForExercise(exId){
+    const owned = App.State.getState().coachesOwned;
+    let sum = 0;
+    for(const c of coaches){
+      if(owned[c.id] && c.target===exId) sum += c.aps;
+    }
+    return sum;
+  }
+
+  function renderList(){
+    const host = document.getElementById('tab-coaches');
+    host.innerHTML = '';
+    const list = document.createElement('div'); list.className='coachList';
+    host.appendChild(list);
+
+    const exById = {};
+    for(const e of App.State.getExercises()) exById[e.id] = e;
+
+    for(const c of coaches){
+      const owned = !!App.State.getState().coachesOwned[c.id];
+      const prereqUnlocked = !!(exById[c.target] && exById[c.target].unlocked);
+      const locked = !prereqUnlocked;
+
+      const card = document.createElement('div'); card.className='coachCard'+(locked?' locked':'');
+      const headshot = document.createElement('div'); headshot.className='headshot'; headshot.textContent=c.icon;
+      const mid = document.createElement('div'); mid.className='coachMid';
+      const right = document.createElement('div'); right.className='coachRight';
+
+      const name = document.createElement('div'); name.className='coachName'; name.textContent = c.name;
+      const info = document.createElement('div'); info.className='coachInfo';
+      const targName = exById[c.target]?.name || c.target;
+      info.textContent = `Targets: ${targName} • Auto taps: ${c.aps}/s`;
+
+      const priceBadge = document.createElement('div'); priceBadge.className='badge orange';
+      priceBadge.textContent = `Hire: ${App.Util.fmtCost(c.price)} HP`;
+
+      const prereqBadge = document.createElement('div'); prereqBadge.className='badge';
+      prereqBadge.textContent = `Requires: ${targName}`;
+
+      const autoBadge = document.createElement('div'); autoBadge.className='badge green';
+      autoBadge.textContent = `+${c.aps}/s`;
+
+      const btn = document.createElement('button'); btn.className='btn'; btn.textContent = owned ? 'Owned' : 'Hire';
+      if(owned){ btn.disabled=true; }
+
+      mid.appendChild(name);
+      mid.appendChild(info);
+      const midRow = document.createElement('div'); midRow.style.display='flex'; midRow.style.gap='8px'; midRow.style.marginTop='6px';
+      midRow.appendChild(priceBadge); midRow.appendChild(autoBadge);
+      if(locked){ midRow.appendChild(prereqBadge); }
+      mid.appendChild(midRow);
+
+      right.appendChild(btn);
+
+      card.appendChild(headshot); card.appendChild(mid); card.appendChild(right);
+      list.appendChild(card);
+
+      // Activate button state
+      const canAfford = App.State.getState().hp >= c.price;
+      if(!locked && !owned){
+        btn.disabled = !canAfford;
+        if(canAfford){ btn.classList.add('ready'); card.classList.add('unlock-bounce'); }
+      }else{
+        btn.disabled = true;
+      }
+
+      // Hire click
+      btn.addEventListener('click', ()=>{
+        if(locked || owned) return;
+        const s = App.State.getState();
+        if(s.hp + 1e-9 < c.price) return;
+        s.hp -= c.price;
+        s.coachesOwned[c.id] = true;
+        App.Audio.sfx('buy');
+        App.UI.Renderer.renderTop();
+        App.Menu.open('coaches'); // re-render
+      });
+    }
+  }
+
+  return { getAPSForExercise, renderList };
+})();
+
 /* ---------- Content (20 exercises) ---------- */
 App.Content = (()=> {
-  // baseCooldowns in ms: 0.6s; then 3s; then double each step (6,12,24,...)
+  // baseCooldowns in ms: 0.6s; then 3s; then doubling each step (6,12,24,...)
   const exercises = [
     { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
 
@@ -617,6 +848,11 @@ App.Content = (()=> {
       App.UI.Renderer.refreshAll();
     }, {passive:false});
   });
+  refs.menuBtn.addEventListener('click', ()=> App.Menu.open('coaches'));
+
+  // Menu tab content host init
+  const hostCoaches = document.getElementById('tab-coaches');
+  hostCoaches.innerHTML = '<div class="coachList"></div>';
 
   // Merge saved progress (after DOM exists)
   App.State.mergeSaveIntoExercises();
