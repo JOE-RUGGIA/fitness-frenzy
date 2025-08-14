@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V2.2 (Cooldown Display, Lvl Badge, Sit-ups Emoji, Stronger SFX Resume)</title>
+<title>Fitness Frenzy – V2.3 (Cooldown Count-Up + Full-Width Banner + Rounded Rep Band + Orange Unlock)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
   :root{
     --bg:#0a1320; --card:#0f1b2b; --ink:#e9eef3; --muted:#a7b7cc; --border:#213149;
     --accent:#cc6b2c; --accent-hi:#ffb357; --rep:#22c55e;
-    --space:clamp(10px,2.2vw,18px); --r:14px;
+    --space:clamp(10px,2.2vw,18px); --r:16px; /* keep in sync with tapPad radius */
     --fs-1:clamp(16px,2.4vw,18px); --fs-2:clamp(18px,3.2vw,22px); --fs-3:clamp(22px,5vw,28px);
     --repband:16%;
   }
@@ -57,7 +57,7 @@
   .wrap{max-width:980px;margin:0 auto;padding:var(--space)}
   .stack{display:flex;flex-direction:column;gap:var(--space)}
 
-  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:var(--space);
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:var(--space);
         display:flex;gap:14px;align-items:stretch;transition:transform .18s ease,filter .18s ease,opacity .18s ease, box-shadow .18s ease}
   .card.locked{opacity:.58;filter:grayscale(1);transform:scale(.90)}
   .card.unlock-ready{border-color:var(--accent);box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 14px 30px rgba(204,107,44,.28),0 0 24px rgba(204,107,44,.25)}
@@ -66,26 +66,38 @@
 
   /* Left tap pad */
   .tapPad{
-    position:relative;width:clamp(72px,14vw,110px);aspect-ratio:1/1;border-radius:16px;
+    position:relative;width:clamp(72px,14vw,110px);aspect-ratio:1/1;border-radius:var(--r);
     background:#12243b;border:1px solid #1a2f4a;display:flex;align-items:center;justify-content:center;
     font-size:clamp(38px,11vw,64px);
     cursor:pointer;overflow:visible;
   }
   .tapPad:active{transform:translateY(1px) scale(.98);filter:brightness(1.08)}
 
-  /* Level badge (top-left of icon square) */
+  /* Level badge */
   .lvl{
     position:absolute;left:6px;top:6px;font-size:12px;font-weight:900;color:#fff;
     background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;border-radius:8px;
     padding:2px 6px;box-shadow:0 4px 12px rgba(0,0,0,.25)
   }
 
-  /* Rep band (bottom strip) */
-  .repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);background:#15341f;border-top:1px solid #204e2b}
-  .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
-  .repLabel{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#cfead6;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+  /* Rep band (bottom strip) — rounded to match pad */
+  .repBand{
+    position:absolute;left:0;right:0;bottom:0;height:var(--repband);
+    background:#15341f;border-top:1px solid #204e2b;
+    border-bottom-left-radius:var(--r); border-bottom-right-radius:var(--r); overflow:hidden;
+  }
+  .repFill{
+    position:absolute;left:0;top:0;height:100%;width:0%;
+    background:linear-gradient(90deg,#1fa24e,var(--rep));
+    border-bottom-left-radius:var(--r); border-bottom-right-radius:var(--r);
+  }
+  .repLabel{
+    position:absolute;left:0;right:0;top:0;bottom:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:#cfead6;text-shadow:0 1px 0 rgba(0,0,0,.5)
+  }
 
-  /* Floating +HP (global overlay) */
+  /* +HP float (global overlay) */
   .float{
     position:fixed;left:50%;top:10%;transform:translateX(-50%);
     color:#ffe6c7;font-weight:800;text-shadow:0 1px 0 rgba(0,0,0,.6);
@@ -109,36 +121,39 @@
   @keyframes stripeMove{from{background-position:0 0}to{background-position:60px 0}}
 
   .kv{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:6px 10px;border-radius:10px;font-size:14px}
-
-  /* Meta row (stats + Add Reps) */
   .metaRow{display:flex;align-items:center;gap:10px;justify-content:space-between}
 
-  /* Locked cost pill as button */
+  /* Locked cost pill as the button */
   .costLine{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .costPill{
     display:inline-flex;align-items:center;gap:8px;
-    font-weight:900;font-size:clamp(18px,4vw,22px);color:#ffd6a8;background:#142743;border:1px solid #27456d;
-    padding:8px 14px;border-radius:999px; transition:transform .06s ease, filter .2s ease, box-shadow .2s ease;
+    font-weight:900;font-size:clamp(18px,4vw,22px);color:#ffd6a8;
+    background:#142743;border:1px solid #27456d;
+    padding:8px 14px;border-radius:999px; transition:transform .06s ease, filter .2s ease, box-shadow .2s ease, background .2s ease;
     cursor:not-allowed;
   }
   .costPill.ready{
-    background:var(--accent); color:#fff; border-color:#e89d6b; cursor:pointer;
+    color:#fff; cursor:pointer;
+    background:linear-gradient(135deg,var(--accent), var(--accent-hi));
+    border-color:#e89d6b;
     box-shadow:0 0 0 1px rgba(255,255,255,.06) inset,0 12px 26px rgba(204,107,44,.35);
     animation:bob 1.1s ease-in-out infinite;
   }
   .costPill:active{ transform:translateY(1px) scale(.985); }
 
-  /* Upgrade banner (bottom) */
+  /* Full-width upgrade banner (bottom) */
   .banner{
-    position:fixed; left:50%; bottom:12px; transform:translateX(-50%) translateY(20px);
-    background:linear-gradient(135deg,#132647,#1d3a61); color:#fff; border:1px solid #2a4a78;
-    padding:10px 16px; border-radius:12px; box-shadow:0 10px 24px rgba(0,0,0,.35);
+    position:fixed; left:0; right:0; bottom:0;
+    transform:translateY(100%); /* start off-canvas */
+    background:linear-gradient(135deg,#132647,#1d3a61); color:#fff; border-top:1px solid #2a4a78;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom)); /* respect bottom safe area */
+    border-radius:0; box-shadow:0 -10px 24px rgba(0,0,0,.35);
     opacity:0; z-index:30; pointer-events:none;
-    display:flex; gap:8px; align-items:center;
-    animation:bannerIn .18s ease-out forwards, bannerOut 1.1s ease-in forwards 2.6s;
+    display:flex; gap:8px; align-items:center; justify-content:center; text-align:center;
+    animation:bannerIn .22s ease-out forwards, bannerOut .9s ease-in forwards 2.6s;
   }
-  @keyframes bannerIn{to{opacity:1; transform:translateX(-50%) translateY(0)}}
-  @keyframes bannerOut{to{opacity:0; transform:translateX(-50%) translateY(8px)}}
+  @keyframes bannerIn{to{opacity:1; transform:translateY(0)}}
+  @keyframes bannerOut{to{opacity:0; transform:translateY(8px)}}
 </style>
 </head>
 <body>
@@ -155,7 +170,6 @@
 
     <div class="spacer"></div>
 
-    <!-- Global Buy Quantity -->
     <div class="seg" id="qtyTop">
       <button class="segBtn active" data-q="1">×1</button>
       <button class="segBtn" data-q="10">×10</button>
@@ -173,36 +187,33 @@
 
 <script>
 /* ===== Data / Config ===== */
-const VERSION='ff-v2-2';
-const SAVE_KEY='fitness_frenzy_'+VERSION;
+const VERSION='ff-v2-3';
+/* Keep the same save key as v2.2 so your progress persists across this update */
+const SAVE_KEY='fitness_frenzy_ff-v2-2';
 const REP_GROWTH = 1.07;
-const BANNER_STAY_MS = 3800; // banner linger
+const BANNER_STAY_MS = 3800;
 let BUY_QTY = 1;
 
 /* Model */
 const exercises = [
   { id:'walk', name:'Walking', icon:'🚶', baseHP:1,   baseCooldown:600,
     repHP:0, repProgress:0, repTarget:10, repBaseCost:4,
-    level:1,
-    unlocked:true,  unlockCost:0,
+    level:1, unlocked:true,  unlockCost:0,
     cooldown:600, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
   { id:'jog',  name:'Jogging', icon:'🏃', baseHP:60,  baseCooldown:3000,
     repHP:0, repProgress:0, repTarget:10, repBaseCost:30,
-    level:1,
-    unlocked:false, unlockCost:60,
+    level:1, unlocked:false, unlockCost:60,
     cooldown:3000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
-  { id:'sit',  name:'Sit-ups', icon:'🧘', baseHP:180, baseCooldown:2500, /* changed emoji */
+  { id:'sit',  name:'Sit-ups', icon:'🧘', baseHP:180, baseCooldown:2500,
     repHP:0, repProgress:0, repTarget:10, repBaseCost:90,
-    level:1,
-    unlocked:false, unlockCost:300,
+    level:1, unlocked:false, unlockCost:300,
     cooldown:2500, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 
   { id:'push', name:'Push-ups', icon:'💪', baseHP:400, baseCooldown:2000,
     repHP:0, repProgress:0, repTarget:10, repBaseCost:200,
-    level:1,
-    unlocked:false, unlockCost:1200,
+    level:1, unlocked:false, unlockCost:1200,
     cooldown:2000, lastTapAt:-Infinity, _repReady:false, _unlockReady:false, els:{} },
 ];
 
@@ -216,21 +227,17 @@ const perTap = e => e.baseHP + e.repHP;
 const cooldownMs = e => e.cooldown;
 const canTap = (e, now)=> (now - e.lastTapAt) >= cooldownMs(e) - 1;
 
-/* ===== SFX (strong resume/recreate) ===== */
+/* ===== SFX (resume/recreate) ===== */
 let audioCtx=null;
 function ensureAudioCtx(){
   if(!audioCtx || audioCtx.state==='closed'){
-    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
-    catch{} 
+    try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch{}
   }
-  if(audioCtx && audioCtx.state === 'suspended'){
-    audioCtx.resume().catch(()=>{});
-  }
+  if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
 }
 function sfx(type){
   try{
-    ensureAudioCtx();
-    if(!audioCtx) return;
+    ensureAudioCtx(); if(!audioCtx) return;
     const t=audioCtx.currentTime;
     const beep=(f,type='sine',dur=.22,vol=.07)=>{
       const o=audioCtx.createOscillator(); o.type=type; o.frequency.setValueAtTime(f,t);
@@ -246,14 +253,9 @@ function sfx(type){
     if(type==='ready'){   beep(760,'triangle',.16,.06); setTimeout(()=>beep(980,'triangle',.14,.05), 60); }
   }catch{}
 }
-/* Resume on return/interaction (cover more cases) */
-['visibilitychange','pageshow'].forEach(ev=>document.addEventListener(ev, ()=>{
-  if(document.visibilityState==='visible'||ev==='pageshow'){ ensureAudioCtx(); }
-}));
-['focus'].forEach(ev=>window.addEventListener(ev, ()=>ensureAudioCtx()));
-['pointerdown','touchstart','mousedown','click'].forEach(ev=>{
-  window.addEventListener(ev, ()=>ensureAudioCtx(), {capture:true, passive:true});
-});
+['visibilitychange','pageshow'].forEach(ev=>document.addEventListener(ev, ()=>{ if(document.visibilityState==='visible'||ev==='pageshow'){ ensureAudioCtx(); } }));
+window.addEventListener('focus', ()=>ensureAudioCtx());
+['pointerdown','touchstart','mousedown','click'].forEach(ev=>window.addEventListener(ev, ()=>ensureAudioCtx(), {capture:true, passive:true}));
 
 /* ===== Persistence ===== */
 function save(){
@@ -302,11 +304,9 @@ function makeExerciseCard(e){
   const tapPad = document.createElement('div');
   tapPad.className='tapPad'; tapPad.textContent = e.icon;
 
-  // Level badge
   const lvl = document.createElement('div'); lvl.className='lvl'; lvl.textContent = `Lvl ${e.level}`;
   tapPad.appendChild(lvl);
 
-  // Rep band inside tap pad
   const repBand = document.createElement('div'); repBand.className='repBand';
   repBand.innerHTML = `<div class="repFill"></div><div class="repLabel">0/10</div>`;
   tapPad.appendChild(repBand);
@@ -317,23 +317,19 @@ function makeExerciseCard(e){
   head.innerHTML = `<div class="ex-title">${e.name}</div>
                     <div class="muted headRight"></div>`;
 
-  // Cooldown bar
   const coolWrap = document.createElement('div'); coolWrap.className='coolwrap';
   coolWrap.innerHTML = `<div class="coolbar"><div class="coolfill"></div></div>`;
 
-  // Meta row: stats + Add Reps
   const metaRow = document.createElement('div'); metaRow.className='metaRow';
   const kvs = document.createElement('div');
   kvs.innerHTML = `<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>`;
   const buyRepBtn = document.createElement('button'); buyRepBtn.className='btn'; buyRepBtn.textContent='Add Reps';
   metaRow.appendChild(kvs); metaRow.appendChild(buyRepBtn);
 
-  // Locked cost pill (button)
   const costLine = document.createElement('div'); costLine.className='costLine';
   costLine.innerHTML = `<button class="costPill" type="button">Unlock for <span class="costAmt">${fmtCost(e.unlockCost)}</span> HP</button>`;
   const costPill = costLine.querySelector('.costPill');
 
-  // Assemble — always append both; toggle via style
   right.appendChild(head);
   right.appendChild(coolWrap);
   right.appendChild(metaRow);
@@ -342,7 +338,6 @@ function makeExerciseCard(e){
   card.appendChild(tapPad);
   card.appendChild(right);
 
-  // Store refs
   e.els = {
     card, tapPad, lvl,
     repFill: repBand.querySelector('.repFill'),
@@ -355,22 +350,14 @@ function makeExerciseCard(e){
     coolWrap, metaRow, kvs
   };
 
-  // initial visibility
-  if(e.unlocked){
-    costLine.style.display='none';
-  }else{
-    coolWrap.style.display='none';
-    metaRow.style.display='none';
-  }
+  if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; }
 
-  // events
   bindPress(tapPad, ()=>{ ensureAudioCtx(); tap(e); });
   bindPress(buyRepBtn, ()=> addReps(e, BUY_QTY));
   costPill.addEventListener('click', ()=>{
     if(!e.unlocked && state.hp >= e.unlockCost){
       state.hp -= e.unlockCost; e.unlocked = true; sfx('buy');
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
-      // toggle rows
       e.els.coolWrap.style.display='block';
       e.els.metaRow.style.display='flex';
       e.els.costLine.style.display='none';
@@ -400,24 +387,23 @@ function renderStack(){
 
 /* ===== UI Updates ===== */
 function refreshExerciseUI(e){
-  // Countdown label:
-  // - While cooling down -> show remaining (high → 0.00)
-  // - When READY (cooldown finished) -> show FULL duration again
-  const cd = cooldownMs(e);
+  // Cooldown label behavior:
+  // - READY => show full duration (e.g., 0.60s)
+  // - DURING COOLDOWN => show elapsed from 0 up to full
   if(e.unlocked){
+    const cd = cooldownMs(e);
     const now = performance.now();
     const since = now - e.lastTapAt;
     const ready = since >= cd;
-    e.els.headRight.textContent = (ready ? (cd/1000).toFixed(2) : Math.max(0.01,(cd - since)/1000).toFixed(2)) + 's';
+    const shown = ready ? cd : since;
+    e.els.headRight.textContent = Math.max(0.00, Math.min(cd, shown)/1000).toFixed(2)+'s';
   } else {
     e.els.headRight.textContent = '';
   }
 
-  // rep band progress & fraction
   e.els.repLabel.textContent = `${e.repProgress}/${e.repTarget}`;
   e.els.repFill.style.width = (Math.min(e.repProgress / e.repTarget, 1)*100).toFixed(1)+'%';
 
-  // Level badge
   e.els.lvl.textContent = `Lvl ${e.level}`;
 
   if(e.unlocked){
@@ -442,7 +428,7 @@ function refreshExerciseUI(e){
     if(canUn && !e._unlockReady){
       e._unlockReady=true;
       e.els.card.classList.add('unlock-ready','unlock-bounce');
-      e.els.costPill.classList.add('ready');
+      e.els.costPill.classList.add('ready'); // orange
       sfx('ready');
     }
     if(!canUn && e._unlockReady){
@@ -479,7 +465,7 @@ function handleUpgrades(e){
     e.repProgress -= e.repTarget;
     e.repTarget   *= 2;
     e.cooldown     = Math.max(100, Math.floor(e.cooldown/2));
-    e.level       += 1; // track level
+    e.level       += 1;
     upgraded = true;
   }
   if(upgraded){ showBanner(`${e.name} upgraded to Lvl ${e.level}! Speed ×2 (cooldown halved)`); sfx('upgrade'); }
@@ -497,7 +483,6 @@ function tap(e){
   refreshAll();
 }
 function spawnFloat(e, text){
-  // Render float as a fixed overlay so it’s never clipped
   const rect = e.els.tapPad.getBoundingClientRect();
   const span=document.createElement('div');
   span.className='float'; span.textContent=text;
@@ -509,12 +494,9 @@ function spawnFloat(e, text){
 }
 function updateCooldownUI(e){
   if(!e.unlocked) return;
-  const cd = cooldownMs(e), now = performance.now(), since = now - e.lastTapAt;
-  const pct = clamp(since/cd,0,1);
-  // fill advances 0 → 100% during cooldown; remains 100% when ready
+  const cd = cooldownMs(e), now = performance.now(), since = now - e.lastTapAt, pct = clamp(since/cd,0,1);
+  // Fill animates 0 → 100% during cooldown; stays 100% when ready
   e.els.coolFill.style.width = (pct*100).toFixed(1)+'%';
-
-  // header text handled in refreshExerciseUI for full/remaining logic
 }
 
 /* ===== Confetti & Banner ===== */
@@ -555,7 +537,6 @@ function showBanner(text){
 /* ===== Loop, Bind, Boot ===== */
 function tick(){
   exercises.forEach(e=>{ updateCooldownUI(e); });
-  // refresh countdown labels at ~10fps to reduce layout thrash
   if(!tick._t || performance.now()-tick._t>100){ exercises.forEach(refreshExerciseUI); tick._t=performance.now(); }
   requestAnimationFrame(tick);
 }
@@ -564,8 +545,8 @@ function bindPress(el, fn){
   el.addEventListener('keydown', e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); fn(e);} });
 }
 
-ui.saveBtn.addEventListener('click', save);
-ui.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.removeItem(SAVE_KEY); location.reload(); });
+document.getElementById('saveBtn').addEventListener('click', save);
+document.getElementById('resetBtn').addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.removeItem(SAVE_KEY); location.reload(); });
 
 /* Strong double-tap zoom prevention */
 let lastTouchEnd=0;
