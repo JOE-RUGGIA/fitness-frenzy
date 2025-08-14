@@ -1097,7 +1097,8 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* ================== Tutorial (event-driven soft prompts + gated intro) ================== */
+<script>
+/* ================== Tutorial (event-driven prompts + correctly gated intro) ================== */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){
     return { init(){}, start(){}, end(){}, repositionSpot(){} };
@@ -1109,15 +1110,38 @@ App.Tutorial = (()=> {
   const line = document.getElementById('tutLine');
   const avatar = document.getElementById('tutAvatar');
   const spot = document.getElementById('tutSpot');
+
   let active=false, gating=false, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null;
   let lastPromptAt=0; const PROMPT_GAP_MS=3000;
 
   function setModal(on){ ov.classList.toggle('modal', !!on); }
+  function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); App.UI.Overlay.suppressFloats=true; }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); markPrompt(); }
+  function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
+  function setTextHTML(html){ line.innerHTML=html; }
 
+  function showSpotFor(selector){
+    lastSpotSel = selector;
+    const el = document.querySelector(selector);
+    if(!el){ hideSpot(); return; }
+    const r = el.getBoundingClientRect();
+    const pad=6;
+    spot.style.display='block';
+    spot.style.left = (r.left - pad) + 'px';
+    spot.style.top = (r.top - pad) + 'px';
+    spot.style.width = (r.width + pad*2) + 'px';
+    spot.style.height = (r.height + pad*2) + 'px';
+    try{ el.scrollIntoView({behavior:'smooth', block:'center'}); }catch{}
+  }
+  function hideSpot(){ spot.style.display='none'; lastSpotSel=null; }
+  function repositionSpot(){ if(active && lastSpotSel) showSpotFor(lastSpotSel); }
+  window.addEventListener('resize', repositionSpot); document.addEventListener('scroll', repositionSpot, true);
+
+  // Gating: allow only certain selectors to receive clicks while intro is guided
   function gateStart(allowSelectors){
     allowed = allowSelectors || [];
     gating = true;
-    setModal(false); // let clicks reach allowed targets; we block others via handler
+    setModal(false); // let clicks through to allowed targets
     document.addEventListener('pointerdown', gateHandler, true);
     document.addEventListener('click', gateHandler, true);
   }
@@ -1133,48 +1157,12 @@ App.Tutorial = (()=> {
     if(!okay){ e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); }
   }
 
-  function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); App.UI.Overlay.suppressFloats=true; }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); }
-
-  function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
-  function setTextHTML(html){ line.innerHTML=html; }
-
-  function showSpotFor(selector){
-    lastSpotSel = selector;
-    const el = document.querySelector(selector);
-    if(!el){ hideSpot(); return; }
-    const r = el.getBoundingClientRect();
-    spot.style.display='block';
-    const pad=6;
-    spot.style.left = (r.left - pad) + 'px';
-    spot.style.top = (r.top - pad) + 'px';
-    spot.style.width = (r.width + pad*2) + 'px';
-    spot.style.height = (r.height + pad*2) + 'px';
-    try{ el.scrollIntoView({behavior:'smooth', block:'center'}); }catch{}
-  }
-  function hideSpot(){ spot.style.display='none'; lastSpotSel=null; }
-  function repositionSpot(){ if(active && lastSpotSel) showSpotFor(lastSpotSel); }
-
-  bubble.addEventListener('click', ()=>{
-    if(!active || !curStep) return;
-    if(lineIdx < curStep.lines.length-1){
-      lineIdx++;
-      const L = curStep.lines[lineIdx];
-      setSpeaker(L.who, L.icon);
-      setTextHTML(L.html);
-      App.Audio.sfx('popup');
-    } else if(curStep.onLinesDone){
-      const done = curStep.onLinesDone; curStep=null; done();
-    }
-  });
-  ov.querySelector('.tutDim').addEventListener('click', ()=>{ if(active && curStep && !gating) bubble.click(); });
-
   function popInFX(){
     bubble.classList.remove('tutPop'); void bubble.offsetWidth;
     bubble.classList.add('tutPop'); bubble.classList.add('tutIdle');
     App.Audio.sfx('popup');
     const r=bubble.getBoundingClientRect();
-    App.UI.Effects.confetti(r.left + r.width*0.5, r.top + 10, 20);
+    App.UI.Effects.confetti(r.left + r.width*0.5, r.top + 10, 16);
   }
 
   function setStep(step, modal=true){
@@ -1184,12 +1172,26 @@ App.Tutorial = (()=> {
     show(modal); setTimeout(popInFX, 10);
   }
 
-  /* ---------- Gated intro (unchanged behavior) ---------- */
+  // Tap to advance within a step
+  bubble.addEventListener('click', ()=>{
+    if(!active || !curStep) return;
+    if(lineIdx < curStep.lines.length-1){
+      lineIdx++;
+      const L = curStep.lines[lineIdx];
+      setSpeaker(L.who, L.icon); setTextHTML(L.html);
+      App.Audio.sfx('popup');
+    } else if(curStep.onLinesDone){
+      const done = curStep.onLinesDone; curStep=null; done();
+    }
+  });
+  ov.querySelector('.tutDim').addEventListener('click', ()=>{ if(active && curStep && !gating) bubble.click(); });
+
+  /* ---------- Gated intro: Walk taps -> first Reps purchase (no premature Upgrade call) ---------- */
   function startIntro(){
     setStep({
       id:'intro-walk',
       lines:[
-        { who:'JAX', icon:'🏋️‍♂️', html:'Hey—looking a bit low-energy. Let’s fix that 💪' },
+        { who:'JAX', icon:'🏋️‍♂️', html:'Hey—energy looks low. Let’s fix that 💪' },
         { who:'You', icon:(S.tutorial.avatar==='female'?'👩':'👨'), html:'Where do I start?' },
         { who:'JAX', icon:'🏋️‍♂️', html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time.' }
       ],
@@ -1197,25 +1199,30 @@ App.Tutorial = (()=> {
         showSpotFor('.card[data-id="walk"] .tapPad');
         gateStart(['.card[data-id="walk"] .tapPad', '#tutBubble']);
         bubble.style.display='none';
-        const off = App.Bus.on('tap:manual', ({exId})=>{
+
+        const offTap = App.Bus.on('tap:manual', ({exId})=>{
           if(exId!=='walk') return;
-          if((S.tutorial.progress.walkTaps||0) >= 4){
-            off(); bubble.style.display='';
+          // ✅ increment the gated counter so the gate can open
+          S.tutorial.progress.walkTaps = (S.tutorial.progress.walkTaps||0) + 1;
+          if(S.tutorial.progress.walkTaps >= 4){
+            offTap(); bubble.style.display='';
             setStep({
               id:'reps-walk',
               lines:[
-                { who:'JAX', icon:'🏋️‍♂️', html:'Nice! Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.' },
+                { who:'JAX', icon:'🏋️‍♂️', html:'Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.' },
                 { who:'JAX', icon:'🏋️‍♂️', html:'When the <span class="hl">Reps</span> button turns orange, tap it to buy.' },
                 { who:'JAX', icon:'🏋️‍♂️', html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.' }
               ],
               onLinesDone(){
+                // Force ×1 so the price matches the 4 HP start cost
+                App.State.s.buyQty = 1;
                 try{
-                  App.State.s.buyQty = 1;
                   const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');
                   const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
                   if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); }
-                  App.UI.Renderer.refreshAll();
                 }catch{}
+                App.UI.Renderer.refreshAll();
+
                 showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]');
                 gateStart(['.card[data-id="walk"] .btn[data-role="reps"]','#tutBubble']);
                 bubble.style.display='none';
@@ -1223,11 +1230,10 @@ App.Tutorial = (()=> {
                 const offBuy = App.Bus.on('reps:buy', ({exId})=>{
                   if(exId!=='walk') return;
                   offBuy(); hideSpot(); gateStop();
-                  setStep({
-                    id:'upgrade-walk',
-                    lines:[ { who:'JAX', icon:'🏋️‍♂️', html:'<span class="hl">Upgrade!</span> Cooldown just halved. Faster taps → faster HP.' } ],
-                    onLinesDone(){ hide(); S.tutorial.done=true; S.tutorial.stepId=null; App.State.save(); }
-                  }, true);
+                  // ✅ End the intro here (don’t show “Upgrade” yet).
+                  // The actual Upgrade popup will be shown by the event-driven handler on levelup (10/10).
+                  S.tutorial.done=true; S.tutorial.stepId=null; App.State.save();
+                  hide();
                 });
               }
             }, true);
@@ -1237,9 +1243,14 @@ App.Tutorial = (()=> {
     }, true);
   }
 
-  /* ---------- Event-driven soft prompts ---------- */
+  /* ---------- Event-driven soft prompts (de-spammed + correct timing) ---------- */
   function now(){ return performance.now(); }
-  function canPrompt(){ return (now()-lastPromptAt) >= PROMPT_GAP_MS && !active; }
+  function menuOpen(){ return document.getElementById('menuOverlay')?.classList.contains('open'); }
+  function canPrompt(){
+    if(active || gating) return false;
+    if(menuOpen()) return false;
+    return (now()-lastPromptAt) >= PROMPT_GAP_MS;
+  }
   function markPrompt(){ lastPromptAt = now(); }
 
   function promptUnlockFor(ex){
@@ -1290,7 +1301,6 @@ App.Tutorial = (()=> {
   function checkTriggers(){
     if(!canPrompt()) return;
     const s=App.State.s;
-
     // Priority: Upgrade -> Unlock -> Coach
     for(const e of s.exercises){
       if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgradeFor(e); return; }
@@ -1305,21 +1315,19 @@ App.Tutorial = (()=> {
   App.Bus.on('hp:change', checkTriggers);
   App.Bus.on('exercise:unlock', checkTriggers);
   App.Bus.on('coach:owned', checkTriggers);
+  // ✅ Correct timing for upgrade bubble: fire on real level-up only
   App.Bus.on('exercise:levelup', ({exId})=>{
     const ex = App.State.s.exercises.find(x=>x.id===exId);
     if(ex) promptUpgradeFor(ex);
   });
 
-  function init(){
-    window.addEventListener('resize', repositionSpot);
-    document.addEventListener('scroll', repositionSpot, true);
-    // clicking outside bubble when modal just advances
-  }
-
+  function init(){ /* listeners already set */ }
   function start(){ if(!S.tutorial.done){ startIntro(); } }
 
   return { init, start, end:()=>{}, repositionSpot };
 })();
+</script>
+
 
 /* ================== Debug overlay ================== */
 (function debugPanel(){
