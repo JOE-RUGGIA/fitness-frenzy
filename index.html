@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.6-stable2</title>
+<title>Fitness Frenzy – V3.6-stable3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -84,7 +84,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .ex-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ex-title{font-size:var(--fs-2);margin:0}
 .muted{color:#a7b7cc}
-.coachSlotTop{display:flex;flex-wrap:wrap;gap:8px}
+.coachSlotTop{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+@media (max-width:480px){ .coachSlotTop{gap:6px} }
 .coachChip{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-size:12px}
 
 /* Cooldown */
@@ -219,7 +220,7 @@ App.Audio = (()=> {
 
 /* State */
 App.State = (()=> {
-  const KEY='ff-v36-stable2';
+  const KEY='ff-v36-stable3';
   const s = { hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0} };
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
@@ -243,16 +244,17 @@ App.State = (()=> {
 
 /* Economy */
 App.Economy = (()=> {
-  const G=1.12; // reps cost +12% compounding (harder over time)
+  const G=1.12; // reps cost +12% compounding
   const perTap = e => e.baseHP + e.repHP; // +1 per rep
   const bulkRepCost=(e,q)=>{ const base=e.repBaseCost*Math.pow(G,e.repHP); return +(base*(Math.pow(G,q)-1)/(G-1)).toFixed(2); };
   function addReps(e,q){
     const s=App.State.s; const cost=bulkRepCost(e,q);
     if(s.hp+1e-9<cost) return false;
-    s.hp-=cost; e.repHP+=q; e.repProgress+=q;
+    s.hp-=cost; App.Notify.update(); // update dot after HP spend
+    e.repHP+=q; e.repProgress+=q;
     while(e.repProgress>=e.repTarget){
       e.repProgress-=e.repTarget; e.repTarget*=2;
-      e.cooldown=Math.max(100, Math.floor(e.cooldown/2)); // halves at each upgrade
+      e.cooldown=Math.max(100, Math.floor(e.cooldown/2));
       e.level+=1; App.UI.Banners.upgrade(`${e.name} upgraded to Lvl ${e.level}! Speed ×2`);
     }
     return true;
@@ -262,7 +264,7 @@ App.Economy = (()=> {
     const cd=e.cooldown;
     if(e.lastTapAt>=0 && now-e.lastTapAt < cd-1) return 0;
     e.lastTapAt=now;
-    const g=perTap(e); const S=App.State.s; S.hp+=g; S.stats.manualTaps++;
+    const g=perTap(e); const S=App.State.s; S.hp+=g; S.stats.manualTaps++; App.Notify.update(); // update dot after HP gain
     return g;
   }
   return { perTap, bulkRepCost, addReps, tap };
@@ -278,7 +280,7 @@ App.Engine = (()=> {
       App.UI.Renderer.tickTop(dt);
       for(const e of App.State.s.exercises) updateCooldown(e);
       if(!tick._u || now-tick._u>100){ App.UI.Renderer.refreshAll(); tick._u=now; }
-      if(!tick._n || now-tick._n>200){ App.Notify.update(); tick._n=now; } // update menu dot
+      if(!tick._n || now-tick._n>200){ App.Notify.update(); tick._n=now; }
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -291,9 +293,10 @@ App.Engine = (()=> {
       const cd = Math.max(100, e.cooldown);
       while(e._autoElapsed >= cd){
         e._autoElapsed -= cd;
-        e.lastTapAt = now;
+        e.lastTapAt = now; // keeps cooldown bar moving under auto
         const g = App.Economy.perTap(e);
         s.hp += g; s.stats.autoTaps++;
+        App.Notify.update(); // dot reacts to HP increase
         if(!App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(0)}`); }
       }
     }
@@ -305,7 +308,7 @@ App.Engine = (()=> {
   function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
-    // Anti-flicker: if cooldown extremely fast, keep bar full and show static cd
+    // Keep bar solid when very fast to avoid flicker
     if(cd<=300){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(2)+'s'; return; }
     const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
     const pct=Math.max(0,Math.min(1, since/cd));
@@ -352,7 +355,7 @@ App.Coaches = (()=> {
   ];
   function isAuto(exId){ const owned=App.State.s.coachesOwned; return coaches.some(c=>owned[c.id] && c.target===exId); }
   function getOwnedForExercise(exId){ const owned=App.State.s.coachesOwned; return coaches.filter(c=>owned[c.id] && c.target===exId); }
-  function list(){ return coaches.slice(); } // expose for notifier
+  function list(){ return coaches.slice(); }
   function renderList(){
     const host=document.getElementById('tab-coaches');
     host.innerHTML = `<div class="coachIntro">Coaches automatically tap a specific exercise for you. They respect the cooldown (no sounds).</div>`;
@@ -386,7 +389,7 @@ App.Coaches = (()=> {
       btn.addEventListener('click', ()=>{
         if(locked || owned) return;
         const S=App.State.s; if(S.hp+1e-9<c.price) return;
-        S.hp-=c.price; S.coachesOwned[c.id]=true; App.Audio.sfx('buy');
+        S.hp-=c.price; S.coachesOwned[c.id]=true; App.Audio.sfx('buy'); App.Notify.update();
         App.UI.Renderer.forceTop(); renderList();
       });
     }
@@ -394,7 +397,7 @@ App.Coaches = (()=> {
   return { isAuto, getOwnedForExercise, renderList, list };
 })();
 
-/* Menu notifier (green dot when a coach becomes buyable) */
+/* Menu notifier (green dot) */
 App.Notify = (()=> {
   const dot = document.getElementById('menuDot');
   function coachAvailable(){
@@ -428,11 +431,12 @@ App.UI.Cards = (()=> {
 
     const right=document.createElement('div'); right.className='right';
     const head=document.createElement('div'); head.className='ex-head'; head.innerHTML=`<div class="ex-title">${e.name}</div><div class="muted headRight"></div>`;
-
     const coachSlotTop=document.createElement('div'); coachSlotTop.className='coachSlotTop';
 
+    // cooldown
     const coolWrap=document.createElement('div'); coolWrap.className='coolwrap'; coolWrap.innerHTML=`<div class="coolbar"><div class="coolfill"></div></div>`;
 
+    // single meta row
     const metaRow=document.createElement('div'); metaRow.className='metaRow';
     const kvs=document.createElement('div'); kvs.innerHTML=`<span class="kv">Per Tap: <strong class="kvTap">${perTap(e).toFixed(0)}</strong> HP</span>`;
     const buyBtn=document.createElement('button'); buyBtn.className='btn secondary'; buyBtn.textContent='Add Reps';
@@ -442,7 +446,9 @@ App.UI.Cards = (()=> {
     costLine.innerHTML=`<button class="costPill" type="button">Unlock for <span class="costAmt">${e.unlockCost}</span> HP</button>`;
     const costPill=costLine.querySelector('.costPill'), costAmt=costLine.querySelector('.costAmt');
 
-    right.appendChild(head); right.appendChild(coachSlotTop); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
+    // assemble: coachSlot sits in the header row with title + cooldown time
+    head.appendChild(coachSlotTop);
+    right.appendChild(head); right.appendChild(coolWrap); right.appendChild(metaRow); right.appendChild(costLine);
     card.appendChild(tapPad); card.appendChild(right);
 
     e.els={ card,tapPad,lvl,
@@ -461,7 +467,8 @@ App.UI.Cards = (()=> {
 
     // Unlock
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp>=e.unlockCost){
-      s.hp-=e.unlockCost; e.unlocked=true; sfx('buy');
+      s.hp-=e.unlockCost; App.Notify.update();
+      e.unlocked=true; sfx('buy');
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
       coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none';
       App.UI.Renderer.forceTop();
@@ -505,7 +512,7 @@ App.UI.Renderer = (()=> {
     if(e.els.lvl) e.els.lvl.textContent=`Lvl ${e.level}`;
     if(e.els.kvTap) e.els.kvTap.textContent=perTap(e).toFixed(0);
 
-    // Coach chips
+    // Coach chips (now in header row)
     if(e.els.coachSlotTop){
       const cs = App.Coaches.getOwnedForExercise(e.id);
       e.els.coachSlotTop.innerHTML = '';
