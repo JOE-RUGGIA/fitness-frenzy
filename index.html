@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.8-offline2</title>
+<title>Fitness Frenzy – V3.8-offline3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -16,7 +16,7 @@ body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:
      padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0;}
 button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 
-/* Sticky Top Bar (reinforced) */
+/* Sticky Top Bar */
 .topbar{position:sticky; position:-webkit-sticky; top:0; z-index:1000;
   background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -215,16 +215,16 @@ const App = {};
 
 /* Config */
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v36-stable3',   // preserve saves
+  SAVE_KEY: 'ff-v36-stable3',
   SCHEMA_VERSION: 1,
   DEC: 2,
   EPS: 1e-6,
-  SOLID_CD_MS: 300,             // cooldown bar goes solid at <= 0.30s
-  REP_GROWTH: 1.12,             // rep cost growth per rep (12%)
+  SOLID_CD_MS: 300,
+  REP_GROWTH: 1.12,
   SAVE_MS: 20000,
   UI_REFRESH_MS: 100,
   NOTIFY_REFRESH_MS: 200,
-  OFFLINE_MAX_MS: 12*60*60*1000 // cap offline gains at 12h (tunable)
+  OFFLINE_MAX_MS: 12*60*60*1000
 });
 
 /* Event bus */
@@ -280,7 +280,7 @@ App.State = (()=> {
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
       repHP:0, repProgress:0, repTarget:10, level:1,
-      cooldown:e.baseCooldown, lastTapAt:-1, _autoElapsed:0, els:{}
+      cooldown:e.baseCooldown, lastTapAt:0, _autoElapsed:0, els:{} // lastTapAt=0 => ready
     }));
   }
   function save(){ localStorage.setItem(KEY, JSON.stringify({
@@ -294,7 +294,8 @@ App.State = (()=> {
   }catch{}}
   function merge(){ if(!s.__loaded) return; for(const se of s.__loaded){ const e=s.exercises.find(x=>x.id===se.id); if(!e) continue;
     e.repHP=se.repHP??0; e.repProgress=se.repProgress??0; e.repTarget=se.repTarget??10; e.unlocked=se.unlocked??e.unlocked;
-    e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt=se.lastTapAt??-1;
+    e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt = (se.lastTapAt ?? 0);
+    if(!e.unlocked){ e.lastTapAt = -1; }
   } delete s.__loaded; }
   return { s, setExercises, save, load, merge };
 })();
@@ -358,7 +359,7 @@ App.Game = (()=> {
   function tap(e,now=performance.now()){
     if(!e.unlocked) return 0;
     const cd=e.cooldown;
-    if(e.lastTapAt>=0 && now-e.lastTapAt < cd-1) return 0;
+    if(e.lastTapAt>0 && now-e.lastTapAt < cd-1) return 0; // only enforce if we have a real timestamp
     e.lastTapAt=now;
     const g=perTap(e);
     addHP(g);
@@ -407,15 +408,20 @@ App.Engine = (()=> {
   function updateCooldown(e){
     if(!e.unlocked) return;
     const cd=Math.max(100,e.cooldown);
+
+    // If we have a solid bar threshold, show full bar and the CD value
     if(cd<=SOLID_CD_MS){
       if(e.els.coolFill) e.els.coolFill.style.width='100%';
       if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s';
       return;
     }
-    const since = (e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
+
+    // Sentinel: lastTapAt <= 0 means "ready"
+    const ready = (e.lastTapAt <= 0);
+    const since = ready ? cd : (performance.now()-e.lastTapAt);
     const pct = Math.max(0, Math.min(1, since / cd));
     if(e.els.coolFill) e.els.coolFill.style.width = (pct*100).toFixed(1) + '%';
-    const elapsed = Math.max(0, Math.min(since, cd)); // clamp to [0,cd] so no negatives
+    const elapsed = Math.max(0, Math.min(since, cd));
     if(e.els.headRight) e.els.headRight.textContent = (elapsed/1000).toFixed(App.Config.DEC) + 's';
   }
 
@@ -573,7 +579,8 @@ App.UI.Cards = (()=> {
 
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
       App.Game.addHP(-e.unlockCost);
-      e.unlocked=true; sfx('buy');
+      e.unlocked=true; e.lastTapAt=0; // ready immediately after unlock
+      sfx('buy');
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
       coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none';
       App.UI.Renderer.forceTop();
@@ -603,10 +610,11 @@ App.UI.Renderer = (()=> {
         if(e.els.coolFill) e.els.coolFill.style.width='100%';
         if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s';
       } else {
-        const since=(e.lastTapAt<0)?0:(performance.now()-e.lastTapAt);
+        const ready = (e.lastTapAt <= 0);
+        const since = ready ? cd : (performance.now()-e.lastTapAt);
         const pct=Math.max(0,Math.min(1, since/cd));
         if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
-        const elapsed = Math.max(0, Math.min(since, cd)); // clamp
+        const elapsed = Math.max(0, Math.min(since, cd));
         if(e.els.headRight) e.els.headRight.textContent=(elapsed/1000).toFixed(App.Config.DEC)+'s';
       }
     }
@@ -653,15 +661,13 @@ App.UI.Renderer = (()=> {
   return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu };
 })();
 
-/* ===== Cooldown stamp normalizer (fix) ===== */
+/* ===== Cooldown stamp normalizer ===== */
 App.Fix = (() => {
   function normalizeCooldownStamps(){
-    const now = performance.now();
     for (const e of App.State.s.exercises){
       e._autoElapsed = 0;
       if (e.unlocked){
-        // Make them appear "ready" right away so UI has valid, non-negative elapsed.
-        e.lastTapAt = now - Math.max(100, e.cooldown);
+        e.lastTapAt = 0; // sentinel => ready
       } else {
         e.lastTapAt = -1;
       }
@@ -716,7 +722,7 @@ App.Offline = (()=> {
         ov().classList.add('open');
         document.getElementById('offClaim').onclick=()=>{
           App.Game.addHP(gained);
-          // Re-baseline timers so no negative elapsed after claim
+          // Re-baseline timers to READY (works for both auto & manual)
           App.Fix.normalizeCooldownStamps();
           App.UI.Renderer.refreshAll();
           ov().classList.remove('open');
@@ -742,7 +748,7 @@ App.Offline = (()=> {
   App.State.load(); App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
 
-  // Normalize cooldown timestamps immediately after building UI
+  // Normalize to "ready" state immediately after UI build
   App.Fix.normalizeCooldownStamps();
   App.UI.Renderer.refreshAll();
 
@@ -756,13 +762,12 @@ App.Offline = (()=> {
     App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update();
   },{passive:false}));
 
-  // keep HP indicators fresh
   App.Bus.on('hp:change', ()=>{ App.UI.Renderer.forceTop(); });
 
   App.Engine.start();
   App.Engine.scheduleSave();
-  App.Notify.update(); // initial dot
-  App.Offline.checkAndShow(); // show offline gains if any
+  App.Notify.update();
+  App.Offline.checkAndShow();
 })();
 </script>
 </body>
