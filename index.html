@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V3.9.2-tutP12-copy+ui</title>
+<title>Fitness Frenzy – V3.9.3 – Tutorial Phase 3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -153,24 +153,24 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .offGain{font-size:26px;font-weight:900;color:#fff;margin:12px 0}
 .offNote{color:#a7b7cc;font-size:13px;margin-top:8px}
 
-/* ===== Tutorial overlay (Phase 1–2) ===== */
+/* ===== Tutorial overlay ===== */
 .tutOv{position:fixed;inset:0;z-index:8000;display:none;pointer-events:none}
 .tutOv.show{display:block}
-.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.22)} /* lighter dim, no blur */
+.tutDim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
 .tutBubble{
   position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);
   max-width:min(980px,96vw);
   background:#0f1b2b;border:2px solid #2a4a78;border-radius:18px;
-  padding:22px 24px; /* bigger */
+  padding:22px 24px;
   color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
   box-shadow:0 18px 36px rgba(0,0,0,.35);
 }
-.tutAvatar{font-size:64px;line-height:1} /* bigger emoji */
+.tutAvatar{font-size:64px;line-height:1}
 .tutText{flex:1;font-size:clamp(18px,3.8vw,24px);line-height:1.35}
 .tutWho{font-weight:900;color:#ffd6a8;margin-bottom:4px;font-size:clamp(16px,3.4vw,20px)}
 .tutMore{font-size:12px;color:#a7b7cc;margin-top:6px}
 .tutChevron{margin-left:8px;font-size:14px;color:#ffb357}
-.hl{color:var(--accent); font-weight:900} /* branded orange emphasis */
+.hl{color:var(--accent); font-weight:900}
 .tutSpot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);
   animation:spotPulse 1.2s ease-in-out infinite;pointer-events:none}
 @keyframes spotPulse{0%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 16px rgba(255,179,87,.35)}
@@ -253,7 +253,7 @@ const App = {};
 
 /* Config */
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v392-tutP12copy',
+  SAVE_KEY: 'ff-v393-tutP3',   /* new key for this build */
   SCHEMA_VERSION: 2,
   DEC: 2,
   EPS: 1e-6,
@@ -317,7 +317,10 @@ App.State = (()=> {
   const s = {
     schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{},
     stats:{manualTaps:0, autoTaps:0},
-    tutorial:{ done:false, stepId:null, avatar:'male', progress:{walkTaps:0} }
+    tutorial:{ 
+      done:false, stepId:null, avatar:'male',
+      progress:{walkTaps:0, unlockJogDone:false, coachC1Done:false}
+    }
   };
   function setExercises(list){
     s.exercises = list.map(e=>({ ...e,
@@ -376,7 +379,7 @@ App.Game = (()=> {
   const { EPS, REP_GROWTH } = App.Config;
   const S = App.State.s;
 
-  const perTap = e => e.baseHP + e.repHP;
+  const perTap = e => e.baseHP + e.repHP; // +1 per rep
   const bulkRepCost=(e,q)=>{
     const base=e.repBaseCost*Math.pow(REP_GROWTH,e.repHP);
     return +(base*(Math.pow(REP_GROWTH,q)-1)/(REP_GROWTH-1)).toFixed(App.Config.DEC);
@@ -535,6 +538,7 @@ App.Coaches = (()=> {
 
       const right=document.createElement('div'); right.className='coachRight';
       const btn=document.createElement('button'); btn.className='hireBtn secondary';
+      btn.dataset.coachId = c.id;  /* <<< hook for tutorial */
       btn.textContent = owned ? 'Owned' : `Hire • ${App.Util.fmtCost(c.price)} HP`;
       if(owned){ btn.disabled=true; }
       right.appendChild(btn);
@@ -577,6 +581,7 @@ App.Notify = (()=> {
   function update(){ if(!dot) return; dot.classList.toggle('show', coachAvailable()); }
   App.Bus.on('hp:change', update);
   App.Bus.on('coach:owned', update);
+  App.Bus.on('exercise:unlock', update);
   return { update };
 })();
 
@@ -784,7 +789,7 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow };
 })();
 
-/* ===== Tutorial (Phase 1–2) ===== */
+/* ===== Tutorial (Phase 1–3) ===== */
 App.Tutorial = (()=> {
   const S = App.State.s;
   const ov = document.getElementById('tutOv');
@@ -793,7 +798,7 @@ App.Tutorial = (()=> {
   const line = document.getElementById('tutLine');
   const avatar = document.getElementById('tutAvatar');
   const spot = document.getElementById('tutSpot');
-  let active=false, gating=null, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null, waitUpgradeOff=null;
+  let active=false, gating=false, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null, waitUpgradeOff=null;
 
   /* Gating */
   function gateStart(allowSelectors){
@@ -818,7 +823,7 @@ App.Tutorial = (()=> {
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; App.UI.Overlay.suppressFloats=true; }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); }
   function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
-  function setTextHTML(html){ line.innerHTML=html; }  /* allow inline <span class="hl"> */
+  function setTextHTML(html){ line.innerHTML=html; }
 
   function showSpotFor(selector){
     lastSpotSel = selector;
@@ -849,72 +854,176 @@ App.Tutorial = (()=> {
     }
   });
 
-  /* Steps (Phase 1–2 with refined copy & triggers) */
+  /* Step helpers */
+  function setStepById(id){
+    const s = steps.find(x=>x.id===id);
+    if(!s) return;
+    curStep = s; S.tutorial.stepId = s.id; App.State.save();
+    lineIdx=0; bubble.style.display='';
+    const L = s.lines[0]; setSpeaker(L.who, L.icon); setTextHTML(L.html);
+    show();
+  }
+  function goTo(id){ hideSpot(); gateStop(); setStepById(id); }
+  function mark(flag){ S.tutorial.progress[flag]=true; App.State.save(); }
+
+  /* Steps (Phase 1–3) */
   const steps = [
+    // Phase 1: Intro & 4 taps
     {
       id:'intro-walk',
       lines:[
         { who:'JAX', icon:'🏋️‍♂️', html:'Hey—looking a bit low-energy. Let’s fix that 💪' },
-        { who:'You', icon: (S.tutorial.avatar==='female'?'👩':'👨'), html:'Where do I start?' },
+        { who:'You', icon:(S.tutorial.avatar==='female'?'👩':'👨'), html:'Where do I start?' },
         { who:'JAX', icon:'🏋️‍♂️', html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time.' }
       ],
       onLinesDone(){
-        // Guide to Walking until total taps >= 4
         showSpotFor('.card[data-id="walk"] .tapPad');
         gateStart(['.card[data-id="walk"] .tapPad']);
         bubble.style.display='none';
         const off = App.Bus.on('tap:manual', ({exId})=>{
           if(exId!=='walk') return;
           if((S.tutorial.progress.walkTaps||0) >= 4){
-            off(); bubble.style.display='';
-            goTo('reps-walk');
+            off(); bubble.style.display=''; goTo('reps-walk');
           }
         });
       }
     },
+    // Phase 2: Buy Reps & wait for real upgrade
     {
       id:'reps-walk',
       lines:[
         { who:'JAX', icon:'🏋️‍♂️', html:'Nice! Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.' },
         { who:'JAX', icon:'🏋️‍♂️', html:'When the <span class="hl">Reps</span> button turns orange, tap it to buy.' },
-        { who:'JAX', icon:'🏋️‍♂️', html:'Keep an eye on the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.' }
+        { who:'JAX', icon:'🏋️‍♂️', html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.' }
       ],
       onLinesDone(){
         // Force ×1 to avoid accidental ×10
         try{
-          S.buyQty = 1;
+          App.State.s.buyQty = 1;
           const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');
           const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
           if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); }
           App.UI.Renderer.refreshAll();
         }catch{}
-        // Highlight only the Reps button for first purchase
+        // Highlight Reps for the first buy
         showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]');
         gateStart(['.card[data-id="walk"] .btn[data-role="reps"]']);
         bubble.style.display='none';
 
-        // After first Reps buy, remove gate and just wait for actual level-up (10/10)
+        // After first Reps buy, free play; then wait for true upgrade
         const offBuy = App.Bus.on('reps:buy', ({exId})=>{
           if(exId!=='walk') return;
-          offBuy();
-          hideSpot(); gateStop(); // free play
-          // Wait for true upgrade event
+          offBuy(); hideSpot(); gateStop();
           waitUpgradeOff = App.Bus.on('exercise:levelup', ({exId:levId})=>{
             if(levId!=='walk') return;
-            waitUpgradeOff(); // consume
-            goTo('upgrade-walk');
+            waitUpgradeOff(); goTo('upgrade-walk');
           });
         });
       }
     },
     {
       id:'upgrade-walk',
+      lines:[ { who:'JAX', icon:'🏋️‍♂️', html:'<span class="hl">Upgrade!</span> Cooldown just halved. Faster taps → faster HP.' } ],
+      onLinesDone(){
+        hide(); // free play begins
+        S.tutorial.stepId = null;
+        App.State.save();
+        // After Phase 2, start watching for Phase 3 triggers
+      }
+    },
+    // Phase 3A: Unlock Jogging when affordable & locked
+    {
+      id:'unlock-jog',
       lines:[
-        { who:'JAX', icon:'🏋️‍♂️', html:'<span class="hl">Upgrade!</span> Cooldown just halved. Faster taps → faster HP.' }
+        { who:'JAX', icon:'🏋️‍♂️', html:'Time to add to your routine. Unlock <span class="hl">Jogging</span> for <span class="hl">60 HP</span>.' },
+        { who:'JAX', icon:'🏋️‍♂️', html:'Tap the orange <span class="hl">Unlock</span> pill to add it.' }
       ],
-      onLinesDone(){ end(); }
+      onLinesDone(){
+        showSpotFor('.card[data-id="jog"] .costPill.ready');
+        gateStart(['.card[data-id="jog"] .costPill.ready']);
+        bubble.style.display='none';
+        const off = App.Bus.on('exercise:unlock', ({exId})=>{
+          if(exId!=='jog') return;
+          off(); hideSpot(); gateStop(); goTo('jog-unlocked');
+        });
+      }
+    },
+    {
+      id:'jog-unlocked',
+      lines:[
+        { who:'JAX', icon:'🏋️‍♂️', html:'Jogging unlocked! Bigger HP per tap, longer cooldown. Keep buying <span class="hl">Reps</span> to hit <span class="hl">10/10</span> and upgrade again.' }
+      ],
+      onLinesDone(){
+        mark('unlockJogDone');
+        hide(); S.tutorial.stepId=null; App.State.save();
+      }
+    },
+    // Phase 3B: Hire first coach when affordable and not owned
+    {
+      id:'coach-intro',
+      lines:[
+        { who:'JAX', icon:'🏋️‍♂️', html:'Want to maximize gains? Hire a <span class="hl">Coach</span> to auto-tap for you.' },
+        { who:'JAX', icon:'🏋️‍♂️', html:'Open the <span class="hl">Menu</span>.' }
+      ],
+      onLinesDone(){
+        showSpotFor('#menuBtn');
+        gateStart(['#menuBtn']);
+        bubble.style.display='none';
+        const onOpen = ()=>{ hideSpot(); gateStop(); goTo('coach-hire-c1'); document.removeEventListener('menu:open', onOpen); };
+        document.addEventListener('menu:open', onOpen);
+      }
+    },
+    {
+      id:'coach-hire-c1',
+      lines:[
+        { who:'JAX', icon:'🏋️‍♂️', html:'Hire <span class="hl">Rookie Coach</span> to automate <span class="hl">Walking</span>.' }
+      ],
+      onLinesDone(){
+        // Ensure list is rendered
+        App.Coaches.renderList();
+        setTimeout(()=>{
+          showSpotFor('.hireBtn[data-coach-id="c1"].ready');
+          gateStart(['.hireBtn[data-coach-id="c1"].ready']);
+          bubble.style.display='none';
+          const off = App.Bus.on('coach:owned', (id)=>{
+            if(id!=='c1') return;
+            off(); hideSpot(); gateStop(); hide(); S.tutorial.stepId=null; mark('coachC1Done'); App.State.save();
+            App.UI.Banners.upgrade('Rookie Coach hired! Walking is now automated.');
+            finishIfAllDone();
+          });
+        }, 50);
+      }
     }
   ];
+
+  /* Watchers to trigger Phase 3 steps at the right time */
+  function canStartUnlockJog(){
+    const s=App.State.s;
+    if(S.tutorial.progress.unlockJogDone) return false;
+    const jog = s.exercises.find(e=>e.id==='jog');
+    return jog && !jog.unlocked && (s.hp + App.Config.EPS) >= jog.unlockCost;
+  }
+  function canStartCoachC1(){
+    const s=App.State.s;
+    if(S.tutorial.progress.coachC1Done) return false;
+    if(s.coachesOwned['c1']) return false;
+    const c1 = App.Coaches.list().find(c=>c.id==='c1');
+    const walk = s.exercises.find(e=>e.id==='walk');
+    return c1 && walk && walk.unlocked && (s.hp + App.Config.EPS) >= c1.price;
+  }
+  function checkTriggers(){
+    // If a step is active, do nothing
+    if(active || S.tutorial.stepId) return;
+    // Priority: unlocking Jogging first, then hiring Coach
+    if(canStartUnlockJog()){ setStepById('unlock-jog'); return; }
+    if(canStartCoachC1()){ setStepById('coach-intro'); return; }
+    finishIfAllDone();
+  }
+  function finishIfAllDone(){
+    if(S.tutorial.progress.unlockJogDone && S.tutorial.progress.coachC1Done){
+      S.tutorial.done = true; App.State.save();
+    }
+  }
 
   /* Track taps for 4-tap threshold */
   App.Bus.on('tap:manual', ({exId})=>{
@@ -922,38 +1031,29 @@ App.Tutorial = (()=> {
   });
 
   function start(){
-    if(S.tutorial.done) return;
-    show(); setStepById('intro-walk');
-  }
-
-  function setStepById(id){
-    const s = steps.find(x=>x.id===id) || steps[0];
-    curStep = s;
-    S.tutorial.stepId = s.id;
-    App.State.save();
-    lineIdx=0; bubble.style.display='';
-    const L = s.lines[0]; setSpeaker(L.who, L.icon); setTextHTML(L.html);
-  }
-  function goTo(id){ hideSpot(); gateStop(); setStepById(id); }
-  function next(){
-    hideSpot(); gateStop();
-    const i = steps.findIndex(x=>x.id===S.tutorial.stepId);
-    if(i<0 || i+1>=steps.length){ end(); return; }
-    setStepById(steps[i+1].id);
-  }
-  function end(){
-    hide(); hideSpot(); gateStop();
-    if(waitUpgradeOff){ try{ waitUpgradeOff(); }catch{} waitUpgradeOff=null; }
-    S.tutorial.done = true; S.tutorial.stepId=null;
-    App.State.save();
+    if(S.tutorial.done){ return; }
+    // If returning to a mid-tutorial state, bounce to the right step or check triggers
+    if(!S.tutorial.stepId){ setStepById('intro-walk'); }
   }
 
   function init(){
     window.addEventListener('resize', repositionSpot);
     document.addEventListener('scroll', repositionSpot, true);
+    // Menu open/close hooks for the tutorial
+    const { menuOverlay } = App.UI.Renderer.refs;
+    const mo = new MutationObserver(()=>{ 
+      const open = menuOverlay.classList.contains('open');
+      document.dispatchEvent(new Event(open?'menu:open':'menu:close'));
+    });
+    mo.observe(menuOverlay, { attributes:true, attributeFilter:['class'] });
+
+    // Trigger checks
+    App.Bus.on('hp:change', checkTriggers);
+    App.Bus.on('exercise:unlock', checkTriggers);
+    App.Bus.on('coach:owned', checkTriggers);
   }
 
-  return { init, start, end, repositionSpot };
+  return { init, start, end:()=>{}, repositionSpot };
 })();
 
 /* Boot */
