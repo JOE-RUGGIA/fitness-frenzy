@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – Single-File V3 (No Server)</title>
+<title>Fitness Frenzy – Single-File V3.1 (20 Exercises)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -138,7 +138,7 @@ h1{margin:0;font-size:var(--fs-3)}
 
 <script>
 /* ===========================================================
-   Namespaced “modules” so we stay organized in one file
+   Single-file modular structure
    =========================================================== */
 const App = {};
 
@@ -150,7 +150,7 @@ App.Util = (()=> {
   return { fmtTop, fmtCost, clamp };
 })();
 
-/* ---------- Audio (robust mobile resume) ---------- */
+/* ---------- Audio ---------- */
 App.Audio = (()=> {
   let audioCtx=null, audioNeedsUnlock=true;
 
@@ -187,7 +187,6 @@ App.Audio = (()=> {
     }catch{}
   }
 
-  // re-arm on lifecycle transitions
   ['visibilitychange','pagehide','freeze'].forEach(ev=>document.addEventListener(ev, ()=>{
     if(document.visibilityState==='hidden' || ev!=='visibilitychange'){ audioNeedsUnlock=true; }
   }));
@@ -201,14 +200,8 @@ App.Audio = (()=> {
 
 /* ---------- State ---------- */
 App.State = (()=> {
-  const SAVE_KEY_V3 = 'fitness_frenzy_ff-v3-single';
-  const SAVE_KEY_OLD = 'fitness_frenzy_ff-v2-2'; // try to preserve your old progress if present
-
-  const state = {
-    hp: 0,
-    buyQty: 1,
-    exercises: []
-  };
+  const SAVE_KEY = 'fitness_frenzy_ff-v3-20';
+  const state = { hp:0, buyQty:1, exercises:[] };
 
   function setExercises(list){
     state.exercises = list.map(e=>({
@@ -229,9 +222,8 @@ App.State = (()=> {
   function getBuyQty(){ return state.buyQty; }
 
   function save(){
-    localStorage.setItem(SAVE_KEY_V3, JSON.stringify({
-      hp: state.hp,
-      buyQty: state.buyQty,
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      hp: state.hp, buyQty: state.buyQty,
       exercises: state.exercises.map(e=>({
         id:e.id, repHP:e.repHP, repProgress:e.repProgress, repTarget:e.repTarget,
         unlocked:e.unlocked, cooldown:e.cooldown, level:e.level
@@ -239,7 +231,7 @@ App.State = (()=> {
     }));
   }
   function load(){
-    const raw = localStorage.getItem(SAVE_KEY_V3) || localStorage.getItem(SAVE_KEY_OLD);
+    const raw = localStorage.getItem(SAVE_KEY);
     if(!raw) return;
     try{
       const s=JSON.parse(raw);
@@ -310,7 +302,7 @@ App.Economy = (()=> {
   return { perTap, cooldownMs, canTap, bulkRepCost, addReps, handleUpgrades, tap };
 })();
 
-/* ---------- Engine (tick loop & helpers) ---------- */
+/* ---------- Engine ---------- */
 App.Engine = (()=> {
   function startEngine(updateCooldownUI, refreshExerciseUI){
     function tick(){
@@ -546,7 +538,7 @@ App.UI.Renderer = (()=> {
       }
     }
 
-    // Upgrade banner (detect level change)
+    // Upgrade banner on level change
     if(!refreshExerciseUI._levels) refreshExerciseUI._levels = {};
     const oldLvl = refreshExerciseUI._levels[e.id] ?? e.level;
     if(e.level > oldLvl){
@@ -562,14 +554,34 @@ App.UI.Renderer = (()=> {
   return { refs, renderStack, renderTop, refreshExerciseUI, refreshAll };
 })();
 
-/* ---------- Content (embedded instead of fetch) ---------- */
+/* ---------- Content (20 exercises) ---------- */
 App.Content = (()=> {
-  // Same data you had — no server needed.
+  // baseCooldowns in ms: 0.6s; then 3s; then double each step (6,12,24,...)
   const exercises = [
-    { id:'walk', name:'Walking', icon:'🚶', baseHP:1,   baseCooldown:  600,  repBaseCost:4,   unlockCost:0,    unlocked:true  },
-    { id:'jog',  name:'Jogging', icon:'🏃', baseHP:60,  baseCooldown: 3000, repBaseCost:30,  unlockCost:60,   unlocked:false },
-    { id:'sit',  name:'Sit-ups', icon:'🧘', baseHP:180, baseCooldown: 6000, repBaseCost:90,  unlockCost:300,  unlocked:false },
-    { id:'push', name:'Push-ups',icon:'💪', baseHP:400, baseCooldown:12000, repBaseCost:200, unlockCost:1200, unlocked:false }
+    { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
+
+    { id:'jog',  name:'Jogging',         icon:'🏃',   baseHP:60,     baseCooldown:  3000,   repBaseCost: 30,   unlockCost:   60,   unlocked:false },
+    { id:'sit',  name:'Sit-ups',         icon:'🧘',   baseHP:180,    baseCooldown:  6000,   repBaseCost: 90,   unlockCost:  300,   unlocked:false },
+    { id:'push', name:'Push-ups',        icon:'💪',   baseHP:400,    baseCooldown: 12000,   repBaseCost:200,   unlockCost: 1200,   unlocked:false },
+
+    { id:'jacks', name:'Jumping Jacks',  icon:'🤸',   baseHP:900,    baseCooldown: 24000,   repBaseCost:450,   unlockCost: 1800,   unlocked:false },
+    { id:'squat', name:'Bodyweight Squats',icon:'🦵', baseHP:1800,   baseCooldown: 48000,   repBaseCost:900,   unlockCost: 3600,   unlocked:false },
+    { id:'lunge', name:'Lunges',         icon:'🦵',   baseHP:3200,   baseCooldown: 96000,   repBaseCost:1600,  unlockCost: 6400,   unlocked:false },
+    { id:'plank', name:'Plank',          icon:'🧘‍♂️', baseHP:5000,   baseCooldown:192000,   repBaseCost:2500,  unlockCost:10000,   unlocked:false },
+    { id:'climb', name:'Mountain Climbers',icon:'🧗', baseHP:8000,   baseCooldown:384000,   repBaseCost:4000,  unlockCost:16000,   unlocked:false },
+    { id:'burpee',name:'Burpees',        icon:'🤾',   baseHP:12000,  baseCooldown:768000,   repBaseCost:6000,  unlockCost:24000,   unlocked:false },
+
+    { id:'pullup',name:'Pull-ups',       icon:'🧗‍♂️', baseHP:18000,  baseCooldown:1536000,  repBaseCost:9000,  unlockCost:36000,   unlocked:false },
+    { id:'kb',    name:'Kettlebell Swings',icon:'🏋️', baseHP:26000,  baseCooldown:3072000,  repBaseCost:13000, unlockCost:52000,   unlocked:false },
+    { id:'bench', name:'Bench Press',    icon:'🏋️‍♂️',baseHP:36000,  baseCooldown:6144000,  repBaseCost:18000, unlockCost:72000,   unlocked:false },
+    { id:'backsq',name:'Back Squat',     icon:'🏋️‍♀️',baseHP:48000,  baseCooldown:12288000, repBaseCost:24000, unlockCost:96000,   unlocked:false },
+    { id:'dead',  name:'Deadlift',       icon:'🏋️‍♂️',baseHP:65000,  baseCooldown:24576000, repBaseCost:32500, unlockCost:130000,  unlocked:false },
+    { id:'clean', name:'Clean & Jerk',   icon:'🏋️‍♂️',baseHP:85000,  baseCooldown:49152000, repBaseCost:42500, unlockCost:170000,  unlocked:false },
+    { id:'snatch',name:'Snatch',         icon:'🏋️‍♀️',baseHP:110000, baseCooldown:98304000, repBaseCost:55000, unlockCost:220000,  unlocked:false },
+
+    { id:'halfmar',name:'Half Marathon', icon:'🎽',   baseHP:150000, baseCooldown:196608000,repBaseCost:75000, unlockCost:300000,  unlocked:false },
+    { id:'marathon',name:'Marathon',     icon:'🏁',   baseHP:200000, baseCooldown:393216000,repBaseCost:100000,unlockCost:400000,  unlocked:false },
+    { id:'ironcross',name:'Iron Cross',  icon:'🤸‍♂️', baseHP:260000, baseCooldown:786432000,repBaseCost:130000,unlockCost:520000,  unlocked:false }
   ];
   return { exercises };
 })();
@@ -582,7 +594,7 @@ App.Content = (()=> {
   document.addEventListener('dblclick', e=>e.preventDefault(), {passive:false});
   document.addEventListener('gesturestart', e=>e.preventDefault(), {passive:false});
 
-  // Load state, set content, merge save
+  // Load state, set content, build UI
   App.State.load();
   App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack();
@@ -606,7 +618,7 @@ App.Content = (()=> {
     }, {passive:false});
   });
 
-  // Merge saved exercise progress after UI is wired (so els exist)
+  // Merge saved progress (after DOM exists)
   App.State.mergeSaveIntoExercises();
   App.UI.Renderer.refreshAll();
 
