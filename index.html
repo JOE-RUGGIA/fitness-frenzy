@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.9 (Music swap + splash + tutorial + coaches + offline)</title>
+<title>Fitness Frenzy – V5.0</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* ===== THEME / BASE ===== */
@@ -17,7 +17,7 @@ body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:
      padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0;}
 button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 
-/* ===== SPLASH ===== */
+/* ===== SPLASH (GameBros) ===== */
 .splashOv{position:fixed; inset:0; background:#fff; z-index:9500; display:none; align-items:center; justify-content:center}
 .splashOv.open{display:flex}
 .splashInner{display:flex; align-items:center; justify-content:center; width:min(90vw,900px); height:min(80vh,600px)}
@@ -338,7 +338,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 /* Config */
 const App = {};
 App.Flags = { tutorial:true, coaches:true, achievements:true, shop:false, settings:true, debug:/[?&]debug=1/.test(location.search) };
-App.Config = Object.freeze({ SAVE_KEY:'ff-v400-foundation', SCHEMA_VERSION:5, DEC:2, EPS:1e-6, SOLID_CD_MS:300,
+App.Config = Object.freeze({ SAVE_KEY:'ff-v500', SCHEMA_VERSION:5, DEC:2, EPS:1e-6, SOLID_CD_MS:300,
   REP_GROWTH:1.12, SAVE_MS:20000, UI_REFRESH_MS:100, NOTIFY_REFRESH_MS:200, OFFLINE_MAX_MS:12*60*60*1000 });
 
 /* Event Bus */
@@ -351,32 +351,40 @@ App.Settings = (()=>{const KEY=App.Config.SAVE_KEY+':prefs',d={sfx:true,floats:t
 App.Util = (()=>{const DEC=()=>App.Config.DEC; const fmtTop=n=>{const a=Math.abs(n); if(a>=1e9)return(n/1e9).toFixed(DEC())+'B'; if(a>=1e6)return(n/1e6).toFixed(DEC())+'M'; if(a>=1e3)return(n/1e3).toFixed(DEC())+'K'; return n.toFixed(DEC());};
 const fmtCost=n=> n<1e3? n.toFixed(DEC()):(n<1e6?(n/1e3).toFixed(DEC())+'K':(n<1e9?(n/1e6).toFixed(DEC())+'M':(n/1e9).toFixed(DEC())+'B')); return { fmtTop, fmtCost };})();
 
-/* Audio (SFX via WebAudio + Music via <audio>) */
+/* ===== Audio (SFX via WebAudio + Music piped through GainNode for consistent mobile volume) ===== */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
-  function ensure(){ if(!audioCtx||audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
+  function ensure(){ if(!audioCtx||audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} }
+    if(audioCtx && audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
   function unlock(){ ensure(); if(!audioCtx) return; try{ const b=audioCtx.createBuffer(1,1,22050); const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);}catch{} if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} needsUnlock=false; }
-  function tone(f,d=.18,g=.07,type='sine'){ try{ ensure(); if(!audioCtx) return; const t=audioCtx.currentTime; const o=audioCtx.createOscillator(); const q=audioCtx.createGain(); o.type=type;o.frequency.setValueAtTime(f,t); q.gain.setValueAtTime(g,t); q.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(q); q.connect(audioCtx.destination); o.start(); o.stop(t+d);}catch{} }
+
+  // SFX
+  function tone(f,d=.18,g=.07,type='sine'){ try{ ensure(); if(!audioCtx) return; const t=audioCtx.currentTime; const o=audioCtx.createOscillator(); const q=audioCtx.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,t); q.gain.setValueAtTime(g,t); q.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(q); q.connect(audioCtx.destination); o.start(); o.stop(t+d);}catch{} }
   function sfx(type){ if(!App.Settings.get('sfx')) return; if(!audioCtx||audioCtx.state!=='running'){ needsUnlock=true; return; }
     if(type==='tap') tone(660,.12,.06,'sine'); if(type==='buy') tone(440,.18,.08,'sine');
     if(type==='popup'){ tone(520,.10,.06,'triangle'); setTimeout(()=>tone(780,.08,.05,'triangle'),90); }
     if(type==='achv'){ tone(600,.10,.07,'square'); setTimeout(()=>tone(800,.10,.06,'square'),110); setTimeout(()=>tone(1000,.12,.06,'square'),220); } }
 
-  /* Music player using your MP3 (low volume, loops) */
+  // Music (mobile default ~2%, desktop 5%), enforced via GainNode for iOS/Android
   const music = (() => {
     const MUSIC_URL = 'https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-GameplayMusic.mp3';
-    let el=null, playing=false;
-    function ensureEl(){ if(el) return el; el = new Audio(MUSIC_URL); el.loop = true; el.volume = 0.05; el.preload='auto'; el.crossOrigin='anonymous'; el.setAttribute('playsinline','true'); return el; }
-    function start(vol=0.05){ const a=ensureEl(); a.volume = Math.max(0, Math.min(1, vol)); if(!playing){ a.play().catch(()=>{}); playing=true; } }
-    function setVolume(v){ if(!el) return; el.volume = Math.max(0, Math.min(1, v)); }
-    function lowerTo(v){ setVolume(v); } // keep API compatibility
-    function stop(){ if(el){ el.pause(); playing=false; } }
+    let el=null, src=null, gain=null, playing=false, target=0.05;
+    const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    function ensureEl(){ if(el) return el; el=new Audio(MUSIC_URL); el.loop=true; el.preload='auto'; el.crossOrigin='anonymous'; el.setAttribute('playsinline','true'); el.volume=0;
+      el.addEventListener('playing', ()=>{ if(gain && audioCtx){ gain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.01);} }); return el; }
+    function ensureChain(){ ensure(); const a=ensureEl(); if(!src && audioCtx){ try{ src=audioCtx.createMediaElementSource(a); gain=audioCtx.createGain(); gain.gain.value=0; src.connect(gain); gain.connect(audioCtx.destination);}catch{ src=null; gain=null; } } }
+    function start(vol){ target=(typeof vol==='number')?vol:(isMobile?0.02:0.05); ensureChain(); const a=ensureEl(); if(!playing){ a.play().catch(()=>{}); playing=true; }
+      if(gain&&audioCtx){ gain.gain.setValueAtTime(0, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(target, audioCtx.currentTime+.25); } else { a.volume=target; } }
+    function setVolume(v){ target=Math.max(0,Math.min(1,v)); if(gain&&audioCtx){ gain.gain.setTargetAtTime(target, audioCtx.currentTime, .02); } else if(el){ el.volume=target; } }
+    function lowerTo(v){ setVolume(v); } function stop(){ if(el){ el.pause(); playing=false; } }
     return { start, setVolume, lowerTo, stop, isPlaying:()=>playing };
   })();
 
   ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') needsUnlock=true; });
   ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
   App.Bus.on('settings:change', ({key,val})=>{ if(key==='sfx' && val){ unlock(); } });
+
   return { sfx, unlock, music };
 })();
 
@@ -550,7 +558,7 @@ App.Notify = (()=> {
 
 /* Cards + Renderer */
 App.UI.Cards = (()=> {
-  const { bindPress } = App.Engine; const { perTap, tap, addReps, bulkRepCost } = App.Game; const { sfx, unlock } = App.Audio;
+  const { bindPress } = App.Engine; const { perTap, tap, addReps } = App.Game;
   function makeExerciseCard(e){
     const card=document.createElement('div'); card.className='card'+(e.unlocked?'':' locked'); card.dataset.id=e.id;
     const tapPad=document.createElement('div'); tapPad.className='tapPad'; tapPad.textContent=e.icon;
@@ -573,7 +581,8 @@ App.UI.Cards = (()=> {
     e.els={ card,tapPad,lvl, repFill:repBand.querySelector('.repFill'), repLabel:repBand.querySelector('.repLabel'),
       headRight:head.querySelector('.headRight'), coolFill:coolWrap.querySelector('.coolfill'), kvTap:kvs.querySelector('.kvTap'), buyBtn, coachSlotTop, costLine,costPill,costAmt };
     if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
-    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); if(App.Settings.get('floats')) App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
+
+    bindPress(tapPad, ()=>{ App.Audio.unlock(); const g=tap(e); if(g>0){ App.Audio.sfx('tap'); if(App.Settings.get('floats')) App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
     bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ App.Audio.sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
       App.Game.addHP(-e.unlockCost); e.unlocked=true; e.lastTapAt=0; App.Audio.sfx('buy'); App.Bus.emit('exercise:unlock', { exId:e.id });
@@ -661,8 +670,8 @@ App.UI.Renderer = (()=> {
     refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ App.Audio.sfx('popup'); refs.menuClose.click(); }});
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ App.Audio.sfx('popup'); refs.menuClose.click(); } });
     refs.tabsWrap.querySelectorAll('.menuTab').forEach(btn=>{ btn.addEventListener('click', ()=> { App.Audio.sfx('popup'); switchTab(btn.dataset.tab); }); });
-    document.getElementById('saveBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
-    document.getElementById('resetBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
+    document.getElementById('saveBtn').addEventListener('click', ()=>{ App.Audio.sfx('tap'); App.State.save(); });
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ App.Audio.sfx('tap'); if(!confirm('Reset your progress?')) return; localStorage.clear(); location.reload(); });
     function switchTab(tab){ refs.tabsWrap.querySelectorAll('.menuTab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
       const ids=['coaches','upgrades','achievements','quests','shop','stats','settings'];
       ids.forEach(id=> document.getElementById('tab-'+id).style.display=(id===tab?'block':'none'));
@@ -713,6 +722,7 @@ App.Tutorial = (()=> {
   bubble.addEventListener('click',()=>{ if(!curStep) return; if(lineIdx<curStep.lines.length-1){ lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who,L.icon); setTextHTML(L.html); App.Audio.sfx('popup'); }
     else if(curStep.onLinesDone){ const done=curStep.onLinesDone; curStep=null; done(); } });
   ov.querySelector('.tutDim').addEventListener('click',()=>{ if(curStep){ bubble.click(); }});
+
   function startIntro(){ setStep({ id:'intro-walk', lines:[
       {who:'JAX',icon:'🏋️‍♂️',html:'Hey—energy looks low. Let’s fix that 💪'},
       {who:'You',icon:(S.tutorial.avatar==='female'?'👩':'👨'),html:'Where do I start?'},
@@ -757,8 +767,8 @@ App.UI.Start = (() => {
       span.style.fontSize=(18+Math.random()*12)+'px'; span.style.pointerEvents='none'; span.style.zIndex='9100'; document.body.appendChild(span);
       span.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${(Math.random()*2-1)*160}px, -${60+Math.random()*80}px) scale(${.9+Math.random()*.4})`,opacity:0}],{duration:900+Math.random()*400,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); setTimeout(()=>span.remove(),1500); } }
   function init(){ const cur=App.State.s.tutorial.avatar||'male'; setAvatar(cur); seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> { App.Audio.sfx('tap'); setAvatar(b.dataset.avatar); }));
-    // First interaction: unlock SFX context and start music quietly at 10%
-    ov.addEventListener('pointerdown', ()=>{ if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(0.05); } }, { once:true, passive:true });
+    // First interaction: unlock audio and start music (uses platform defaults: mobile ~2%, desktop 5%)
+    ov.addEventListener('pointerdown', ()=>{ if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(); } }, { once:true, passive:true });
     btnStart.addEventListener('click', ()=>{ App.Audio.sfx('popup'); hide(); if(!App.State.s.tutorial.done){ App.Tutorial.start(); } setTimeout(()=>App.Offline.checkAndShow(), 50); });
     btnCont.addEventListener('click', ()=>{ App.Audio.sfx('popup'); hide(); setTimeout(()=>App.Offline.checkAndShow(), 50); }); }
   function show(){ ov.classList.add('open'); ov.setAttribute('aria-hidden','false'); try{ ui.classList.remove('popIn'); void ui.offsetWidth; ui.classList.add('popIn'); App.Audio.sfx('popup'); emojiBurstAround(ui); App.UI.Effects.confetti(window.innerWidth/2, window.innerHeight*0.15, 24);}catch{} }
@@ -783,9 +793,10 @@ App.UI.Splash = (()=>{
 
 /* Boot */
 (function boot(){
-  // Prevent double-tap zoom
+  // Prevent double-tap zoom & gestures
   let lastTouchEnd=0; document.addEventListener('touchend',e=>{const n=Date.now(); if(n-lastTouchEnd<=300){e.preventDefault();} lastTouchEnd=n;},{passive:false});
   document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false}); document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+
   // Load state + build UI
   App.State.load(); App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
@@ -793,8 +804,6 @@ App.UI.Splash = (()=>{
 
   // Qty buttons
   const { refs } = App.UI.Renderer;
-  refs.saveBtn.addEventListener('click', App.State.save);
-  refs.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.clear(); location.reload(); });
   [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.addEventListener('pointerdown',ev=>{
     ev.preventDefault(); [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active')); b.classList.add('active');
     App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update(); App.Audio.sfx('tap');
