@@ -358,7 +358,7 @@ App.Audio = (()=> {
     const el = document.getElementById('bgm');
     let playing = false;
     if (el) { el.volume = 0.0; el.loop = true; el.preload = 'auto'; el.crossOrigin = 'anonymous'; }
-    async function start(vol=0.5){
+    async function start(vol=0.1){
       if(!el) return;
       try { el.volume = vol; await el.play(); playing = true; }
       catch(e){ /* Will start after next user gesture if blocked */ }
