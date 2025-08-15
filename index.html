@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V5.0</title>
+<title>Fitness Frenzy – V5.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* ===== THEME / BASE ===== */
@@ -32,9 +32,7 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
   70%{transform:scale(.98)}
   100%{transform:scale(1)}
 }
-.splashShine{
-  position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:12px;
-}
+.splashShine{position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:12px;}
 .splashShine::before{
   content:""; position:absolute; top:-40%; left:-30%; width:60%; height:200%;
   background:linear-gradient(70deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 50%, rgba(255,255,255,0) 100%);
@@ -335,10 +333,9 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 
 <script>
 /* ================== App bootstrapping & systems ================== */
-/* Config */
 const App = {};
 App.Flags = { tutorial:true, coaches:true, achievements:true, shop:false, settings:true, debug:/[?&]debug=1/.test(location.search) };
-App.Config = Object.freeze({ SAVE_KEY:'ff-v500', SCHEMA_VERSION:5, DEC:2, EPS:1e-6, SOLID_CD_MS:300,
+App.Config = Object.freeze({ SAVE_KEY:'ff-v510', SCHEMA_VERSION:5, DEC:2, EPS:1e-6, SOLID_CD_MS:300,
   REP_GROWTH:1.12, SAVE_MS:20000, UI_REFRESH_MS:100, NOTIFY_REFRESH_MS:200, OFFLINE_MAX_MS:12*60*60*1000 });
 
 /* Event Bus */
@@ -351,63 +348,126 @@ App.Settings = (()=>{const KEY=App.Config.SAVE_KEY+':prefs',d={sfx:true,floats:t
 App.Util = (()=>{const DEC=()=>App.Config.DEC; const fmtTop=n=>{const a=Math.abs(n); if(a>=1e9)return(n/1e9).toFixed(DEC())+'B'; if(a>=1e6)return(n/1e6).toFixed(DEC())+'M'; if(a>=1e3)return(n/1e3).toFixed(DEC())+'K'; return n.toFixed(DEC());};
 const fmtCost=n=> n<1e3? n.toFixed(DEC()):(n<1e6?(n/1e3).toFixed(DEC())+'K':(n<1e9?(n/1e6).toFixed(DEC())+'M':(n/1e9).toFixed(DEC())+'B')); return { fmtTop, fmtCost };})();
 
-/* ===== Audio (SFX via WebAudio + Music piped through GainNode for consistent mobile volume) ===== */
+/* ===== Audio (SFX via WebAudio + Music piped through GainNode for consistent mobile/desktop) ===== */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
-  function ensure(){ if(!audioCtx||audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} }
-    if(audioCtx && audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
-  function unlock(){ ensure(); if(!audioCtx) return; try{ const b=audioCtx.createBuffer(1,1,22050); const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);}catch{} if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} needsUnlock=false; }
+  const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // SFX
-  function tone(f,d=.18,g=.07,type='sine'){ try{ ensure(); if(!audioCtx) return; const t=audioCtx.currentTime; const o=audioCtx.createOscillator(); const q=audioCtx.createGain();
-    o.type=type;o.frequency.setValueAtTime(f,t); q.gain.setValueAtTime(g,t); q.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(q); q.connect(audioCtx.destination); o.start(); o.stop(t+d);}catch{} }
-  function sfx(type){ if(!App.Settings.get('sfx')) return; if(!audioCtx||audioCtx.state!=='running'){ needsUnlock=true; return; }
-    if(type==='tap') tone(660,.12,.06,'sine'); if(type==='buy') tone(440,.18,.08,'sine');
-    if(type==='popup'){ tone(520,.10,.06,'triangle'); setTimeout(()=>tone(780,.08,.05,'triangle'),90); }
-    if(type==='achv'){ tone(600,.10,.07,'square'); setTimeout(()=>tone(800,.10,.06,'square'),110); setTimeout(()=>tone(1000,.12,.06,'square'),220); } }
+  function ensure(){
+    if(!audioCtx||audioCtx.state==='closed'){
+      try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{}
+    }
+    if(audioCtx && audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{}); }
+  }
+  function unlock(){
+    ensure();
+    if(!audioCtx) return;
+    try{
+      const b=audioCtx.createBuffer(1,1,22050);
+      const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);
+    }catch{}
+    if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{}); }
+    needsUnlock=false;
+  }
 
-  // Music (mobile default ~2%, desktop 5%), enforced via GainNode for iOS/Android
-  const music = (() => {
+  // --- SFX ---
+  function tone(f,d=.18,g=.07,type='sine'){
+    try{
+      ensure(); if(!audioCtx) return;
+      const t=audioCtx.currentTime, o=audioCtx.createOscillator(), q=audioCtx.createGain();
+      o.type=type; o.frequency.setValueAtTime(f,t);
+      q.gain.setValueAtTime(g,t); q.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.connect(q); q.connect(audioCtx.destination);
+      o.start(); o.stop(t+d);
+    }catch{}
+  }
+  function sfx(kind){
+    if(!App.Settings.get('sfx')) return;
+    if(!audioCtx || audioCtx.state!=='running'){ needsUnlock=true; return; }
+    if(kind==='tap') tone(660,.12,.06,'sine');
+    if(kind==='buy') tone(440,.18,.08,'sine');
+    if(kind==='popup'){ tone(520,.10,.06,'triangle'); setTimeout(()=>tone(780,.08,.05,'triangle'),90); }
+    if(kind==='achv'){ tone(600,.10,.07,'square'); setTimeout(()=>tone(800,.10,.06,'square'),110); setTimeout(()=>tone(1000,.12,.06,'square'),220); }
+  }
+
+  // --- Music via GainNode (desktop 8% start -> 5% in-game; mobile ~2%) ---
+  const music = (()=>{
     const MUSIC_URL = 'https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-GameplayMusic.mp3';
     let el=null, src=null, gain=null, playing=false, target=0.05;
-    const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    function ensureEl(){ if(el) return el; el=new Audio(MUSIC_URL); el.loop=true; el.preload='auto'; el.crossOrigin='anonymous'; el.setAttribute('playsinline','true'); el.volume=0;
-      el.addEventListener('playing', ()=>{ if(gain && audioCtx){ gain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.01);} }); return el; }
-    function ensureChain(){ ensure(); const a=ensureEl(); if(!src && audioCtx){ try{ src=audioCtx.createMediaElementSource(a); gain=audioCtx.createGain(); gain.gain.value=0; src.connect(gain); gain.connect(audioCtx.destination);}catch{ src=null; gain=null; } } }
+
+    function ensureEl(){
+      if(el) return el;
+      el = new Audio(MUSIC_URL);
+      el.loop = true;
+      el.preload = 'auto';
+      el.crossOrigin = 'anonymous';
+      el.setAttribute('playsinline','true');
+      el.volume = 0; // control via GainNode
+      el.addEventListener('play', ()=>{ playing=true; });
+      el.addEventListener('pause', ()=>{ playing=false; });
+      el.addEventListener('playing', ()=>{
+        if(gain && audioCtx){
+          gain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.02);
+        } else {
+          el.volume = target;
+        }
+      });
+      return el;
+    }
+    function ensureChain(){
+      ensure();
+      const a=ensureEl();
+      if(!src && audioCtx){
+        try{
+          src  = audioCtx.createMediaElementSource(a);
+          gain = audioCtx.createGain();
+          gain.gain.value = 0;
+          src.connect(gain); gain.connect(audioCtx.destination);
+        }catch(e){
+          // Some browsers throw if connected twice (e.g., hot reload). Fallback to element volume.
+          src=null; gain=null;
+        }
+      }
+    }
+    function _tryPlay(){
+      const a=ensureEl();
+      a.play().catch(()=>{}); // will retry below
+      setTimeout(()=>{ if(a.paused){ a.play().catch(()=>{}); } }, 400);
+      setTimeout(()=>{ if(a.paused){ a.muted=false; a.play().catch(()=>{}); } }, 1000);
+    }
     function start(vol){
-  // Desktop-safe: make absolutely sure the WebAudio context is running
-  ensure();
-  if (audioCtx && audioCtx.state !== 'running') {
-    try { audioCtx.resume(); } catch(e){}
-  }
-
-  // Default volumes: mobile ~2%, desktop 5% (can override by passing vol)
-  target = (typeof vol === 'number') ? vol : (isMobile ? 0.02 : 0.05);
-
-  ensureChain();
-  const a = ensureEl();
-
-  if (!playing) {
-    a.play().catch(()=>{});  // will succeed after the user gesture
-    playing = true;
-  }
-
-  if (gain && audioCtx) {
-    gain.gain.setValueAtTime(0, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(target, audioCtx.currentTime + 0.25);
-  } else {
-    // Fallback if MediaElementSource couldn't be created
-    a.volume = target;
-  }
-}
-      if(gain&&audioCtx){ gain.gain.setValueAtTime(0, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(target, audioCtx.currentTime+.25); } else { a.volume=target; } }
-    function setVolume(v){ target=Math.max(0,Math.min(1,v)); if(gain&&audioCtx){ gain.gain.setTargetAtTime(target, audioCtx.currentTime, .02); } else if(el){ el.volume=target; } }
-    function lowerTo(v){ setVolume(v); } function stop(){ if(el){ el.pause(); playing=false; } }
-    return { start, setVolume, lowerTo, stop, isPlaying:()=>playing };
+      // Default by platform
+      target = (typeof vol==='number') ? vol : (isMobile ? 0.02 : 0.08);
+      ensureChain(); unlock();
+      _tryPlay();
+      if(gain && audioCtx){
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(target, audioCtx.currentTime + 0.35);
+      }else{
+        el.volume = target;
+      }
+    }
+    function setVolume(v){
+      target = Math.max(0, Math.min(1, v));
+      if(gain && audioCtx){
+        gain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.03);
+      }else if(el){
+        el.volume = target;
+      }
+    }
+    function lowerTo(v){ setVolume(v); }
+    function ensurePlaying(){ if(!playing || (el && el.paused)){ start(target); } }
+    function stop(){ if(el){ el.pause(); playing=false; } }
+    return { start, setVolume, lowerTo, stop, ensurePlaying, isPlaying:()=>playing, isMobile:()=>isMobile };
   })();
 
-  ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') needsUnlock=true; });
-  ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
+  // Resume/Unlock hooks
+  ['visibilitychange','pageshow','focus'].forEach(ev=>{
+    window.addEventListener(ev, ()=>{ if(document.visibilityState==='visible'){ if(audioCtx && audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{}); } music.ensurePlaying(); } });
+  });
+  ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{
+    window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); music.ensurePlaying(); }, {capture:true, passive:true});
+  });
   App.Bus.on('settings:change', ({key,val})=>{ if(key==='sfx' && val){ unlock(); } });
 
   return { sfx, unlock, music };
@@ -791,24 +851,21 @@ App.UI.Start = (() => {
       span.textContent=emojis[i%emojis.length]; span.style.position='fixed'; span.style.left=(x+(Math.random()*120-60))+'px'; span.style.top=(y+(Math.random()*30-15))+'px';
       span.style.fontSize=(18+Math.random()*12)+'px'; span.style.pointerEvents='none'; span.style.zIndex='9100'; document.body.appendChild(span);
       span.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${(Math.random()*2-1)*160}px, -${60+Math.random()*80}px) scale(${.9+Math.random()*.4})`,opacity:0}],{duration:900+Math.random()*400,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); setTimeout(()=>span.remove(),1500); } }
+  function startMusicIfNeeded(){ App.Audio.unlock(); // platform defaults: mobile ~2%, desktop 8%
+    App.Audio.music.start(); }
   function init(){ const cur=App.State.s.tutorial.avatar||'male'; setAvatar(cur); seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> { App.Audio.sfx('tap'); setAvatar(b.dataset.avatar); }));
-    // First interaction: unlock audio and start music (uses platform defaults: mobile ~2%, desktop 5%)
-    ov.addEventListener('pointerdown', ()=>{ if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(); } }, { once:true, passive:true });
-    btnStart.addEventListener('click', ()=>{
-  App.Audio.unlock();
-  if(!App.Audio.music.isPlaying()){ App.Audio.music.start(); }  // desktop-safe
-  App.Audio.sfx('popup');
-  hide();
-  if(!App.State.s.tutorial.done){ App.Tutorial.start(); }
-  setTimeout(()=>App.Offline.checkAndShow(), 50);
-});
-    btnCont.addEventListener('click', ()=>{
-  App.Audio.unlock();
-  if(!App.Audio.music.isPlaying()){ App.Audio.music.start(); }  // desktop-safe
-  App.Audio.sfx('popup');
-  hide();
-  setTimeout(()=>App.Offline.checkAndShow(), 50);
-});
+    // Start music on any first interaction (more hooks to satisfy desktop)
+    ['pointerdown','click','keydown'].forEach(ev=> ov.addEventListener(ev, ()=>{ if(!App.Audio.music.isPlaying()) startMusicIfNeeded(); }, { once:true, passive:true }));
+    btnStart.addEventListener('click', ()=>{ App.Audio.sfx('popup'); if(!App.Audio.music.isPlaying()) startMusicIfNeeded();
+      // Lower volume for gameplay
+      App.Audio.music.lowerTo(App.Audio.music.isMobile()?0.02:0.05);
+      hide(); if(!App.State.s.tutorial.done){ App.Tutorial.start(); } setTimeout(()=>App.Offline.checkAndShow(), 50); });
+    btnCont.addEventListener('click', ()=>{ App.Audio.sfx('popup'); if(!App.Audio.music.isPlaying()) startMusicIfNeeded();
+      App.Audio.music.lowerTo(App.Audio.music.isMobile()?0.02:0.05);
+      hide(); setTimeout(()=>App.Offline.checkAndShow(), 50); });
+    // Keyboard enter also starts/lower
+    ov.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ if(!App.Audio.music.isPlaying()) startMusicIfNeeded(); }});
+  }
   function show(){ ov.classList.add('open'); ov.setAttribute('aria-hidden','false'); try{ ui.classList.remove('popIn'); void ui.offsetWidth; ui.classList.add('popIn'); App.Audio.sfx('popup'); emojiBurstAround(ui); App.UI.Effects.confetti(window.innerWidth/2, window.innerHeight*0.15, 24);}catch{} }
   function hide(){ ov.classList.remove('open'); ov.setAttribute('aria-hidden','true'); }
   return { init, show, hide };
