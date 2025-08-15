@@ -437,7 +437,7 @@ App.Audio = (()=> {
     }
     function start(vol){
       // Default by platform
-      target = (typeof vol==='number') ? vol : (isMobile ? 0.02 : 0.12);
+      target = (typeof vol==='number') ? vol : (isMobile ? 0.02 : 0.25);
       ensureChain(); unlock();
       _tryPlay();
       if(gain && audioCtx){
