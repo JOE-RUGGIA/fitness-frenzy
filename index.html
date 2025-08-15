@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – Push-ups GIF unlock</title>
+<title>Fitness Frenzy – Avatar in Title, Tap FX, Typewriter Tutorial</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -32,11 +32,11 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 .topbar{position:sticky; top:0; z-index:1000; background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .title{display:flex;align-items:center;gap:10px}
-.title .icon{font-size:clamp(22px,5vw,28px)}
 h1{margin:0;font-size:clamp(22px,5vw,28px)}
-.topPlayer{display:flex;align-items:center;gap:8px;margin-left:6px}
-.pAvatar{width:44px;height:44px;border-radius:50%;overflow:hidden;background:#0b1423;border:1px solid #27456d;box-shadow:0 4px 12px rgba(0,0,0,.25)}
-.pAvatar img{width:100%;height:100%;object-fit:cover;image-rendering:auto}
+/* avatar now lives inside title */
+.title .pAvatar{width:38px;height:38px;border-radius:50%;overflow:hidden;background:#0b1423;border:1px solid #27456d;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.title .pAvatar img{width:100%;height:100%;object-fit:cover;image-rendering:auto}
+
 .hpPill{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
         background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid #2a4a78;
         box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04)}
@@ -75,9 +75,12 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .tapPad{position:relative;width:clamp(72px,16vw,120px);aspect-ratio:1;border-radius:var(--r);
         background:#12243b;border:1px solid #1a2f4a;display:flex;align-items:center;justify-content:center;
         font-size:clamp(44px,12vw,72px);cursor:pointer;overflow:visible}
-/* NEW: icon wrapper so we can swap emoji ⇄ GIF */
 .iconWrap{position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;}
 .tapGif{width:78%; height:78%; object-fit:contain; border-radius:8px}
+
+/* Tap bounce */
+.tapPad.tapBounce{animation:tapPop .18s cubic-bezier(.2,1.2,.3,1)}
+@keyframes tapPop{0%{transform:scale(1)}50%{transform:scale(.96)}100%{transform:scale(1)}}
 
 .lvl{position:absolute;left:6px;top:6px;font-size:12px;font-weight:900;color:#fff;
      background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;border-radius:8px;padding:2px 6px}
@@ -94,7 +97,6 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .ex-title{font-size:var(--fs-2);margin:0}
 .muted{color:#a7b7cc}
 .coachSlotTop{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
-@media (max-width:480px){ .coachSlotTop{gap:6px} }
 
 .coachChip{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-size:12px}
 
@@ -113,7 +115,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .costPill.ready{color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent-hi));border-color:#e89d6b;
                 box-shadow:0 12px 26px rgba(204,107,44,.35)}
 
-/* Banners, Menus, Tutorial ... (unchanged styles from previous build) */
+/* Banners, Menus, Tutorial ... */
 .banner{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);background:linear-gradient(135deg,#132647,#1d3a61);
         color:#fff;border-top:1px solid #2a4a78;padding:12px 16px calc(12px + env(safe-area-inset-bottom));opacity:0;z-index:3000;
         display:flex;gap:8px;align-items:center;justify-content:center;text-align:center;
@@ -184,8 +186,11 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes tutPop{0%{transform:translateX(-50%) scale(.92); opacity:.0}70%{transform:translateX(-50%) scale(1.04); opacity:1}100%{transform:translateX(-50%) scale(1)}}
 .tutIdle{animation:tutIdle 2.6s ease-in-out infinite}
 @keyframes tutIdle{0%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}100%{transform:translateX(-50%) translateY(0)}}
+/* Typewriter caret (subtle) */
+.tw-caret{display:inline-block;width:0.6ch;border-right:2px solid rgba(255,255,255,.6);animation:blink 1s steps(1) infinite;margin-left:2px}
+@keyframes blink{50%{border-right-color:transparent}}
 
-/* Achievements, Start overlay (unchanged styles) */
+/* Achievements & Start (unchanged parts omitted for brevity—they remain in file) */
 .achGrid{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:700px){ .achGrid{grid-template-columns:1fr 1fr;} }
 .ach{display:flex;gap:12px;align-items:center;background:#0c1525;border:1px solid #223556;border-radius:12px;padding:12px}
@@ -197,6 +202,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .badgeDone{padding:6px 10px;border-radius:999px;background:#15341f;border:1px solid #2a6a3f;color:#b6ffd0;font-weight:900;font-size:12px}
 .badgeRew{padding:6px 10px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;font-size:12px}
 
+/* Start overlay */
 .startOv{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;pointer-events:auto}
 .startOv.open{display:flex}
 .startPlate{position:absolute;inset:0;background:url('https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Cover-Art.png') center/cover no-repeat;filter:blur(14px) brightness(.75);opacity:.9}
@@ -224,13 +230,15 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   <!-- Top bar -->
   <div class="topbar" id="topbar">
     <div class="topwrap">
-      <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
-      <div class="topPlayer" id="topPlayer">
+      <!-- REPLACED 💪 WITH PLAYER AVATAR HERE -->
+      <div class="title">
         <div class="pAvatar" id="topPlayerAvatar">
           <img id="topPlayerImg" alt="Player Avatar"
                src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif">
         </div>
+        <h1>Fitness Frenzy</h1>
       </div>
+
       <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.00</span></div>
       <div class="spacer"></div>
       <button id="menuBtn" class="btn ghost">Menu<span id="menuDot" class="notifDot"></span></button>
@@ -339,13 +347,12 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 const TRAINER_GIF = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Trainer%20GIF.gif";
 const PLAYER_GIF_MALE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif";
 const PLAYER_GIF_FEMALE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-PlayerFemaleGIFF.gif";
-/* NEW: Push-ups GIF (don’t load until unlocked) */
 const PUSH_GIF = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Clips.gif";
 
-/* Core systems (unchanged except where noted) */
+/* Core config & event bus */
 const App = {};
 App.Flags = { tutorial:true, coaches:true, achievements:true, shop:false, settings:true, debug:/[?&]debug=1/.test(location.search) };
-App.Config = Object.freeze({ SAVE_KEY:'ff-v400-foundation', SCHEMA_VERSION:5, DEC:2, EPS:1e-6, SOLID_CD_MS:300,
+App.Config = Object.freeze({ SAVE_KEY:'ff-v401', SCHEMA_VERSION:5, DEC:2, EPS:1e-6, SOLID_CD_MS:300,
   REP_GROWTH:1.12, SAVE_MS:20000, UI_REFRESH_MS:100, NOTIFY_REFRESH_MS:200, OFFLINE_MAX_MS:12*60*60*1000 });
 
 App.Bus = (()=>{const m={};return{on(ev,fn){(m[ev]||(m[ev]=[])).push(fn);return()=>this.off(ev,fn)},off(ev,fn){const a=m[ev];if(!a)return;const i=a.indexOf(fn);if(i>=0)a.splice(i,1)},emit(ev,p){const a=m[ev];if(!a)return;for(const f of a.slice())try{f(p)}catch(e){console.warn(e)}}};})();
@@ -355,7 +362,7 @@ App.Settings = (()=>{const KEY=App.Config.SAVE_KEY+':prefs',d={sfx:true,floats:t
 App.Util = (()=>{const DEC=()=>App.Config.DEC; const fmtTop=n=>{const a=Math.abs(n); if(a>=1e9)return(n/1e9).toFixed(DEC())+'B'; if(a>=1e6)return(n/1e6).toFixed(DEC())+'M'; if(a>=1e3)return(n/1e3).toFixed(DEC())+'K'; return n.toFixed(DEC());};
 const fmtCost=n=> n<1e3? n.toFixed(DEC()):(n<1e6?(n/1e3).toFixed(DEC())+'K':(n<1e9?(n/1e6).toFixed(DEC())+'M':(n/1e9).toFixed(DEC())+'B')); return { fmtTop, fmtCost };})();
 
-/* Audio, Effects, Overlay, State, Migrations — unchanged from last version */
+/* Audio (unchanged SFX + intro tune) */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx||audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
@@ -382,19 +389,31 @@ App.Audio = (()=> {
   return { sfx, unlock, music };
 })();
 
+/* Effects (confetti) */
 App.UI = {};
-App.UI.Effects = (()=>{ const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab'];
-  function confetti(x,y,count=28){ const host=document.createElement('div'); host.style.position='fixed'; host.style.left='0'; host.style.top='0'; host.style.pointerEvents='none'; host.style.zIndex='4000'; document.body.appendChild(host);
-    const ww=window.innerWidth, wh=window.innerHeight; for(let i=0;i<count;i++){ const d=document.createElement('div'); const size=6+Math.random()*6; d.style.position='absolute';
+App.UI.Effects = (()=>{
+  const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab'];
+  function confetti(x,y,count=28){
+    const host=document.createElement('div'); host.style.position='fixed'; host.style.left='0'; host.style.top='0'; host.style.pointerEvents='none'; host.style.zIndex='4000'; document.body.appendChild(host);
+    const ww=window.innerWidth, wh=window.innerHeight;
+    for(let i=0;i<count;i++){
+      const d=document.createElement('div'); const size=6+Math.random()*6; d.style.position='absolute';
       d.style.left=(x+(Math.random()*120-60))+'px'; d.style.top=(y+(Math.random()*40-20))+'px'; d.style.width=size+'px'; d.style.height=size+'px';
       d.style.background=colors[i%colors.length]; d.style.transform=`rotate(${Math.random()*360}deg)`; d.style.borderRadius=Math.random()<.4?'50%':'2px'; d.style.opacity='0.95';
       const dx=(Math.random()*2-1)*(ww*0.12); const dy=(wh*0.25+Math.random()*wh*0.15);
-      d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);}
-    setTimeout(()=>host.remove(),2000);} return { confetti, confettiAtEl:(el)=>{ const r=el.getBoundingClientRect(); confetti(r.left+r.width/2, r.top+r.height/2); } };})();
+      d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+      host.appendChild(d);
+    }
+    setTimeout(()=>host.remove(),2000);
+  }
+  function confettiAtEl(el,count=12){ const r=el.getBoundingClientRect(); confetti(r.left+r.width/2, r.top+r.height/2, count); }
+  return { confetti, confettiAtEl };
+})();
 
 App.UI.Overlay = (()=>{const floatFrom=(fromEl,text)=>{ if(!App.Settings.get('floats')) return; const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
   span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);}; return { floatFrom, suppressFloats:false };})();
 
+/* State, migrations (same idea) */
 App.State = (()=> {
   const KEY=App.Config.SAVE_KEY;
   const s={ schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0, totalEarned:0},
@@ -418,27 +437,26 @@ App.Migrations = {
   4:o=>{o.tutorial=o.tutorial||{};o.tutorial.shown=o.tutorial.shown||{unlock:{},coach:{},upgrade:{}};o.schemaVersion=5;return o;}
 };
 
-/* Content — push-ups now carries a GIF URL */
+/* Content (includes Push-ups GIF after unlock) */
 App.Content = (()=> {
   const ex = [
     { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
     { id:'jog',  name:'Jogging',         icon:'🏃',   baseHP:60,     baseCooldown:  3000,   repBaseCost: 30,   unlockCost:   60,   unlocked:false },
     { id:'sit',  name:'Sit-ups',         icon:'🧘',   baseHP:180,    baseCooldown:  6000,   repBaseCost: 90,   unlockCost:  300,   unlocked:false },
-    /* ↓↓↓ Push-ups uses GIF after unlock */
     { id:'push', name:'Push-ups',        icon:'💪',   gifUrl:PUSH_GIF, baseHP:400,  baseCooldown: 12000,   repBaseCost:200,   unlockCost: 1200,   unlocked:false },
-    { id:'jacks', name:'Jumping Jacks',  icon:'🤸',   baseHP:900,    baseCooldown: 24000,   repBaseCost:450,   unlockCost: 1800,   unlocked:false },
-    { id:'squat', name:'Bodyweight Squats',icon:'🦵', baseHP:1800,   baseCooldown: 48000,   repBaseCost:900,   unlockCost: 3600,   unlocked:false },
-    { id:'lunge', name:'Lunges',         icon:'🦵',   baseHP:3200,   baseCooldown: 96000,   repBaseCost:1600,  unlockCost: 6400,   unlocked:false },
-    { id:'plank', name:'Plank',          icon:'🧘‍♂️', baseHP:5000,   baseCooldown:192000,   repBaseCost:2500,  unlockCost:10000,   unlocked:false },
-    { id:'climb', name:'Mountain Climbers',icon:'🧗', baseHP:8000,   baseCooldown:384000,   repBaseCost:4000,  unlockCost:16000,   unlocked:false },
-    { id:'burpee',name:'Burpees',        icon:'🤾',   baseHP:12000,  baseCooldown:768000,   repBaseCost:6000,  unlockCost:24000,   unlocked:false },
-    { id:'pullup',name:'Pull-ups',       icon:'🧗‍♂️', baseHP:18000,  baseCooldown:1536000,  repBaseCost:9000,  unlockCost:36000,   unlocked:false },
-    { id:'kb',    name:'Kettlebell Swings',icon:'🏋️', baseHP:26000,  baseCooldown:3072000,  repBaseCost:13000, unlockCost:52000,   unlocked:false },
-    { id:'bench', name:'Bench Press',    icon:'🏋️‍♂️',baseHP:36000,  baseCooldown:6144000,  repBaseCost:18000, unlockCost:72000,   unlocked:false },
-    { id:'backsq',name:'Back Squat',     icon:'🏋️‍♀️',baseHP:48000,  baseCooldown:12288000, repBaseCost:24000, unlockCost:96000,   unlocked:false },
+    { id:'jacks', name:'Jumping Jacks',  icon:'🤸',   baseHP:900,    baseCooldown: 24000,   repBaseCost:450,   unlockCost:  1800,  unlocked:false },
+    { id:'squat', name:'Bodyweight Squats',icon:'🦵', baseHP:1800,   baseCooldown: 48000,   repBaseCost:900,   unlockCost:  3600,  unlocked:false },
+    { id:'lunge', name:'Lunges',         icon:'🦵',   baseHP:3200,   baseCooldown: 96000,   repBaseCost:1600,  unlockCost:  6400,  unlocked:false },
+    { id:'plank', name:'Plank',          icon:'🧘‍♂️', baseHP:5000,   baseCooldown:192000,   repBaseCost:2500,  unlockCost: 10000,  unlocked:false },
+    { id:'climb', name:'Mountain Climbers',icon:'🧗', baseHP:8000,   baseCooldown:384000,   repBaseCost:4000,  unlockCost: 16000,  unlocked:false },
+    { id:'burpee',name:'Burpees',        icon:'🤾',   baseHP:12000,  baseCooldown:768000,   repBaseCost:6000,  unlockCost: 24000,  unlocked:false },
+    { id:'pullup',name:'Pull-ups',       icon:'🧗‍♂️', baseHP:18000,  baseCooldown:1536000,  repBaseCost:9000,  unlockCost: 36000,  unlocked:false },
+    { id:'kb',    name:'Kettlebell Swings',icon:'🏋️', baseHP:26000,  baseCooldown:3072000,  repBaseCost:13000, unlockCost: 52000,  unlocked:false },
+    { id:'bench', name:'Bench Press',    icon:'🏋️‍♂️',baseHP:36000,  baseCooldown:6144000,  repBaseCost:18000, unlockCost: 72000,  unlocked:false },
+    { id:'backsq',name:'Back Squat',     icon:'🏋️‍♀️',baseHP:48000,  baseCooldown:12288000, repBaseCost:24000, unlockCost: 96000,  unlocked:false },
     { id:'dead',  name:'Deadlift',       icon:'🏋️‍♂️',baseHP:65000,  baseCooldown:24576000, repBaseCost:32500, unlockCost:130000,  unlocked:false },
     { id:'clean', name:'Clean & Jerk',   icon:'🏋️‍♂️',baseHP:85000,  baseCooldown:49152000, repBaseCost:42500, unlockCost:170000,  unlocked:false },
-    { id:'snatch',name:'Snatch',         icon:'🏋️‍♀️',baseHP:110000, baseCooldown:98304000,repBaseCost:55000,  unlockCost:220000,  unlocked:false },
+    { id:'snatch',name:'Snatch',         icon:'🏋️‍♀️',baseHP:110000, baseCooldown:98304000, repBaseCost:55000, unlockCost:220000,  unlocked:false },
     { id:'halfmar',name:'Half Marathon', icon:'🎽',   baseHP:150000, baseCooldown:196608000,repBaseCost:75000, unlockCost:300000,  unlocked:false },
     { id:'marathon',name:'Marathon',     icon:'🏁',   baseHP:200000, baseCooldown:393216000,repBaseCost:100000,unlockCost:400000,  unlocked:false },
     { id:'ironcross',name:'Iron Cross',  icon:'🤸‍♂️', baseHP:260000, baseCooldown:786432000,repBaseCost:130000,unlockCost:520000,  unlocked:false }
@@ -479,7 +497,7 @@ App.Engine = (()=> {
 /* Banners */
 App.UI.Banners = (()=>{ function upgrade(text){ const host=document.getElementById('bannerHost'); const el=document.createElement('div'); el.className='banner'; el.innerHTML=`🎉 <strong>${text}</strong>`; host.appendChild(el); setTimeout(()=>el.remove(),3600); } return { upgrade };})();
 
-/* Coaches (same as before) */
+/* Coaches & Achievements (same as your last good build) */
 App.Coaches = (()=> {
   const coaches=[ {id:'c1',name:'Rookie Coach',icon:'🧑‍🏫',price:1500,target:'walk'}, {id:'c2',name:'Track Buddy',icon:'👟',price:6000,target:'jog'},
     {id:'c3',name:'Core Captain',icon:'🧘‍♂️',price:25000,target:'sit'}, {id:'c4',name:'Push-up Pro',icon:'💪',price:100000,target:'push'},
@@ -511,7 +529,6 @@ App.Coaches = (()=> {
   return { isAuto, getOwnedForExercise, renderList, list };
 })();
 
-/* Achievements (same) */
 App.Achievements = (()=> {
   const defs = [
     { id:'first_steps', icon:'👣',  title:'First Steps',   desc:'Upgrade Walking to Lvl 2 (10/10).',   reward:50,  done:()=> lvl('walk')>=2 },
@@ -561,7 +578,7 @@ App.UI.Cards = (()=> {
       }
     } else {
       if(hasImg){
-        e.els.iconWrap.innerHTML = ''; // fall through to emoji
+        e.els.iconWrap.innerHTML = '';
         e.els.iconWrap.textContent = e.icon || '💪';
       } else if(!e.els.iconWrap.textContent){
         e.els.iconWrap.textContent = e.icon || '💪';
@@ -576,12 +593,10 @@ App.UI.Cards = (()=> {
     const iconWrap=document.createElement('div'); iconWrap.className='iconWrap';
     tapPad.appendChild(iconWrap);
 
-    // overlays
     const lvl=document.createElement('div'); lvl.className='lvl'; lvl.textContent=`Lvl ${e.level}`; tapPad.appendChild(lvl);
     const repBand=document.createElement('div'); repBand.className='repBand'; repBand.innerHTML=`<div class="repFill"></div><div class="repLabel">0/10</div>`; tapPad.appendChild(repBand);
 
-    // initial icon state (don’t load GIF if locked)
-    if(e.unlocked && e.gifUrl){ iconWrap.innerHTML=`<img class="tapGif" alt="${e.name}">`; /* src set in applyIcon to control load */ }
+    if(e.unlocked && e.gifUrl){ iconWrap.innerHTML=`<img class="tapGif" alt="${e.name}">`; }
     applyIcon(e);
 
     const right=document.createElement('div'); right.className='right';
@@ -604,11 +619,19 @@ App.UI.Cards = (()=> {
 
     if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
 
-    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); if(App.Settings.get('floats')) App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
-    bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ App.Audio.sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
+    /* Bounce + confetti on manual tap */
+    App.Engine.bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){
+        sfx('tap');
+        // visual fx
+        tapPad.classList.add('tapBounce'); tapPad.addEventListener('animationend',()=>tapPad.classList.remove('tapBounce'),{once:true});
+        App.UI.Effects.confettiAtEl(tapPad, 10);
+        if(App.Settings.get('floats')) App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`);
+        App.UI.Renderer.forceTop();
+      } });
+
+    App.Engine.bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ App.Audio.sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
       App.Game.addHP(-e.unlockCost); e.unlocked=true; e.lastTapAt=0; App.Audio.sfx('buy'); App.Bus.emit('exercise:unlock', { exId:e.id });
-      // switch emoji → GIF now that it’s unlocked (and only now)
       applyIcon(e);
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce'); coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none'; App.UI.Renderer.forceTop(); }});
 
@@ -632,9 +655,7 @@ App.UI.Renderer = (()=> {
   function tickTop(dt){ shownHP += (s.hp - shownHP) * Math.min(1, dt*8); renderTopNow(); }
   function refreshExerciseUI(e){
     const cd=Math.max(100,e.cooldown);
-    // ensure icon matches lock state (this will inject the GIF only once when unlocked)
     App.UI.Cards.applyIcon(e);
-
     if(e.unlocked){
       if(cd<=App.Config.SOLID_CD_MS){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s'; }
       else { const ready=(e.lastTapAt<=0); const since=ready?cd:(performance.now()-e.lastTapAt); const pct=Math.max(0,Math.min(1,since/cd)); if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
@@ -688,7 +709,7 @@ App.UI.Renderer = (()=> {
     document.getElementById('btn-import').onclick=()=>{ io.style.display='block'; txt.value=''; txt.placeholder='Paste your exported JSON here and press "Import Save" again to confirm.'; document.getElementById('btn-import').onclick=()=>{
         try{ const obj=JSON.parse(txt.value||'{}'); if(!obj||typeof obj!=='object') throw new Error('Invalid JSON'); localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify(obj)); alert('Save imported. Reloading…'); location.reload(); }
         catch(e){ alert('Import failed: '+e.message); } }; };
-    document.getElementById('btn-clear').onclick=()=>{ if(confirm('This clears your game save (not preferences). Proceed?')){ localStorage.removeItem(App.Config.SAVE_KEY); location.reload(); } };
+    document.getElementById('btn-clear').onclick=()=>{ if(confirm('Reset your game save (not preferences)?')){ localStorage.removeItem(App.Config.SAVE_KEY); location.reload(); } };
     document.getElementById('ioCopy').onclick=()=>{ txt.select(); document.execCommand('copy'); };
     document.getElementById('ioDownload').onclick=()=>{ const blob=new Blob([txt.value||'{}'],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fitness-frenzy-save.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); };
     document.getElementById('ioClose').onclick=()=>{ io.style.display='none'; };
@@ -708,7 +729,7 @@ App.UI.Renderer = (()=> {
       if(tab==='coaches') App.Coaches.renderList(); if(tab==='stats') buildStats(); if(tab==='settings') buildSettings(); if(tab==='achievements') buildAchievements();
     }
   }
-  return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu, buildStats, buildSettings };
+  return { refs, renderStack, refreshAll, tickTop, forceTop, wireMenu, buildStats, buildSettings };
 })();
 
 /* Fixes */
@@ -729,19 +750,20 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* Tutorial (unchanged speaker positions) */
+/* Tutorial with TYPEWRITER effect */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){ return { init(){}, start(){}, end(){}, repositionSpot(){} }; }
   const S=App.State.s; const ov=document.getElementById('tutOv'); const bubble=document.getElementById('tutBubble');
   const who=document.getElementById('tutWho'); const line=document.getElementById('tutLine'); const avatarBox=document.getElementById('tutAvatar'); const spot=document.getElementById('tutSpot');
   let active=false,gating=false,curStep=null,lineIdx=0,allowed=[],lastSpotSel=null;
+  let typingSkip=null; // function to instantly reveal typed line
 
   function setModal(on){ ov.classList.toggle('modal',!!on); }
   function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); App.UI.Overlay.suppressFloats=true; }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); resetBubblePos(); }
   function resetBubblePos(){ bubble.style.top=''; bubble.style.left=''; bubble.style.bottom='12vh'; bubble.style.transform='translateX(-50%)'; bubble.classList.remove('topMode'); }
 
-  function setSpeaker(name,icon){
+  function setSpeaker(name){
     who.textContent=name;
     if(name==='JAX'){
       avatarBox.style.display='flex';
@@ -755,7 +777,7 @@ App.Tutorial = (()=> {
     } else {
       avatarBox.style.display='flex';
       avatarBox.classList.add('emoji');
-      avatarBox.textContent = icon || (S.tutorial.avatar==='female'?'👩':'👨');
+      avatarBox.textContent = (S.tutorial.avatar==='female'?'👩':'👨');
       resetBubblePos();
     }
   }
@@ -766,7 +788,6 @@ App.Tutorial = (()=> {
     bubble.style.left = `${r.left + r.width/2 - bubble.offsetWidth/2}px`;
     bubble.style.bottom=''; bubble.style.transform='none';
   }
-  function setTextHTML(html){ line.innerHTML=html; }
   function showSpotFor(sel){ lastSpotSel=sel; const el=document.querySelector(sel); if(!el){ hideSpot(); return; } const r=el.getBoundingClientRect(); const pad=6;
     spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px'; try{ el.scrollIntoView({behavior:'smooth',block:'center'});}catch{} }
   function hideSpot(){ spot.style.display='none'; lastSpotSel=null; } function repositionSpot(){ if(active&&lastSpotSel) showSpotFor(lastSpotSel); if(active && bubble.classList.contains('topMode')) positionBubbleToTopAvatar(); }
@@ -778,12 +799,69 @@ App.Tutorial = (()=> {
   function popInFX(){ bubble.classList.remove('tutPop'); void bubble.offsetWidth; bubble.classList.add('tutPop'); bubble.classList.add('tutIdle'); App.Audio.sfx('popup');
     const r=bubble.getBoundingClientRect(); App.UI.Effects.confetti(r.left+r.width*0.5, r.top+10, 12); }
 
-  function setStep(step,modal=true){ curStep=step; S.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0; bubble.style.display='';
-    const L=step.lines[0]; setSpeaker(L.who,L.icon); setTextHTML(L.html); show(modal); setTimeout(popInFX,10); }
-  bubble.addEventListener('click',()=>{ if(!curStep) return; if(lineIdx<curStep.lines.length-1){ lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who,L.icon); setTextHTML(L.html); App.Audio.sfx('popup'); if(L.who==='You') positionBubbleToTopAvatar(); }
-    else if(curStep.onLinesDone){ const done=curStep.onLinesDone; curStep=null; done(); } });
+  /* TYPEWRITER: reveal characters while preserving inner HTML structure */
+  function typeLine(html, cps=45){
+    line.innerHTML = html;
+    // wrap each character of text nodes in spans
+    const chars=[];
+    (function wrap(node){
+      const children=[...node.childNodes];
+      for(const n of children){
+        if(n.nodeType===3){ // text
+          const t=n.textContent;
+          const frag=document.createDocumentFragment();
+          for(let i=0;i<t.length;i++){
+            const ch=document.createElement('span');
+            ch.className='tw-ch'; ch.style.visibility='hidden'; ch.textContent=t[i];
+            frag.appendChild(ch); chars.push(ch);
+          }
+          n.replaceWith(frag);
+        } else if(n.nodeType===1){
+          wrap(n);
+        }
+      }
+    })(line);
+    // caret
+    const caret=document.createElement('span'); caret.className='tw-caret'; line.appendChild(caret);
+
+    let i=0, typing=true, timer=null;
+    function tick(){
+      for(let k=0;k<2 && i<chars.length;k++){ chars[i++].style.visibility='visible'; }
+      if(i<chars.length){ timer=setTimeout(tick, 1000/cps); }
+      else { typing=false; caret.remove(); }
+    }
+    tick();
+
+    // return a skip function
+    return function skip(){
+      if(!typing){ return; }
+      clearTimeout(timer);
+      for(; i<chars.length; i++){ chars[i].style.visibility='visible'; }
+      caret.remove();
+      typing=false;
+    };
+  }
+
+  let gatingAfterLinesDone=null;
+  function setStep(step,modal=true){
+    curStep=step; S.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0; bubble.style.display='';
+    const L=step.lines[0]; setSpeaker(L.who); typingSkip = typeLine(L.html);
+    show(modal); setTimeout(popInFX,10);
+  }
+
+  bubble.addEventListener('click',()=>{
+    if(!curStep) return;
+    // If currently typing, skip to end of this line first
+    if(typeof typingSkip === 'function'){ typingSkip(); typingSkip = null; return; }
+    if(lineIdx<curStep.lines.length-1){
+      lineIdx++;
+      const L=curStep.lines[lineIdx]; setSpeaker(L.who); typingSkip = typeLine(L.html);
+      App.Audio.sfx('popup'); if(L.who==='You') positionBubbleToTopAvatar();
+    } else if(curStep.onLinesDone){ const done=curStep.onLinesDone; curStep=null; done(); }
+  });
   ov.querySelector('.tutDim').addEventListener('click',()=>{ if(curStep){ bubble.click(); }});
 
+  /* Tutorial steps & triggers (same logic, just calling typewriter now) */
   function startIntro(){ setStep({ id:'intro-walk', lines:[
       {who:'JAX',html:'Hey—energy looks low. Let’s fix that <span class="hl">fast</span> 💪'},
       {who:'You',html:'Okay—where do I start?'},
@@ -825,7 +903,6 @@ App.Tutorial = (()=> {
 })();
 
 /* Start UI */
-App.UI = App.UI || {};
 App.UI.Start = (() => {
   const ov=document.getElementById('startOv'); const btnStart=document.getElementById('btnStart'); const btnCont=document.getElementById('btnContinue'); const seg=document.getElementById('segAvatar'); const ui=document.getElementById('startUI');
   const topImg=document.getElementById('topPlayerImg');
