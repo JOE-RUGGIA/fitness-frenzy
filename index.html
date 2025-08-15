@@ -17,6 +17,27 @@ body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:
      padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0;}
 button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 
+  /* Keep avatar & logo in sync */
+.topPlayer { --avatar-size: 88px; }              /* adjust this once if you change avatar size */
+#topPlayerAvatar { width: var(--avatar-size); height: var(--avatar-size); }
+
+/* Logo matches avatar height */
+.topPlayer .topLogo {
+  height: var(--avatar-size);
+  width: auto;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+  object-fit: contain;
+  max-width: min(40vw, 480px);                   /* prevents it from crowding small screens */
+}
+
+/* Optional: scale down on very small phones */
+@media (max-width: 420px) {
+  .topPlayer { --avatar-size: 72px; }
+}
+
+
 /* ===== SPLASH ===== */
 .splashOv{position:fixed; inset:0; background:#fff; z-index:9500; display:none; align-items:center; justify-content:center}
 .splashOv.open{display:flex}
