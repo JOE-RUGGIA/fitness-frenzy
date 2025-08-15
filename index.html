@@ -366,8 +366,8 @@ App.Audio = (()=> {
   const music = (() => {
     const MUSIC_URL = 'https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-GameplayMusic.mp3';
     let el=null, playing=false;
-    function ensureEl(){ if(el) return el; el = new Audio(MUSIC_URL); el.loop = true; el.volume = 0.10; el.preload='auto'; el.crossOrigin='anonymous'; el.setAttribute('playsinline','true'); return el; }
-    function start(vol=0.10){ const a=ensureEl(); a.volume = Math.max(0, Math.min(1, vol)); if(!playing){ a.play().catch(()=>{}); playing=true; } }
+    function ensureEl(){ if(el) return el; el = new Audio(MUSIC_URL); el.loop = true; el.volume = 0.05; el.preload='auto'; el.crossOrigin='anonymous'; el.setAttribute('playsinline','true'); return el; }
+    function start(vol=0.05){ const a=ensureEl(); a.volume = Math.max(0, Math.min(1, vol)); if(!playing){ a.play().catch(()=>{}); playing=true; } }
     function setVolume(v){ if(!el) return; el.volume = Math.max(0, Math.min(1, v)); }
     function lowerTo(v){ setVolume(v); } // keep API compatibility
     function stop(){ if(el){ el.pause(); playing=false; } }
@@ -758,7 +758,7 @@ App.UI.Start = (() => {
       span.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${(Math.random()*2-1)*160}px, -${60+Math.random()*80}px) scale(${.9+Math.random()*.4})`,opacity:0}],{duration:900+Math.random()*400,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); setTimeout(()=>span.remove(),1500); } }
   function init(){ const cur=App.State.s.tutorial.avatar||'male'; setAvatar(cur); seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> { App.Audio.sfx('tap'); setAvatar(b.dataset.avatar); }));
     // First interaction: unlock SFX context and start music quietly at 10%
-    ov.addEventListener('pointerdown', ()=>{ if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(0.10); } }, { once:true, passive:true });
+    ov.addEventListener('pointerdown', ()=>{ if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(0.05); } }, { once:true, passive:true });
     btnStart.addEventListener('click', ()=>{ App.Audio.sfx('popup'); hide(); if(!App.State.s.tutorial.done){ App.Tutorial.start(); } setTimeout(()=>App.Offline.checkAndShow(), 50); });
     btnCont.addEventListener('click', ()=>{ App.Audio.sfx('popup'); hide(); setTimeout(()=>App.Offline.checkAndShow(), 50); }); }
   function show(){ ov.classList.add('open'); ov.setAttribute('aria-hidden','false'); try{ ui.classList.remove('popIn'); void ui.offsetWidth; ui.classList.add('popIn'); App.Audio.sfx('popup'); emojiBurstAround(ui); App.UI.Effects.confetti(window.innerWidth/2, window.innerHeight*0.15, 24);}catch{} }
