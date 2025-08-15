@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.6 (Start overlay polish)</title>
+<title>Fitness Frenzy – V4.7 (Start parity, avatar icons, intro music, menu SFX)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -208,10 +208,14 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   position:absolute; left:50%; bottom:5.5vh; transform:translateX(-50%);
   display:flex; flex-direction:column; align-items:center; gap:12px; width:min(92%,680px);
 }
-.startBtns{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
-.btn.lg{font-size:clamp(18px,4.5vw,22px); padding:14px 24px; border-radius:16px}
+.startBtns{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%}
+.btn.lg{font-size:clamp(18px,4.5vw,22px); padding:14px 24px; border-radius:16px; width:100%}
 .startAvatar{display:flex; gap:10px; align-items:center; justify-content:center}
-.startAvatar .segBtn{font-size:22px; padding:10px 14px}
+.startAvatar .seg{box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.startAvatar .segBtn{font-size:24px; padding:10px 14px}
+.startAvatar .segBtn .sym{display:inline-block; line-height:1}
+.startAvatar .segBtn[data-avatar="male"] .sym{color:#59a8ff}
+.startAvatar .segBtn[data-avatar="female"] .sym{color:#ff7db8}
 .popIn{animation:popIn .45s cubic-bezier(.2,1.2,.3,1)}
 @keyframes popIn{0%{transform:translate(-50%,10px) scale(.92);opacity:0}70%{transform:translate(-50%,-2px) scale(1.04);opacity:1}100%{transform:translate(-50%,0) scale(1)}}
 .btnBounce:hover{animation:btnHover .7s ease-out}
@@ -245,10 +249,9 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
           <button id="btnContinue" class="btn secondary lg btnBounce">Continue</button>
         </div>
         <div class="startAvatar">
-          <span style="opacity:.9">Avatar:</span>
-          <div class="seg" id="segAvatar">
-            <button class="segBtn" data-avatar="male" title="Male">🧍‍♂️</button>
-            <button class="segBtn" data-avatar="female" title="Female">🧍‍♀️</button>
+          <div class="seg" id="segAvatar" aria-label="Choose avatar">
+            <button class="segBtn" data-avatar="male" title="Male"><span class="sym">♂</span></button>
+            <button class="segBtn" data-avatar="female" title="Female"><span class="sym">♀</span></button>
           </div>
         </div>
       </div>
@@ -364,7 +367,7 @@ App.Util = (()=> {
   return { fmtTop, fmtCost };
 })();
 
-/* ================== Audio ================== */
+/* ================== Audio (SFX + simple music loop) ================== */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx || audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
@@ -386,10 +389,41 @@ App.Audio = (()=> {
     if(type==='popup'){ tone(520,.10,.06,'triangle'); setTimeout(()=>tone(780,.08,.05,'triangle'),90); }
     if(type==='achv'){ tone(600,.10,.07,'square'); setTimeout(()=>tone(800,.10,.06,'square'),110); setTimeout(()=>tone(1000,.12,.06,'square'),220); }
   }
+
+  /* Simple ambient loop (no external file) */
+  const music = (()=> {
+    let master, seqInterval, playing=false;
+    function start(vol=0.5){
+      ensure(); if(!audioCtx) return;
+      if(playing){ setVolume(vol); return; }
+      master = audioCtx.createGain(); master.gain.value = vol; master.connect(audioCtx.destination);
+      const scale = [261.63,293.66,329.63,392.00,523.25]; // C major pentatonic-ish
+      function note(f,d=0.28, g=0.05, type='sine'){
+        const o=audioCtx.createOscillator(), gn=audioCtx.createGain();
+        o.type=type; o.frequency.value=f;
+        gn.gain.value=0.0001;
+        gn.gain.linearRampToValueAtTime(g, audioCtx.currentTime + 0.02);
+        gn.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + d);
+        o.connect(gn); gn.connect(master); o.start(); o.stop(audioCtx.currentTime + d + 0.02);
+      }
+      let step=0;
+      seqInterval = setInterval(()=>{
+        note(scale[step%scale.length], 0.30, 0.05, 'sine');
+        if(step%4===0) note(scale[(step+2)%scale.length]/2, 0.60, 0.035, 'triangle'); // soft bass accent
+        step++;
+      }, 360);
+      playing = true;
+    }
+    function setVolume(v){ if(master) master.gain.value = v; }
+    function lowerTo(v){ setVolume(v); }
+    function stop(){ if(seqInterval) clearInterval(seqInterval); seqInterval=null; if(master){ master.disconnect(); master=null; } playing=false; }
+    return { start, setVolume, lowerTo, stop, isPlaying:()=>playing };
+  })();
+
   ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') needsUnlock=true; });
   ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
   App.Bus.on('settings:change', ({key,val})=>{ if(key==='sfx' && val){ unlock(); } });
-  return { sfx, unlock };
+  return { sfx, unlock, music };
 })();
 
 /* ================== Visual FX ================== */
@@ -851,7 +885,7 @@ App.UI.Cards = (()=> {
 
     bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); if(App.Settings.get('floats')) App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
 
-    bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
+    bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ App.Audio.sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
 
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
       App.Game.addHP(-e.unlockCost);
@@ -1011,19 +1045,23 @@ App.UI.Renderer = (()=> {
 
   function wireMenu(){
     refs.menuBtn.addEventListener('click', ()=>{
+      App.Audio.sfx('popup');
       refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false');
       App.UI.Overlay.suppressFloats=true;
       switchTab('coaches');
       App.Notify.update();
       document.dispatchEvent(new Event('menu:open'));
     });
-    refs.menuClose.addEventListener('click', ()=>{ refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
-    refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ refs.menuClose.click(); }});
-    document.addEventListener('keydown',e=>{ if(e.key==='Escape') refs.menuClose.click(); });
+    refs.menuClose.addEventListener('click', ()=>{ App.Audio.sfx('popup'); refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
+    refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ App.Audio.sfx('popup'); refs.menuClose.click(); }});
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ App.Audio.sfx('popup'); refs.menuClose.click(); } });
 
     refs.tabsWrap.querySelectorAll('.menuTab').forEach(btn=>{
-      btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+      btn.addEventListener('click', ()=> { App.Audio.sfx('popup'); switchTab(btn.dataset.tab); });
     });
+
+    document.getElementById('saveBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
+    document.getElementById('resetBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
 
     function switchTab(tab){
       refs.tabsWrap.querySelectorAll('.menuTab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
@@ -1130,11 +1168,10 @@ App.Tutorial = (()=> {
   const spot = document.getElementById('tutSpot');
 
   let active=false, gating=false, curStep=null, lineIdx=0, allowed=[], lastSpotSel=null;
-  let lastPromptAt=0; const PROMPT_GAP_MS=3000;
 
   function setModal(on){ ov.classList.toggle('modal', !!on); }
   function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); App.UI.Overlay.suppressFloats=true; }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); markPrompt(); }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); }
   function setSpeaker(name, icon){ who.textContent=name; avatar.textContent=icon; }
   function setTextHTML(html){ line.innerHTML=html; }
 
@@ -1190,7 +1227,7 @@ App.Tutorial = (()=> {
   }
 
   bubble.addEventListener('click', ()=>{
-    if(!active || !curStep) return;
+    if(!curStep) return;
     if(lineIdx < curStep.lines.length-1){
       lineIdx++;
       const L = curStep.lines[lineIdx];
@@ -1200,7 +1237,7 @@ App.Tutorial = (()=> {
       const done = curStep.onLinesDone; curStep=null; done();
     }
   });
-  ov.querySelector('.tutDim').addEventListener('click', ()=>{ if(active && curStep && !gating) bubble.click(); });
+  ov.querySelector('.tutDim').addEventListener('click', ()=>{ if(curStep){ bubble.click(); }});
 
   /* Intro: walk taps -> show Reps */
   function startIntro(){
@@ -1208,7 +1245,7 @@ App.Tutorial = (()=> {
       id:'intro-walk',
       lines:[
         { who:'JAX', icon:'🏋️‍♂️', html:'Hey—energy looks low. Let’s fix that 💪' },
-        { who:'You', icon:(S.tutorial.avatar==='female'?'👩':'👨'), html:'Where do I start?' },
+        { who:'You', icon:(App.State.s.tutorial.avatar==='female'?'👩':'👨'), html:'Where do I start?' },
         { who:'JAX', icon:'🏋️‍♂️', html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time.' }
       ],
       onLinesDone(){
@@ -1218,8 +1255,8 @@ App.Tutorial = (()=> {
 
         const offTap = App.Bus.on('tap:manual', ({exId})=>{
           if(exId!=='walk') return;
-          S.tutorial.progress.walkTaps = (S.tutorial.progress.walkTaps||0) + 1;
-          if(S.tutorial.progress.walkTaps >= 4){
+          App.State.s.tutorial.progress.walkTaps = (App.State.s.tutorial.progress.walkTaps||0) + 1;
+          if(App.State.s.tutorial.progress.walkTaps >= 4){
             offTap(); bubble.style.display='';
             setStep({
               id:'reps-walk',
@@ -1244,7 +1281,7 @@ App.Tutorial = (()=> {
                 const offBuy = App.Bus.on('reps:buy', ({exId})=>{
                   if(exId!=='walk') return;
                   offBuy(); hideSpot(); gateStop();
-                  S.tutorial.done=true; S.tutorial.stepId=null; App.State.save();
+                  App.State.s.tutorial.done=true; App.State.s.tutorial.stepId=null; App.State.save();
                   hide();
                 });
               }
@@ -1255,36 +1292,26 @@ App.Tutorial = (()=> {
     }, true);
   }
 
-  /* Soft prompts: only first unlock (Jogging), upgrades, and coach availability */
-  let lastPrompt = 0; const now = ()=>performance.now();
-  function canPrompt(){
-    if(active || gating) return false;
-    if(document.getElementById('menuOverlay')?.classList.contains('open')) return false;
-    return (now()-lastPrompt) >= 3000;
-  }
-  function markPrompt(){ lastPrompt = now(); }
-
+  /* Soft prompts: first unlock (Jogging), upgrades, coach availability */
   function promptUnlockJog(jog){
-    if(S.tutorial.shown.unlock[jog.id]) return;
+    if(App.State.s.tutorial.shown.unlock[jog.id]) return;
     setStep({
       lines:[
         { who:'JAX', icon:'🏋️‍♂️', html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.` },
         { who:'JAX', icon:'🏋️‍♂️', html:'Tap the <span class="hl">Unlock</span> pill when ready.' }
       ],
-      onLinesDone(){ S.tutorial.shown.unlock[jog.id]=true; App.State.save(); hide(); }
+      onLinesDone(){ App.State.s.tutorial.shown.unlock[jog.id]=true; App.State.save(); hide(); }
     }, true);
     showSpotFor(`.card[data-id="${jog.id}"] .costPill`);
-    markPrompt();
   }
 
   function promptUpgrade(ex){
-    if(S.tutorial.shown.upgrade[ex.id]) return;
+    if(App.State.s.tutorial.shown.upgrade[ex.id]) return;
     setStep({
       lines:[ { who:'JAX', icon:'🏋️‍♂️', html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.` } ],
-      onLinesDone(){ S.tutorial.shown.upgrade[ex.id]=true; App.State.save(); hide(); }
+      onLinesDone(){ App.State.s.tutorial.shown.upgrade[ex.id]=true; App.State.save(); hide(); }
     }, true);
     showSpotFor(`.card[data-id="${ex.id}"] .coolwrap`);
-    markPrompt();
   }
 
   function promptCoach(){
@@ -1292,7 +1319,7 @@ App.Tutorial = (()=> {
     const exById = Object.fromEntries(s.exercises.map(e=>[e.id,e]));
     for(const c of App.Coaches.list()){
       if(s.coachesOwned[c.id]) continue;
-      if(S.tutorial.shown.coach[c.id]) continue;
+      if(App.State.s.tutorial.shown.coach[c.id]) continue;
       const ex=exById[c.target]; if(!ex || !ex.unlocked) continue;
       if(s.hp + App.Config.EPS < c.price) continue;
       setStep({
@@ -1300,23 +1327,18 @@ App.Tutorial = (()=> {
           { who:'JAX', icon:'🏋️‍♂️', html:`Want to maximize gains? Hire <span class="hl">${c.name}</span> to auto-tap <span class="hl">${ex.name}</span>.` },
           { who:'JAX', icon:'🏋️‍♂️', html:`Open the <span class="hl">Menu</span> and hit <span class="hl">Hire</span>.` }
         ],
-        onLinesDone(){ S.tutorial.shown.coach[c.id]=true; App.State.save(); hide(); }
+        onLinesDone(){ App.State.s.tutorial.shown.coach[c.id]=true; App.State.save(); hide(); }
       }, true);
       showSpotFor('#menuBtn');
-      markPrompt();
       break;
     }
   }
 
   function checkTriggers(){
-    if(!canPrompt()) return;
     const s=App.State.s;
-
-    for(const e of s.exercises){ if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgrade(e); return; } }
-
+    for(const e of s.exercises){ if(e.unlocked && !s.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgrade(e); return; } }
     const jog = s.exercises.find(e=>e.id==='jog');
-    if(jog && !jog.unlocked && !S.tutorial.shown.unlock[jog.id] && (s.hp + App.Config.EPS >= jog.unlockCost)){ promptUnlockJog(jog); return; }
-
+    if(jog && !jog.unlocked && !s.tutorial.shown.unlock[jog.id] && (s.hp + App.Config.EPS >= jog.unlockCost)){ promptUnlockJog(jog); return; }
     promptCoach();
   }
 
@@ -1331,7 +1353,7 @@ App.Tutorial = (()=> {
   function init(){}
   function start(){ if(!S.tutorial.done){ startIntro(); } }
 
-  return { init, start, end:()=>{}, repositionSpot:()=>{} , repositionSpot};
+  return { init, start, end:()=>{}, repositionSpot };
 })();
 
 /* ================== Start Screen ================== */
@@ -1373,14 +1395,23 @@ App.UI.Start = (() => {
   function init(){
     const cur = App.State.s.tutorial.avatar || 'male';
     setAvatar(cur);
-    seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> setAvatar(b.dataset.avatar)));
+    seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> { App.Audio.sfx('tap'); setAvatar(b.dataset.avatar); }));
+
+    // First interaction on the overlay starts music @ 50%
+    ov.addEventListener('pointerdown', ()=> {
+      if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(0.5); }
+    }, { once:true, passive:true });
 
     btnStart.addEventListener('click', ()=>{
+      App.Audio.sfx('popup');
+      if(App.Audio.music.isPlaying()) App.Audio.music.lowerTo(0.2);
       hide();
       if(!App.State.s.tutorial.done){ App.Tutorial.start(); }
       setTimeout(()=>App.Offline.checkAndShow(), 50);
     });
     btnCont.addEventListener('click', ()=>{
+      App.Audio.sfx('popup');
+      if(App.Audio.music.isPlaying()) App.Audio.music.lowerTo(0.2);
       hide();
       setTimeout(()=>App.Offline.checkAndShow(), 50);
     });
@@ -1388,7 +1419,6 @@ App.UI.Start = (() => {
 
   function show(){
     ov.classList.add('open'); ov.setAttribute('aria-hidden','false');
-    // pizzazz
     try{
       ui.classList.remove('popIn'); void ui.offsetWidth; ui.classList.add('popIn');
       App.Audio.sfx('popup');
@@ -1420,7 +1450,7 @@ App.UI.Start = (() => {
   refs.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.clear(); location.reload(); });
   [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.addEventListener('pointerdown',ev=>{
     ev.preventDefault(); [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active')); b.classList.add('active');
-    App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update();
+    App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update(); App.Audio.sfx('tap');
   },{passive:false}));
 
   App.Bus.on('hp:change', ()=>{ App.UI.Renderer.forceTop(); });
@@ -1430,11 +1460,9 @@ App.UI.Start = (() => {
   App.Engine.scheduleSave();
   App.Notify.update();
 
-  // Start Screen controls tutorial entry + offline check
+  // Start Screen
   App.UI.Start.init();
   App.UI.Start.show();
-
-  if(App.Flags.achievements){ setTimeout(()=>App.Achievements.checkAll(), 600); }
 })();
 </script>
 </body>
