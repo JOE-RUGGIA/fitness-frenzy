@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.9 (Trainer GIF + “Next” chevron)</title>
+<title>Fitness Frenzy – V4.10 (XL Tutorial + Player GIFs)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* ===== THEME / BASE ===== */
@@ -157,34 +157,60 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .offGain{font-size:26px;font-weight:900;color:#fff;margin:12px 0}
 .offNote{color:#a7b7cc;font-size:13px;margin-top:8px}
 
-/* Tutorial */
+/* ===== TUTORIAL (XL) ===== */
 .tutOv{position:fixed;inset:0;z-index:8000;display:none;pointer-events:none}
 .tutOv.show{display:block}
 .tutOv.modal{pointer-events:auto}
 .tutDim{position:absolute;inset:0;background:rgba(0,0,0,.22);pointer-events:none}
 .tutOv.modal .tutDim{pointer-events:auto}
-.tutBubble{position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);max-width:min(980px,96vw);
-  background:#0f1b2b;border:2px solid #2a4a78;border-radius:18px;padding:22px 24px;color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
-  box-shadow:0 18px 36px rgba(0,0,0,.35)}
-.tutAvatar{width:92px; height:92px; border-radius:12px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
-           background:#0b1423; border:1px solid #26406c; box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.tutAvatar img{width:100%; height:100%; object-fit:cover; image-rendering:auto}
-.tutAvatar.emoji{font-size:72px; line-height:1; background:transparent; border:0; box-shadow:none}
-.tutText{flex:1;font-size:clamp(18px,3.8vw,24px);line-height:1.35}
-.tutWho{font-weight:900;color:#ffd6a8;margin-bottom:4px;font-size:clamp(16px,3.4vw,20px)}
-.tutMore{font-size:14px;color:#a7b7cc;margin-top:10px; display:flex; align-items:center; gap:10px}
-.tutChevron{font-size:24px;color:var(--accent-hi)}
-.hl{color:var(--accent); font-weight:900}
-.tutSpot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);animation:spotPulse 1.2s ease-in-out infinite;pointer-events:none}
-@keyframes spotPulse{0%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 16px rgba(255,179,87,.35)}
-50%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 32px rgba(255,179,87,.55)}
-100%{box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 16px rgba(255,179,87,.35)}}
-.tutPop{animation:tutPop .32s cubic-bezier(.2,1.2,.3,1)}
-@keyframes tutPop{0%{transform:translateX(-50%) scale(.92); opacity:.0}70%{transform:translateX(-50%) scale(1.04); opacity:1}100%{transform:translateX(-50%) scale(1)}}
-.tutIdle{animation:tutIdle 2.6s ease-in-out infinite}
-@keyframes tutIdle{0%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}100%{transform:translateX(-50%) translateY(0)}}
 
-/* Achievements */
+/* 2x bubble + avatar + text */
+.tutBubble{
+  position:absolute; left:50%; bottom:10vh; transform:translateX(-50%);
+  max-width:min(980px,96vw);
+  background:#0f1b2b; border:3px solid #2a4a78; border-radius:28px;
+  padding:44px 48px; color:#fff; display:flex; gap:24px; align-items:flex-start;
+  pointer-events:auto; box-shadow:0 28px 56px rgba(0,0,0,.45);
+  animation:bubbleEnter .5s cubic-bezier(.2,1.2,.3,1), tutIdleLarge 2.2s ease-in-out 2.2s infinite;
+}
+@keyframes bubbleEnter{
+  0%{transform:translateX(-50%) translateY(12px) scale(.88); opacity:0}
+  60%{transform:translateX(-50%) translateY(-6px) scale(1.04); opacity:1}
+  100%{transform:translateX(-50%) translateY(0) scale(1)}
+}
+.tutAvatar{
+  width:184px; height:184px; border-radius:18px; overflow:hidden; flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  background:#0b1423; border:2px solid #26406c; box-shadow:0 12px 28px rgba(0,0,0,.35)
+}
+.tutAvatar img{width:100%; height:100%; object-fit:cover; image-rendering:auto}
+.tutAvatar.emoji{font-size:144px; line-height:1; background:transparent; border:0; box-shadow:none}
+.tutText{flex:1;font-size:clamp(32px,7.6vw,48px);line-height:1.28}
+.tutWho{font-weight:900;color:#ffd6a8;margin-bottom:8px;font-size:clamp(28px,6vw,36px)}
+.tutMore{font-size:clamp(18px,4vw,22px);color:#a7b7cc;margin-top:14px; display:flex; align-items:center; gap:14px}
+.tutChevron{font-size:48px;color:var(--accent-hi)}
+.hl{color:var(--accent); font-weight:900}
+
+/* XL highlight spot ring */
+.tutSpot{
+  position:absolute;border-radius:20px;
+  box-shadow:0 0 0 6px rgba(255,179,87,.95),0 0 0 20px rgba(255,179,87,.20),0 0 72px rgba(255,179,87,.45);
+  animation:spotPulse 1.2s ease-in-out infinite; pointer-events:none
+}
+@keyframes spotPulse{
+  0%{box-shadow:0 0 0 6px rgba(255,179,87,.95),0 0 24px rgba(255,179,87,.35)}
+  50%{box-shadow:0 0 0 6px rgba(255,179,87,.95),0 0 52px rgba(255,179,87,.55)}
+  100%{box-shadow:0 0 0 6px rgba(255,179,87,.95),0 0 24px rgba(255,179,87,.35)}
+}
+
+/* gentle idle bob for big bubble */
+@keyframes tutIdleLarge{
+  0%{transform:translateX(-50%) translateY(0)}
+  50%{transform:translateX(-50%) translateY(-6px)}
+  100%{transform:translateX(-50%) translateY(0)}
+}
+
+/* Achievements (unchanged from v4.9) */
 .achGrid{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:700px){ .achGrid{grid-template-columns:1fr 1fr;} }
 .ach{display:flex;gap:12px;align-items:center;background:#0c1525;border:1px solid #223556;border-radius:12px;padding:12px}
@@ -196,7 +222,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .badgeDone{padding:6px 10px;border-radius:999px;background:#15341f;border:1px solid #2a6a3f;color:#b6ffd0;font-weight:900;font-size:12px}
 .badgeRew{padding:6px 10px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;font-size:12px}
 
-/* START overlay */
+/* START overlay (unchanged visuals) */
 .startOv{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;pointer-events:auto}
 .startOv.open{display:flex}
 .startPlate{position:absolute;inset:0;background:url('https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Cover-Art.png') center/cover no-repeat;filter:blur(14px) brightness(.75);opacity:.9}
@@ -651,7 +677,7 @@ App.UI.Renderer = (()=> {
     document.getElementById('btn-import').onclick=()=>{ io.style.display='block'; txt.value=''; txt.placeholder='Paste your exported JSON here and press "Import Save" again to confirm.'; document.getElementById('btn-import').onclick=()=>{
         try{ const obj=JSON.parse(txt.value||'{}'); if(!obj||typeof obj!=='object') throw new Error('Invalid JSON'); localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify(obj)); alert('Save imported. Reloading…'); location.reload(); }
         catch(e){ alert('Import failed: '+e.message); } }; };
-    document.getElementById('btn-clear').onclick=()=>{ if(confirm('This clears your game save (not preferences). Proceed?')){ localStorage.removeItem(App.Config.SAVE_KEY); location.reload(); } };
+    document.getElementById('btn-clear').onclick=()=>{ if(confirm('This clears your game save (not preferences). Proceed?')){ localStorage.clear(); location.reload(); } };
     document.getElementById('ioCopy').onclick=()=>{ txt.select(); document.execCommand('copy'); };
     document.getElementById('ioDownload').onclick=()=>{ const blob=new Blob([txt.value||'{}'],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fitness-frenzy-save.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); };
     document.getElementById('ioClose').onclick=()=>{ io.style.display='none'; };
@@ -692,70 +718,71 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* Tutorial (with Trainer GIF + “Next” chevron) */
+/* Tutorial (XL size + Player GIFs) */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){ return { init(){}, start(){}, end(){}, repositionSpot(){} }; }
-  const TRAINER_GIF = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Trainer%20GIF.gif";
+  const TRAINER_GIF  = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Trainer%20GIF.gif";
+  const PLAYER_MALE  = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif";
+  const PLAYER_FEM   = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-PlayerFemaleGIFF.gif";
   const S=App.State.s; const ov=document.getElementById('tutOv'); const bubble=document.getElementById('tutBubble');
   const who=document.getElementById('tutWho'); const line=document.getElementById('tutLine'); const avatarBox=document.getElementById('tutAvatar'); const spot=document.getElementById('tutSpot');
   let active=false,gating=false,curStep=null,lineIdx=0,allowed=[],lastSpotSel=null;
   function setModal(on){ ov.classList.toggle('modal',!!on); } function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); App.UI.Overlay.suppressFloats=true; }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); }
-  function setSpeaker(name,icon){
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); }
+  function setSpeaker(name){
     who.textContent=name;
-    // Trainer uses GIF. Player uses emoji.
     if(name==='JAX'){
       avatarBox.classList.remove('emoji');
       avatarBox.innerHTML = `<img alt="Trainer" decoding="async" loading="eager" src="${TRAINER_GIF}">`;
     } else {
-      avatarBox.classList.add('emoji');
-      avatarBox.textContent = icon || (S.tutorial.avatar==='female'?'👩':'👨');
+      const src = (S.tutorial.avatar==='female') ? PLAYER_FEM : PLAYER_MALE;
+      avatarBox.classList.remove('emoji');
+      avatarBox.innerHTML = `<img alt="Player" decoding="async" loading="eager" src="${src}">`;
     }
   }
   function setTextHTML(html){ line.innerHTML=html; }
-  function showSpotFor(sel){ lastSpotSel=sel; const el=document.querySelector(sel); if(!el){ hideSpot(); return; } const r=el.getBoundingClientRect(); const pad=6;
+  function showSpotFor(sel){ lastSpotSel=sel; const el=document.querySelector(sel); if(!el){ hideSpot(); return; } const r=el.getBoundingClientRect(); const pad=10;
     spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px'; try{ el.scrollIntoView({behavior:'smooth',block:'center'});}catch{} }
   function hideSpot(){ spot.style.display='none'; lastSpotSel=null; } function repositionSpot(){ if(active&&lastSpotSel) showSpotFor(lastSpotSel); }
   window.addEventListener('resize',repositionSpot); document.addEventListener('scroll',repositionSpot,true);
   function gateStart(allow){ allowed=allow||[]; gating=true; setModal(false); document.addEventListener('pointerdown',gateHandler,true); document.addEventListener('click',gateHandler,true); }
   function gateStop(){ gating=false; allowed=[]; document.removeEventListener('pointerdown',gateHandler,true); document.removeEventListener('click',gateHandler,true); }
   function gateHandler(e){ if(!active||!gating) return; let okay=false; for(const sel of allowed){ if(e.target.closest(sel)){ okay=true; break; } } if(!okay){ e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); } }
-  function popInFX(){ bubble.classList.remove('tutPop'); void bubble.offsetWidth; bubble.classList.add('tutPop'); bubble.classList.add('tutIdle'); App.Audio.sfx('popup');
-    const r=bubble.getBoundingClientRect(); App.UI.Effects.confetti(r.left+r.width*0.5, r.top+10, 16); }
-  function setStep(step,modal=true){ curStep=step; S.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0; bubble.style.display='';
-    const L=step.lines[0]; setSpeaker(L.who,L.icon); setTextHTML(L.html); show(modal); setTimeout(popInFX,10); }
-  bubble.addEventListener('click',()=>{ if(!curStep) return; if(lineIdx<curStep.lines.length-1){ lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who,L.icon); setTextHTML(L.html); App.Audio.sfx('popup'); }
+  function popInFX(){ App.Audio.sfx('popup'); const r=bubble.getBoundingClientRect(); App.UI.Effects.confetti(r.left+r.width*0.5, r.top+10, 20); }
+  function setStep(step,modal=true){ curStep=step; S.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0;
+    const L=step.lines[0]; setSpeaker(L.who); setTextHTML(L.html); show(modal); setTimeout(popInFX,30); }
+  bubble.addEventListener('click',()=>{ if(!curStep) return; if(lineIdx<curStep.lines.length-1){ lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who); setTextHTML(L.html); App.Audio.sfx('popup'); }
     else if(curStep.onLinesDone){ const done=curStep.onLinesDone; curStep=null; done(); } });
   ov.querySelector('.tutDim').addEventListener('click',()=>{ if(curStep){ bubble.click(); }});
 
   function startIntro(){ setStep({ id:'intro-walk', lines:[
-      {who:'JAX',icon:'JAX',html:'Hey—energy looks low. Let’s fix that <span class="hl">fast</span> 💪'},
-      {who:'You',icon:(S.tutorial.avatar==='female'?'👩':'👨'),html:'Where do I start?'},
-      {who:'JAX',icon:'JAX',html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time. Then we’ll power up.'}
-    ], onLinesDone(){ showSpotFor('.card[data-id="walk"] .tapPad'); gateStart(['.card[data-id="walk"] .tapPad','#tutBubble']); bubble.style.display='none';
-      const offTap=App.Bus.on('tap:manual',({exId})=>{ if(exId!=='walk') return; S.tutorial.progress.walkTaps=(S.tutorial.progress.walkTaps||0)+1; if(S.tutorial.progress.walkTaps>=4){
-          offTap(); bubble.style.display=''; setStep({ id:'reps-walk', lines:[
-            {who:'JAX',icon:'JAX',html:'Use the <span class="hl">Reps</span> button to add <span class="hl">+1 HP</span> per tap.'},
-            {who:'JAX',icon:'JAX',html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.'}
-          ], onLinesDone(){ S.buyQty=1; try{ const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]'); const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
-              if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); } }catch{} App.UI.Renderer.refreshAll();
-            showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]'); gateStart(['.card[data-id="walk"] .btn[data-role="reps"]','#tutBubble']); bubble.style.display='none';
-            const offBuy=App.Bus.on('reps:buy',({exId})=>{ if(exId!=='walk') return; offBuy(); hideSpot(); gateStop(); S.tutorial.done=true; S.tutorial.stepId=null; App.State.save(); hide(); }); }} ,true);
-        } }); } }, true); }
+      {who:'JAX',html:'Hey—energy looks low. Let’s fix that <span class="hl">fast</span> 💪'},
+      {who:'You',html:'Where do I start?'},
+      {who:'JAX',html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time. Then we’ll power up.'}
+    ], onLinesDone(){ showSpotFor('.card[data-id="walk"] .tapPad'); gateStart(['.card[data-id="walk"] .tapPad','#tutBubble']); const offTap=App.Bus.on('tap:manual',({exId})=>{
+          if(exId!=='walk') return; S.tutorial.progress.walkTaps=(S.tutorial.progress.walkTaps||0)+1; if(S.tutorial.progress.walkTaps>=4){
+            offTap(); setStep({ id:'reps-walk', lines:[
+              {who:'JAX',html:'Use the <span class="hl">Reps</span> button to add <span class="hl">+1 HP</span> per tap.'},
+              {who:'JAX',html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.'}
+            ], onLinesDone(){ S.buyQty=1; try{ const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]'); const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
+                if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); } }catch{} App.UI.Renderer.refreshAll();
+              showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]'); gateStart(['.card[data-id="walk"] .btn[data-role="reps"]','#tutBubble']); const offBuy=App.Bus.on('reps:buy',({exId})=>{
+                if(exId!=='walk') return; offBuy(); hideSpot(); gateStop(); S.tutorial.done=true; S.tutorial.stepId=null; App.State.save(); hide(); }); }} ,true);
+        } } , true); }
 
   function promptUnlockJog(jog){ if(S.tutorial.shown.unlock[jog.id]) return; setStep({ lines:[
-      {who:'JAX',icon:'JAX',html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.`},
-      {who:'JAX',icon:'JAX',html:'Tap the <span class="hl">Unlock</span> pill when ready.'}
+      {who:'JAX',html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.`},
+      {who:'JAX',html:'Tap the <span class="hl">Unlock</span> pill when ready.'}
     ], onLinesDone(){ S.tutorial.shown.unlock[jog.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${jog.id}"] .costPill`); }
 
-  function promptUpgrade(ex){ if(S.tutorial.shown.upgrade[ex.id]) return; setStep({ lines:[{who:'JAX',icon:'JAX',html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.`}] ,
+  function promptUpgrade(ex){ if(S.tutorial.shown.upgrade[ex.id]) return; setStep({ lines:[{who:'JAX',html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.`}] ,
     onLinesDone(){ S.tutorial.shown.upgrade[ex.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${ex.id}"] .coolwrap`); }
 
   function promptCoach(){ const s=App.State.s; const exById=Object.fromEntries(s.exercises.map(e=>[e.id,e])); for(const c of App.Coaches.list()){
       if(s.coachesOwned[c.id]) continue; if(S.tutorial.shown.coach[c.id]) continue; const ex=exById[c.target]; if(!ex||!ex.unlocked) continue; if(s.hp+App.Config.EPS<c.price) continue;
       setStep({ lines:[
-          {who:'JAX',icon:'JAX',html:`Want to maximize gains? Hire <span class="hl">${c.name}</span> to auto-tap <span class="hl">${ex.name}</span>.`},
-          {who:'JAX',icon:'JAX',html:`Open the <span class="hl">Menu</span> and hit <span class="hl">Hire</span>.`}
+          {who:'JAX',html:`Want to maximize gains? Hire <span class="hl">${c.name}</span> to auto-tap <span class="hl">${ex.name}</span>.`},
+          {who:'JAX',html:`Open the <span class="hl">Menu</span> and hit <span class="hl">Hire</span>.`}
         ], onLinesDone(){ S.tutorial.shown.coach[c.id]=true; App.State.save(); hide(); } }, true); showSpotFor('#menuBtn'); break; } }
 
   function checkTriggers(){ const s=App.State.s; for(const e of s.exercises){ if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgrade(e); return; } }
