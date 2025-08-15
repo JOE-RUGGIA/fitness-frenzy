@@ -220,27 +220,40 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 </style>
 </head>
 <body>
-  <!-- Top bar -->
-  <div class="topbar" id="topbar">
-    <div class="topwrap">
-      <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
-
-      <!-- PLAYER lives here -->
-      <div class="topPlayer" id="topPlayer">
-        <div class="pAvatar" id="topPlayerAvatar">
-          <img id="topPlayerImg" alt="Player Avatar"
-               src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif">
-        </div>
+<!-- Top bar (title removed) -->
+<div class="topbar" id="topbar">
+  <div class="topwrap">
+    <!-- PLAYER avatar -->
+    <div class="topPlayer" id="topPlayer">
+      <div class="pAvatar" id="topPlayerAvatar">
+        <img id="topPlayerImg" alt="Player Avatar"
+             src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif">
       </div>
-
-      <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.00</span></div>
-      <div class="spacer"></div>
-      <button id="menuBtn" class="btn ghost">Menu<span id="menuDot" class="notifDot"></span></button>
-      <div class="seg" id="qtyTop"><button class="segBtn active" data-q="1">×1</button><button class="segBtn" data-q="10">×10</button></div>
-      <button id="saveBtn" class="btn secondary">Save</button>
-      <button id="resetBtn" class="btn secondary">Reset</button>
     </div>
+
+    <!-- HP pill -->
+    <div class="hpPill">
+      <span class="label">HP:</span>
+      <span id="hp" class="val">0.00</span>
+    </div>
+
+    <div class="spacer"></div>
+
+    <!-- Menu & controls -->
+    <button id="menuBtn" class="btn ghost">Menu
+      <span id="menuDot" class="notifDot"></span>
+    </button>
+
+    <div class="seg" id="qtyTop">
+      <button class="segBtn active" data-q="1">×1</button>
+      <button class="segBtn" data-q="10">×10</button>
+    </div>
+
+    <button id="saveBtn" class="btn secondary">Save</button>
+    <button id="resetBtn" class="btn secondary">Reset</button>
   </div>
+</div>
+
 
   <!-- SPLASH -->
   <div id="splashOv" class="splashOv" aria-hidden="false">
