@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.9 (Splash + Start + MP3 BGM)</title>
+<title>Fitness Frenzy – V4.9 (Music swap + splash + tutorial + coaches + offline)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* ===== THEME / BASE ===== */
@@ -32,7 +32,9 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
   70%{transform:scale(.98)}
   100%{transform:scale(1)}
 }
-.splashShine{position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:12px;}
+.splashShine{
+  position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:12px;
+}
 .splashShine::before{
   content:""; position:absolute; top:-40%; left:-30%; width:60%; height:200%;
   background:linear-gradient(70deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 50%, rgba(255,255,255,0) 100%);
@@ -41,7 +43,7 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 }
 @keyframes shineSweep{ to{ transform:rotate(18deg) translateX(220%);} }
 
-/* ===== TOP BAR / UI ===== */
+/* ===== TOP BAR ===== */
 .topbar{position:sticky; position:-webkit-sticky; top:0; z-index:1000;
   background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -72,6 +74,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .notifDot{position:absolute; right:-12px; top:-12px; width:16px; height:16px; border-radius:50%;
   display:none; background:var(--warn); box-shadow:0 0 0 2px rgba(10,19,32,.95); pointer-events:none; z-index:200;}
 .notifDot.show{display:block}
+
+/* ===== CARDS ===== */
 .wrap{max-width:980px;margin:0 auto;padding:var(--space)}
 .stack{display:flex;flex-direction:column;gap:var(--space)}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:var(--space);
@@ -99,6 +103,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .coachSlotTop{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
 @media (max-width:480px){ .coachSlotTop{gap:6px} }
 .coachChip{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-size:12px}
+
+/* Cooldown */
 .coolwrap{background:#0c1525;border:1px solid #223556;border-radius:10px;overflow:hidden}
 .coolbar{height:16px;background:#101a2a;position:relative}
 .coolfill{height:100%;width:0%;position:relative;background:linear-gradient(90deg,var(--accent) 0%, var(--accent-hi) 92%)}
@@ -107,11 +113,15 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes stripeMove{from{background-position:0 0}to{background-position:60px 0}}
 .metaRow{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
 .kv{color:#cfe0ff;background:#13223a;border:1px solid #203659;padding:6px 10px;border-radius:10px;font-size:14px}
+
+/* Unlock / cost */
 .costLine{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .costPill{display:inline-flex;align-items:center;gap:8px;font-weight:900;font-size:clamp(18px,4vw,22px);color:#ffd6a8;
           background:#142743;border:1px solid #27456d;padding:8px 14px;border-radius:999px;cursor:not-allowed}
 .costPill.ready{color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent-hi));border-color:#e89d6b;
                 box-shadow:0 12px 26px rgba(204,107,44,.35)}
+
+/* Banners */
 .banner{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);background:linear-gradient(135deg,#132647,#1d3a61);
         color:#fff;border-top:1px solid #2a4a78;padding:12px 16px calc(12px + env(safe-area-inset-bottom));opacity:0;z-index:3000;
         display:flex;gap:8px;align-items:center;justify-content:center;text-align:center;
@@ -172,6 +182,8 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes tutPop{0%{transform:translateX(-50%) scale(.92); opacity:.0}70%{transform:translateX(-50%) scale(1.04); opacity:1}100%{transform:translateX(-50%) scale(1)}}
 .tutIdle{animation:tutIdle 2.6s ease-in-out infinite}
 @keyframes tutIdle{0%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}100%{transform:translateX(-50%) translateY(0)}}
+
+/* Achievements */
 .achGrid{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:700px){ .achGrid{grid-template-columns:1fr 1fr;} }
 .ach{display:flex;gap:12px;align-items:center;background:#0c1525;border:1px solid #223556;border-radius:12px;padding:12px}
@@ -182,6 +194,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .achRight{display:flex;align-items:center;gap:8px}
 .badgeDone{padding:6px 10px;border-radius:999px;background:#15341f;border:1px solid #2a6a3f;color:#b6ffd0;font-weight:900;font-size:12px}
 .badgeRew{padding:6px 10px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;font-size:12px}
+
 /* START overlay */
 .startOv{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;pointer-events:auto}
 .startOv.open{display:flex}
@@ -320,10 +333,6 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
     </div>
   </div>
 
-  <!-- ======= MUSIC (NEW: your MP3) ======= -->
-  <audio id="bgm" preload="auto" loop crossorigin="anonymous"
-    src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-GameplayMusic.mp3"></audio>
-
 <script>
 /* ================== App bootstrapping & systems ================== */
 /* Config */
@@ -342,7 +351,7 @@ App.Settings = (()=>{const KEY=App.Config.SAVE_KEY+':prefs',d={sfx:true,floats:t
 App.Util = (()=>{const DEC=()=>App.Config.DEC; const fmtTop=n=>{const a=Math.abs(n); if(a>=1e9)return(n/1e9).toFixed(DEC())+'B'; if(a>=1e6)return(n/1e6).toFixed(DEC())+'M'; if(a>=1e3)return(n/1e3).toFixed(DEC())+'K'; return n.toFixed(DEC());};
 const fmtCost=n=> n<1e3? n.toFixed(DEC()):(n<1e6?(n/1e3).toFixed(DEC())+'K':(n<1e9?(n/1e6).toFixed(DEC())+'M':(n/1e9).toFixed(DEC())+'B')); return { fmtTop, fmtCost };})();
 
-/* Audio (SFX + NEW music using MP3) */
+/* Audio (SFX via WebAudio + Music via <audio>) */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx||audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
@@ -353,26 +362,20 @@ App.Audio = (()=> {
     if(type==='popup'){ tone(520,.10,.06,'triangle'); setTimeout(()=>tone(780,.08,.05,'triangle'),90); }
     if(type==='achv'){ tone(600,.10,.07,'square'); setTimeout(()=>tone(800,.10,.06,'square'),110); setTimeout(()=>tone(1000,.12,.06,'square'),220); } }
 
-  // === New Music controller using HTMLAudioElement ===
+  /* Music player using your MP3 (low volume, loops) */
   const music = (() => {
-    const el = document.getElementById('bgm');
-    let playing = false;
-    if (el) { el.volume = 0.0; el.loop = true; el.preload = 'auto'; el.crossOrigin = 'anonymous'; }
-    async function start(vol=0.1){
-      if(!el) return;
-      try { el.volume = vol; await el.play(); playing = true; }
-      catch(e){ /* Will start after next user gesture if blocked */ }
-    }
-    function setVolume(v){ if(el) el.volume = Math.max(0, Math.min(1, v)); }
-    function lowerTo(v){ setVolume(v); }
-    function stop(){ if(el){ el.pause(); el.currentTime = 0; } playing = false; }
-    function isPlaying(){ return playing && !el.paused; }
-    return { start, setVolume, lowerTo, stop, isPlaying };
+    const MUSIC_URL = 'https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-GameplayMusic.mp3';
+    let el=null, playing=false;
+    function ensureEl(){ if(el) return el; el = new Audio(MUSIC_URL); el.loop = true; el.volume = 0.10; el.preload='auto'; el.crossOrigin='anonymous'; el.setAttribute('playsinline','true'); return el; }
+    function start(vol=0.10){ const a=ensureEl(); a.volume = Math.max(0, Math.min(1, vol)); if(!playing){ a.play().catch(()=>{}); playing=true; } }
+    function setVolume(v){ if(!el) return; el.volume = Math.max(0, Math.min(1, v)); }
+    function lowerTo(v){ setVolume(v); } // keep API compatibility
+    function stop(){ if(el){ el.pause(); playing=false; } }
+    return { start, setVolume, lowerTo, stop, isPlaying:()=>playing };
   })();
 
   ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') needsUnlock=true; });
   ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
-
   App.Bus.on('settings:change', ({key,val})=>{ if(key==='sfx' && val){ unlock(); } });
   return { sfx, unlock, music };
 })();
@@ -388,8 +391,8 @@ App.UI.Effects = (()=>{ const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#
       d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);}
     setTimeout(()=>host.remove(),2000);} return { confetti, confettiAtEl:(el)=>{ const r=el.getBoundingClientRect(); confetti(r.left+r.width/2, r.top+r.height/2); } };})();
 
-App.UI.Overlay = (()=>{ const suppressFloats=false; function floatFrom(fromEl,text){ if(!App.Settings.get('floats')) return; const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
-  span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);} return { floatFrom };})();
+App.UI.Overlay = (()=>{ let suppressFloats=false; function floatFrom(fromEl,text){ if(!App.Settings.get('floats')) return; const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
+  span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);} return { floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };})();
 
 /* State / Migration */
 App.State = (()=> {
@@ -463,7 +466,7 @@ App.Engine = (()=> {
       if(!tick._n || now-tick._n>NOTIFY_REFRESH_MS){ App.Notify.update(); tick._n=now; }
       requestAnimationFrame(tick);} requestAnimationFrame(tick); }
   function autoTap(now,dt){ const s=App.State.s; for(const e of s.exercises){ if(!App.Coaches.isAuto(e.id)) continue; e._autoElapsed += dt*1000; const cd=Math.max(100,e.cooldown);
-      while(e._autoElapsed>=cd){ e._autoElapsed-=cd; e.lastTapAt=now; const g=App.Game.perTap(e); App.Game.addHP(g); s.stats.autoTaps++; if(App.Settings.get('floats') && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(App.Config.DEC)}`); } } } }
+      while(e._autoElapsed>=cd){ e._autoElapsed-=cd; e.lastTapAt=now; const g=App.Game.perTap(e); App.Game.addHP(g); s.stats.autoTaps++; if(App.Settings.get('floats') && !App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(App.Config.DEC)}`); } } } }
   function updateCooldown(e){ if(!e.unlocked) return; const cd=Math.max(100,e.cooldown); if(cd<=SOLID_CD_MS){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s'; return; }
     const ready=(e.lastTapAt<=0); const since=ready?cd:(performance.now()-e.lastTapAt); const pct=Math.max(0,Math.min(1,since/cd)); if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
     const elapsed=Math.max(0,Math.min(since,cd)); if(e.els.headRight) e.els.headRight.textContent=(elapsed/1000).toFixed(App.Config.DEC)+'s'; }
@@ -547,7 +550,7 @@ App.Notify = (()=> {
 
 /* Cards + Renderer */
 App.UI.Cards = (()=> {
-  const { bindPress } = App.Engine; const { perTap, tap, addReps } = App.Game;
+  const { bindPress } = App.Engine; const { perTap, tap, addReps, bulkRepCost } = App.Game; const { sfx, unlock } = App.Audio;
   function makeExerciseCard(e){
     const card=document.createElement('div'); card.className='card'+(e.unlocked?'':' locked'); card.dataset.id=e.id;
     const tapPad=document.createElement('div'); tapPad.className='tapPad'; tapPad.textContent=e.icon;
@@ -570,7 +573,7 @@ App.UI.Cards = (()=> {
     e.els={ card,tapPad,lvl, repFill:repBand.querySelector('.repFill'), repLabel:repBand.querySelector('.repLabel'),
       headRight:head.querySelector('.headRight'), coolFill:coolWrap.querySelector('.coolfill'), kvTap:kvs.querySelector('.kvTap'), buyBtn, coachSlotTop, costLine,costPill,costAmt };
     if(e.unlocked){ costLine.style.display='none'; } else { coolWrap.style.display='none'; metaRow.style.display='none'; coachSlotTop.style.display='none'; }
-    bindPress(tapPad, ()=>{ App.Audio.unlock(); const g=tap(e); if(g>0){ App.Audio.sfx('tap'); App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
+    bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){ sfx('tap'); if(App.Settings.get('floats')) App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`); App.UI.Renderer.forceTop(); } });
     bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){ App.Audio.sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop(); } });
     costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
       App.Game.addHP(-e.unlockCost); e.unlocked=true; e.lastTapAt=0; App.Audio.sfx('buy'); App.Bus.emit('exercise:unlock', { exId:e.id });
@@ -687,7 +690,7 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* Tutorial */
+/* Tutorial (first unlock + upgrade + coach prompts) */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){ return { init(){}, start(){}, end(){}, repositionSpot(){} }; }
   const S=App.State.s; const ov=document.getElementById('tutOv'); const bubble=document.getElementById('tutBubble');
@@ -754,10 +757,10 @@ App.UI.Start = (() => {
       span.style.fontSize=(18+Math.random()*12)+'px'; span.style.pointerEvents='none'; span.style.zIndex='9100'; document.body.appendChild(span);
       span.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${(Math.random()*2-1)*160}px, -${60+Math.random()*80}px) scale(${.9+Math.random()*.4})`,opacity:0}],{duration:900+Math.random()*400,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); setTimeout(()=>span.remove(),1500); } }
   function init(){ const cur=App.State.s.tutorial.avatar||'male'; setAvatar(cur); seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> { App.Audio.sfx('tap'); setAvatar(b.dataset.avatar); }));
-    // First user gesture on start screen: unlock SFX context and start BGM at 50%
-    ov.addEventListener('pointerdown', async ()=>{ App.Audio.unlock(); if(!App.Audio.music.isPlaying()){ await App.Audio.music.start(0.5); } }, { once:true, passive:true });
-    btnStart.addEventListener('click', ()=>{ App.Audio.sfx('popup'); if(App.Audio.music.isPlaying()) App.Audio.music.lowerTo(0.2); hide(); if(!App.State.s.tutorial.done){ App.Tutorial.start(); } setTimeout(()=>App.Offline.checkAndShow(), 50); });
-    btnCont.addEventListener('click', ()=>{ App.Audio.sfx('popup'); if(App.Audio.music.isPlaying()) App.Audio.music.lowerTo(0.2); hide(); setTimeout(()=>App.Offline.checkAndShow(), 50); }); }
+    // First interaction: unlock SFX context and start music quietly at 10%
+    ov.addEventListener('pointerdown', ()=>{ if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(0.10); } }, { once:true, passive:true });
+    btnStart.addEventListener('click', ()=>{ App.Audio.sfx('popup'); hide(); if(!App.State.s.tutorial.done){ App.Tutorial.start(); } setTimeout(()=>App.Offline.checkAndShow(), 50); });
+    btnCont.addEventListener('click', ()=>{ App.Audio.sfx('popup'); hide(); setTimeout(()=>App.Offline.checkAndShow(), 50); }); }
   function show(){ ov.classList.add('open'); ov.setAttribute('aria-hidden','false'); try{ ui.classList.remove('popIn'); void ui.offsetWidth; ui.classList.add('popIn'); App.Audio.sfx('popup'); emojiBurstAround(ui); App.UI.Effects.confetti(window.innerWidth/2, window.innerHeight*0.15, 24);}catch{} }
   function hide(){ ov.classList.remove('open'); ov.setAttribute('aria-hidden','true'); }
   return { init, show, hide };
