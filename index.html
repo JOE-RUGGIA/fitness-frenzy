@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.10 (Mobile-safe Music + Mute Icon)</title>
+<title>Fitness Frenzy – V4.11 (All-in-one, stable tutorial + mobile-safe music)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -349,11 +349,11 @@ hr{border:0;border-top:1px solid #223556;margin:12px 0}
 const App = {};
 App.Flags = { tutorial:true, coaches:true, achievements:true, shop:false, settings:true, debug:/[?&]debug=1/.test(location.search) };
 App.Config = Object.freeze({
-  SAVE_KEY:'ff-v480-splash-music-vol',  // keep same key so your progress persists
+  SAVE_KEY:'ff-v480-splash-music-vol',   // keep prior key to preserve saves
   SCHEMA_VERSION:6,
   DEC:2, EPS:1e-6,
-  SOLID_CD_MS:300,
-  REP_GROWTH:1.12,
+  SOLID_CD_MS:100,                       // ≤ 0.10s => keep bar solid
+  REP_GROWTH:1.12,                       // increase rep cost per rep (tweakable)
   SAVE_MS:20000,
   UI_REFRESH_MS:100,
   NOTIFY_REFRESH_MS:200,
@@ -373,7 +373,7 @@ App.Bus = (() => {
 /* ================== Settings ================== */
 App.Settings = (() => {
   const KEY = App.Config.SAVE_KEY + ':prefs';
-  const defaults = { sfx:true, floats:true, musicVol:5, musicMuted:false }; // very soft default
+  const defaults = { sfx:true, floats:true, musicVol:5, musicMuted:false }; // very soft by default
   let prefs = { ...defaults };
   try{ const raw = localStorage.getItem(KEY); if(raw) prefs = { ...defaults, ...JSON.parse(raw) }; }catch{}
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(prefs)); }catch{} }
@@ -574,6 +574,9 @@ App.State = (()=> {
       e.cooldown=se.cooldown??e.baseCooldown; e.level=se.level??1; e.lastTapAt=(se.lastTapAt ?? 0);
       if(!e.unlocked){ e.lastTapAt=-1; }
     }
+    // SAFETY: always unlock the zero-cost starter
+    const walk = s.exercises.find(x=>x.id==='walk');
+    if (walk && walk.unlockCost===0 && !walk.unlocked) { walk.unlocked=true; walk.lastTapAt=0; }
     delete s.__loaded;
   }
 
@@ -930,6 +933,7 @@ App.UI.Cards = (()=> {
       App.Bus.emit('exercise:unlock', { exId:e.id });
       e.els.card.classList.remove('locked','unlock-ready','unlock-bounce');
       coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none';
+      App.UI.Effects.confettiAtEl(card);
       App.UI.Renderer.forceTop();
     }});
 
@@ -981,7 +985,7 @@ App.UI.Renderer = (()=> {
       if(cs.length){ for(const c of cs){ const chip=document.createElement('div'); chip.className='coachChip'; chip.textContent=`${c.icon} ${c.name}`; e.els.coachSlotTop.appendChild(chip); } }
     }
 
-    if(e.unlocked && e.els.buyBtn){
+    if(e.els.buyBtn){
       const qty = s.buyQty||1, cost = bulkRepCost(e, qty), canBuy = s.hp + App.Config.EPS >= cost;
       e.els.buyBtn.textContent = (qty===1?`Reps (${fmtCost(cost)} HP)`: `×${qty} Reps (${fmtCost(cost)} HP)`);
       e.els.buyBtn.disabled = !canBuy;
@@ -1097,8 +1101,8 @@ App.UI.Renderer = (()=> {
       btn.addEventListener('click', ()=> { App.Audio.sfx('popup'); switchTab(btn.dataset.tab); });
     });
 
-    document.getElementById('saveBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
-    document.getElementById('resetBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
+    document.getElementById('saveBtn').addEventListener('click', ()=>{ App.Audio.sfx('tap'); App.State.save(); });
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ App.Audio.sfx('tap'); if(confirm('Reset your progress?')){ localStorage.clear(); location.reload(); } });
 
     function switchTab(tab){
       refs.tabsWrap.querySelectorAll('.menuTab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
@@ -1306,8 +1310,9 @@ App.Tutorial = (()=> {
         { who:'JAX', icon:'🏋️‍♂️', html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time.' }
       ],
       onLinesDone(){
-        showSpotFor('.card[data-id="walk"] .tapPad');
-        gateStart(['.card[data-id="walk"] .tapPad', '#tutBubble']);
+        showSpotFor('.card[data-id="walk"]');
+        // allow full card (and its children) so tapping never gets stuck
+        gateStart(['.card[data-id="walk"]', '#tutBubble']);
         bubble.style.display='none';
 
         const offTap = App.Bus.on('tap:manual', ({exId})=>{
@@ -1349,6 +1354,7 @@ App.Tutorial = (()=> {
     }, true);
   }
 
+  // Only introduce the FIRST unlock (Jogging). Later unlocks are not narrated.
   function promptUnlockJog(jog){
     if(App.State.s.tutorial.shown.unlock[jog.id]) return;
     setStep({
@@ -1501,8 +1507,6 @@ App.UI.Splash = (() => {
   App.UI.Renderer.wireMenu();
 
   const { refs } = App.UI.Renderer;
-  refs.saveBtn.addEventListener('click', App.State.save);
-  refs.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.clear(); location.reload(); });
   [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.addEventListener('pointerdown',ev=>{
     ev.preventDefault(); [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active')); b.classList.add('active');
     App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update(); App.Audio.sfx('tap');
