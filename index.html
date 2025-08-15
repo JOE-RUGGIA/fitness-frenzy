@@ -10,16 +10,17 @@
   --accent:#cc6b2c;--accent-hi:#ffb357;--rep:#22c55e;--warn:#39d98a;
   --space:clamp(10px,2.2vw,18px);--r:16px;--fs-2:clamp(18px,3.2vw,22px);--repband:16%;
 }
+
 /* Base */
 *{box-sizing:border-box}
 html,body{height:100%;touch-action:manipulation;overflow-x:hidden}
 body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0}
 button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 
-/* Splash */
+/* Splash (GameBros for 4s) */
 .splashOv{position:fixed;inset:0;background:#fff;z-index:9500;display:none;align-items:center;justify-content:center}
 .splashOv.open{display:flex}
-.splashInner{display:flex;align-items:center;justify-content:center;width:min(90vw,900px);height:min(80vh,600px)}
+.splashInner{display:flex;align-items:center;justify-content:center;width:min(90vw,900px);height:min(80vh,600px);position:relative;border-radius:12px}
 .splashLogo{max-width:100%;max-height:100%;filter:drop-shadow(0 10px 24px rgba(0,0,0,.22));animation:splashPop 1200ms cubic-bezier(.2,1.2,.3,1) forwards}
 @keyframes splashPop{0%{transform:scale(.82);opacity:0}45%{transform:scale(1.06);opacity:1}70%{transform:scale(.98)}100%{transform:scale(1)}}
 .splashShine{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:12px}
@@ -54,7 +55,7 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 .btn.ready::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.18) 45%,transparent 90%);transform:translateX(-110%);animation:shine 1.25s linear infinite;pointer-events:none}
 .btn[disabled]{filter:saturate(.65) brightness(.85)}
 @keyframes shine{to{transform:translateX(110%)}}
-/* Hide old "Menu" button, we still keep it in DOM for JS hooks */
+/* Hide old "Menu" button, we keep it hidden for JS hooks */
 #menuBtn{display:none}
 .notifDot{position:absolute;right:-12px;top:-12px;width:16px;height:16px;border-radius:50%;display:none;background:var(--warn);box-shadow:0 0 0 2px rgba(10,19,32,.95);pointer-events:none;z-index:200}
 .notifDot.show{display:block}
@@ -195,24 +196,27 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 </style>
 </head>
 <body>
-  <!-- Top bar (avatar opens menu; logo matches avatar height) -->
+  <!-- Top bar -->
   <div class="topbar" id="topbar">
     <div class="topwrap">
       <div class="topPlayer" id="topPlayer">
+        <!-- Avatar IS the menu button -->
         <div class="pAvatar" id="topPlayerAvatar" role="button" tabindex="0" aria-label="Open menu">
           <img id="topPlayerImg" alt="Player Avatar"
                src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif">
         </div>
+        <!-- Logo matches avatar height -->
         <img id="topLogoImg" class="topLogo"
              src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-logo%20real.png"
              alt="Fitness Frenzy Logo">
+        <!-- Green dot lives on the avatar -->
         <span id="menuDotAvatar"></span>
       </div>
 
       <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.00</span></div>
       <div class="spacer"></div>
 
-      <!-- Hidden legacy Menu button kept for JS hooks -->
+      <!-- Hidden legacy Menu button (kept for JS hook) -->
       <button id="menuBtn" class="btn ghost">Menu <span id="menuDot" class="notifDot"></span></button>
 
       <div class="seg" id="qtyTop">
@@ -319,15 +323,17 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
   </div>
 
 <script>
-/* External assets */
+/* Asset links */
 const TRAINER_GIF="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Trainer%20GIF.gif";
 const PLAYER_GIF_MALE="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif";
 const PLAYER_GIF_FEMALE="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-PlayerFemaleGIFF.gif";
 
-/* Config & Bus */
+/* App shell */
 const App={};
 App.Flags={tutorial:true,coaches:true,achievements:true,shop:false,settings:true,debug:/[?&]debug=1/.test(location.search)};
-App.Config=Object.freeze({SAVE_KEY:'ff-v400-foundation',SCHEMA_VERSION:5,DEC:2,EPS:1e-6,SOLID_CD_MS:300,REP_GROWTH:1.12,SAVE_MS:20000,UI_REFRESH_MS:100,NOTIFY_REFRESH_MS:200,OFFLINE_MAX_MS:12*60*60*1000});
+App.Config=Object.freeze({SAVE_KEY:'ff-v410-avatar-menu',SCHEMA_VERSION:6,DEC:2,EPS:1e-6,SOLID_CD_MS:100,REP_GROWTH:1.12,SAVE_MS:20000,UI_REFRESH_MS:100,NOTIFY_REFRESH_MS:200,OFFLINE_MAX_MS:12*60*60*1000});
+
+/* Event bus */
 App.Bus=(()=>{const m={};return{on(ev,fn){(m[ev]||(m[ev]=[])).push(fn);return()=>this.off(ev,fn)},off(ev,fn){const a=m[ev];if(!a)return;const i=a.indexOf(fn);if(i>=0)a.splice(i,1)},emit(ev,p){const a=m[ev];if(!a)return;for(const f of a.slice())try{f(p)}catch(e){console.warn(e)}}};})();
 
 /* Settings */
@@ -340,7 +346,7 @@ App.Util=(()=>{const DEC=()=>App.Config.DEC;
   return{fmtTop,fmtCost};
 })();
 
-/* Audio (sfx + lightweight music) */
+/* Audio (sfx + simple loop) */
 App.Audio=(()=>{let audioCtx=null,needsUnlock=true;
   function ensure(){if(!audioCtx||audioCtx.state==='closed'){try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch{}}
     if(audioCtx&&audioCtx.state!=='running'){audioCtx.resume().catch(()=>{});}}
@@ -371,13 +377,17 @@ App.UI.Effects=(()=>{const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4b
   return{confetti,confettiAtEl:(el)=>{const r=el.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2);}};
 })();
 
+/* Floats */
 App.UI.Overlay=(()=>{const floatFrom=(fromEl,text)=>{if(!App.Settings.get('floats'))return;const r=fromEl.getBoundingClientRect();const span=document.createElement('div');span.className='float';span.textContent=text;span.style.left=(r.left+r.width/2)+'px';span.style.top=(r.top+r.height*0.1)+'px';document.body.appendChild(span);setTimeout(()=>span.remove(),950);};return{floatFrom,suppressFloats:false};})();
 
-/* State / Migrations */
+/* State & migration */
 App.State=(()=>{const KEY=App.Config.SAVE_KEY;
   const s={schemaVersion:App.Config.SCHEMA_VERSION,hp:0,buyQty:1,exercises:[],coachesOwned:{},stats:{manualTaps:0,autoTaps:0,totalEarned:0},
     tutorial:{done:false,stepId:null,avatar:'male',progress:{walkTaps:0},shown:{unlock:{},coach:{},upgrade:{}}},achievements:{}};
-  function setExercises(list){s.exercises=list.map(e=>({...e,repHP:0,repProgress:0,repTarget:10,level:1,cooldown:e.baseCooldown,lastTapAt:0,_autoElapsed:0,els:{}}));}
+  function setExercises(list){
+    const base=(Array.isArray(list)&&list.length)?list:(App.Content?.exercises||[]);
+    s.exercises=base.map(e=>({...e,repHP:0,repProgress:0,repTarget:10,level:1,cooldown:e.baseCooldown,lastTapAt:e.unlocked?0:-1,_autoElapsed:0,els:{}}));
+  }
   function save(){localStorage.setItem(KEY,JSON.stringify({schemaVersion:s.schemaVersion,hp:s.hp,buyQty:s.buyQty,coachesOwned:s.coachesOwned,stats:s.stats,tutorial:s.tutorial,achievements:s.achievements,
     exercises:s.exercises.map(e=>({id:e.id,repHP:e.repHP,repProgress:e.repProgress,repTarget:e.repTarget,unlocked:e.unlocked,cooldown:e.cooldown,level:e.level,lastTapAt:e.lastTapAt}))}));}
   function migrateIfNeeded(obj){let v=obj.schemaVersion||1;while(v<App.Config.SCHEMA_VERSION){if(App.Migrations[v]){obj=App.Migrations[v](obj)||obj;v=(obj.schemaVersion||v+1);}else{v++;obj.schemaVersion=v;}}return obj;}
@@ -388,10 +398,13 @@ App.State=(()=>{const KEY=App.Config.SAVE_KEY;
       e.repHP=se.repHP??0;e.repProgress=se.repProgress??0;e.repTarget=se.repTarget??10;e.unlocked=se.unlocked??e.unlocked;e.cooldown=se.cooldown??e.baseCooldown;e.level=se.level??1;e.lastTapAt=(se.lastTapAt??0);if(!e.unlocked){e.lastTapAt=-1;}}delete s.__loaded;}
   return{s,setExercises,save,load,merge};
 })();
-App.Migrations={1:o=>{o.stats=o.stats||{manualTaps:0,autoTaps:0};o.schemaVersion=2;return o;},
-2:o=>{o.tutorial=o.tutorial||{done:false,stepId:null,avatar:'male',progress:{}};o.tutorial.progress={walkTaps:0,unlockJogDone:false,coachC1Done:false,...(o.tutorial.progress||{})};o.schemaVersion=3;return o;},
-3:o=>{o.stats={manualTaps:0,autoTaps:0,totalEarned:0,...(o.stats||{})};o.achievements=o.achievements||{};o.schemaVersion=4;return o;},
-4:o=>{o.tutorial=o.tutorial||{};o.tutorial.shown=o.tutorial.shown||{unlock:{},coach:{},upgrade:{}};o.schemaVersion=5;return o;}};
+App.Migrations={
+  1:o=>{o.stats=o.stats||{manualTaps:0,autoTaps:0};o.schemaVersion=2;return o;},
+  2:o=>{o.tutorial=o.tutorial||{done:false,stepId:null,avatar:'male',progress:{}};o.tutorial.progress={walkTaps:0,unlockJogDone:false,coachC1Done:false,...(o.tutorial.progress||{})};o.schemaVersion=3;return o;},
+  3:o=>{o.stats={manualTaps:0,autoTaps:0,totalEarned:0,...(o.stats||{})};o.achievements=o.achievements||{};o.schemaVersion=4;return o;},
+  4:o=>{o.tutorial=o.tutorial||{};o.tutorial.shown=o.tutorial.shown||{unlock:{},coach:{},upgrade:{}};o.schemaVersion=5;return o;},
+  5:o=>{o.schemaVersion=6;return o;}
+};
 
 /* Content (20 exercises) */
 App.Content=(()=>{const ex=[
@@ -502,7 +515,7 @@ App.Achievements=(()=>{const defs=[
   return{checkAll,render};
 })();
 
-/* Notifier — now mirrors dot on avatar */
+/* Notify (green dot on avatar) */
 App.Notify=(()=>{const dotBtn=document.getElementById('menuDot');const dotAvatar=document.getElementById('menuDotAvatar');
   function coachAvailable(){const s=App.State.s;const exById=Object.fromEntries(s.exercises.map(e=>[e.id,e]));for(const c of App.Coaches.list()){
       if(s.coachesOwned[c.id])continue;const ex=exById[c.target];if(!ex||!ex.unlocked)continue;if(s.hp+App.Config.EPS>=c.price)return true;}return false;}
@@ -511,7 +524,7 @@ App.Notify=(()=>{const dotBtn=document.getElementById('menuDot');const dotAvatar
   return{update};
 })();
 
-/* Cards + Renderer */
+/* Cards & Renderer */
 App.UI.Cards=(()=>{const {bindPress}=App.Engine;const {perTap,tap,addReps,bulkRepCost}=App.Game;const {sfx,unlock}=App.Audio;
   function makeExerciseCard(e){
     const card=document.createElement('div');card.className='card'+(e.unlocked?'':' locked');card.dataset.id=e.id;
@@ -613,17 +626,53 @@ App.UI.Renderer=(()=>{const refs={stack:document.getElementById('stack'),hp:docu
   }
   function buildAchievements(){App.Achievements.render();}
   function wireMenu(){
-    refs.menuBtn.addEventListener('click',()=>{App.Audio.sfx('popup');document.getElementById('menuOverlay').classList.add('open');document.getElementById('menuOverlay').setAttribute('aria-hidden','false');App.UI.Overlay.suppressFloats=true;switchTab('coaches');App.Notify.update();document.dispatchEvent(new Event('menu:open'));});
-    document.getElementById('menuClose').addEventListener('click',()=>{App.Audio.sfx('popup');document.getElementById('menuOverlay').classList.remove('open');document.getElementById('menuOverlay').setAttribute('aria-hidden','true');App.UI.Overlay.suppressFloats=false;});
-    document.getElementById('menuOverlay').addEventListener('click',(e)=>{if(e.target===document.getElementById('menuOverlay')){App.Audio.sfx('popup');document.getElementById('menuClose').click();}});
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'){App.Audio.sfx('popup');document.getElementById('menuClose').click();}});
-    document.querySelectorAll('.menuTab').forEach(btn=>{btn.addEventListener('click',()=>{App.Audio.sfx('popup');switchTab(btn.dataset.tab);});});
-    document.getElementById('saveBtn').addEventListener('click',()=>App.Audio.sfx('tap'));
-    document.getElementById('resetBtn').addEventListener('click',()=>App.Audio.sfx('tap'));
-    function switchTab(tab){document.querySelectorAll('.menuTab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
-      const ids=['coaches','upgrades','achievements','quests','shop','stats','settings'];
-      ids.forEach(id=>document.getElementById('tab-'+id).style.display=(id===tab?'block':'none'));
-      if(tab==='coaches')App.Coaches.renderList(); if(tab==='stats')buildStats(); if(tab==='settings')buildSettings(); if(tab==='achievements')buildAchievements();
+    const overlay = document.getElementById('menuOverlay');
+    const btnClose = document.getElementById('menuClose');
+
+    refs.menuBtn.addEventListener('click', () => {
+      App.Audio.sfx('popup');
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden','false');
+      App.UI.Overlay.suppressFloats = true;
+      switchTab('coaches');
+      App.Notify.update();
+      document.dispatchEvent(new Event('menu:open'));
+    });
+
+    btnClose.addEventListener('click', () => {
+      App.Audio.sfx('popup');
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden','true');
+      App.UI.Overlay.suppressFloats = false;
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) btnClose.click();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('open')) btnClose.click();
+    });
+
+    document.querySelectorAll('.menuTab').forEach(btn => btn.addEventListener('click', () => {
+      App.Audio.sfx('popup');
+      switchTab(btn.dataset.tab);
+    }));
+
+    document.getElementById('saveBtn').addEventListener('click', () => App.Audio.sfx('tap'));
+    document.getElementById('resetBtn').addEventListener('click', () => App.Audio.sfx('tap'));
+
+    function switchTab(tab){
+      document.querySelectorAll('.menuTab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+      const ids = ['coaches','upgrades','achievements','quests','shop','stats','settings'];
+      ids.forEach(id => {
+        const pane = document.getElementById('tab-'+id);
+        if (pane) pane.style.display = (id===tab ? 'block' : 'none');
+      });
+      if (tab==='coaches') App.Coaches.renderList();
+      if (tab==='stats') buildStats();
+      if (tab==='settings') buildSettings();
+      if (tab==='achievements') buildAchievements();
     }
   }
   return{refs,renderStack,refreshAll,tickTop,forceTop,refreshExerciseUI,wireMenu,buildStats,buildSettings};
@@ -646,7 +695,7 @@ App.Offline=(()=>{const KEY_TS='ff-last-active';const ov=()=>document.getElement
   return{checkAndShow,saveNow,_debugSummarize:summarize};
 })();
 
-/* Tutorial (player bubble from topbar) */
+/* Tutorial */
 App.Tutorial=(()=>{if(!App.Flags.tutorial){return{init(){},start(){},end(){},repositionSpot(){}};}
   const S=App.State.s;const ov=document.getElementById('tutOv');const bubble=document.getElementById('tutBubble');const who=document.getElementById('tutWho');const line=document.getElementById('tutLine');const avatarBox=document.getElementById('tutAvatar');const spot=document.getElementById('tutSpot');
   let active=false,gating=false,curStep=null,lineIdx=0,allowed=[],lastSpotSel=null;
@@ -672,20 +721,20 @@ App.Tutorial=(()=>{if(!App.Flags.tutorial){return{init(){},start(){},end(){},rep
     else if(curStep.onLinesDone){const done=curStep.onLinesDone;curStep=null;done();}});
   ov.querySelector('.tutDim').addEventListener('click',()=>{if(curStep){bubble.click();}});
   function startIntro(){setStep({id:'intro-walk',lines:[
-      {who:'JAX',html:'Hey—energy looks low. Let’s fix that <span class="hl">fast</span> 💪'},
+      {who:'JAX',html:'Hey—energy looks low. Let’s fix that <span class="hl">fast</span>.'},
       {who:'You',html:'Okay—where do I start?'},
       {who:'JAX',html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time. Then we’ll power up.'}
     ],onLinesDone(){showSpotFor('.card[data-id="walk"] .tapPad');gateStart(['.card[data-id="walk"] .tapPad','#tutBubble']);bubble.style.display='none';
       const offTap=App.Bus.on('tap:manual',({exId})=>{if(exId!=='walk')return;S.tutorial.progress.walkTaps=(S.tutorial.progress.walkTaps||0)+1;if(S.tutorial.progress.walkTaps>=4){
         offTap();bubble.style.display='';setStep({id:'reps-walk',lines:[
           {who:'JAX',html:'Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.'},
-          {who:'JAX',html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.'}
+          {who:'JAX',html:'Watch the <span class="hl">green bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.'}
         ],onLinesDone(){S.buyQty=1;try{const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]');const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');if(b1&&b10){b1.classList.add('active');b10.classList.remove('active');}}catch{} App.UI.Renderer.refreshAll();
           showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]');gateStart(['.card[data-id="walk"] .btn[data-role="reps"]','#tutBubble']);bubble.style.display='none';
           const offBuy=App.Bus.on('reps:buy',({exId})=>{if(exId!=='walk')return;offBuy();hideSpot();gateStop();S.tutorial.done=true;S.tutorial.stepId=null;App.State.save();hide();});}},true);
       }});},true);}
   function promptUnlockJog(jog){if(S.tutorial.shown.unlock[jog.id])return;setStep({lines:[
-    {who:'JAX',html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.`},
+    {who:'JAX',html:`Add to your routine: unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.`},
     {who:'JAX',html:'Tap the <span class="hl">Unlock</span> pill when ready.'}
   ],onLinesDone(){S.tutorial.shown.unlock[jog.id]=true;App.State.save();hide();}},true);showSpotFor(`.card[data-id="${jog.id}"] .costPill`);}
   function promptUpgrade(ex){if(S.tutorial.shown.upgrade[ex.id])return;setStep({lines:[{who:'JAX',html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.`}] ,onLinesDone(){S.tutorial.shown.upgrade[ex.id]=true;App.State.save();hide();}},true);showSpotFor(`.card[data-id="${ex.id}"] .coolwrap`);}
@@ -730,31 +779,50 @@ App.UI.Splash=(()=>{const ov=document.getElementById('splashOv');const img=docum
   let lastTouchEnd=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastTouchEnd<=300){e.preventDefault();}lastTouchEnd=n;},{passive:false});
   document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
 
-  /* Load state + build UI */
-  App.State.load();App.State.setExercises(App.Content.exercises);
-  App.UI.Renderer.renderStack();App.UI.Renderer.forceTop();App.UI.Renderer.refreshAll();
-  App.Fix.normalizeCooldownStamps();App.UI.Renderer.refreshAll();App.UI.Renderer.wireMenu();App.Bus.on('hp:change',()=>{App.UI.Renderer.forceTop();});
+  try {
+    App.State.load();
+    App.State.setExercises(App.Content?.exercises);
+    if(!App.State.s.exercises || !App.State.s.exercises.length){App.State.setExercises(App.Content.exercises);}
 
-  /* Qty buttons */
-  const {refs}=App.UI.Renderer;
-  refs.saveBtn.addEventListener('click',App.State.save);
-  refs.resetBtn.addEventListener('click',()=>{if(!confirm('Reset your progress?'))return;localStorage.clear();location.reload();});
-  [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.addEventListener('pointerdown',ev=>{
-    ev.preventDefault();[...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active'));b.classList.add('active');
-    App.State.s.buyQty=parseInt(b.dataset.q,10);App.UI.Renderer.refreshAll();App.Notify.update();App.Audio.sfx('tap');
-  },{passive:false}));
+    App.UI.Renderer.renderStack();
+    App.UI.Renderer.forceTop();
+    App.UI.Renderer.refreshAll();
+    App.Fix.normalizeCooldownStamps();
+    App.UI.Renderer.refreshAll();
+    App.UI.Renderer.wireMenu();
+    App.Bus.on('hp:change',()=>App.UI.Renderer.forceTop());
 
-  /* Avatar opens menu */
-  const avatarBtn=document.getElementById('topPlayerAvatar');
-  avatarBtn.addEventListener('click',()=>document.getElementById('menuBtn').click());
-  avatarBtn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById('menuBtn').click();}});
+    /* Qty buttons */
+    const {refs}=App.UI.Renderer;
+    refs.saveBtn.addEventListener('click',App.State.save);
+    refs.resetBtn.addEventListener('click',()=>{if(!confirm('Reset your progress?'))return;localStorage.clear();location.reload();});
+    [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.addEventListener('pointerdown',ev=>{
+      ev.preventDefault();[...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active'));b.classList.add('active');
+      App.State.s.buyQty=parseInt(b.dataset.q,10);App.UI.Renderer.refreshAll();App.Notify.update();App.Audio.sfx('tap');
+    },{passive:false}));
 
-  /* Systems */
-  App.Tutorial.init();App.Engine.start();App.Engine.scheduleSave();App.Notify.update();
+    /* Avatar opens menu */
+    const avatarBtn=document.getElementById('topPlayerAvatar');
+    avatarBtn.addEventListener('click',()=>document.getElementById('menuBtn').click());
+    avatarBtn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById('menuBtn').click();}});
 
-  /* Start + Splash */
-  App.UI.Start.init();
-  App.UI.Splash.show(4000).then(()=>{App.UI.Start.show();});
+    /* Systems */
+    App.Tutorial.init();
+    App.Engine.start();
+    App.Engine.scheduleSave();
+    App.Notify.update();
+
+    /* Start + Splash */
+    App.UI.Start.init();
+    App.UI.Splash.show(4000).then(()=>App.UI.Start.show());
+
+    /* Failsafe: force open start after 5s if not open */
+    setTimeout(()=>{const startEl=document.getElementById('startOv');if(startEl && !startEl.classList.contains('open')){App.UI.Start.show();}},5000);
+
+  } catch (err) {
+    console.error('[FF] Fatal init error:', err);
+    alert('Fitness Frenzy failed to initialize:\n' + (err?.message || err));
+  }
 })();
 </script>
 </body>
