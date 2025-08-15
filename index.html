@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V5.0 (Player GIFs by gender)</title>
+<title>Fitness Frenzy – Topbar Player</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* ===== THEME / BASE ===== */
@@ -21,24 +21,12 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 .splashOv{position:fixed; inset:0; background:#fff; z-index:9500; display:none; align-items:center; justify-content:center}
 .splashOv.open{display:flex}
 .splashInner{display:flex; align-items:center; justify-content:center; width:min(90vw,900px); height:min(80vh,600px)}
-.splashLogo{
-  max-width:100%; max-height:100%;
-  filter:drop-shadow(0 10px 24px rgba(0,0,0,.22));
-  animation:splashPop 1200ms cubic-bezier(.2,1.2,.3,1) forwards;
-}
-@keyframes splashPop{
-  0%{transform:scale(.82); opacity:0}
-  45%{transform:scale(1.06); opacity:1}
-  70%{transform:scale(.98)}
-  100%{transform:scale(1)}
-}
+.splashLogo{max-width:100%; max-height:100%; filter:drop-shadow(0 10px 24px rgba(0,0,0,.22)); animation:splashPop 1200ms cubic-bezier(.2,1.2,.3,1) forwards;}
+@keyframes splashPop{0%{transform:scale(.82); opacity:0}45%{transform:scale(1.06); opacity:1}70%{transform:scale(.98)}100%{transform:scale(1)}}
 .splashShine{position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:12px;}
-.splashShine::before{
-  content:""; position:absolute; top:-40%; left:-30%; width:60%; height:200%;
+.splashShine::before{content:""; position:absolute; top:-40%; left:-30%; width:60%; height:200%;
   background:linear-gradient(70deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 50%, rgba(255,255,255,0) 100%);
-  transform:rotate(18deg) translateX(-120%);
-  animation:shineSweep 1800ms 300ms ease-in-out 2 both;
-}
+  transform:rotate(18deg) translateX(-120%); animation:shineSweep 1800ms 300ms ease-in-out 2 both;}
 @keyframes shineSweep{ to{ transform:rotate(18deg) translateX(220%);} }
 
 /* ===== TOP BAR ===== */
@@ -48,6 +36,11 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 .title{display:flex;align-items:center;gap:10px}
 .title .icon{font-size:clamp(22px,5vw,28px)}
 h1{margin:0;font-size:clamp(22px,5vw,28px)}
+/* Player lives in the topbar */
+.topPlayer{display:flex;align-items:center;gap:8px;margin-left:6px}
+.pAvatar{width:44px;height:44px;border-radius:50%;overflow:hidden;background:#0b1423;border:1px solid #27456d;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.pAvatar img{width:100%;height:100%;object-fit:cover;image-rendering:auto}
+
 .hpPill{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
         background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid #2a4a78;
         box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04)}
@@ -157,7 +150,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .offGain{font-size:26px;font-weight:900;color:#fff;margin:12px 0}
 .offNote{color:#a7b7cc;font-size:13px;margin-top:8px}
 
-/* Tutorial */
+/* Tutorial bubble */
 .tutOv{position:fixed;inset:0;z-index:8000;display:none;pointer-events:none}
 .tutOv.show{display:block}
 .tutOv.modal{pointer-events:auto}
@@ -166,6 +159,12 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .tutBubble{position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);max-width:min(980px,96vw);
   background:#0f1b2b;border:2px solid #2a4a78;border-radius:18px;padding:22px 24px;color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
   box-shadow:0 18px 36px rgba(0,0,0,.35)}
+/* When the PLAYER speaks, anchor the bubble under the topbar avatar */
+.tutBubble.topMode{bottom:auto; transform:none; }
+.tutBubble.topMode::after{
+  content:""; position:absolute; top:-10px; width:0;height:0; border-left:10px solid transparent; border-right:10px solid transparent;
+  border-bottom:10px solid #0f1b2b; /* arrow pointing up */
+}
 .tutAvatar{width:92px; height:92px; border-radius:12px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
            background:#0b1423; border:1px solid #26406c; box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .tutAvatar img{width:100%; height:100%; object-fit:cover; image-rendering:auto}
@@ -201,20 +200,11 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .startOv.open{display:flex}
 .startPlate{position:absolute;inset:0;background:url('https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Cover-Art.png') center/cover no-repeat;filter:blur(14px) brightness(.75);opacity:.9}
 .startBackdrop{position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,.25), rgba(0,0,0,.55) 70%)}
-.startFrame{
-  position:relative; z-index:1;
-  width:min(96vw,1100px); height:min(92vh,1200px);
-  border-radius:18px; border:1px solid rgba(255,255,255,.08);
-  background:rgba(10,19,32,.50); backdrop-filter: blur(6px);
-  box-shadow:0 12px 28px rgba(0,0,0,.45);
-  overflow:hidden; display:flex; align-items:center; justify-content:center;
-}
+.startFrame{position:relative; z-index:1; width:min(96vw,1100px); height:min(92vh,1200px); border-radius:18px; border:1px solid rgba(255,255,255,.08);
+  background:rgba(10,19,32,.50); backdrop-filter: blur(6px); box-shadow:0 12px 28px rgba(0,0,0,.45); overflow:hidden; display:flex; align-items:center; justify-content:center;}
 .startImgWrap{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000;}
 .startImgWrap img{width:100%; height:100%; object-fit:contain; pointer-events:none;}
-.startUI{
-  position:absolute; left:50%; bottom:5.5vh; transform:translateX(-50%);
-  display:flex; flex-direction:column; align-items:center; gap:12px; width:min(92%,680px);
-}
+.startUI{position:absolute; left:50%; bottom:5.5vh; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:12px; width:min(92%,680px);}
 .startBtns{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%}
 .btn.lg{font-size:clamp(18px,4.5vw,22px); padding:14px 24px; border-radius:16px; width:100%}
 .startAvatar{display:flex; gap:10px; align-items:center; justify-content:center}
@@ -231,9 +221,18 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 </head>
 <body>
   <!-- Top bar -->
-  <div class="topbar">
+  <div class="topbar" id="topbar">
     <div class="topwrap">
       <div class="title"><span class="icon">💪</span><h1>Fitness Frenzy</h1></div>
+
+      <!-- PLAYER lives here -->
+      <div class="topPlayer" id="topPlayer">
+        <div class="pAvatar" id="topPlayerAvatar">
+          <img id="topPlayerImg" alt="Player Avatar"
+               src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif">
+        </div>
+      </div>
+
       <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.00</span></div>
       <div class="spacer"></div>
       <button id="menuBtn" class="btn ghost">Menu<span id="menuDot" class="notifDot"></span></button>
@@ -338,7 +337,15 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   </div>
 
 <script>
-/* ================== App bootstrapping & systems ================== */
+/* ========= Constants for external GIFs ========= */
+const TRAINER_GIF = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Trainer%20GIF.gif";
+const PLAYER_GIF_MALE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif";
+const PLAYER_GIF_FEMALE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-PlayerFemaleGIFF.gif";
+
+/* ================== App systems (same core as before) ================== */
+/* (All game logic, coaches, achievements, offline gains, rendering, etc.) */
+/* — The only substantial change is Tutorial positioning & topbar avatar hookup — */
+
 /* Config */
 const App = {};
 App.Flags = { tutorial:true, coaches:true, achievements:true, shop:false, settings:true, debug:/[?&]debug=1/.test(location.search) };
@@ -355,7 +362,7 @@ App.Settings = (()=>{const KEY=App.Config.SAVE_KEY+':prefs',d={sfx:true,floats:t
 App.Util = (()=>{const DEC=()=>App.Config.DEC; const fmtTop=n=>{const a=Math.abs(n); if(a>=1e9)return(n/1e9).toFixed(DEC())+'B'; if(a>=1e6)return(n/1e6).toFixed(DEC())+'M'; if(a>=1e3)return(n/1e3).toFixed(DEC())+'K'; return n.toFixed(DEC());};
 const fmtCost=n=> n<1e3? n.toFixed(DEC()):(n<1e6?(n/1e3).toFixed(DEC())+'K':(n<1e9?(n/1e6).toFixed(DEC())+'M':(n/1e9).toFixed(DEC())+'B')); return { fmtTop, fmtCost };})();
 
-/* Audio (SFX + simple music loop) */
+/* Audio */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx||audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
@@ -393,8 +400,8 @@ App.UI.Effects = (()=>{ const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#
       d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);}
     setTimeout(()=>host.remove(),2000);} return { confetti, confettiAtEl:(el)=>{ const r=el.getBoundingClientRect(); confetti(r.left+r.width/2, r.top+r.height/2); } };})();
 
-App.UI.Overlay = (()=>{ let suppressFloats=false; function floatFrom(fromEl,text){ if(!App.Settings.get('floats')) return; const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
-  span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);} return { floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };})();
+App.UI.Overlay = (()=>{const floatFrom=(fromEl,text)=>{ if(!App.Settings.get('floats')) return; const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
+  span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);}; return { floatFrom, suppressFloats:false };})();
 
 /* State / Migration */
 App.State = (()=> {
@@ -480,7 +487,7 @@ App.Engine = (()=> {
 /* Banners */
 App.UI.Banners = (()=>{ function upgrade(text){ const host=document.getElementById('bannerHost'); const el=document.createElement('div'); el.className='banner'; el.innerHTML=`🎉 <strong>${text}</strong>`; host.appendChild(el); setTimeout(()=>el.remove(),3600); } return { upgrade };})();
 
-/* Coaches */
+/* Coaches (unchanged list) */
 App.Coaches = (()=> {
   const coaches=[ {id:'c1',name:'Rookie Coach',icon:'🧑‍🏫',price:1500,target:'walk'}, {id:'c2',name:'Track Buddy',icon:'👟',price:6000,target:'jog'},
     {id:'c3',name:'Core Captain',icon:'🧘‍♂️',price:25000,target:'sit'}, {id:'c4',name:'Push-up Pro',icon:'💪',price:100000,target:'push'},
@@ -512,9 +519,8 @@ App.Coaches = (()=> {
   return { isAuto, getOwnedForExercise, renderList, list };
 })();
 
-/* Achievements */
+/* Achievements (same as before) */
 App.Achievements = (()=> {
-  if(!App.Flags.achievements){ return { checkAll(){}, render(){} }; }
   const defs = [
     { id:'first_steps', icon:'👣',  title:'First Steps',   desc:'Upgrade Walking to Lvl 2 (10/10).',   reward:50,  done:()=> lvl('walk')>=2 },
     { id:'jog_unlocked', icon:'🏃', title:'Add to Routine',desc:'Unlock Jogging.',                      reward:100, done:()=> unlocked('jog') },
@@ -589,7 +595,8 @@ App.UI.Renderer = (()=> {
   const refs={ stack:document.getElementById('stack'), hp:document.getElementById('hp'), hpMenu:document.getElementById('hpMenu'),
                qtyTop:document.getElementById('qtyTop'), saveBtn:document.getElementById('saveBtn'), resetBtn:document.getElementById('resetBtn'),
                menuBtn:document.getElementById('menuBtn'), menuOverlay:document.getElementById('menuOverlay'), menuClose:document.getElementById('menuClose'),
-               tabsWrap:document.querySelector('.menuTabs'), menuBody:document.querySelector('.menuBody') };
+               tabsWrap:document.querySelector('.menuTabs'), menuBody:document.querySelector('.menuBody'),
+               topPlayerImg:document.getElementById('topPlayerImg') };
   const { fmtTop, fmtCost } = App.Util; const { perTap, bulkRepCost } = App.Game; const { s } = App.State;
   let shownHP=0;
   function renderStack(){ App.State.merge(); refs.stack.innerHTML=''; for(const e of s.exercises){ const card=App.UI.Cards.makeExerciseCard(e); refs.stack.appendChild(card); refreshExerciseUI(e); } }
@@ -658,14 +665,14 @@ App.UI.Renderer = (()=> {
   }
   function buildAchievements(){ App.Achievements.render(); }
   function wireMenu(){
-    refs.menuBtn.addEventListener('click', ()=>{ App.Audio.sfx('popup'); refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; switchTab('coaches'); App.Notify.update(); document.dispatchEvent(new Event('menu:open')); });
-    refs.menuClose.addEventListener('click', ()=>{ App.Audio.sfx('popup'); refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
-    refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ App.Audio.sfx('popup'); refs.menuClose.click(); }});
-    document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ App.Audio.sfx('popup'); refs.menuClose.click(); } });
-    refs.tabsWrap.querySelectorAll('.menuTab').forEach(btn=>{ btn.addEventListener('click', ()=> { App.Audio.sfx('popup'); switchTab(btn.dataset.tab); }); });
+    refs.menuBtn.addEventListener('click', ()=>{ App.Audio.sfx('popup'); document.getElementById('menuOverlay').classList.add('open'); document.getElementById('menuOverlay').setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; switchTab('coaches'); App.Notify.update(); document.dispatchEvent(new Event('menu:open')); });
+    document.getElementById('menuClose').addEventListener('click', ()=>{ App.Audio.sfx('popup'); document.getElementById('menuOverlay').classList.remove('open'); document.getElementById('menuOverlay').setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
+    document.getElementById('menuOverlay').addEventListener('click', (e)=>{ if(e.target===document.getElementById('menuOverlay')){ App.Audio.sfx('popup'); document.getElementById('menuClose').click(); }});
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ App.Audio.sfx('popup'); document.getElementById('menuClose').click(); } });
+    document.querySelectorAll('.menuTab').forEach(btn=>{ btn.addEventListener('click', ()=> { App.Audio.sfx('popup'); switchTab(btn.dataset.tab); }); });
     document.getElementById('saveBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
     document.getElementById('resetBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
-    function switchTab(tab){ refs.tabsWrap.querySelectorAll('.menuTab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+    function switchTab(tab){ document.querySelectorAll('.menuTab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
       const ids=['coaches','upgrades','achievements','quests','shop','stats','settings'];
       ids.forEach(id=> document.getElementById('tab-'+id).style.display=(id===tab?'block':'none'));
       if(tab==='coaches') App.Coaches.renderList(); if(tab==='stats') buildStats(); if(tab==='settings') buildSettings(); if(tab==='achievements') buildAchievements();
@@ -692,61 +699,75 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* Tutorial (Trainer GIF + Player GIFs by gender) */
+/* Tutorial — player bubble anchored to topbar */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){ return { init(){}, start(){}, end(){}, repositionSpot(){} }; }
-  const TRAINER_GIF = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Trainer%20GIF.gif";
-  const PLAYER_GIF_MALE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif";
-  const PLAYER_GIF_FEMALE = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-PlayerFemaleGIFF.gif";
-
   const S=App.State.s; const ov=document.getElementById('tutOv'); const bubble=document.getElementById('tutBubble');
   const who=document.getElementById('tutWho'); const line=document.getElementById('tutLine'); const avatarBox=document.getElementById('tutAvatar'); const spot=document.getElementById('tutSpot');
   let active=false,gating=false,curStep=null,lineIdx=0,allowed=[],lastSpotSel=null;
 
   function setModal(on){ ov.classList.toggle('modal',!!on); }
   function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); App.UI.Overlay.suppressFloats=true; }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); resetBubblePos(); }
+  function resetBubblePos(){ bubble.style.top=''; bubble.style.left=''; bubble.style.bottom='12vh'; bubble.style.transform='translateX(-50%)'; bubble.classList.remove('topMode'); }
+
   function setSpeaker(name,icon){
     who.textContent=name;
     if(name==='JAX'){
+      // Bottom narrator style
+      avatarBox.style.display='flex';
       avatarBox.classList.remove('emoji');
       avatarBox.innerHTML = `<img alt="Trainer" decoding="async" loading="eager" src="${TRAINER_GIF}">`;
+      resetBubblePos();
     } else if (name==='You'){
-      const url = (S.tutorial.avatar==='female') ? PLAYER_GIF_FEMALE : PLAYER_GIF_MALE;
-      avatarBox.classList.remove('emoji');
-      avatarBox.innerHTML = `<img alt="Player" decoding="async" loading="eager" src="${url}">`;
+      // Anchor bubble to topbar avatar
+      avatarBox.style.display='none';
+      bubble.classList.add('topMode');
+      positionBubbleToTopAvatar();
     } else {
+      avatarBox.style.display='flex';
       avatarBox.classList.add('emoji');
       avatarBox.textContent = icon || (S.tutorial.avatar==='female'?'👩':'👨');
+      resetBubblePos();
     }
+  }
+  function positionBubbleToTopAvatar(){
+    const av=document.getElementById('topPlayerAvatar'); if(!av){ resetBubblePos(); return; }
+    const r=av.getBoundingClientRect(); const pad=8; const top=r.bottom + pad;
+    // Place bubble centered under avatar
+    bubble.style.top = `${Math.max(top, 56)}px`;
+    bubble.style.left = `${r.left + r.width/2 - bubble.offsetWidth/2}px`;
+    bubble.style.bottom=''; bubble.style.transform='none';
+    // Arrow
+    bubble.style.setProperty('--arrow-x', (r.left + r.width/2) + 'px');
   }
   function setTextHTML(html){ line.innerHTML=html; }
   function showSpotFor(sel){ lastSpotSel=sel; const el=document.querySelector(sel); if(!el){ hideSpot(); return; } const r=el.getBoundingClientRect(); const pad=6;
     spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px'; try{ el.scrollIntoView({behavior:'smooth',block:'center'});}catch{} }
-  function hideSpot(){ spot.style.display='none'; lastSpotSel=null; } function repositionSpot(){ if(active&&lastSpotSel) showSpotFor(lastSpotSel); }
+  function hideSpot(){ spot.style.display='none'; lastSpotSel=null; } function repositionSpot(){ if(active&&lastSpotSel) showSpotFor(lastSpotSel); if(active && bubble.classList.contains('topMode')) positionBubbleToTopAvatar(); }
   window.addEventListener('resize',repositionSpot); document.addEventListener('scroll',repositionSpot,true);
 
   function gateStart(allow){ allowed=allow||[]; gating=true; setModal(false); document.addEventListener('pointerdown',gateHandler,true); document.addEventListener('click',gateHandler,true); }
   function gateStop(){ gating=false; allowed=[]; document.removeEventListener('pointerdown',gateHandler,true); document.removeEventListener('click',gateHandler,true); }
   function gateHandler(e){ if(!active||!gating) return; let okay=false; for(const sel of allowed){ if(e.target.closest(sel)){ okay=true; break; } } if(!okay){ e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); } }
   function popInFX(){ bubble.classList.remove('tutPop'); void bubble.offsetWidth; bubble.classList.add('tutPop'); bubble.classList.add('tutIdle'); App.Audio.sfx('popup');
-    const r=bubble.getBoundingClientRect(); App.UI.Effects.confetti(r.left+r.width*0.5, r.top+10, 16); }
+    const r=bubble.getBoundingClientRect(); App.UI.Effects.confetti(r.left+r.width*0.5, r.top+10, 12); }
 
   function setStep(step,modal=true){ curStep=step; S.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0; bubble.style.display='';
     const L=step.lines[0]; setSpeaker(L.who,L.icon); setTextHTML(L.html); show(modal); setTimeout(popInFX,10); }
-  bubble.addEventListener('click',()=>{ if(!curStep) return; if(lineIdx<curStep.lines.length-1){ lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who,L.icon); setTextHTML(L.html); App.Audio.sfx('popup'); }
+  bubble.addEventListener('click',()=>{ if(!curStep) return; if(lineIdx<curStep.lines.length-1){ lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who,L.icon); setTextHTML(L.html); App.Audio.sfx('popup'); if(L.who==='You') positionBubbleToTopAvatar(); }
     else if(curStep.onLinesDone){ const done=curStep.onLinesDone; curStep=null; done(); } });
   ov.querySelector('.tutDim').addEventListener('click',()=>{ if(curStep){ bubble.click(); }});
 
   function startIntro(){ setStep({ id:'intro-walk', lines:[
-      {who:'JAX',icon:'JAX',html:'Hey—energy looks low. Let’s fix that <span class="hl">fast</span> 💪'},
-      {who:'You',icon:(S.tutorial.avatar==='female'?'👩':'👨'),html:'Where do I start?'},
-      {who:'JAX',icon:'JAX',html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time. Then we’ll power up.'}
+      {who:'JAX',html:'Hey—energy looks low. Let’s fix that <span class="hl">fast</span> 💪'},
+      {who:'You',html:'Okay—where do I start?'},
+      {who:'JAX',html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time. Then we’ll power up.'}
     ], onLinesDone(){ showSpotFor('.card[data-id="walk"] .tapPad'); gateStart(['.card[data-id="walk"] .tapPad','#tutBubble']); bubble.style.display='none';
       const offTap=App.Bus.on('tap:manual',({exId})=>{ if(exId!=='walk') return; S.tutorial.progress.walkTaps=(S.tutorial.progress.walkTaps||0)+1; if(S.tutorial.progress.walkTaps>=4){
           offTap(); bubble.style.display=''; setStep({ id:'reps-walk', lines:[
-            {who:'JAX',icon:'JAX',html:'Use the <span class="hl">Reps</span> button to add <span class="hl">+1 HP</span> per tap.'},
-            {who:'JAX',icon:'JAX',html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.'}
+            {who:'JAX',html:'Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.'},
+            {who:'JAX',html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.'}
           ], onLinesDone(){ S.buyQty=1; try{ const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]'); const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
               if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); } }catch{} App.UI.Renderer.refreshAll();
             showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]'); gateStart(['.card[data-id="walk"] .btn[data-role="reps"]','#tutBubble']); bubble.style.display='none';
@@ -754,18 +775,18 @@ App.Tutorial = (()=> {
         } }); } }, true); }
 
   function promptUnlockJog(jog){ if(S.tutorial.shown.unlock[jog.id]) return; setStep({ lines:[
-      {who:'JAX',icon:'JAX',html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.`},
-      {who:'JAX',icon:'JAX',html:'Tap the <span class="hl">Unlock</span> pill when ready.'}
+      {who:'JAX',html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.`},
+      {who:'JAX',html:'Tap the <span class="hl">Unlock</span> pill when ready.'}
     ], onLinesDone(){ S.tutorial.shown.unlock[jog.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${jog.id}"] .costPill`); }
 
-  function promptUpgrade(ex){ if(S.tutorial.shown.upgrade[ex.id]) return; setStep({ lines:[{who:'JAX',icon:'JAX',html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.`}] ,
+  function promptUpgrade(ex){ if(S.tutorial.shown.upgrade[ex.id]) return; setStep({ lines:[{who:'JAX',html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.`}] ,
     onLinesDone(){ S.tutorial.shown.upgrade[ex.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${ex.id}"] .coolwrap`); }
 
   function promptCoach(){ const s=App.State.s; const exById=Object.fromEntries(s.exercises.map(e=>[e.id,e])); for(const c of App.Coaches.list()){
       if(s.coachesOwned[c.id]) continue; if(S.tutorial.shown.coach[c.id]) continue; const ex=exById[c.target]; if(!ex||!ex.unlocked) continue; if(s.hp+App.Config.EPS<c.price) continue;
       setStep({ lines:[
-          {who:'JAX',icon:'JAX',html:`Want to maximize gains? Hire <span class="hl">${c.name}</span> to auto-tap <span class="hl">${ex.name}</span>.`},
-          {who:'JAX',icon:'JAX',html:`Open the <span class="hl">Menu</span> and hit <span class="hl">Hire</span>.`}
+          {who:'JAX',html:`Want to maximize gains? Hire <span class="hl">${c.name}</span> to auto-tap <span class="hl">${ex.name}</span>.`},
+          {who:'JAX',html:`Open the <span class="hl">Menu</span> and hit <span class="hl">Hire</span>.`}
         ], onLinesDone(){ S.tutorial.shown.coach[c.id]=true; App.State.save(); hide(); } }, true); showSpotFor('#menuBtn'); break; } }
 
   function checkTriggers(){ const s=App.State.s; for(const e of s.exercises){ if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgrade(e); return; } }
@@ -779,9 +800,17 @@ App.Tutorial = (()=> {
 })();
 
 /* START screen */
+App.UI = App.UI || {};
 App.UI.Start = (() => {
   const ov=document.getElementById('startOv'); const btnStart=document.getElementById('btnStart'); const btnCont=document.getElementById('btnContinue'); const seg=document.getElementById('segAvatar'); const ui=document.getElementById('startUI');
-  function setAvatar(av){ App.State.s.tutorial.avatar=av; [...seg.querySelectorAll('.segBtn')].forEach(b=>b.classList.toggle('active',b.dataset.avatar===av)); App.State.save(); }
+  const topImg=document.getElementById('topPlayerImg');
+  function setAvatar(av){
+    App.State.s.tutorial.avatar=av;
+    [...seg.querySelectorAll('.segBtn')].forEach(b=>b.classList.toggle('active',b.dataset.avatar===av));
+    // update topbar avatar immediately
+    topImg.src = (av==='female') ? PLAYER_GIF_FEMALE : PLAYER_GIF_MALE;
+    App.State.save();
+  }
   function emojiBurstAround(el){ const r=el.getBoundingClientRect(); const x=r.left+r.width/2,y=r.top+r.height/2; const emojis=['💪','🏃','🔥','⭐','🎉']; for(let i=0;i<14;i++){ const span=document.createElement('div');
       span.textContent=emojis[i%emojis.length]; span.style.position='fixed'; span.style.left=(x+(Math.random()*120-60))+'px'; span.style.top=(y+(Math.random()*30-15))+'px';
       span.style.fontSize=(18+Math.random()*12)+'px'; span.style.pointerEvents='none'; span.style.zIndex='9100'; document.body.appendChild(span);
@@ -819,7 +848,6 @@ App.UI.Splash = (()=>{
   App.State.load(); App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
   App.Fix.normalizeCooldownStamps(); App.UI.Renderer.refreshAll(); App.UI.Renderer.wireMenu(); App.Bus.on('hp:change', ()=>{ App.UI.Renderer.forceTop(); });
-
   // Qty buttons
   const { refs } = App.UI.Renderer;
   refs.saveBtn.addEventListener('click', App.State.save);
@@ -828,10 +856,8 @@ App.UI.Splash = (()=>{
     ev.preventDefault(); [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active')); b.classList.add('active');
     App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update(); App.Audio.sfx('tap');
   },{passive:false}));
-
   // Systems
   App.Tutorial.init(); App.Engine.start(); App.Engine.scheduleSave(); App.Notify.update();
-
   // Start + Splash
   App.UI.Start.init();
   App.UI.Splash.show(4000).then(()=>{ App.UI.Start.show(); });
