@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – Confetti + Big Avatar + Logo Title</title>
+<title>Fitness Frenzy – Confetti on Reps & Unlocks</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -31,13 +31,11 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 /* Topbar */
 .topbar{position:sticky; top:0; z-index:1000; background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.title{display:flex;align-items:center;gap:12px}
+.title{display:flex;align-items:center;gap:10px}
 h1{margin:0;font-size:clamp(22px,5vw,28px)}
-/* Avatar is now 2× larger (38px -> 76px) */
-.title .pAvatar{width:76px;height:76px;border-radius:50%;overflow:hidden;background:#0b1423;border:1px solid #27456d;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+/* avatar now lives inside title */
+.title .pAvatar{width:38px;height:38px;border-radius:50%;overflow:hidden;background:#0b1423;border:1px solid #27456d;box-shadow:0 4px 12px rgba(0,0,0,.25)}
 .title .pAvatar img{width:100%;height:100%;object-fit:cover;image-rendering:auto}
-/* Replace title text with image logo */
-.logoTitle{height:clamp(22px,4.6vw,36px); width:auto; display:block; filter:drop-shadow(0 2px 6px rgba(0,0,0,.25))}
 
 .hpPill{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
         background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid #2a4a78;
@@ -167,10 +165,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   background:#0f1b2b;border:2px solid #2a4a78;border-radius:18px;padding:22px 24px;color:#fff;display:flex;gap:16px;align-items:flex-start;pointer-events:auto;
   box-shadow:0 18px 36px rgba(0,0,0,.35)}
 .tutBubble.topMode{bottom:auto; transform:none; }
-.tutBubble.topMode::after{
-  content:""; position:absolute; top:-10px; width:0;height:0; border-left:10px solid transparent; border-right:10px solid transparent;
-  border-bottom:10px solid #0f1b2b;
-}
+.tutBubble.topMode::after{content:""; position:absolute; top:-10px; width:0;height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:10px solid #0f1b2b;}
 .tutAvatar{width:92px; height:92px; border-radius:12px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
            background:#0b1423; border:1px solid #26406c; box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .tutAvatar img{width:100%; height:100%; object-fit:cover; image-rendering:auto}
@@ -188,7 +183,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes tutPop{0%{transform:translateX(-50%) scale(.92); opacity:.0}70%{transform:translateX(-50%) scale(1.04); opacity:1}100%{transform:translateX(-50%) scale(1)}}
 .tutIdle{animation:tutIdle 2.6s ease-in-out infinite}
 @keyframes tutIdle{0%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}100%{transform:translateX(-50%) translateY(0)}}
-/* Typewriter caret (subtle) */
+/* Typewriter caret */
 .tw-caret{display:inline-block;width:0.6ch;border-right:2px solid rgba(255,255,255,.6);animation:blink 1s steps(1) infinite;margin-left:2px}
 @keyframes blink{50%{border-right-color:transparent}}
 
@@ -232,13 +227,13 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   <!-- Top bar -->
   <div class="topbar" id="topbar">
     <div class="topwrap">
-      <!-- Avatar (now 2×) + Logo image instead of text -->
       <div class="title">
+        <!-- Player avatar in title -->
         <div class="pAvatar" id="topPlayerAvatar">
           <img id="topPlayerImg" alt="Player Avatar"
                src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Player%20Male%20GIFF.gif">
         </div>
-        <img class="logoTitle" alt="Fitness Frenzy" src="https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Logo.png">
+        <h1>Fitness Frenzy</h1>
       </div>
 
       <div class="hpPill"><span class="label">HP:</span><span id="hp" class="val">0.00</span></div>
@@ -624,24 +619,44 @@ App.UI.Cards = (()=> {
     /* Bounce + confetti on manual tap */
     App.Engine.bindPress(tapPad, ()=>{ unlock(); const g=tap(e); if(g>0){
         sfx('tap');
+        // visual fx
         tapPad.classList.add('tapBounce'); tapPad.addEventListener('animationend',()=>tapPad.classList.remove('tapBounce'),{once:true});
         App.UI.Effects.confettiAtEl(tapPad, 10);
         if(App.Settings.get('floats')) App.UI.Overlay.floatFrom(tapPad, `+${g.toFixed(App.Config.DEC)}`);
         App.UI.Renderer.forceTop();
       } });
 
-    /* Reps purchase — add confetti */
-    App.Engine.bindPress(buyBtn, ()=>{ const ok=addReps(e, App.State.s.buyQty||1); if(ok){
-        App.Audio.sfx('buy'); App.UI.Renderer.refreshExerciseUI(e); App.UI.Renderer.forceTop();
-        App.UI.Effects.confettiAtEl(e.els.buyBtn, 12);
-      } });
+    App.Engine.bindPress(buyBtn, ()=>{ 
+      const qty = App.State.s.buyQty||1;
+      const ok=addReps(e, qty); 
+      if(ok){ 
+        App.Audio.sfx('buy'); 
+        App.UI.Renderer.refreshExerciseUI(e); 
+        App.UI.Renderer.forceTop(); 
+        // CONFETTI: reps
+        App.UI.Effects.confettiAtEl(buyBtn, qty>=10 ? 24 : 14);
+      } 
+    });
 
-    /* Unlock — add confetti */
-    costPill.addEventListener('click', ()=>{ const s=App.State.s; if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
-      App.Game.addHP(-e.unlockCost); e.unlocked=true; e.lastTapAt=0; App.Audio.sfx('buy'); App.Bus.emit('exercise:unlock', { exId:e.id });
-      applyIcon(e);
-      App.UI.Effects.confettiAtEl(e.els.costPill, 22);
-      e.els.card.classList.remove('locked','unlock-ready','unlock-bounce'); coolWrap.style.display='block'; metaRow.style.display='flex'; coachSlotTop.style.display='flex'; costLine.style.display='none'; App.UI.Renderer.forceTop(); }});
+    costPill.addEventListener('click', ()=>{ 
+      const s=App.State.s; 
+      if(!e.unlocked && s.hp+App.Config.EPS>=e.unlockCost){
+        App.Game.addHP(-e.unlockCost); 
+        e.unlocked=true; 
+        e.lastTapAt=0; 
+        App.Audio.sfx('buy'); 
+        App.Bus.emit('exercise:unlock', { exId:e.id });
+        applyIcon(e);
+        e.els.card.classList.remove('locked','unlock-ready','unlock-bounce'); 
+        coolWrap.style.display='block'; 
+        metaRow.style.display='flex'; 
+        coachSlotTop.style.display='flex'; 
+        costLine.style.display='none'; 
+        App.UI.Renderer.forceTop(); 
+        // CONFETTI: unlock
+        App.UI.Effects.confettiAtEl(e.els.card, 36);
+      }
+    });
 
     return card;
   }
@@ -807,9 +822,9 @@ App.Tutorial = (()=> {
   function popInFX(){ bubble.classList.remove('tutPop'); void bubble.offsetWidth; bubble.classList.add('tutPop'); bubble.classList.add('tutIdle'); App.Audio.sfx('popup');
     const r=bubble.getBoundingClientRect(); App.UI.Effects.confetti(r.left+r.width*0.5, r.top+10, 12); }
 
-  /* TYPEWRITER */
   function typeLine(html, cps=45){
-    line.innerHTML = html;
+    const lineEl=document.getElementById('tutLine');
+    lineEl.innerHTML = html;
     const chars=[];
     (function wrap(node){
       const children=[...node.childNodes];
@@ -827,59 +842,69 @@ App.Tutorial = (()=> {
           wrap(n);
         }
       }
-    })(line);
-    const caret=document.createElement('span'); caret.className='tw-caret'; line.appendChild(caret);
+    })(lineEl);
+    const caret=document.createElement('span'); caret.className='tw-caret'; lineEl.appendChild(caret);
     let i=0, typing=true, timer=null;
-    function tick(){ for(let k=0;k<2 && i<chars.length;k++){ chars[i++].style.visibility='visible'; }
-      if(i<chars.length){ timer=setTimeout(tick, 1000/cps); } else { typing=false; caret.remove(); } }
+    function tick(){ for(let k=0;k<2 && i<chars.length;k++){ chars[i++].style.visibility='visible'; } if(i<chars.length){ timer=setTimeout(tick, 1000/cps); } else { typing=false; caret.remove(); } }
     tick();
-    return function skip(){ if(!typing)return; clearTimeout(timer); for(; i<chars.length; i++){ chars[i].style.visibility='visible'; } caret.remove(); typing=false; };
+    return function skip(){ if(!typing) return; clearTimeout(timer); for(; i<chars.length; i++){ chars[i].style.visibility='visible'; } caret.remove(); typing=false; };
   }
 
+  const Sstate=App.State.s;
   let curStep=null,lineIdx=0,typingSkip=null,lastSpotSel=null;
+
   function setStep(step,modal=true){
-    curStep=step; App.State.s.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0; const L=step.lines[0]; setSpeaker(L.who); typingSkip = typeLine(L.html);
+    curStep=step; Sstate.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0; const L=step.lines[0]; setSpeaker(L.who); typingSkip = typeLine(L.html);
     show(modal); setTimeout(popInFX,10);
   }
 
-  const S=App.State.s;
+  document.getElementById('tutBubble').addEventListener('click',()=>{
+    if(!curStep) return;
+    if(typeof typingSkip === 'function'){ typingSkip(); typingSkip = null; return; }
+    if(lineIdx<curStep.lines.length-1){
+      lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who); typingSkip = typeLine(L.html); App.Audio.sfx('popup'); if(L.who==='You') positionBubbleToTopAvatar();
+    } else if(curStep.onLinesDone){ const done=curStep.onLinesDone; curStep=null; done(); }
+  });
+
+  document.querySelector('#tutOv .tutDim').addEventListener('click',()=>{ const b=document.getElementById('tutBubble'); b.click(); });
+
   function startIntro(){ setStep({ id:'intro-walk', lines:[
       {who:'JAX',html:'Hey—energy looks low. Let’s fix that <span class="hl">fast</span> 💪'},
       {who:'You',html:'Okay—where do I start?'},
       {who:'JAX',html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time. Then we’ll power up.'}
     ], onLinesDone(){ showSpotFor('.card[data-id="walk"] .tapPad'); gateStart(['.card[data-id="walk"] .tapPad','#tutBubble']); document.getElementById('tutBubble').style.display='none';
-      const offTap=App.Bus.on('tap:manual',({exId})=>{ if(exId!=='walk') return; S.tutorial.progress.walkTaps=(S.tutorial.progress.walkTaps||0)+1; if(S.tutorial.progress.walkTaps>=4){
+      const offTap=App.Bus.on('tap:manual',({exId})=>{ if(exId!=='walk') return; Sstate.tutorial.progress.walkTaps=(Sstate.tutorial.progress.walkTaps||0)+1; if(Sstate.tutorial.progress.walkTaps>=4){
           offTap(); document.getElementById('tutBubble').style.display=''; setStep({ id:'reps-walk', lines:[
             {who:'JAX',html:'Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.'},
             {who:'JAX',html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.'}
-          ], onLinesDone(){ S.buyQty=1; try{ const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]'); const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
+          ], onLinesDone(){ Sstate.buyQty=1; try{ const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]'); const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
               if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); } }catch{} App.UI.Renderer.refreshAll();
             showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]'); gateStart(['.card[data-id="walk"] .btn[data-role="reps"]','#tutBubble']); document.getElementById('tutBubble').style.display='none';
-            const offBuy=App.Bus.on('reps:buy',({exId})=>{ if(exId!=='walk') return; offBuy(); hideSpot(); gateStop(); S.tutorial.done=true; S.tutorial.stepId=null; App.State.save(); hide(); }); }} ,true);
+            const offBuy=App.Bus.on('reps:buy',({exId})=>{ if(exId!=='walk') return; offBuy(); hideSpot(); gateStop(); Sstate.tutorial.done=true; Sstate.tutorial.stepId=null; App.State.save(); hide(); }); }} ,true);
         } }); } }, true); }
 
-  function promptUnlockJog(jog){ if(S.tutorial.shown.unlock[jog.id]) return; setStep({ lines:[
+  function promptUnlockJog(jog){ if(Sstate.tutorial.shown.unlock[jog.id]) return; setStep({ lines:[
       {who:'JAX',html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.`},
       {who:'JAX',html:'Tap the <span class="hl">Unlock</span> pill when ready.'}
-    ], onLinesDone(){ S.tutorial.shown.unlock[jog.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${jog.id}"] .costPill`); }
+    ], onLinesDone(){ Sstate.tutorial.shown.unlock[jog.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${jog.id}"] .costPill`); }
 
-  function promptUpgrade(ex){ if(S.tutorial.shown.upgrade[ex.id]) return; setStep({ lines:[{who:'JAX',html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.`}] ,
-    onLinesDone(){ S.tutorial.shown.upgrade[ex.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${ex.id}"] .coolwrap`); }
+  function promptUpgrade(ex){ if(Sstate.tutorial.shown.upgrade[ex.id]) return; setStep({ lines:[{who:'JAX',html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.`}] ,
+    onLinesDone(){ Sstate.tutorial.shown.upgrade[ex.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${ex.id}"] .coolwrap`); }
 
   function promptCoach(){ const s=App.State.s; const exById=Object.fromEntries(s.exercises.map(e=>[e.id,e])); for(const c of App.Coaches.list()){
-      if(s.coachesOwned[c.id]) continue; if(S.tutorial.shown.coach[c.id]) continue; const ex=exById[c.target]; if(!ex||!ex.unlocked) continue; if(s.hp+App.Config.EPS<c.price) continue;
+      if(s.coachesOwned[c.id]) continue; if(Sstate.tutorial.shown.coach[c.id]) continue; const ex=exById[c.target]; if(!ex||!ex.unlocked) continue; if(s.hp+App.Config.EPS<c.price) continue;
       setStep({ lines:[
           {who:'JAX',html:`Want to maximize gains? Hire <span class="hl">${c.name}</span> to auto-tap <span class="hl">${ex.name}</span>.`},
           {who:'JAX',html:`Open the <span class="hl">Menu</span> and hit <span class="hl">Hire</span>.`}
-        ], onLinesDone(){ S.tutorial.shown.coach[c.id]=true; App.State.save(); hide(); } }, true); showSpotFor('#menuBtn'); break; } }
+        ], onLinesDone(){ Sstate.tutorial.shown.coach[c.id]=true; App.State.save(); hide(); } }, true); showSpotFor('#menuBtn'); break; } }
 
-  function checkTriggers(){ const s=App.State.s; for(const e of s.exercises){ if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgrade(e); return; } }
-    const jog=s.exercises.find(e=>e.id==='jog'); if(jog && !jog.unlocked && !S.tutorial.shown.unlock[jog.id] && (s.hp+App.Config.EPS>=jog.unlockCost)){ promptUnlockJog(jog); return; } promptCoach(); }
+  function checkTriggers(){ const s=App.State.s; for(const e of s.exercises){ if(e.unlocked && !Sstate.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgrade(e); return; } }
+    const jog=s.exercises.find(e=>e.id==='jog'); if(jog && !jog.unlocked && !Sstate.tutorial.shown.unlock[jog.id] && (s.hp+App.Config.EPS>=jog.unlockCost)){ promptUnlockJog(jog); return; } promptCoach(); }
 
   App.Bus.on('hp:change', checkTriggers); App.Bus.on('exercise:unlock', checkTriggers); App.Bus.on('coach:owned', checkTriggers);
   App.Bus.on('exercise:levelup', ({exId})=>{ const ex=App.State.s.exercises.find(x=>x.id===exId); if(ex) promptUpgrade(ex); });
 
-  function init(){} function start(){ if(!S.tutorial.done){ startIntro(); } }
+  function init(){} function start(){ if(!Sstate.tutorial.done){ startIntro(); } }
   return { init, start, end:()=>{}, repositionSpot };
 })();
 
