@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy – V4.9 (Music-ready, cleaned)</title>
+<title>Fitness Frenzy – V4.8 (Splash logo + all features)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
-/* ===== THEME / BASE ===== */
+/* ===== THEME / BASE (unchanged) ===== */
 :root{
   --bg:#0a1320; --card:#0f1b2b; --ink:#e9eef3; --muted:#a7b7cc; --border:#213149;
   --accent:#cc6b2c; --accent-hi:#ffb357; --rep:#22c55e; --warn:#39d98a;
@@ -17,10 +17,10 @@ body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:
      padding:env(safe-area-inset-top)0 env(safe-area-inset-bottom)0;}
 button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 
-/* ===== SPLASH (logo) ===== */
+/* ===== SPLASH (NEW) ===== */
 .splashOv{position:fixed; inset:0; background:#fff; z-index:9500; display:none; align-items:center; justify-content:center}
 .splashOv.open{display:flex}
-.splashInner{display:flex; align-items:center; justify-content:center; width:min(90vw,900px); height:min(80vh,600px); position:relative;}
+.splashInner{display:flex; align-items:center; justify-content:center; width:min(90vw,900px); height:min(80vh,600px)}
 .splashLogo{
   max-width:100%; max-height:100%;
   filter:drop-shadow(0 10px 24px rgba(0,0,0,.22));
@@ -43,7 +43,7 @@ button,.tapPad{-webkit-user-select:none;user-select:none;touch-action:manipulati
 }
 @keyframes shineSweep{ to{ transform:rotate(18deg) translateX(220%);} }
 
-/* ===== TOP BAR ===== */
+/* ===== TOP BAR / UI (unchanged) ===== */
 .topbar{position:sticky; position:-webkit-sticky; top:0; z-index:1000;
   background:rgba(10,19,32,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:980px;margin:0 auto;padding:8px var(--space);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -74,8 +74,6 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .notifDot{position:absolute; right:-12px; top:-12px; width:16px; height:16px; border-radius:50%;
   display:none; background:var(--warn); box-shadow:0 0 0 2px rgba(10,19,32,.95); pointer-events:none; z-index:200;}
 .notifDot.show{display:block}
-
-/* ===== STACK / CARDS ===== */
 .wrap{max-width:980px;margin:0 auto;padding:var(--space)}
 .stack{display:flex;flex-direction:column;gap:var(--space)}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:var(--space);
@@ -123,7 +121,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes bannerIn{to{opacity:1; transform:translateY(0)}}
 @keyframes bannerOut{to{opacity:0; transform:translateY(8px)}}
 
-/* ===== MENU / OFFLINE / TUTORIAL / START ===== */
+/* MENU, OFFLINE, TUTORIAL, START (unchanged except start overlay no longer open by default) */
 .menuOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:5000;display:none;align-items:flex-end;justify-content:center}
 .menuOverlay.open{display:flex}
 .menuPanel{width:min(980px,96vw);max-height:88vh;background:#0f1b2b;border:1px solid var(--border);border-radius:16px 16px 0 0;
@@ -176,8 +174,6 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 @keyframes tutPop{0%{transform:translateX(-50%) scale(.92); opacity:.0}70%{transform:translateX(-50%) scale(1.04); opacity:1}100%{transform:translateX(-50%) scale(1)}}
 .tutIdle{animation:tutIdle 2.6s ease-in-out infinite}
 @keyframes tutIdle{0%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-3px)}100%{transform:translateX(-50%) translateY(0)}}
-
-/* ===== ACHIEVEMENTS ===== */
 .achGrid{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:700px){ .achGrid{grid-template-columns:1fr 1fr;} }
 .ach{display:flex;gap:12px;align-items:center;background:#0c1525;border:1px solid #223556;border-radius:12px;padding:12px}
@@ -188,8 +184,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
 .achRight{display:flex;align-items:center;gap:8px}
 .badgeDone{padding:6px 10px;border-radius:999px;background:#15341f;border:1px solid #2a6a3f;color:#b6ffd0;font-weight:900;font-size:12px}
 .badgeRew{padding:6px 10px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;font-size:12px}
-
-/* ===== START overlay ===== */
+/* START overlay (unchanged except not open by default) */
 .startOv{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;pointer-events:auto}
 .startOv.open{display:flex}
 .startPlate{position:absolute;inset:0;background:url('https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/FF-Cover-Art.png') center/cover no-repeat;filter:blur(14px) brightness(.75);opacity:.9}
@@ -236,7 +231,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
     </div>
   </div>
 
-  <!-- SPLASH -->
+  <!-- SPLASH (NEW) -->
   <div id="splashOv" class="splashOv" aria-hidden="false">
     <div class="splashInner">
       <div class="splashShine"></div>
@@ -245,7 +240,7 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
     </div>
   </div>
 
-  <!-- Start Screen -->
+  <!-- Start Screen (initially hidden; revealed after splash) -->
   <div id="startOv" class="startOv" aria-hidden="true">
     <div class="startPlate"></div>
     <div class="startBackdrop"></div>
@@ -328,117 +323,51 @@ h1{margin:0;font-size:clamp(22px,5vw,28px)}
   </div>
 
 <script>
-/* =========================
-   CORE CONFIG & UTILITIES
-   ========================= */
+/* ================== App bootstrapping & systems (same core as v4.7) ================== */
+/* Config */
 const App = {};
-App.Flags = { tutorial:true, coaches:true, achievements:true, settings:true, debug:/[?&]debug=1/.test(location.search) };
-App.Config = Object.freeze({ SAVE_KEY:'ff-v401-clean', SCHEMA_VERSION:6, DEC:2, EPS:1e-6, SOLID_CD_MS:300,
+App.Flags = { tutorial:true, coaches:true, achievements:true, shop:false, settings:true, debug:/[?&]debug=1/.test(location.search) };
+App.Config = Object.freeze({ SAVE_KEY:'ff-v400-foundation', SCHEMA_VERSION:5, DEC:2, EPS:1e-6, SOLID_CD_MS:300,
   REP_GROWTH:1.12, SAVE_MS:20000, UI_REFRESH_MS:100, NOTIFY_REFRESH_MS:200, OFFLINE_MAX_MS:12*60*60*1000 });
 
 /* Event Bus */
 App.Bus = (()=>{const m={};return{on(ev,fn){(m[ev]||(m[ev]=[])).push(fn);return()=>this.off(ev,fn)},off(ev,fn){const a=m[ev];if(!a)return;const i=a.indexOf(fn);if(i>=0)a.splice(i,1)},emit(ev,p){const a=m[ev];if(!a)return;for(const f of a.slice())try{f(p)}catch(e){console.warn(e)}}};})();
 
-/* Settings (persisted) */
-App.Settings = (()=>{const KEY=App.Config.SAVE_KEY+':prefs';
-  const d={ sfx:true, floats:true, musicEnabled:true, musicUrl:'', musicIntroVol:0.5, musicGameVol:0.2 };
-  let p={...d}; try{const r=localStorage.getItem(KEY); if(r)p={...d,...JSON.parse(r)}}catch{}
-  function save(){try{localStorage.setItem(KEY,JSON.stringify(p))}catch{}}
-  return{ get:k=>p[k], set:(k,v)=>{p[k]=v; save(); App.Bus.emit('settings:change',{key:k,val:v})}, all:()=>({...p}), save };
-})();
+/* Settings */
+App.Settings = (()=>{const KEY=App.Config.SAVE_KEY+':prefs',d={sfx:true,floats:true};let p={...d};try{const r=localStorage.getItem(KEY);if(r)p={...d,...JSON.parse(r)}}catch{} function save(){try{localStorage.setItem(KEY,JSON.stringify(p))}catch{}} return{get:k=>p[k],set:(k,v)=>{p[k]=v;save();App.Bus.emit('settings:change',{key:k,val:v})},all:()=>({...p})};})();
 
-/* Number formatting */
-App.Util = (()=>{const DEC=()=>App.Config.DEC;
-  const fmtTop=n=>{const a=Math.abs(n); if(a>=1e9)return(n/1e9).toFixed(DEC())+'B'; if(a>=1e6)return(n/1e6).toFixed(DEC())+'M'; if(a>=1e3)return(n/1e3).toFixed(DEC())+'K'; return n.toFixed(DEC());};
-  const fmtCost=n=> n<1e3? n.toFixed(DEC()):(n<1e6?(n/1e3).toFixed(DEC())+'K':(n<1e9?(n/1e6).toFixed(DEC())+'M':(n/1e9).toFixed(DEC())+'B'));
-  return { fmtTop, fmtCost };
-})();
+/* Util */
+App.Util = (()=>{const DEC=()=>App.Config.DEC; const fmtTop=n=>{const a=Math.abs(n); if(a>=1e9)return(n/1e9).toFixed(DEC())+'B'; if(a>=1e6)return(n/1e6).toFixed(DEC())+'M'; if(a>=1e3)return(n/1e3).toFixed(DEC())+'K'; return n.toFixed(DEC());};
+const fmtCost=n=> n<1e3? n.toFixed(DEC()):(n<1e6?(n/1e3).toFixed(DEC())+'K':(n<1e9?(n/1e6).toFixed(DEC())+'M':(n/1e9).toFixed(DEC())+'B')); return { fmtTop, fmtCost };})();
 
-/* =========================
-   AUDIO: SFX (WebAudio)
-   ========================= */
+/* Audio (SFX + simple music loop) */
 App.Audio = (()=> {
   let audioCtx=null, needsUnlock=true;
   function ensure(){ if(!audioCtx||audioCtx.state==='closed'){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } if(audioCtx&&audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} }
   function unlock(){ ensure(); if(!audioCtx) return; try{ const b=audioCtx.createBuffer(1,1,22050); const s=audioCtx.createBufferSource(); s.buffer=b; s.connect(audioCtx.destination); s.start(0);}catch{} if(audioCtx.state!=='running'){ audioCtx.resume().catch(()=>{});} needsUnlock=false; }
   function tone(f,d=.18,g=.07,type='sine'){ try{ ensure(); if(!audioCtx) return; const t=audioCtx.currentTime; const o=audioCtx.createOscillator(); const q=audioCtx.createGain(); o.type=type;o.frequency.setValueAtTime(f,t); q.gain.setValueAtTime(g,t); q.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(q); q.connect(audioCtx.destination); o.start(); o.stop(t+d);}catch{} }
   function sfx(type){ if(!App.Settings.get('sfx')) return; if(!audioCtx||audioCtx.state!=='running'){ needsUnlock=true; return; }
-    if(type==='tap') tone(660,.12,.06,'sine');
-    if(type==='buy') tone(440,.18,.08,'sine');
+    if(type==='tap') tone(660,.12,.06,'sine'); if(type==='buy') tone(440,.18,.08,'sine');
     if(type==='popup'){ tone(520,.10,.06,'triangle'); setTimeout(()=>tone(780,.08,.05,'triangle'),90); }
     if(type==='achv'){ tone(600,.10,.07,'square'); setTimeout(()=>tone(800,.10,.06,'square'),110); setTimeout(()=>tone(1000,.12,.06,'square'),220); } }
+  const music=(()=>{ let master,seqInterval,playing=false; function start(vol=0.5){ ensure(); if(!audioCtx) return; if(playing){ setVolume(vol); return; }
+    master=audioCtx.createGain(); master.gain.value=vol; master.connect(audioCtx.destination);
+    const scale=[261.63,293.66,329.63,392.00,523.25];
+    function note(f,d=.28,g=.05,type='sine'){ const o=audioCtx.createOscillator(),gn=audioCtx.createGain();
+      o.type=type;o.frequency.value=f; gn.gain.value=0.0001; gn.gain.linearRampToValueAtTime(g, audioCtx.currentTime+0.02);
+      gn.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+d); o.connect(gn); gn.connect(master); o.start(); o.stop(audioCtx.currentTime+d+0.02);}
+    let step=0; seqInterval=setInterval(()=>{ note(scale[step%scale.length], .30,.05,'sine'); if(step%4===0) note(scale[(step+2)%scale.length]/2,.60,.035,'triangle'); step++; },360);
+    playing=true; }
+    function setVolume(v){ if(master) master.gain.value=v; } function lowerTo(v){ setVolume(v); }
+    function stop(){ if(seqInterval) clearInterval(seqInterval); seqInterval=null; if(master){ master.disconnect(); master=null; } playing=false; }
+    return { start, setVolume, lowerTo, stop, isPlaying:()=>playing };})();
   ['visibilitychange','pagehide','freeze'].forEach(()=>{ if(document.visibilityState!=='visible') needsUnlock=true; });
   ['pointerdown','touchstart','mousedown','click','keydown'].forEach(ev=>{ window.addEventListener(ev, ()=>{ if(needsUnlock || (audioCtx && audioCtx.state!=='running')) unlock(); }, {capture:true, passive:true}); });
   App.Bus.on('settings:change', ({key,val})=>{ if(key==='sfx' && val){ unlock(); } });
-  return { sfx, unlock };
+  return { sfx, unlock, music };
 })();
 
-/* =========================
-   MUSIC: External file loader (HTMLAudio)
-   ========================= */
-App.Music = (()=>{
-  let el=null, loadedUrl='', playing=false, fadeTimer=null;
-
-  function ensureEl(){
-    if(!el){
-      el=new Audio();
-      el.loop=true;
-      el.preload='auto';
-      el.crossOrigin='anonymous';
-      el.volume=0.0;
-      el.addEventListener('ended', ()=>{ playing=false; });
-      el.addEventListener('pause', ()=>{ playing=false; });
-      el.addEventListener('play', ()=>{ playing=true; });
-    }
-    return el;
-  }
-
-  async function load(url){
-    if(!url){ stop(); loadedUrl=''; return; }
-    ensureEl();
-    if(loadedUrl===url) return;
-    stop();
-    loadedUrl=url;
-    el.src=url;
-    try{ await el.load(); }catch{}
-  }
-
-  function hasTrack(){ return !!loadedUrl; }
-  function isPlaying(){ return !!playing; }
-  function setVolume(v){ ensureEl(); el.volume=Math.max(0,Math.min(1,v)); }
-  function stop(){ if(!el) return; try{ el.pause(); }catch{} playing=false; if(fadeTimer){ clearInterval(fadeTimer); fadeTimer=null; } }
-
-  async function playLoop(vol=0.5){
-    if(!App.Settings.get('musicEnabled')) return;
-    ensureEl();
-    if(!loadedUrl){
-      const u=App.Settings.get('musicUrl');
-      if(u) await load(u); else return;
-    }
-    setVolume(vol);
-    try{ await el.play(); playing=true; }catch(e){ /* user gesture needed */ }
-  }
-
-  function fadeTo(target=0.2, ms=500){
-    ensureEl();
-    if(!isPlaying()) return setVolume(target);
-    const start=el.volume, diff=target-start, steps=Math.max(1,Math.floor(ms/50));
-    let i=0; if(fadeTimer) clearInterval(fadeTimer);
-    fadeTimer=setInterval(()=>{ i++; const f=start+diff*(i/steps); setVolume(f); if(i>=steps){ clearInterval(fadeTimer); fadeTimer=null; } },50);
-  }
-
-  // react to settings toggles
-  App.Bus.on('settings:change', ({key,val})=>{
-    if(key==='musicEnabled'){ if(!val) stop(); else if(hasTrack() && !isPlaying()) playLoop(App.Settings.get('musicGameVol')||0.2); }
-    if(key==='musicUrl'){ load(val); }
-  });
-
-  return { load, playLoop, fadeTo, setVolume, stop, hasTrack, isPlaying };
-})();
-
-/* =========================
-   VISUAL FX
-   ========================= */
+/* Visual FX */
 App.UI = {};
 App.UI.Effects = (()=>{ const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab'];
   function confetti(x,y,count=28){ const host=document.createElement('div'); host.style.position='fixed'; host.style.left='0'; host.style.top='0'; host.style.pointerEvents='none'; host.style.zIndex='4000'; document.body.appendChild(host);
@@ -449,12 +378,10 @@ App.UI.Effects = (()=>{ const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#
       d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);}
     setTimeout(()=>host.remove(),2000);} return { confetti, confettiAtEl:(el)=>{ const r=el.getBoundingClientRect(); confetti(r.left+r.width/2, r.top+r.height/2); } };})();
 
-App.UI.Overlay = (()=>{ function floatFrom(fromEl,text){ if(!App.Settings.get('floats')) return; const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
-  span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);} return { floatFrom };})();
+App.UI.Overlay = (()=>{ let suppressFloats=false; function floatFrom(fromEl,text){ if(!App.Settings.get('floats')) return; const r=fromEl.getBoundingClientRect(); const span=document.createElement('div'); span.className='float'; span.textContent=text;
+  span.style.left=(r.left+r.width/2)+'px'; span.style.top=(r.top+r.height*0.1)+'px'; document.body.appendChild(span); setTimeout(()=>span.remove(),950);} return { floatFrom, get suppressFloats(){return suppressFloats;}, set suppressFloats(v){suppressFloats=v;} };})();
 
-/* =========================
-   STATE & MIGRATIONS
-   ========================= */
+/* State / Migration */
 App.State = (()=> {
   const KEY=App.Config.SAVE_KEY;
   const s={ schemaVersion:App.Config.SCHEMA_VERSION, hp:0, buyQty:1, exercises:[], coachesOwned:{}, stats:{manualTaps:0, autoTaps:0, totalEarned:0},
@@ -475,13 +402,10 @@ App.Migrations = {
   1:o=>{o.stats=o.stats||{manualTaps:0,autoTaps:0};o.schemaVersion=2;return o;},
   2:o=>{o.tutorial=o.tutorial||{done:false,stepId:null,avatar:'male',progress:{}};o.tutorial.progress={walkTaps:0,unlockJogDone:false,coachC1Done:false,...(o.tutorial.progress||{})};o.schemaVersion=3;return o;},
   3:o=>{o.stats={manualTaps:0,autoTaps:0,totalEarned:0,...(o.stats||{})};o.achievements=o.achievements||{};o.schemaVersion=4;return o;},
-  4:o=>{o.tutorial=o.tutorial||{};o.tutorial.shown=o.tutorial.shown||{unlock:{},coach:{},upgrade:{}};o.schemaVersion=5;return o;},
-  5:o=>{o.schemaVersion=6;return o;}
+  4:o=>{o.tutorial=o.tutorial||{};o.tutorial.shown=o.tutorial.shown||{unlock:{},coach:{},upgrade:{}};o.schemaVersion=5;return o;}
 };
 
-/* =========================
-   CONTENT (20 exercises)
-   ========================= */
+/* Content (20 exercises) */
 App.Content = (()=> {
   const ex = [
     { id:'walk', name:'Walking',         icon:'🚶',   baseHP:1,      baseCooldown:   600,   repBaseCost:  4,   unlockCost:    0,   unlocked:true  },
@@ -508,9 +432,7 @@ App.Content = (()=> {
   return { exercises:ex };
 })();
 
-/* =========================
-   GAME LOGIC
-   ========================= */
+/* Game Logic */
 App.Game = (()=> {
   const { EPS, REP_GROWTH } = App.Config; const S=App.State.s;
   const perTap=e=> e.baseHP + e.repHP;
@@ -523,9 +445,7 @@ App.Game = (()=> {
   return { perTap, bulkRepCost, addReps, tap, addHP };
 })();
 
-/* =========================
-   ENGINE (loop, cooldowns)
-   ========================= */
+/* Engine */
 App.Engine = (()=> {
   const { SOLID_CD_MS, SAVE_MS, UI_REFRESH_MS, NOTIFY_REFRESH_MS } = App.Config; let last=performance.now();
   function start(){ function tick(){ const now=performance.now(), dt=Math.min(0.25,(now-last)/1000); last=now; autoTap(now,dt); App.UI.Renderer.tickTop(dt); for(const e of App.State.s.exercises) updateCooldown(e);
@@ -533,7 +453,7 @@ App.Engine = (()=> {
       if(!tick._n || now-tick._n>NOTIFY_REFRESH_MS){ App.Notify.update(); tick._n=now; }
       requestAnimationFrame(tick);} requestAnimationFrame(tick); }
   function autoTap(now,dt){ const s=App.State.s; for(const e of s.exercises){ if(!App.Coaches.isAuto(e.id)) continue; e._autoElapsed += dt*1000; const cd=Math.max(100,e.cooldown);
-      while(e._autoElapsed>=cd){ e._autoElapsed-=cd; e.lastTapAt=now; const g=App.Game.perTap(e); App.Game.addHP(g); s.stats.autoTaps++; if(App.Settings.get('floats') && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(App.Config.DEC)}`); } } } }
+      while(e._autoElapsed>=cd){ e._autoElapsed-=cd; e.lastTapAt=now; const g=App.Game.perTap(e); App.Game.addHP(g); s.stats.autoTaps++; if(App.Settings.get('floats') && !App.UI.Overlay.suppressFloats && e.els.tapPad){ App.UI.Overlay.floatFrom(e.els.tapPad, `+${g.toFixed(App.Config.DEC)}`); } } } }
   function updateCooldown(e){ if(!e.unlocked) return; const cd=Math.max(100,e.cooldown); if(cd<=SOLID_CD_MS){ if(e.els.coolFill) e.els.coolFill.style.width='100%'; if(e.els.headRight) e.els.headRight.textContent=(cd/1000).toFixed(App.Config.DEC)+'s'; return; }
     const ready=(e.lastTapAt<=0); const since=ready?cd:(performance.now()-e.lastTapAt); const pct=Math.max(0,Math.min(1,since/cd)); if(e.els.coolFill) e.els.coolFill.style.width=(pct*100).toFixed(1)+'%';
     const elapsed=Math.max(0,Math.min(since,cd)); if(e.els.headRight) e.els.headRight.textContent=(elapsed/1000).toFixed(App.Config.DEC)+'s'; }
@@ -542,14 +462,10 @@ App.Engine = (()=> {
   return { start, scheduleSave, bindPress, updateCooldown };
 })();
 
-/* =========================
-   BANNERS
-   ========================= */
+/* Banners */
 App.UI.Banners = (()=>{ function upgrade(text){ const host=document.getElementById('bannerHost'); const el=document.createElement('div'); el.className='banner'; el.innerHTML=`🎉 <strong>${text}</strong>`; host.appendChild(el); setTimeout(()=>el.remove(),3600); } return { upgrade };})();
 
-/* =========================
-   COACHES
-   ========================= */
+/* Coaches */
 App.Coaches = (()=> {
   const coaches=[ {id:'c1',name:'Rookie Coach',icon:'🧑‍🏫',price:1500,target:'walk'}, {id:'c2',name:'Track Buddy',icon:'👟',price:6000,target:'jog'},
     {id:'c3',name:'Core Captain',icon:'🧘‍♂️',price:25000,target:'sit'}, {id:'c4',name:'Push-up Pro',icon:'💪',price:100000,target:'push'},
@@ -581,9 +497,7 @@ App.Coaches = (()=> {
   return { isAuto, getOwnedForExercise, renderList, list };
 })();
 
-/* =========================
-   ACHIEVEMENTS
-   ========================= */
+/* Achievements */
 App.Achievements = (()=> {
   if(!App.Flags.achievements){ return { checkAll(){}, render(){} }; }
   const defs = [
@@ -611,9 +525,7 @@ App.Achievements = (()=> {
   return { checkAll, render };
 })();
 
-/* =========================
-   MENU NOTIFIER
-   ========================= */
+/* Menu notifier */
 App.Notify = (()=> {
   const dot=document.getElementById('menuDot');
   function coachAvailable(){ const s=App.State.s; const exById=Object.fromEntries(s.exercises.map(e=>[e.id,e])); for(const c of App.Coaches.list()){
@@ -623,9 +535,7 @@ App.Notify = (()=> {
   return { update };
 })();
 
-/* =========================
-   CARDS & RENDERER
-   ========================= */
+/* Cards + Renderer */
 App.UI.Cards = (()=> {
   const { bindPress } = App.Engine; const { perTap, tap, addReps, bulkRepCost } = App.Game; const { sfx, unlock } = App.Audio;
   function makeExerciseCard(e){
@@ -701,48 +611,45 @@ App.UI.Renderer = (()=> {
   function buildSettings(){ const host=document.getElementById('tab-settings'); const prefs=App.Settings.all();
     host.innerHTML=`<div class="coachIntro"><strong>Preferences</strong></div>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <label><input id="set-sfx" type="checkbox" ${prefs.sfx?'checked':''}/> Sound effects</label>
+        <label><input id="set-sfx" type="checkbox" ${prefs.sfx?'checked':''}/> Sound effects (manual taps & FX)</label>
         <label><input id="set-floats" type="checkbox" ${prefs.floats?'checked':''}/> Show +HP float text</label>
       </div>
       <hr style="border:0;border-top:1px solid #223556;margin:12px 0">
-      <div class="coachIntro"><strong>Music (GitHub URL)</strong><br>
-      Paste a direct link to your audio (e.g., raw.githubusercontent.com … .mp3 or .ogg). Playback starts after a click.</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <label><input id="set-music-enabled" type="checkbox" ${prefs.musicEnabled?'checked':''}/> Enable music</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="set-music-url" style="flex:1;min-width:260px;padding:8px;border-radius:8px;border:1px solid #223556;background:#0c1525;color:#cfe0ff" placeholder="https://raw.githubusercontent.com/.../track.mp3?raw=1" value="${prefs.musicUrl||''}">
-          <button id="btn-music-load" class="btn secondary">Load</button>
-          <button id="btn-music-stop" class="btn secondary">Stop</button>
-        </div>
-        <div>Intro volume: <input id="vol-intro" type="range" min="0" max="100" value="${Math.round((prefs.musicIntroVol||0.5)*100)}"> <span id="vol-intro-val">${Math.round((prefs.musicIntroVol||0.5)*100)}%</span></div>
-        <div>In-game volume: <input id="vol-game" type="range" min="0" max="100" value="${Math.round((prefs.musicGameVol||0.2)*100)}"> <span id="vol-game-val">${Math.round((prefs.musicGameVol||0.2)*100)}%</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button id="btn-music-test-intro" class="btn primary">Play Intro Volume</button>
-          <button id="btn-music-test-game" class="btn secondary">Play Game Volume</button>
+      <div class="coachIntro"><strong>Save Management</strong></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btn-export" class="btn primary">Export Save</button>
+        <button id="btn-import" class="btn secondary">Import Save</button>
+        <button id="btn-clear" class="btn secondary">Clear Save</button>
+      </div>
+      <div id="ioArea" style="margin-top:10px;display:none">
+        <textarea id="ioText" style="width:100%;height:160px;background:#0c1525;color:#cfe0ff;border:1px solid #223556;border-radius:8px;padding:8px"></textarea>
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="ioCopy" class="btn secondary">Copy</button>
+          <button id="ioDownload" class="btn secondary">Download JSON</button>
+          <button id="ioClose" class="btn secondary">Close</button>
         </div>
       </div>`;
-    // prefs handlers
     document.getElementById('set-sfx').onchange=e=>App.Settings.set('sfx',!!e.target.checked);
     document.getElementById('set-floats').onchange=e=>App.Settings.set('floats',!!e.target.checked);
-    document.getElementById('set-music-enabled').onchange=e=>App.Settings.set('musicEnabled',!!e.target.checked);
-    const urlEl=document.getElementById('set-music-url');
-    document.getElementById('btn-music-load').onclick=async ()=>{ const u=(urlEl.value||'').trim(); App.Settings.set('musicUrl',u); await App.Music.load(u); App.Audio.sfx('popup'); };
-    document.getElementById('btn-music-stop').onclick=()=>{ App.Music.stop(); App.Audio.sfx('popup'); };
-    const vi=document.getElementById('vol-intro'), vg=document.getElementById('vol-game'), vii=document.getElementById('vol-intro-val'), vgg=document.getElementById('vol-game-val');
-    vi.oninput=()=>{ const v=parseInt(vi.value,10)/100; App.Settings.set('musicIntroVol',v); vii.textContent=Math.round(v*100)+'%'; };
-    vg.oninput=()=>{ const v=parseInt(vg.value,10)/100; App.Settings.set('musicGameVol',v); vgg.textContent=Math.round(v*100)+'%'; };
-    document.getElementById('btn-music-test-intro').onclick=async ()=>{ if(!App.Settings.get('musicUrl')) return alert('Set a music URL first.'); await App.Music.playLoop(App.Settings.get('musicIntroVol')||0.5); App.Audio.sfx('popup'); };
-    document.getElementById('btn-music-test-game').onclick=async ()=>{ if(!App.Settings.get('musicUrl')) return alert('Set a music URL first.'); await App.Music.playLoop(App.Settings.get('musicGameVol')||0.2); App.Audio.sfx('popup'); };
+    const io=document.getElementById('ioArea'), txt=document.getElementById('ioText');
+    document.getElementById('btn-export').onclick=()=>{ const payload=localStorage.getItem(App.Config.SAVE_KEY)||'{}'; txt.value=payload; io.style.display='block'; txt.focus(); txt.select(); };
+    document.getElementById('btn-import').onclick=()=>{ io.style.display='block'; txt.value=''; txt.placeholder='Paste your exported JSON here and press "Import Save" again to confirm.'; document.getElementById('btn-import').onclick=()=>{
+        try{ const obj=JSON.parse(txt.value||'{}'); if(!obj||typeof obj!=='object') throw new Error('Invalid JSON'); localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify(obj)); alert('Save imported. Reloading…'); location.reload(); }
+        catch(e){ alert('Import failed: '+e.message); } }; };
+    document.getElementById('btn-clear').onclick=()=>{ if(confirm('This clears your game save (not preferences). Proceed?')){ localStorage.removeItem(App.Config.SAVE_KEY); location.reload(); } };
+    document.getElementById('ioCopy').onclick=()=>{ txt.select(); document.execCommand('copy'); };
+    document.getElementById('ioDownload').onclick=()=>{ const blob=new Blob([txt.value||'{}'],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fitness-frenzy-save.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); };
+    document.getElementById('ioClose').onclick=()=>{ io.style.display='none'; };
   }
   function buildAchievements(){ App.Achievements.render(); }
   function wireMenu(){
-    refs.menuBtn.addEventListener('click', ()=>{ App.Audio.sfx('popup'); refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); document.dispatchEvent(new Event('menu:open')); });
-    refs.menuClose.addEventListener('click', ()=>{ App.Audio.sfx('popup'); refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); });
+    refs.menuBtn.addEventListener('click', ()=>{ App.Audio.sfx('popup'); refs.menuOverlay.classList.add('open'); refs.menuOverlay.setAttribute('aria-hidden','false'); App.UI.Overlay.suppressFloats=true; switchTab('coaches'); App.Notify.update(); document.dispatchEvent(new Event('menu:open')); });
+    refs.menuClose.addEventListener('click', ()=>{ App.Audio.sfx('popup'); refs.menuOverlay.classList.remove('open'); refs.menuOverlay.setAttribute('aria-hidden','true'); App.UI.Overlay.suppressFloats=false; });
     refs.menuOverlay.addEventListener('click', (e)=>{ if(e.target===refs.menuOverlay){ App.Audio.sfx('popup'); refs.menuClose.click(); }});
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ App.Audio.sfx('popup'); refs.menuClose.click(); } });
     refs.tabsWrap.querySelectorAll('.menuTab').forEach(btn=>{ btn.addEventListener('click', ()=> { App.Audio.sfx('popup'); switchTab(btn.dataset.tab); }); });
-    document.getElementById('saveBtn').addEventListener('click', ()=>{ App.Audio.sfx('tap'); App.State.save(); });
-    document.getElementById('resetBtn').addEventListener('click', ()=>{ App.Audio.sfx('tap'); if(!confirm('Reset your progress?')) return; localStorage.clear(); location.reload(); });
+    document.getElementById('saveBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
+    document.getElementById('resetBtn').addEventListener('click', ()=>App.Audio.sfx('tap'));
     function switchTab(tab){ refs.tabsWrap.querySelectorAll('.menuTab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
       const ids=['coaches','upgrades','achievements','quests','shop','stats','settings'];
       ids.forEach(id=> document.getElementById('tab-'+id).style.display=(id===tab?'block':'none'));
@@ -752,11 +659,10 @@ App.UI.Renderer = (()=> {
   return { refs, renderStack, refreshAll, tickTop, forceTop, refreshExerciseUI, wireMenu, buildStats, buildSettings };
 })();
 
-/* =========================
-   OFFLINE GAINS
-   ========================= */
+/* Fixes */
 App.Fix = (()=>({ normalizeCooldownStamps(){ for(const e of App.State.s.exercises){ e._autoElapsed=0; if(e.unlocked){ e.lastTapAt=0; } else { e.lastTapAt=-1; } } } }))();
 
+/* Offline Gains */
 App.Offline = (()=> {
   const KEY_TS='ff-last-active'; const ov=()=>document.getElementById('offOv'); const amtEl=()=>document.getElementById('offAmt'); const durEl=()=>document.getElementById('offDur'); const capEl=()=>document.getElementById('offCapNote');
   function saveNow(){ try{ localStorage.setItem(KEY_TS, Date.now().toString()); }catch{} }
@@ -771,74 +677,65 @@ App.Offline = (()=> {
   return { checkAndShow, saveNow, _debugSummarize:summarize };
 })();
 
-/* =========================
-   TUTORIAL (selective prompts)
-   ========================= */
+/* Tutorial (first unlock + upgrade + coach prompts) */
 App.Tutorial = (()=> {
   if(!App.Flags.tutorial){ return { init(){}, start(){}, end(){}, repositionSpot(){} }; }
   const S=App.State.s; const ov=document.getElementById('tutOv'); const bubble=document.getElementById('tutBubble');
   const who=document.getElementById('tutWho'); const line=document.getElementById('tutLine'); const avatar=document.getElementById('tutAvatar'); const spot=document.getElementById('tutSpot');
-  let active=false,curStep=null,lineIdx=0,lastSpotSel=null;
-
-  function setModal(on){ ov.classList.toggle('modal',!!on); }
-  function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); hideSpot(); bubble.classList.remove('tutIdle'); }
+  let active=false,gating=false,curStep=null,lineIdx=0,allowed=[],lastSpotSel=null;
+  function setModal(on){ ov.classList.toggle('modal',!!on); } function show(modal=true){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); active=true; setModal(modal); App.UI.Overlay.suppressFloats=true; }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); active=false; setModal(false); App.UI.Overlay.suppressFloats=false; hideSpot(); gateStop(); bubble.classList.remove('tutIdle'); }
   function setSpeaker(name,icon){ who.textContent=name; avatar.textContent=icon; } function setTextHTML(html){ line.innerHTML=html; }
   function showSpotFor(sel){ lastSpotSel=sel; const el=document.querySelector(sel); if(!el){ hideSpot(); return; } const r=el.getBoundingClientRect(); const pad=6;
     spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px'; try{ el.scrollIntoView({behavior:'smooth',block:'center'});}catch{} }
-  function hideSpot(){ spot.style.display='none'; lastSpotSel=null; }
-  function repositionSpot(){ if(active&&lastSpotSel) showSpotFor(lastSpotSel); }
+  function hideSpot(){ spot.style.display='none'; lastSpotSel=null; } function repositionSpot(){ if(active&&lastSpotSel) showSpotFor(lastSpotSel); }
   window.addEventListener('resize',repositionSpot); document.addEventListener('scroll',repositionSpot,true);
+  function gateStart(allow){ allowed=allow||[]; gating=true; setModal(false); document.addEventListener('pointerdown',gateHandler,true); document.addEventListener('click',gateHandler,true); }
+  function gateStop(){ gating=false; allowed=[]; document.removeEventListener('pointerdown',gateHandler,true); document.removeEventListener('click',gateHandler,true); }
+  function gateHandler(e){ if(!active||!gating) return; let okay=false; for(const sel of allowed){ if(e.target.closest(sel)){ okay=true; break; } } if(!okay){ e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); } }
   function popInFX(){ bubble.classList.remove('tutPop'); void bubble.offsetWidth; bubble.classList.add('tutPop'); bubble.classList.add('tutIdle'); App.Audio.sfx('popup');
-    const r=bubble.getBoundingClientRect(); App.UI.Effects.confetti(r.left+r.width*0.5, r.top+10, 12); }
-
-  // Steps
+    const r=bubble.getBoundingClientRect(); App.UI.Effects.confetti(r.left+r.width*0.5, r.top+10, 16); }
+  function setStep(step,modal=true){ curStep=step; S.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0; bubble.style.display='';
+    const L=step.lines[0]; setSpeaker(L.who,L.icon); setTextHTML(L.html); show(modal); setTimeout(popInFX,10); }
+  bubble.addEventListener('click',()=>{ if(!curStep) return; if(lineIdx<curStep.lines.length-1){ lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who,L.icon); setTextHTML(L.html); App.Audio.sfx('popup'); }
+    else if(curStep.onLinesDone){ const done=curStep.onLinesDone; curStep=null; done(); } });
+  ov.querySelector('.tutDim').addEventListener('click',()=>{ if(curStep){ bubble.click(); }});
   function startIntro(){ setStep({ id:'intro-walk', lines:[
       {who:'JAX',icon:'🏋️‍♂️',html:'Hey—energy looks low. Let’s fix that 💪'},
       {who:'You',icon:(S.tutorial.avatar==='female'?'👩':'👨'),html:'Where do I start?'},
-      {who:'JAX',icon:'🏋️‍♂️',html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>.'}
-    ], onLinesDone(){ showSpotFor('.card[data-id="walk"] .tapPad'); bubble.style.display='none';
+      {who:'JAX',icon:'🏋️‍♂️',html:'Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span> each time.'}
+    ], onLinesDone(){ showSpotFor('.card[data-id="walk"] .tapPad'); gateStart(['.card[data-id="walk"] .tapPad','#tutBubble']); bubble.style.display='none';
       const offTap=App.Bus.on('tap:manual',({exId})=>{ if(exId!=='walk') return; S.tutorial.progress.walkTaps=(S.tutorial.progress.walkTaps||0)+1; if(S.tutorial.progress.walkTaps>=4){
           offTap(); bubble.style.display=''; setStep({ id:'reps-walk', lines:[
             {who:'JAX',icon:'🏋️‍♂️',html:'Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.'},
             {who:'JAX',icon:'🏋️‍♂️',html:'When the <span class="hl">Reps</span> button turns orange, tap it to buy.'},
             {who:'JAX',icon:'🏋️‍♂️',html:'Watch the green <span class="hl">Rep bar</span>. At <span class="hl">10/10</span> you <span class="hl">upgrade</span> and cooldown halves.'}
-          ], onLinesDone(){ const b=document.querySelector('.card[data-id="walk"] .btn[data-role="reps"]'); hide(); if(b) b.scrollIntoView({behavior:'smooth',block:'center'}); } }); } }); } }); }
-
+          ], onLinesDone(){ S.buyQty=1; try{ const b1=document.querySelector('#qtyTop .segBtn[data-q="1"]'); const b10=document.querySelector('#qtyTop .segBtn[data-q="10"]');
+              if(b1&&b10){ b1.classList.add('active'); b10.classList.remove('active'); } }catch{} App.UI.Renderer.refreshAll();
+            showSpotFor('.card[data-id="walk"] .btn[data-role="reps"]'); gateStart(['.card[data-id="walk"] .btn[data-role="reps"]','#tutBubble']); bubble.style.display='none';
+            const offBuy=App.Bus.on('reps:buy',({exId})=>{ if(exId!=='walk') return; offBuy(); hideSpot(); gateStop(); S.tutorial.done=true; S.tutorial.stepId=null; App.State.save(); hide(); }); }} ,true);
+        } }); } }, true); }
   function promptUnlockJog(jog){ if(S.tutorial.shown.unlock[jog.id]) return; setStep({ lines:[
       {who:'JAX',icon:'🏋️‍♂️',html:`Time to add to your routine. Unlock <span class="hl">${jog.name}</span> for <span class="hl">${App.Util.fmtTop(jog.unlockCost)} HP</span>.`},
       {who:'JAX',icon:'🏋️‍♂️',html:'Tap the <span class="hl">Unlock</span> pill when ready.'}
     ], onLinesDone(){ S.tutorial.shown.unlock[jog.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${jog.id}"] .costPill`); }
-
   function promptUpgrade(ex){ if(S.tutorial.shown.upgrade[ex.id]) return; setStep({ lines:[{who:'JAX',icon:'🏋️‍♂️',html:`<span class="hl">${ex.name} upgraded!</span> Cooldown halved. Keep stacking Reps to upgrade again.`}] ,
     onLinesDone(){ S.tutorial.shown.upgrade[ex.id]=true; App.State.save(); hide(); } }, true); showSpotFor(`.card[data-id="${ex.id}"] .coolwrap`); }
-
   function promptCoach(){ const s=App.State.s; const exById=Object.fromEntries(s.exercises.map(e=>[e.id,e])); for(const c of App.Coaches.list()){
       if(s.coachesOwned[c.id]) continue; if(S.tutorial.shown.coach[c.id]) continue; const ex=exById[c.target]; if(!ex||!ex.unlocked) continue; if(s.hp+App.Config.EPS<c.price) continue;
       setStep({ lines:[
           {who:'JAX',icon:'🏋️‍♂️',html:`Want to maximize gains? Hire <span class="hl">${c.name}</span> to auto-tap <span class="hl">${ex.name}</span>.`},
-          {who:'JAX',icon:'🏋️‍♂️',html:`Open the <span class="hl">Menu</span> → <span class="hl">Coaches</span> and hit <span class="hl">Hire</span>.`}
+          {who:'JAX',icon:'🏋️‍♂️',html:`Open the <span class="hl">Menu</span> and hit <span class="hl">Hire</span>.`}
         ], onLinesDone(){ S.tutorial.shown.coach[c.id]=true; App.State.save(); hide(); } }, true); showSpotFor('#menuBtn'); break; } }
-
-  function setStep(step,modal=true){ curStep=step; S.tutorial.stepId=step.id||null; App.State.save(); lineIdx=0; bubble.style.display='';
-    const L=step.lines[0]; setSpeaker(L.who,L.icon); setTextHTML(L.html); show(modal); setTimeout(popInFX,10); }
-  bubble.addEventListener('click',()=>{ if(!curStep) return; if(lineIdx<curStep.lines.length-1){ lineIdx++; const L=curStep.lines[lineIdx]; setSpeaker(L.who,L.icon); setTextHTML(L.html); App.Audio.sfx('popup'); }
-    else if(curStep.onLinesDone){ const done=curStep.onLinesDone; curStep=null; done(); } });
-  ov.querySelector('.tutDim').addEventListener('click',()=>{ if(curStep){ bubble.click(); } });
-
   function checkTriggers(){ const s=App.State.s; for(const e of s.exercises){ if(e.unlocked && !S.tutorial.shown.upgrade[e.id] && e.level>=2){ promptUpgrade(e); return; } }
     const jog=s.exercises.find(e=>e.id==='jog'); if(jog && !jog.unlocked && !S.tutorial.shown.unlock[jog.id] && (s.hp+App.Config.EPS>=jog.unlockCost)){ promptUnlockJog(jog); return; } promptCoach(); }
-
   App.Bus.on('hp:change', checkTriggers); App.Bus.on('exercise:unlock', checkTriggers); App.Bus.on('coach:owned', checkTriggers);
   App.Bus.on('exercise:levelup', ({exId})=>{ const ex=App.State.s.exercises.find(x=>x.id===exId); if(ex) promptUpgrade(ex); });
-
   function init(){} function start(){ if(!S.tutorial.done){ startIntro(); } }
   return { init, start, end:()=>{}, repositionSpot };
 })();
 
-/* =========================
-   START & SPLASH
-   ========================= */
+/* START screen */
 App.UI.Start = (() => {
   const ov=document.getElementById('startOv'); const btnStart=document.getElementById('btnStart'); const btnCont=document.getElementById('btnContinue'); const seg=document.getElementById('segAvatar'); const ui=document.getElementById('startUI');
   function setAvatar(av){ App.State.s.tutorial.avatar=av; [...seg.querySelectorAll('.segBtn')].forEach(b=>b.classList.toggle('active',b.dataset.avatar===av)); App.State.save(); }
@@ -847,15 +744,15 @@ App.UI.Start = (() => {
       span.style.fontSize=(18+Math.random()*12)+'px'; span.style.pointerEvents='none'; span.style.zIndex='9100'; document.body.appendChild(span);
       span.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${(Math.random()*2-1)*160}px, -${60+Math.random()*80}px) scale(${.9+Math.random()*.4})`,opacity:0}],{duration:900+Math.random()*400,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); setTimeout(()=>span.remove(),1500); } }
   function init(){ const cur=App.State.s.tutorial.avatar||'male'; setAvatar(cur); seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> { App.Audio.sfx('tap'); setAvatar(b.dataset.avatar); }));
-    // First interaction: unlock SFX; if music URL configured, start intro music at intro volume
-    ov.addEventListener('pointerdown', async ()=>{ App.Audio.unlock(); if(App.Settings.get('musicUrl')){ await App.Music.load(App.Settings.get('musicUrl')); await App.Music.playLoop(App.Settings.get('musicIntroVol')||0.5); } }, { once:true, passive:true });
-    btnStart.addEventListener('click', async ()=>{ App.Audio.sfx('popup'); if(App.Music.isPlaying()) App.Music.fadeTo(App.Settings.get('musicGameVol')||0.2, 500); hide(); if(!App.State.s.tutorial.done){ App.Tutorial.start(); } setTimeout(()=>App.Offline.checkAndShow(), 50); });
-    btnCont.addEventListener('click', async ()=>{ App.Audio.sfx('popup'); if(App.Music.isPlaying()) App.Music.fadeTo(App.Settings.get('musicGameVol')||0.2, 500); hide(); setTimeout(()=>App.Offline.checkAndShow(), 50); }); }
+    ov.addEventListener('pointerdown', ()=>{ if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(0.5); } }, { once:true, passive:true });
+    btnStart.addEventListener('click', ()=>{ App.Audio.sfx('popup'); if(App.Audio.music.isPlaying()) App.Audio.music.lowerTo(0.2); hide(); if(!App.State.s.tutorial.done){ App.Tutorial.start(); } setTimeout(()=>App.Offline.checkAndShow(), 50); });
+    btnCont.addEventListener('click', ()=>{ App.Audio.sfx('popup'); if(App.Audio.music.isPlaying()) App.Audio.music.lowerTo(0.2); hide(); setTimeout(()=>App.Offline.checkAndShow(), 50); }); }
   function show(){ ov.classList.add('open'); ov.setAttribute('aria-hidden','false'); try{ ui.classList.remove('popIn'); void ui.offsetWidth; ui.classList.add('popIn'); App.Audio.sfx('popup'); emojiBurstAround(ui); App.UI.Effects.confetti(window.innerWidth/2, window.innerHeight*0.15, 24);}catch{} }
   function hide(){ ov.classList.remove('open'); ov.setAttribute('aria-hidden','true'); }
   return { init, show, hide };
 })();
 
+/* SPLASH screen (NEW) */
 App.UI.Splash = (()=>{
   const ov = document.getElementById('splashOv'); const img = document.getElementById('splashLogo');
   function show(durationMs=4000){
@@ -870,20 +767,20 @@ App.UI.Splash = (()=>{
   return { show };
 })();
 
-/* =========================
-   BOOT
-   ========================= */
+/* Boot */
 (function boot(){
   // Prevent double-tap zoom
   let lastTouchEnd=0; document.addEventListener('touchend',e=>{const n=Date.now(); if(n-lastTouchEnd<=300){e.preventDefault();} lastTouchEnd=n;},{passive:false});
   document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false}); document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
-
   // Load state + build UI
   App.State.load(); App.State.setExercises(App.Content.exercises);
   App.UI.Renderer.renderStack(); App.UI.Renderer.forceTop(); App.UI.Renderer.refreshAll();
   App.Fix.normalizeCooldownStamps(); App.UI.Renderer.refreshAll(); App.UI.Renderer.wireMenu(); App.Bus.on('hp:change', ()=>{ App.UI.Renderer.forceTop(); });
+
   // Qty buttons
   const { refs } = App.UI.Renderer;
+  refs.saveBtn.addEventListener('click', App.State.save);
+  refs.resetBtn.addEventListener('click', ()=>{ if(!confirm('Reset your progress?')) return; localStorage.clear(); location.reload(); });
   [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(b=>b.addEventListener('pointerdown',ev=>{
     ev.preventDefault(); [...refs.qtyTop.querySelectorAll('.segBtn')].forEach(x=>x.classList.remove('active')); b.classList.add('active');
     App.State.s.buyQty=parseInt(b.dataset.q,10); App.UI.Renderer.refreshAll(); App.Notify.update(); App.Audio.sfx('tap');
