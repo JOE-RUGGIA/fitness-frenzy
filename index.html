@@ -374,7 +374,32 @@ App.Audio = (()=> {
     function ensureEl(){ if(el) return el; el=new Audio(MUSIC_URL); el.loop=true; el.preload='auto'; el.crossOrigin='anonymous'; el.setAttribute('playsinline','true'); el.volume=0;
       el.addEventListener('playing', ()=>{ if(gain && audioCtx){ gain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.01);} }); return el; }
     function ensureChain(){ ensure(); const a=ensureEl(); if(!src && audioCtx){ try{ src=audioCtx.createMediaElementSource(a); gain=audioCtx.createGain(); gain.gain.value=0; src.connect(gain); gain.connect(audioCtx.destination);}catch{ src=null; gain=null; } } }
-    function start(vol){ target=(typeof vol==='number')?vol:(isMobile?0.02:0.05); ensureChain(); const a=ensureEl(); if(!playing){ a.play().catch(()=>{}); playing=true; }
+    function start(vol){
+  // Desktop-safe: make absolutely sure the WebAudio context is running
+  ensure();
+  if (audioCtx && audioCtx.state !== 'running') {
+    try { audioCtx.resume(); } catch(e){}
+  }
+
+  // Default volumes: mobile ~2%, desktop 5% (can override by passing vol)
+  target = (typeof vol === 'number') ? vol : (isMobile ? 0.02 : 0.05);
+
+  ensureChain();
+  const a = ensureEl();
+
+  if (!playing) {
+    a.play().catch(()=>{});  // will succeed after the user gesture
+    playing = true;
+  }
+
+  if (gain && audioCtx) {
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(target, audioCtx.currentTime + 0.25);
+  } else {
+    // Fallback if MediaElementSource couldn't be created
+    a.volume = target;
+  }
+}
       if(gain&&audioCtx){ gain.gain.setValueAtTime(0, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(target, audioCtx.currentTime+.25); } else { a.volume=target; } }
     function setVolume(v){ target=Math.max(0,Math.min(1,v)); if(gain&&audioCtx){ gain.gain.setTargetAtTime(target, audioCtx.currentTime, .02); } else if(el){ el.volume=target; } }
     function lowerTo(v){ setVolume(v); } function stop(){ if(el){ el.pause(); playing=false; } }
@@ -769,8 +794,21 @@ App.UI.Start = (() => {
   function init(){ const cur=App.State.s.tutorial.avatar||'male'; setAvatar(cur); seg.querySelectorAll('.segBtn').forEach(b=> b.addEventListener('click', ()=> { App.Audio.sfx('tap'); setAvatar(b.dataset.avatar); }));
     // First interaction: unlock audio and start music (uses platform defaults: mobile ~2%, desktop 5%)
     ov.addEventListener('pointerdown', ()=>{ if(!App.Audio.music.isPlaying()){ App.Audio.unlock(); App.Audio.music.start(); } }, { once:true, passive:true });
-    btnStart.addEventListener('click', ()=>{ App.Audio.sfx('popup'); hide(); if(!App.State.s.tutorial.done){ App.Tutorial.start(); } setTimeout(()=>App.Offline.checkAndShow(), 50); });
-    btnCont.addEventListener('click', ()=>{ App.Audio.sfx('popup'); hide(); setTimeout(()=>App.Offline.checkAndShow(), 50); }); }
+    btnStart.addEventListener('click', ()=>{
+  App.Audio.unlock();
+  if(!App.Audio.music.isPlaying()){ App.Audio.music.start(); }  // desktop-safe
+  App.Audio.sfx('popup');
+  hide();
+  if(!App.State.s.tutorial.done){ App.Tutorial.start(); }
+  setTimeout(()=>App.Offline.checkAndShow(), 50);
+});
+    btnCont.addEventListener('click', ()=>{
+  App.Audio.unlock();
+  if(!App.Audio.music.isPlaying()){ App.Audio.music.start(); }  // desktop-safe
+  App.Audio.sfx('popup');
+  hide();
+  setTimeout(()=>App.Offline.checkAndShow(), 50);
+});
   function show(){ ov.classList.add('open'); ov.setAttribute('aria-hidden','false'); try{ ui.classList.remove('popIn'); void ui.offsetWidth; ui.classList.add('popIn'); App.Audio.sfx('popup'); emojiBurstAround(ui); App.UI.Effects.confetti(window.innerWidth/2, window.innerHeight*0.15, 24);}catch{} }
   function hide(){ ov.classList.remove('open'); ov.setAttribute('aria-hidden','true'); }
   return { init, show, hide };
