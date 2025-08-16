@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.4 (mobile layout polish)</title>
+<title>Fitness Frenzy — V1.4.1 (coach bar + indicator fix)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -14,10 +14,10 @@
   --ink:#e9eef3;
   --muted:#9fb1c8;
   --border:#223556;
-  --accent:#cc6b2c;       /* burnt orange */
+  --accent:#cc6b2c;
   --accent-hi:#ffb357;
   --brandBlue:#3b82f6;
-  --rep:#22c55e;          /* green */
+  --rep:#22c55e;
   --pillBg:#132647;
   --pillBr:#2a4a78;
   --space:clamp(10px,2.2vw,18px);
@@ -48,11 +48,12 @@ img{max-width:100%;display:block}
 .leftRow{display:flex;align-items:center;gap:14px}
 .avatarBtn{
   position:relative;width:72px;height:72px;border-radius:50%;
-  overflow:hidden;border:2px solid #2a446c;background:#0b1626;cursor:pointer
+  /* allow indicator to sit outside the circle */
+  overflow:visible;border:2px solid #2a446c;background:#0b1626;cursor:pointer
 }
 .avatarBtn img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .notifDot{
-  position:absolute;right:-2px;top:-2px;width:20px;height:20px;border-radius:50%;
+  position:absolute;right:-10px;top:-10px;width:22px;height:22px;border-radius:50%;
   background:#39d98a;box-shadow:0 0 0 2px rgba(10,19,32,.95),0 2px 6px rgba(0,0,0,.45);
   display:none;z-index:3
 }
@@ -113,7 +114,15 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .title{font-size:clamp(20px,4vw,24px);margin:0}
 
-/* Cooldown: timer ABOVE the bar to save width */
+/* NEW: Coach deck (top middle, prevents mobile squish) */
+.coachDeck{
+  display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;
+  min-height:30px;margin-top:2px
+}
+.coachChip{display:flex;align-items:center;gap:6px;background:#13233b;border:1px solid #2b3d5a;border-radius:10px;padding:4px 8px;font-size:12px}
+.coachChip img{width:18px;height:18px;border-radius:4px;object-fit:cover}
+
+/* Cooldown: timer ABOVE the bar */
 .coolRow{display:flex;flex-direction:column;align-items:stretch;gap:6px}
 .coolTime{align-self:flex-end;text-align:right;font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:16px}
 .cool{flex:1;background:#0c1525;border:1px solid #223556;border-radius:12px;overflow:hidden}
@@ -122,12 +131,10 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 .coolFill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.2) 0 6px,transparent 6px 12px);opacity:.65;mix-blend-mode:overlay;animation:stripe 1.2s linear infinite}
 @keyframes stripe{to{background-position:60px 0}}
 
-/* Stable meta row */
+/* Stable meta row (no chip here anymore) */
 .metaRow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
 .kv{background:#13223a;border:1px solid #203659;border-radius:10px;padding:6px 10px;color:#cfe0ff;font-size:15px;min-width:98px;white-space:nowrap}
-.chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:30px}
-.coachChip{display:flex;align-items:center;gap:6px;background:#13233b;border:1px solid #2b3d5a;border-radius:10px;padding:4px 8px;font-size:12px}
-/* Short Reps label + fixed min width to prevent jitter */
+/* Reps button fixed min width = no jitter */
 .repsBtn{
   padding:12px 14px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;
   white-space:nowrap;min-width:150px;text-align:center;font-variant-numeric:tabular-nums
@@ -160,7 +167,7 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 @keyframes bannerOut{to{transform:translateY(10px);opacity:0}}
 
 /* =========================
-   MENU OVERLAY (avatar opens)
+   MENU OVERLAY
    ========================= */
 .menuOv{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:3000}
 .menuOv.open{display:flex}
@@ -222,7 +229,7 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 .segBtn.active[data-avatar="male"]{background:var(--brandBlue);color:#fff}
 .segBtn.active[data-avatar="female"]{background:var(--femaleTint);color:#fff}
 
-/* Tutorial — avatar ABOVE text */
+/* Tutorial — avatar ABOVE text (larger) */
 .tut{position:fixed;inset:0;z-index:4000;display:none}
 .tut.show{display:block}
 .dim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
@@ -247,6 +254,7 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
   .card{gap:12px}
   .coolTime{font-size:14px}
   .kv{font-size:14px}
+  .coachChip{font-size:11px}
 }
 
 /* Offline modal */
@@ -393,9 +401,7 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 </div>
 
 <script>
-/* ============================================================
-   SIMPLE ERROR BANNER
-   ============================================================ */
+/* =============== Error banner =============== */
 (function(){
   window.addEventListener('error', function(e){
     const b = document.getElementById('err');
@@ -405,13 +411,11 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
   });
 })();
 
-/* ============================================================
-   CONFIG / UTIL / EVENT BUS
-   ============================================================ */
+/* =============== CONFIG / UTIL / BUS =============== */
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 5,
+  SCHEMA: 6,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -438,7 +442,6 @@ const Bus = (()=>{ const m={}; return{
 }})();
 
 const Util = {
-  clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
   fmtHP(n){
     const a=Math.abs(n), d=App.Config.DEC;
     if(a>=1e9)return (n/1e9).toFixed(d)+'B';
@@ -457,9 +460,7 @@ const Util = {
   isMobile: ()=> /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || matchMedia('(max-width: 820px)').matches
 };
 
-/* ============================================================
-   AUDIO (MUSIC + SFX HOOKS)
-   ============================================================ */
+/* =============== AUDIO =============== */
 const MusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music.mp3?raw=true";
 const AudioSys = (()=> {
   let music, musicVol = 0.15, musicOn = false;
@@ -494,9 +495,7 @@ const AudioSys = (()=> {
   return { play:playSFX, music:{start:startMusic, stop:stopMusic, setVol:setMusicVol}, sfxEnabled };
 })();
 
-/* ============================================================
-   STATE / SAVE / CONTENT
-   ============================================================ */
+/* =============== STATE / SAVE / CONTENT =============== */
 const State = {
   hp:0, qty:1, avatar:'male',
   stats:{manual:0, auto:0, totalEarned:0},
@@ -513,7 +512,6 @@ const Assets = {
   trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Trainer%20GIF.gif?raw=true"
 };
 
-/* Emoji sets (male / female variants) */
 const EX_EMOJI_MALE = [
   ['walk','Walking','🚶‍♂️', 1000],
   ['jog','Jogging','🏃‍♂️', 3000],
@@ -559,7 +557,7 @@ const EX_EMOJI_FEMALE = [
   ['vcross','Victorian Cross','🏆', 786432000]
 ];
 
-/* Coach assets + names */
+/* Coaches */
 const COACH_URL = [
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/coach%205.png?raw=true",
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Clips%20(4).png?raw=true",
@@ -589,7 +587,7 @@ const COACH_NAME = [
   "Inverted Ivy","Ring Raptor Max","Lever Leo","Cross Coach Iris","Victorian Victor"
 ];
 
-/* Build exercises */
+/* Build exercises from emoji set */
 function baseSet(){ return (State.avatar==='female') ? EX_EMOJI_FEMALE : EX_EMOJI_MALE; }
 function buildExercises(){
   const raw = baseSet();
@@ -613,9 +611,7 @@ function buildExercises(){
 }
 buildExercises();
 
-/* ============================================================
-   GAME LOGIC
-   ============================================================ */
+/* =============== GAME LOGIC =============== */
 const Game = {
   perTap(ex){ return ex.baseHP + ex.repHP; },
   repGrowth(ex){ const g=1.07 + 0.01*Math.log2(Math.max(1,ex.level)); return Math.max(1.07, Math.min(1.15, g)); },
@@ -654,9 +650,7 @@ const Game = {
   }
 };
 
-/* ============================================================
-   COACHES / NOTIFIER
-   ============================================================ */
+/* =============== COACHES / NOTIFIER =============== */
 const Coaches = {
   list:[],
   build(){ Coaches.list = State.exercises.map((ex,idx)=>({ id:'c'+(idx+1), name:COACH_NAME[idx], icon:COACH_URL[idx]||COACH_URL[COACH_URL.length-1], target:ex.id, price: Coaches.priceFor(idx) })); },
@@ -683,9 +677,7 @@ const Notify = (()=> {
   return {update, updateThrottled};
 })();
 
-/* ============================================================
-   ENGINE LOOP (cooldowns & auto)
-   ============================================================ */
+/* =============== ENGINE LOOP =============== */
 const Engine = (()=> {
   let last = performance.now();
   function loop(){
@@ -713,9 +705,7 @@ const Engine = (()=> {
   return {start:()=>requestAnimationFrame(loop)};
 })();
 
-/* ============================================================
-   UI (cards, tap FX, banners, confetti)
-   ============================================================ */
+/* =============== UI (cards + FX) =============== */
 const UI = {
   _hpShown:0,
   floatFrom(ref, text){
@@ -786,12 +776,13 @@ const UI = {
       ex.els.card.classList.toggle('unlockPulse',canU);
       if(canU && !State.tutorial.shown.unlock[ex.id]){ AudioSys.play('unlock.ready'); State.tutorial.shown.unlock[ex.id]=true; }
     }
-    ex.els.chips.innerHTML='';
+    // coach chips move to the top-center coachDeck
+    ex.els.coachDeck.innerHTML='';
     for(const c of Coaches.ownedFor(ex.id)){
       const chip=el('div',{class:'coachChip'});
-      const img=el('img',{src:c.icon,alt:c.name,style:'width:18px;height:18px;border-radius:4px;object-fit:cover'});
+      const img=el('img',{src:c.icon,alt:c.name});
       chip.append(img,el('span',{text:c.name}));
-      ex.els.chips.appendChild(chip);
+      ex.els.coachDeck.appendChild(chip);
     }
   },
   build(){
@@ -809,6 +800,9 @@ const UI = {
       const right=el('div',{class:'right'});
       const head=el('div',{class:'head'}); const title=el('h3',{class:'title',text:ex.name}); head.append(title);
 
+      /* NEW: coach deck top middle */
+      const coachDeck=el('div',{class:'coachDeck'}); ex.els.coachDeck=coachDeck;
+
       const coolRow=el('div',{class:'coolRow'});
       const time=el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000).toFixed(App.Config.DEC)+'s'}); ex.els.time=time;
       const cool=el('div',{class:'cool'}); const bar=el('div',{class:'coolBar'}); const fill=el('div',{class:'coolFill'}); ex.els.fill=fill; bar.append(fill); cool.append(bar);
@@ -816,11 +810,10 @@ const UI = {
 
       const meta=el('div',{class:'metaRow'});
       const kv=el('div',{class:'kv',text:`${Game.perTap(ex).toFixed(App.Config.DEC)} HP`}); ex.els.kv=kv;
-      const chips=el('div',{class:'chips'}); ex.els.chips=chips;
       const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
-      meta.append(kv,chips,reps);
+      meta.append(kv,el('div'),reps); /* middle placeholder keeps grid shape */
 
-      right.append(head,coolRow,meta);
+      right.append(head,coachDeck,coolRow,meta);
 
       const unlockRow=el('div',{class:'unlockRow'}); const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
 
@@ -829,16 +822,14 @@ const UI = {
 
       left.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save();});
       reps.addEventListener('click',()=>{ if(Game.buyReps(ex,State.qty)){ save(); }});
-      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(head,coolRow,meta); card.append(left,right); save(); }});
+      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(head,coachDeck,coolRow,meta); card.append(left,right); save(); }});
     });
   }
 };
 const Banners={push(html){const host=$('#bannerHost'); const b=el('div',{class:'banner',html:`🎉 ${html}`}); host.appendChild(b); setTimeout(()=>b.remove(),3200);} };
 const FX={confettiAt(node){ if(!node) return; const r=node.getBoundingClientRect(); const x=r.left+r.width/2,y=r.top+r.height/2; const host=el('div'); host.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:2200'; document.body.appendChild(host); const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab']; for(let i=0;i<26;i++){ const d=el('div'); const size=6+Math.random()*6; d.style.cssText=`position:absolute;width:${size}px;height:${size}px;background:${colors[i%colors.length]};opacity:.95;border-radius:${Math.random()<.4?'50%':'2px'};left:${x+(Math.random()*120-60)}px;top:${y+(Math.random()*40-20)}px`; const dx=(Math.random()*2-1)*(innerWidth*.12), dy=(innerHeight*.25+Math.random()*innerHeight*.15); d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);} setTimeout(()=>host.remove(),2000);} };
 
-/* ============================================================
-   MENU (tabs + settings + stats + achievements)
-   ============================================================ */
+/* =============== MENU =============== */
 const Menu = {
   open(){ 
     $('#menuOv').classList.add('open'); 
@@ -930,9 +921,7 @@ const Menu = {
   }
 };
 
-/* ============================================================
-   ACHIEVEMENTS
-   ============================================================ */
+/* =============== ACHIEVEMENTS =============== */
 const Achievements = {
   defs:[
     {id:'first_steps', icon:'👣', title:'First Steps', desc:'Upgrade Walking to Lvl 2 (10/10).', reward:50, test:()=>State.exercises.find(e=>e.id==='walk')?.level>=2},
@@ -957,9 +946,7 @@ Bus.on('upgrade',()=>Achievements.checkAll());
 Bus.on('unlock',()=>Achievements.checkAll());
 Bus.on('reps',()=>Achievements.checkAll());
 
-/* ============================================================
-   SETTINGS
-   ============================================================ */
+/* =============== SETTINGS =============== */
 const Settings = (()=> {
   const d = {floats:true};
   try{ const raw=localStorage.getItem(App.Config.SAVE_KEY+':prefs'); if(raw) Object.assign(d,JSON.parse(raw)); }catch{}
@@ -967,9 +954,7 @@ const Settings = (()=> {
   return { get:k=>d[k], set:(k,v)=>{ d[k]=v; saveSettings(); } };
 })();
 
-/* ============================================================
-   OFFLINE GAINS
-   ============================================================ */
+/* =============== OFFLINE GAINS =============== */
 const Offline = (()=> {
   const KEY='ff-last'; const off=$('#off');
   function saveNow(){ try{localStorage.setItem(KEY,Date.now().toString());}catch{} }
@@ -993,9 +978,7 @@ const Offline = (()=> {
   return {check};
 })();
 
-/* ============================================================
-   TUTORIAL (event-driven)
-   ============================================================ */
+/* =============== TUTORIAL =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
@@ -1076,9 +1059,7 @@ const Tutorial = (()=> {
   return {startIntro, scanAll, hide};
 })();
 
-/* ============================================================
-   START / SPLASH
-   ============================================================ */
+/* =============== START / SPLASH =============== */
 function showSplashThenStart(){ const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, 5000); }
 function wireStart(){
   const st=$('#start');
@@ -1112,9 +1093,7 @@ function wireStart(){
   }));
 }
 
-/* ============================================================
-   INPUT / MOBILE GUARDS
-   ============================================================ */
+/* =============== INPUT GUARDS =============== */
 (function mobileGuards(){
   let lastTouch=0;
   document.addEventListener('touchend',e=>{ const n=Date.now(); if(n-lastTouch<300){ e.preventDefault(); } lastTouch=n; },{passive:false});
@@ -1122,9 +1101,7 @@ function wireStart(){
   document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
 })();
 
-/* ============================================================
-   QTY TOGGLE / TOPBAR WIRING
-   ============================================================ */
+/* =============== QTY TOGGLE / TOPBAR =============== */
 function wireTopbar(){
   const g=$('#qtyGroup');
   $$('.qtyBtn',g).forEach(btn=>{
@@ -1135,9 +1112,8 @@ function wireTopbar(){
   });
 }
 
-/* ============================================================
-   INIT
-   ============================================================ */
+/* =============== INIT =============== */
+function buildExercises(){ /* already defined earlier; keep name to refresh if needed */ }
 function boot(){
   $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
   document.body.classList.toggle('femaleMode', State.avatar==='female');
@@ -1149,9 +1125,7 @@ function boot(){
   wireStart(); 
   showSplashThenStart();
 
-  // keep mini HP fresh in menu
   setInterval(()=>{ $('#hpMini').textContent = Util.fmtHP(State.hp); }, 400);
-
   Coaches.build();
   Engine.start();
   setInterval(save, App.Config.SAVE_MS);
