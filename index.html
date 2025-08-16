@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.2 (emoji, bigger UI, tap FX, mobile vol)</title>
+<title>Fitness Frenzy — V1.3 (polish: splash 5s, black start, bigger UI, stable mobile)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -16,13 +16,13 @@
   --border:#223556;
   --accent:#cc6b2c;       /* burnt orange */
   --accent-hi:#ffb357;
-  --brandBlue:#2b6cb0;
+  --brandBlue:#3b82f6;
   --rep:#22c55e;          /* green */
   --pillBg:#132647;
   --pillBr:#2a4a78;
   --space:clamp(10px,2.2vw,18px);
   --r:16px;
-  --barH:20px;
+  --barH:22px;
   --repband:16%;
   --femaleTint:#ff5fa8;
 }
@@ -41,30 +41,33 @@ img{max-width:100%;display:block}
    TOP BAR (STICKY) — BIGGER
    ========================= */
 .topbar{position:sticky;top:0;z-index:1000;background:rgba(10,19,32,.95);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
-.topwrap{max-width:1024px;margin:0 auto;padding:12px var(--space) 8px;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:10px 14px;align-items:center}
-.leftRow{display:flex;align-items:center;gap:12px}
+.topwrap{
+  max-width:1024px;margin:0 auto;padding:14px var(--space) 10px;
+  display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:12px 16px;align-items:center
+}
+.leftRow{display:flex;align-items:center;gap:14px}
 .avatarBtn{
-  position:relative;width:60px;height:60px;border-radius:50%;
+  position:relative;width:72px;height:72px;border-radius:50%;
   overflow:visible;border:2px solid #2a446c;background:#0b1626;cursor:pointer
 }
 .avatarBtn img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .notifDot{
-  position:absolute;right:-2px;top:-2px;width:18px;height:18px;border-radius:50%;
+  position:absolute;right:-2px;top:-2px;width:20px;height:20px;border-radius:50%;
   background:#39d98a;box-shadow:0 0 0 2px rgba(10,19,32,.95),0 2px 6px rgba(0,0,0,.45);
   display:none;z-index:3
 }
 .notifDot.show{display:block}
-.logoImg{height:36px;width:auto;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+.logoImg{height:44px;width:auto;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
 .qtyGroup{justify-self:end;display:inline-flex;border:2px solid #2b3d5a;border-radius:14px;overflow:hidden}
-.qtyBtn{background:#13233b;color:#cfe0ff;border:0;padding:10px 14px;font-weight:900;cursor:pointer;font-size:16px}
+.qtyBtn{background:#13233b;color:#cfe0ff;border:0;padding:12px 16px;font-weight:900;cursor:pointer;font-size:18px}
 .qtyBtn.active{background:var(--accent);color:#fff}
-.hpRow{grid-column:1/-1;display:flex;align-items:center;gap:14px}
+.hpRow{grid-column:1/-1;display:flex;align-items:center;gap:16px}
 .hpPill{
-  display:flex;align-items:baseline;gap:8px;padding:10px 16px;border-radius:999px;
-  background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid var(--pillBr);font-size:18px
+  display:flex;align-items:baseline;gap:10px;padding:12px 18px;border-radius:999px;
+  background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid var(--pillBr);font-size:20px
 }
 .hpLabel{font-weight:900;color:var(--accent)}
-.hpVal{font-weight:900;font-variant-numeric:tabular-nums;min-width:12ch;text-align:left}
+.hpVal{font-weight:900;font-variant-numeric:tabular-nums;min-width:13ch;text-align:left}
 
 /* =========================
    LAYOUT
@@ -88,11 +91,7 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 /* Emoji icon (lightweight placeholder) */
 .emo{font-size:clamp(48px,8vw,72px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
 .tapBounce{animation:tap-bounce .22s cubic-bezier(.2,1.1,.3,1)}
-@keyframes tap-bounce{
-  0%{transform:scale(.9)}
-  60%{transform:scale(1.14)}
-  100%{transform:scale(1)}
-}
+@keyframes tap-bounce{0%{transform:scale(.9)}60%{transform:scale(1.14)}100%{transform:scale(1)}}
 /* Panel hit glow */
 .left.hit{animation:hitGlow .35s ease-out}
 @keyframes hitGlow{
@@ -101,10 +100,7 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
   100%{box-shadow:0 0 0 0 rgba(255,179,87,.0), inset 0 0 0 0 rgba(255,179,87,.0); transform:scale(1)}
 }
 
-.lvlBadge{
-  position:absolute;left:6px;top:6px;background:linear-gradient(135deg,#203a63,#32578e);
-  border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:3px 7px;font-size:13px
-}
+.lvlBadge{position:absolute;left:6px;top:6px;background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:3px 7px;font-size:13px}
 .repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);background:#14361f;border-top:1px solid #204e2b;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
 .repText{position:relative;font-size:12px;color:#cfead6;font-weight:700;text-shadow:0 1px 0 rgba(0,0,0,.4)}
@@ -118,19 +114,27 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 .coolFill{height:100%;width:100%;background:linear-gradient(90deg,var(--accent) 0%,var(--accent-hi) 92%);position:relative}
 .coolFill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.2) 0 6px,transparent 6px 12px);opacity:.65;mix-blend-mode:overlay;animation:stripe 1.2s linear infinite}
 @keyframes stripe{to{background-position:60px 0}}
-.coolTime{min-width:70px;text-align:right;font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:16px}
-.metaRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
-.kv{background:#13223a;border:1px solid #203659;border-radius:10px;padding:7px 12px;color:#cfe0ff;font-size:15px}
-.chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.coolTime{min-width:74px;text-align:right;font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:16px}
+
+/* STABLE meta row: three fixed columns (no jitter) */
+.metaRow{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px
+}
+.kv{background:#13223a;border:1px solid #203659;border-radius:10px;padding:7px 12px;color:#cfe0ff;font-size:15px;min-width:110px}
+.chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:30px}
 .coachChip{display:flex;align-items:center;gap:6px;background:#13233b;border:1px solid #2b3d5a;border-radius:10px;padding:4px 8px;font-size:12px}
-.repsBtn{padding:12px 16px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px}
+.repsBtn{
+  padding:12px 16px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:15px;
+  white-space:nowrap;min-width:180px;text-align:center;font-variant-numeric:tabular-nums
+}
+@media (max-width:400px){ .repsBtn{min-width:150px} }
 .repsBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
 .repsBtn:not(.ready){background:#1a2a40;color:#d7e3f5}
 
 /* Locked */
 .card.locked{opacity:.58;filter:grayscale(1);transform:scale(.94)}
 .unlockRow{display:flex;align-items:center;justify-content:flex-start}
-.unlockPill{padding:12px 18px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;cursor:not-allowed;font-size:15px}
+.unlockPill{padding:12px 18px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;cursor:not-allowed;font-size:15px;white-space:nowrap}
 .unlockPill.ready{background:linear-gradient(135deg,var(--accent),var(--accent-hi));color:#fff;border-color:#e89d6b;cursor:pointer;box-shadow:0 12px 26px rgba(204,107,44,.35)}
 .card.unlockPulse{animation:unlockPulse .9s ease-in-out infinite}
 @keyframes unlockPulse{0%{transform:scale(.94)}50%{transform:scale(.955)}100%{transform:scale(.94)}}
@@ -143,11 +147,7 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 .burstHost{position:absolute;inset:0;pointer-events:none}
 .ray{position:absolute;left:50%;top:50%;width:4px;height:14px;border-radius:3px;background:radial-gradient(#fff, #ffd166 60%, rgba(255,209,102,0) 100%);transform-origin:50% 120%;opacity:0}
 .rayAnim{animation:ray-out .45s cubic-bezier(.2,1.1,.3,1) forwards}
-@keyframes ray-out{
-  0%{transform:translate(-50%,-50%) rotate(var(--ang)) scale(.6);opacity:0}
-  20%{opacity:1}
-  100%{transform:translate(-50%,-50%) rotate(var(--ang)) translateY(-28px) scale(1.25);opacity:0}
-}
+@keyframes ray-out{0%{transform:translate(-50%,-50%) rotate(var(--ang)) scale(.6);opacity:0}20%{opacity:1}100%{transform:translate(-50%,-50%) rotate(var(--ang)) translateY(-28px) scale(1.25);opacity:0}}
 
 /* Banners */
 .banner{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);background:linear-gradient(135deg,#132647,#1d3a61);border-top:1px solid var(--pillBr);color:#fff;padding:14px 16px calc(14px + env(safe-area-inset-bottom));text-align:center;z-index:2500;animation:bannerIn .25s ease-out forwards, bannerOut .9s ease-in forwards 2.8s}
@@ -186,34 +186,25 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 .splash.open{display:flex}
 .splashInner{width:min(90vw,900px);height:min(80vh,600px);display:flex;align-items:center;justify-content:center;position:relative}
 .splashLogo{max-width:100%;max-height:100%;animation:splashPop 1250ms cubic-bezier(.2,1.2,.3,1);filter:drop-shadow(0 10px 24px rgba(0,0,0,.25))}
-@keyframes splashPop{
-  0%{transform:scale(.75);opacity:.0;filter:drop-shadow(0 0 0 rgba(0,0,0,0))}
-  50%{transform:scale(1.12);opacity:1}
-  100%{transform:scale(1)}
-}
+@keyframes splashPop{0%{transform:scale(.75);opacity:.0;filter:drop-shadow(0 0 0 rgba(0,0,0,0))}50%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
 /* splash glow + spark rays */
 .sGlow{position:absolute;inset:auto;width:260px;height:260px;border-radius:50%;background:radial-gradient(rgba(255,179,87,.55), rgba(255,179,87,0));filter:blur(18px);animation:glowPulse 2.2s ease-in-out infinite}
 @keyframes glowPulse{0%,100%{opacity:.6}50%{opacity:1}}
 .sRay{position:absolute;left:50%;top:50%;width:6px;height:26px;background:linear-gradient(#fff,#ffd166);border-radius:3px;transform-origin:50% 180%;opacity:.0}
 .splash.open .sRay{animation:sRay 900ms ease-out forwards}
-@keyframes sRay{
-  0%{transform:translate(-50%,-50%) rotate(var(--ang)) scale(.6);opacity:0}
-  50%{opacity:1}
-  100%{transform:translate(-50%,-50%) rotate(var(--ang)) translateY(-34px);opacity:0}
-}
+@keyframes sRay{0%{transform:translate(-50%,-50%) rotate(var(--ang)) scale(.6);opacity:0}50%{opacity:1}100%{transform:translate(-50%,-50%) rotate(var(--ang)) translateY(-34px);opacity:0}}
 
 .start{position:fixed;inset:0;z-index:4500;display:none;align-items:center;justify-content:center}
 .start.open{display:flex}
-/* PURE WHITE background now */
-.startBg{position:absolute;inset:0;background:#fff}
-.startMask{display:none}
+/* BLACK background now */
+.startBg{position:absolute;inset:0;background:#000}
 .startFrame{
   position:relative;z-index:1;width:min(96vw,1100px);height:min(92vh,1200px);
-  border-radius:18px;border:1px solid rgba(0,0,0,.06);
-  background:#fff;box-shadow:0 12px 28px rgba(0,0,0,.10);overflow:hidden;
+  border-radius:18px;border:1px solid rgba(255,255,255,.06);
+  background:#000;box-shadow:0 12px 28px rgba(0,0,0,.45);overflow:hidden;
   display:flex;align-items:center;justify-content:center
 }
-.startArt{position:absolute;inset:0;background:#fff}
+.startArt{position:absolute;inset:0;background:#000}
 .startArt img{width:100%;height:100%;object-fit:contain}
 .startUI{position:absolute;left:50%;bottom:6vh;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:14px;width:min(92%,760px)}
 .rowBtns{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%}
@@ -222,33 +213,37 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
 .btn.blue{background:var(--brandBlue);color:#fff}
 .btn.small{padding:10px 14px;font-size:18px}
 .segment{display:inline-flex;border:2px solid #2b3d5a;border-radius:14px;overflow:hidden}
-.segBtn{background:#13233b;color:#cfe0ff;border:0;padding:12px 18px;font-weight:900;cursor:pointer;font-size:28px}
-.segBtn.active{background:var(--accent);color:#fff}
-.pop{animation:pop .45s cubic-bezier(.2,1.2,.3,1)}
-@keyframes pop{0%{transform:translateY(6px) scale(.92);opacity:0}70%{transform:translateY(-2px) scale(1.04);opacity:1}100%{transform:translateY(0) scale(1)}}
+.segBtn{
+  background:#13233b;border:0;padding:12px 18px;font-weight:900;cursor:pointer;font-size:28px
+}
+/* gender colors */
+.segBtn[data-avatar="male"]{color:var(--brandBlue)}
+.segBtn[data-avatar="female"]{color:var(--femaleTint)}
+.segBtn.active[data-avatar="male"]{background:var(--brandBlue);color:#fff}
+.segBtn.active[data-avatar="female"]{background:var(--femaleTint);color:#fff}
 
-/* Tutorial — ~2x bigger on desktop */
+/* Tutorial — bigger on all screens, extra room on mobile */
 .tut{position:fixed;inset:0;z-index:4000;display:none}
 .tut.show{display:block}
 .dim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
 .bubble{
-  position:absolute;left:50%;bottom:10vh;transform:translateX(-50%);
-  display:flex;gap:16px;align-items:flex-start;background:#0f1b2b;border:2px solid var(--pillBr);
-  border-radius:18px;padding:22px 24px;max-width:min(1100px,96vw);box-shadow:0 18px 36px rgba(0,0,0,.35)
+  position:absolute;left:50%;bottom:8vh;transform:translateX(-50%);
+  display:flex;gap:18px;align-items:flex-start;background:#0f1b2b;border:2px solid var(--pillBr);
+  border-radius:18px;padding:26px 28px;max-width:min(1200px,98vw);box-shadow:0 18px 36px rgba(0,0,0,.35)
 }
-.tFace{width:110px;height:110px;border-radius:16px;overflow:hidden;border:1px solid #26406c;background:#0b1423}
+.tFace{width:122px;height:122px;border-radius:16px;overflow:hidden;border:1px solid #26406c;background:#0b1423}
 .tFace img{width:100%;height:100%;object-fit:cover}
-.tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:18px}
-.tText{font-size:clamp(18px,3.8vw,26px);line-height:1.35}
+.tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
+.tText{font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch}
 .hl{color:var(--accent);font-weight:900}
-.tNext{margin-top:12px;font-size:16px;color:#cfe0ff;display:flex;align-items:center;gap:10px}
-.chev{color:var(--accent-hi);font-size:28px}
+.tNext{margin-top:12px;font-size:18px;color:#cfe0ff;display:flex;align-items:center;gap:10px}
+.chev{color:var(--accent-hi);font-size:30px}
 .spot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);pointer-events:none}
 
-/* Mobile polish */
+/* Mobile polish for tutorial + cards */
 @media (max-width:640px){
-  .tFace{width:96px;height:96px}
-  .bubble{padding:18px 20px}
+  .tFace{width:112px;height:112px}
+  .bubble{padding:24px 24px;max-width:98vw;left:50%;transform:translateX(-50%);bottom:6vh}
   .emo{font-size:56px}
   .card{gap:12px}
 }
@@ -386,12 +381,12 @@ body.femaleMode .card .left{ background:linear-gradient(145deg, rgba(255,95,168,
   <div class="startBg"></div>
   <div class="startFrame">
     <div class="startArt"><img alt="Cover" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Cover-Art.png?raw=true"></div>
-    <div class="startUI pop">
+    <div class="startUI">
       <div class="rowBtns">
-        <button id="btnStart" class="btn orange pop">Start</button>
-        <button id="btnContinue" class="btn blue pop">Continue</button>
+        <button id="btnStart" class="btn orange">Start</button>
+        <button id="btnContinue" class="btn blue">Continue</button>
       </div>
-      <div class="segment pop" id="avatarSeg" title="Choose avatar">
+      <div class="segment" id="avatarSeg" title="Choose avatar">
         <button class="segBtn active" data-avatar="male" aria-label="Male">♂</button>
         <button class="segBtn" data-avatar="female" aria-label="Female">♀</button>
       </div>
@@ -524,7 +519,7 @@ const Assets = {
 const EX_EMOJI_MALE = [
   ['walk','Walking','🚶‍♂️', 1000],
   ['jog','Jogging','🏃‍♂️', 3000],
-  ['sit','Sit-ups','🧎‍♂️', 6000],          // blue shirt on most platforms
+  ['sit','Sit-ups','🧎‍♂️', 6000],
   ['push','Push-ups','🤸‍♂️', 12000],
   ['jacks','Jumping Jacks','🕺', 24000],
   ['pull','Pull-ups','🧗‍♂️', 48000],
@@ -598,7 +593,6 @@ const COACH_NAME = [
 
 /* Build exercises */
 function baseSet(){ return (State.avatar==='female') ? EX_EMOJI_FEMALE : EX_EMOJI_MALE; }
-
 function buildExercises(){
   const raw = baseSet();
   const arr=[];
@@ -629,7 +623,7 @@ const Game = {
   repGrowth(ex){ const g=1.07 + 0.01*Math.log2(Math.max(1,ex.level)); return Math.max(1.07, Math.min(1.15, g)); },
   repCost(ex, n=1){ const g=Game.repGrowth(ex); const b=ex.repBaseCost*Math.pow(g,ex.repHP); if(n===1) return +(b.toFixed(App.Config.DEC)); return +((b*(Math.pow(g,n)-1)/(g-1)).toFixed(App.Config.DEC)); },
   addHP(v){ State.hp += v; if(v>0) State.stats.totalEarned += v; Bus.emit('hp', State.hp); },
-  tap(ex, now=Util.now()){
+  tap(ex, now=performance.now()){
     if(!ex.unlocked) return 0;
     const cd = Math.max(App.Config.MIN_CD_MS, ex.cooldown);
     if(ex.lastTapAt>0 && now-ex.lastTapAt<cd-1){ AudioSys.play('tap.blocked'); return 0; }
@@ -637,8 +631,7 @@ const Game = {
     const g = Game.perTap(ex);
     Game.addHP(g); State.stats.manual++; AudioSys.play('tap.ok');
     UI.floatFrom(ex.els.icon||ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
-    UI.burst(ex.els.left);
-    UI.bounce(ex.els.icon);
+    UI.burst(ex.els.left); UI.bounce(ex.els.icon);
     ex.els.left.classList.add('hit'); setTimeout(()=>ex.els.left.classList.remove('hit'), 260);
     return g;
   },
@@ -696,9 +689,9 @@ const Notify = (()=> {
    ENGINE LOOP (cooldowns & auto)
    ============================================================ */
 const Engine = (()=> {
-  let last = Util.now();
+  let last = performance.now();
   function loop(){
-    const now = Util.now();
+    const now = performance.now();
     const dt = Math.min(0.25, (now-last)/1000);
     last = now;
     // Auto taps
@@ -761,7 +754,7 @@ const UI = {
       return;
     }
     const ready=ex.lastTapAt<=0;
-    const since= ready?cd:(Util.now()-ex.lastTapAt);
+    const since= ready?cd:(performance.now()-ex.lastTapAt);
     const elapsed=Math.max(0,Math.min(since,cd));
     const pct=elapsed/cd;
     ex.els.fill.style.width=(pct*100).toFixed(1)+'%';
@@ -896,7 +889,7 @@ const Menu = {
     const host=$('#tab-settings'); host.innerHTML=''; const card=el('div',{class:'coachCard'}); const wrap=el('div');
     wrap.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
       <label><input id="set-sfx" type="checkbox" ${AudioSys.sfxEnabled.on?'checked':''}/> Sound Effects</label>
-      <label>Music Volume <input id="set-music" type="range" min="0" max="1" step="0.01" value="${Util.isMobile()?0.06:0.15}" style="width:160px;vertical-align:middle"> (low)</label>
+      <label>Music Volume <input id="set-music" type="range" min="0" max="1" step="0.01" value="${Util.isMobile()?0.03:0.15}" style="width:160px;vertical-align:middle"> (low)</label>
       <label><input id="set-floats" type="checkbox" checked/> Show +HP floaters</label>
     </div>
     <hr style="border:0;border-top:1px solid #223556;margin:10px 0">
@@ -1084,14 +1077,14 @@ const Tutorial = (()=> {
 /* ============================================================
    START / SPLASH
    ============================================================ */
-function showSplashThenStart(){ const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, 1900); }
+function showSplashThenStart(){ const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, 5000); }
 function wireStart(){
   const st=$('#start');
   $('#btnStart').addEventListener('click',()=>{ 
     AudioSys.play('ui.click'); 
     $('#start').classList.remove('open'); 
     // volume: softer on mobile/tablet
-    AudioSys.music.setVol(Util.isMobile()?0.06:0.15);
+    AudioSys.music.setVol(Util.isMobile()?0.03:0.15);
     AudioSys.music.start(); 
     if(!State.tutorial.doneIntro) Tutorial.startIntro();
     Offline.check(); 
@@ -1100,7 +1093,7 @@ function wireStart(){
   $('#btnContinue').addEventListener('click',()=>{ 
     AudioSys.play('ui.click'); 
     st.classList.remove('open'); 
-    AudioSys.music.setVol(Util.isMobile()?0.06:0.15);
+    AudioSys.music.setVol(Util.isMobile()?0.03:0.15);
     AudioSys.music.start(); 
     Offline.check(); 
     Tutorial.scanAll(); 
