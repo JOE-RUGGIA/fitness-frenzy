@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.4.5 (mobile-compact coach icons)</title>
+<title>Fitness Frenzy — V1.4.5 (coach badge overlay)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -80,23 +80,23 @@ img{max-width:100%;display:block}
    CONTENT LAYOUT
    ========================= */
 .wrap{max-width:1024px;margin:0 auto;padding:var(--space)}
-.stack{display:flex;flex-direction:column;gap:12px}
+.stack{display:flex;flex-direction:column;gap:10px} /* tighter vertical spacing */
 
 /* =========================
    EXERCISE CARD (COMPACT)
    ========================= */
 .card{
   background:var(--card);border:1px solid var(--border);border-radius:16px;
-  padding:12px;
-  display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;
+  padding:10px; /* compact */
+  display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;
   transition:transform .18s ease, filter .18s ease, opacity .18s ease
 }
 .card .left{
-  position:relative;width:clamp(84px,19vw,112px);aspect-ratio:1;border-radius:14px;
+  position:relative;width:clamp(80px,19vw,108px);aspect-ratio:1;border-radius:14px;
   background:#102036;border:1px solid #223b60;display:flex;align-items:center;justify-content:center;overflow:hidden;transform:translateZ(0)
 }
 body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.15),#102036);border-color:#6a2a4f}
-.emo{font-size:clamp(44px,9vw,64px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+.emo{font-size:clamp(44px,9vw,60px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
 .tapBounce{animation:tap-bounce .22s cubic-bezier(.2,1.1,.3,1)}
 @keyframes tap-bounce{0%{transform:scale(.9)}60%{transform:scale(1.14)}100%{transform:scale(1)}}
 .left.hit{animation:hitGlow .35s ease-out}
@@ -106,6 +106,10 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   100%{box-shadow:0 0 0 0 rgba(255,179,87,.0), inset 0 0 0 0 rgba(255,179,87,.0); transform:scale(1)}
 }
 .lvlBadge{position:absolute;left:6px;top:6px;background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:2px 6px;font-size:12px}
+.coachBadge{position:absolute;right:6px;top:6px;width:24px;height:24px;border-radius:6px;overflow:hidden;border:1px solid #2b3d5a;background:#13233b;display:none}
+.coachBadge img{width:100%;height:100%;object-fit:cover}
+@media (max-width:420px){ .coachBadge{width:22px;height:22px} }
+
 .repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);background:#14361f;border-top:1px solid #204e2b;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
 .repText{position:relative;font-size:12px;color:#cfead6;font-weight:700;text-shadow:0 1px 0 rgba(0,0,0,.4)}
@@ -113,25 +117,16 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 /* Right column — tightly stacked */
 .right{display:flex;flex-direction:column;gap:6px;min-width:0}
 .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0}
-.title{font-size:clamp(18px,3.4vw,20px);margin:0}
+.title{font-size:clamp(16px,3.2vw,18px);margin:0}
 
-/* Cooldown stack */
+/* Cooldown: title sits right on top */
 .coolRow{display:flex;flex-direction:column;align-items:stretch;gap:4px}
-.coolTime{align-self:flex-end;text-align:right;font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:14px}
+.coolTime{align-self:flex-end;text-align:right;font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:13px}
 .cool{flex:1;background:#0c1525;border:1px solid #223556;border-radius:12px;overflow:hidden}
 .coolBar{height:var(--barH);background:#101a2a;position:relative}
 .coolFill{height:100%;width:100%;background:linear-gradient(90deg,var(--accent) 0%,var(--accent-hi) 92%);position:relative}
 .coolFill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.2) 0 6px,transparent 6px 12px);opacity:.65;mix-blend-mode:overlay;animation:stripe 1.2s linear infinite}
 @keyframes stripe{to{background-position:60px 0}}
-
-/* Coach icon-only deck BELOW cooldown (tiny, no text) */
-.coachDeck{
-  display:flex;justify-content:center;align-items:center;gap:6px;min-height:18px;margin-top:2px
-}
-.coachIcon{
-  width:18px;height:18px;border-radius:4px;object-fit:cover;
-  border:1px solid #2b3d5a;background:#13233b
-}
 
 /* Meta row: fixed height, no jitter */
 .metaRow{
@@ -139,21 +134,20 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   min-height:34px
 }
 .kv{
-  background:#13223a;border:1px solid #203659;border-radius:10px;padding:4px 8px;color:#cfe0ff;
-  font-size:14px;min-width:86px;white-space:nowrap
+  background:#13223a;border:1px solid #203659;border-radius:10px;padding:3px 8px;color:#cfe0ff;
+  font-size:13px;min-width:76px;white-space:nowrap
 }
 .repsBtn{
-  padding:10px 12px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;
-  white-space:nowrap;min-width:138px;text-align:center;font-variant-numeric:tabular-nums
+  padding:8px 10px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:13px;
+  white-space:nowrap;min-width:120px;text-align:center;font-variant-numeric:tabular-nums
 }
-@media (max-width:400px){ .repsBtn{min-width:126px} }
 .repsBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
 .repsBtn:not(.ready){background:#1a2a40;color:#d7e3f5}
 
 /* Locked state */
 .card.locked{opacity:.6;filter:grayscale(1);transform:scale(.96)}
 .unlockRow{display:flex;align-items:center;justify-content:flex-start}
-.unlockPill{padding:10px 14px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;cursor:not-allowed;font-size:14px;white-space:nowrap}
+.unlockPill{padding:8px 12px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;cursor:not-allowed;font-size:13px;white-space:nowrap}
 .unlockPill.ready{background:linear-gradient(135deg,var(--accent),var(--accent-hi));color:#fff;border-color:#e89d6b;cursor:pointer;box-shadow:0 12px 26px rgba(204,107,44,.35)}
 .card.unlockPulse{animation:unlockPulse .9s ease-in-out infinite}
 @keyframes unlockPulse{0%{transform:scale(.96)}50%{transform:scale(.975)}100%{transform:scale(.96)}}
@@ -169,7 +163,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 @keyframes ray-out{0%{transform:translate(-50%,-50%) rotate(var(--ang)) scale(.6);opacity:0}20%{opacity:1}100%{transform:translate(-50%,-50%) rotate(var(--ang)) translateY(-24px) scale(1.2);opacity:0}}
 
 /* Banners */
-.banner{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);background:linear-gradient(135deg,#132647,#1d3a61);border-top:1px solid var(--pillBr);color:#fff;padding:12px 14px calc(12px + env(safe-area-inset-bottom));text-align:center;z-index:2500;animation:bannerIn .25s ease-out forwards, bannerOut .9s ease-in forwards 2.8s}
+.banner{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);background:linear-gradient(135deg,#132647,#1d3a61);border-top:1px solid var(--pillBr);color:#fff;padding:10px 12px calc(10px + env(safe-area-inset-bottom));text-align:center;z-index:2500;animation:bannerIn .25s ease-out forwards, bannerOut .9s ease-in forwards 2.8s}
 @keyframes bannerIn{to{transform:translateY(0)}}
 @keyframes bannerOut{to{transform:translateY(10px);opacity:0}}
 
@@ -257,12 +251,10 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 
 /* Mobile tune-ups */
 @media (max-width:640px){
-  .emo{font-size:52px}
-  .coolTime{font-size:13px}
-  .kv{font-size:13px;min-width:78px}
-  .repsBtn{min-width:126px;font-size:13px}
-  .coachDeck{min-height:16px;gap:5px}
-  .coachIcon{width:16px;height:16px;border-radius:4px}
+  .emo{font-size:50px}
+  .coolTime{font-size:12px}
+  .kv{font-size:12px;min-width:70px}
+  .repsBtn{min-width:110px;font-size:12px}
 }
 
 /* Offline modal */
@@ -423,7 +415,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 7,
+  SCHEMA: 6,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -701,7 +693,7 @@ const Engine = (()=> {
         ex.lastTapAt = now;
         const g = Game.perTap(ex);
         Game.addHP(g); State.stats.auto++;
-        if(Settings.get('floats')) UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`); /* no decimals */
+        if(Settings.get('floats')) UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`);
       }
     }
     // Cooldown visuals
@@ -783,11 +775,13 @@ const UI = {
       ex.els.card.classList.toggle('unlockPulse',canU);
       if(canU && !State.tutorial.shown.unlock[ex.id]){ AudioSys.play('unlock.ready'); State.tutorial.shown.unlock[ex.id]=true; }
     }
-    /* Coach icons only, no text, below cooldown */
-    ex.els.coachDeck.innerHTML='';
-    for(const c of Coaches.ownedFor(ex.id)){
-      const img=el('img',{class:'coachIcon',src:c.icon,alt:c.name,title:c.name});
-      ex.els.coachDeck.appendChild(img);
+    // Coach badge (icon only, top-right of the image)
+    const owned = Coaches.ownedFor(ex.id)[0];
+    if(owned){
+      ex.els.coachBadgeImg.src = owned.icon;
+      ex.els.coachBadge.style.display = 'block';
+    }else{
+      ex.els.coachBadge.style.display = 'none';
     }
   },
   build(){
@@ -799,8 +793,11 @@ const UI = {
       const icon=el('div',{class:'emo',text:ex.emoji}); ex.els.icon=icon;
 
       const lvl=el('div',{class:'lvlBadge',text:`Lvl ${ex.level}`}); ex.els.lvl=lvl;
+      const coachBadge=el('div',{class:'coachBadge'}); const coachImg=el('img',{alt:'Coach'}); coachBadge.append(coachImg);
+      ex.els.coachBadge = coachBadge; ex.els.coachBadgeImg = coachImg;
+
       const repBand=el('div',{class:'repBand'}); const repFill=el('div',{class:'repFill'}); const repText=el('div',{class:'repText',text:`${ex.repProgress}/${ex.repTarget}`}); ex.els.repFill=repFill; ex.els.repText=repText; repBand.append(repFill,repText);
-      left.append(icon,lvl,repBand);
+      left.append(icon,lvl,coachBadge,repBand);
 
       const right=el('div',{class:'right'});
       const head=el('div',{class:'head'}); const title=el('h3',{class:'title',text:ex.name}); head.append(title);
@@ -810,15 +807,12 @@ const UI = {
       const cool=el('div',{class:'cool'}); const bar=el('div',{class:'coolBar'}); const fill=el('div',{class:'coolFill'}); ex.els.fill=fill; bar.append(fill); cool.append(bar);
       coolRow.append(time,cool);
 
-      /* coach deck is NOW after cooldown, icon-only */
-      const coachDeck=el('div',{class:'coachDeck'}); ex.els.coachDeck=coachDeck;
-
       const meta=el('div',{class:'metaRow'});
       const kv=el('div',{class:'kv',text:`${Game.perTap(ex)} HP`}); ex.els.kv=kv;
       const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
       meta.append(kv,el('div'),reps);
 
-      right.append(head,coolRow,coachDeck,meta);
+      right.append(head,coolRow,meta);
 
       const unlockRow=el('div',{class:'unlockRow'}); const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
 
@@ -827,7 +821,7 @@ const UI = {
 
       left.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save();});
       reps.addEventListener('click',()=>{ if(Game.buyReps(ex,State.qty)){ save(); }});
-      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(head,coolRow,coachDeck,meta); card.append(left,right); save(); }});
+      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(head,coolRow,meta); card.append(left,right); save(); }});
     });
   }
 };
@@ -982,7 +976,7 @@ const Offline = (()=> {
   return {check};
 })();
 
-/* =============== TUTORIAL (event-driven) =============== */
+/* =============== TUTORIAL =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
