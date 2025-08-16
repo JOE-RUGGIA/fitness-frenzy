@@ -829,39 +829,85 @@ const Settings = (()=> {
 })();
 
 /* ============================================================
-   OFFLINE GAINS
+   OFFLINE GAINS — emits modal open/close events
    ============================================================ */
 const Offline = (()=> {
-  const KEY='ff-last'; const off=$('#off');
-  function saveNow(){ try{localStorage.setItem(KEY,Date.now().toString());}catch{} }
-  function fmt(ms){ let s=Math.floor(ms/1000),h=Math.floor(s/3600); s%=3600; const m=Math.floor(s/60); s%=60; const L=[]; if(h)L.push(h+'h'); if(m)L.push(m+'m'); if(s||!L.length)L.push(s+'s'); return L.join(' '); }
-  function summary(ms){ let sum=0; for(const ex of State.exercises){ if(!ex.unlocked) continue; if(!Coaches.isAuto(ex.id)) continue; const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown); const taps=Math.floor(ms/cd); if(taps>0) sum+=taps*Game.perTap(ex);} return sum; }
+  const KEY='ff-last';
+  const off = $('#off');
+
+  function saveNow(){
+    try { localStorage.setItem(KEY, Date.now().toString()); } catch {}
+  }
+
+  function fmt(ms){
+    let s=Math.floor(ms/1000), h=Math.floor(s/3600);
+    s%=3600;
+    const m=Math.floor(s/60);
+    s%=60;
+    const L=[];
+    if(h) L.push(h+'h');
+    if(m) L.push(m+'m');
+    if(s||!L.length) L.push(s+'s');
+    return L.join(' ');
+  }
+
+  function summary(ms){
+    let sum=0;
+    for(const ex of State.exercises){
+      if(!ex.unlocked) continue;
+      if(!Coaches.isAuto(ex.id)) continue;
+      const cd = Math.max(App.Config.MIN_CD_MS, ex.cooldown);
+      const taps = Math.floor(ms / cd);
+      if(taps>0) sum += taps * Game.perTap(ex);
+    }
+    return sum;
+  }
+
   function check(){
-    const last=parseInt(localStorage.getItem(KEY)||'0',10); const now=Date.now();
+    const last = parseInt(localStorage.getItem(KEY)||'0',10);
+    const now = Date.now();
     if(last>0){
-      const delta=now-last; const cap=Math.min(delta,App.Config.OFFLINE_CAP_MS); const gain=summary(cap);
+      const delta = now - last;
+      const cap = Math.min(delta, App.Config.OFFLINE_CAP_MS);
+      const gain = summary(cap);
       if(gain>0){
-        $('#offDur').textContent=fmt(cap); $('#offAmt').textContent=Util.fmtHP(gain); $('#offCapNote').style.display=(delta>cap)?'block':'none';
-        off.classList.add('open'); AudioSys.play('offline.show');
-        $('#offClaim').onclick=()=>{ Game.addHP(gain); off.classList.remove('open'); AudioSys.play('offline.claim'); save(); };
+        $('#offDur').textContent = fmt(cap);
+        $('#offAmt').textContent = Util.fmtHP(gain);
+        $('#offCapNote').style.display = (delta>cap)?'block':'none';
+
+        off.classList.add('open');
+        Bus.emit('modal:off:open');           // <— tell everyone a modal is up
+        AudioSys.play('offline.show');
+
+        $('#offClaim').onclick = ()=> {
+          Game.addHP(gain);
+          off.classList.remove('open');
+          Bus.emit('modal:off:close');        // <— modal is gone; resume queued things
+          AudioSys.play('offline.claim');
+          save();
+        };
       }
     }
     saveNow();
   }
-  window.addEventListener('visibilitychange',()=>{ if(document.hidden) saveNow(); });
-  window.addEventListener('pagehide',saveNow);
-  window.addEventListener('beforeunload',saveNow);
-  return {check};
+
+  window.addEventListener('visibilitychange', ()=> { if(document.hidden) saveNow(); });
+  window.addEventListener('pagehide', saveNow);
+  window.addEventListener('beforeunload', saveNow);
+
+  return { check };
 })();
 
+
 /* ============================================================
-   TUTORIAL (event-driven) — fixed first Reps + first Coach only
+   TUTORIAL (modal-aware; queues when offline modal is up)
    ============================================================ */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
+  let paused=false, queued=null;   // <— new
 
-  // add safe defaults for new flags, even on old saves
+  // Back-compat on old saves
   State.tutorial = State.tutorial || {done:false, shown:{unlock:{}, coach:{}, upgrade:{}}};
   State.tutorial.shown = State.tutorial.shown || {unlock:{}, coach:{}, upgrade:{}};
   if(typeof State.tutorial.shown.repsIntro==='undefined') State.tutorial.shown.repsIntro=false;
@@ -869,63 +915,74 @@ const Tutorial = (()=> {
 
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); }
-  function setSpeaker(who){ 
-    tWho.textContent=who; 
-    tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); 
-  }
-  function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML=lines[0].html; show(); }
-  function nextLine(lines,onDone){ 
-    if(idx<lines.length-1){ idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next'); } 
-    else { if(onDone) onDone(); } 
-  }
-  bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines,step.onDone);});
+  function setSpeaker(who){ tWho.textContent=who; tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); }
+  function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML = lines[0].html; show(); }
 
-  function showSpot(sel){ 
-    const node=document.querySelector(sel); 
-    if(!node){hideSpot();return;} 
-    const r=node.getBoundingClientRect(); 
-    const pad=6; 
-    spot.style.display='block'; 
-    spot.style.left=(r.left-pad)+'px'; 
-    spot.style.top=(r.top-pad)+'px'; 
-    spot.style.width=(r.width+pad*2)+'px'; 
+  // NEW: queue support so we don't overlap the offline modal
+  function playOrQueue(lines, onDone, spotSel){
+    if(paused){
+      queued = {lines, onDone, spotSel};
+      return;
+    }
+    setLines(lines);
+    step = {lines, onDone};
+    if(spotSel) showSpot(spotSel);
+  }
+  function pause(){ paused=true; hide(); hideSpot(); }
+  function resume(){
+    paused=false;
+    if(queued){
+      const q = queued; queued=null;
+      playOrQueue(q.lines, q.onDone, q.spotSel);
+    }
+  }
+
+  function nextLine(lines,onDone){
+    if(idx<lines.length-1){
+      idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next');
+    } else {
+      if(onDone) onDone();
+    }
+  }
+  bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines, step.onDone); });
+
+  function showSpot(sel){
+    const node=document.querySelector(sel);
+    if(!node){ hideSpot(); return; }
+    const r=node.getBoundingClientRect(); const pad=6;
+    spot.style.display='block';
+    spot.style.left=(r.left-pad)+'px';
+    spot.style.top=(r.top-pad)+'px';
+    spot.style.width=(r.width+pad*2)+'px';
     spot.style.height=(r.height+pad*2)+'px';
   }
   function hideSpot(){ spot.style.display='none'; }
 
-  // Phase 1 intro
+  // Intro
   function startIntro(){
     const lines = [
       {who:'JAX', html:`You look a bit low on energy. Let's fix that <span class="hl">fast</span> 💪`},
       {who:'You', html:`Where do I start?`},
       {who:'JAX', html:`Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`},
     ];
-    setLines(lines);
-    step = {lines, onDone(){
-      hide(); 
-      // spotlight Walking tap target (no block; player can still interact)
-      showSpot('.card[data-id="walk"] .left'); 
-      setTimeout(hideSpot, 2500);
-    }};
+    playOrQueue(lines, ()=>{ hide(); setTimeout(()=>hideSpot(), 2500); }, '.card[data-id="walk"] .left');
   }
 
-  // Fires when the first Reps (×1) becomes affordable on Walking
+  // Fire when ×1 Reps on Walking becomes affordable and none bought yet
   function maybeShowFirstReps(){
     if(State.tutorial.shown.repsIntro) return;
     const walk = State.exercises.find(e=>e.id==='walk');
     if(!walk || !walk.unlocked) return;
 
-    const cost1 = Game.repCost(walk, 1);  // price for ×1
+    const cost1 = Game.repCost(walk, 1);
     const hasAnyReps = (walk.repHP > 0);
     if(!hasAnyReps && State.hp + 1e-6 >= cost1){
       State.tutorial.shown.repsIntro = true; save();
-      const L = [
+      const lines = [
         {who:'JAX', html:`Great pace! When the <span class="hl">Reps</span> button turns orange, you can spend HP to hit harder each tap.`},
         {who:'JAX', html:`Watch the <span class="hl">green bar</span>. Filling it upgrades this exercise and <span class="hl">halves</span> its cooldown.`},
       ];
-      setLines(L);
-      step = {lines:L, onDone(){ hide(); }};
-      showSpot('.card[data-id="walk"] .repsBtn');
+      playOrQueue(lines, ()=>hide(), '.card[data-id="walk"] .repsBtn');
     }
   }
 
@@ -933,53 +990,50 @@ const Tutorial = (()=> {
   function onUpgrade(ex){
     if(State.tutorial.shown.upgrade[ex.id]) return;
     State.tutorial.shown.upgrade[ex.id]=true; save();
-    const L = [{who:'JAX', html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];
-    setLines(L); 
-    step={lines:L, onDone(){ hide(); }};
-    showSpot(`.card[data-id="${ex.id}"] .cool`);
+    const lines = [{who:'JAX', html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];
+    playOrQueue(lines, ()=>hide(), `.card[data-id="${ex.id}"] .cool`);
     setTimeout(hideSpot, 1500);
   }
 
-  // Jogging unlock hint (only Jogging)
+  // Jogging unlock hint (only once for Jogging)
   function onUnlockAffordable(ex){
     if(ex.id!=='jog') return;
     if(State.tutorial.shown.unlock[ex.id]) return;
-    const L = [{who:'JAX', html:`Add to your routine! Unlock <span class="hl">${ex.name}</span> when the pill turns orange.`}];
-    setLines(L); 
-    step={lines:L, onDone(){ hide(); }};
-    showSpot(`.card[data-id="${ex.id}"] .unlockPill`);
+    const lines = [{who:'JAX', html:`Add to your routine! Unlock <span class="hl">${ex.name}</span> when the pill turns orange.`}];
+    playOrQueue(lines, ()=>hide(), `.card[data-id="${ex.id}"] .unlockPill`);
   }
 
-  // Coach hint — **only for the first coach** and only once
+  // Coach hint — only first coach, only once
   function onFirstCoachAffordable(){
     if(State.tutorial.shown.firstCoach) return;
     const first = Coaches.list?.[0];
     if(!first) return;
-    if(State.coaches[first.id]) return; // already hired
+    if(State.coaches[first.id]) return;
     const ex = State.exercises.find(e=>e.id===first.target);
     if(!ex || !ex.unlocked) return;
     if(State.hp + 1e-6 >= first.price){
       State.tutorial.shown.firstCoach = true; save();
-      const L = [{who:'JAX', html:`Want to maximize gains? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> your first coach.`}];
-      setLines(L); 
-      step={lines:L, onDone(){ hide(); }};
-      showSpot('#avatarBtn');
+      const lines = [{who:'JAX', html:`Want to maximize gains? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> your first coach.`}];
+      playOrQueue(lines, ()=>hide(), '#avatarBtn');
     }
   }
 
-  // Wire tutorial reactions
-  Bus.on('upgrade',({id})=>{ const ex = State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
-
-  // HP changes drive three checks:
-  Bus.on('hp',()=>{
-    maybeShowFirstReps();          // show once, right when Reps becomes affordable on Walking
+  // Wires
+  Bus.on('upgrade', ({id})=>{ const ex = State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
+  Bus.on('hp', ()=>{
+    maybeShowFirstReps();
     const jog = State.exercises.find(e=>e.id==='jog');
     if(jog && !jog.unlocked && State.hp + 1e-6 >= jog.unlockCost) onUnlockAffordable(jog);
-    onFirstCoachAffordable();      // only the first coach, only once
+    onFirstCoachAffordable();
   });
 
-  return {startIntro};
+  // React to offline modal
+  Bus.on('modal:off:open', ()=>pause());
+  Bus.on('modal:off:close', ()=>resume());
+
+  return { startIntro, pause, resume };
 })();
+
 
 
 /* ============================================================
