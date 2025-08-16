@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.0.2</title>
+<title>Fitness Frenzy — V1.0.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -413,7 +413,7 @@ const State = {
   hp:0, qty:1, avatar:'male',
   stats:{manual:0, auto:0, totalEarned:0},
   coaches:{}, achievements:{}, exercises:[],
-  tutorial:{done:false, shown:{unlock:{}, coachFirst:false, repsHint:false, upgrade:{}}}, /* <- flags */
+  tutorial:{done:false, shown:{unlock:{}, coachFirst:false, repsHint:false, upgrade:{}}}, /* flags */
 };
 function save(){ try{localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify({schema:App.Config.SCHEMA, ...State}));}catch{} }
 function load(){ try{const raw=localStorage.getItem(App.Config.SAVE_KEY); if(!raw)return; const j=JSON.parse(raw); if(j.schema===App.Config.SCHEMA) Object.assign(State,j);}catch{} }
@@ -475,6 +475,7 @@ const COACH_NAME = [
   "Inverted Ivy","Ring Raptor Max","Lever Leo","Cross Coach Iris","Victorian Victor"
 ];
 
+/* Build exercises — IMPORTANT: do NOT restore lastTapAt/_autoElapsed across sessions */
 function buildExercises(){
   const L = [
     ['walk','Walking',EX_URL.walking, 1000],
@@ -510,8 +511,10 @@ function buildExercises(){
       id,name,icon:url,baseHP,baseCooldown:cd,unlockCost,repBaseCost,
       unlocked: (prev.unlocked!==undefined)?prev.unlocked:(i===0),
       repHP: prev.repHP||0, repProgress: prev.repProgress||0, repTarget: prev.repTarget||10,
-      level: prev.level||1, cooldown: prev.cooldown||cd, lastTapAt: prev.lastTapAt||0,
-      _autoElapsed:0, els:{}
+      level: prev.level||1, cooldown: prev.cooldown||cd,
+      lastTapAt: 0,            // <- reset; never restore across sessions
+      _autoElapsed: 0,         // <- reset; never restore across sessions
+      els:{}
     });
   }
   State.exercises = arr;
@@ -708,7 +711,6 @@ Coaches.build();
 const Notify = (()=> {
   let next = 0;
   function coachAvailable(){
-    // only affects the green dot — all coaches count
     for(const c of Coaches.list){
       const ex = State.exercises.find(e=>e.id===c.target);
       if(!ex || !ex.unlocked) continue;
@@ -855,22 +857,26 @@ const Offline = (()=> {
 })();
 
 /* ============================================================
-   TUTORIAL (event-driven; corrected triggers)
+   TUTORIAL (event-driven; robust triggers)
    ============================================================ */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
+
   function overlayBusy(){ return ov.classList.contains('show'); }
+
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); setTimeout(scanAll, 60); } // <- rescan after closing
+
   function setSpeaker(who){ tWho.textContent=who; tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); }
   function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML=lines[0].html; show(); }
   function nextLine(lines,onDone){ if(idx<lines.length-1){ idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next'); } else { if(onDone) onDone(); } }
   bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines,step.onDone);});
+
   function showSpot(sel){ const node=document.querySelector(sel); if(!node){hideSpot();return;} const r=node.getBoundingClientRect(); const pad=6; spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px';}
   function hideSpot(){ spot.style.display='none'; }
 
-  // Phase 1: intro
+  // Intro
   function startIntro(){
     const lines=[
       {who:'JAX',html:`You look a bit low on energy. Let's fix that <span class="hl">fast</span> 💪`},
@@ -878,16 +884,16 @@ const Tutorial = (()=> {
       {who:'JAX',html:`Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`}
     ];
     setLines(lines);
-    step={lines,onDone(){ hide(); showSpot('.card[data-id="walk"] .left'); setTimeout(()=>hideSpot(),2500); }};
+    step={lines,onDone(){ hide(); showSpot('.card[data-id="walk"] .left'); setTimeout(()=>{ hideSpot(); scanAll(); },1200); }};
   }
 
-  // New: Rep hint after reaching 4 HP (one time, walking only, before buying any reps)
+  // Rep hint at 4 HP (only once; before any reps bought)
   function maybeRepsHint(){
-    if(State.tutorial.shown.repsHint) return;
+    if(State.tutorial.shown.repsHint) return false;
     const walk = State.exercises.find(e=>e.id==='walk');
-    if(!walk || !walk.unlocked) return;
-    if(walk.repHP>0) return;                 // already started buying reps; skip
-    if(State.hp + 1e-6 < 4) return;          // need at least 4 HP
+    if(!walk || !walk.unlocked) return false;
+    if(walk.repHP>0) return false;                 // already started buying reps; skip
+    if(State.hp + 1e-6 < 4) return false;          // need at least 4 HP
     State.tutorial.shown.repsHint = true; save();
     const lines=[
       {who:'JAX',html:`Great start! Use <span class="hl">Reps</span> to hit harder each tap.`},
@@ -895,53 +901,57 @@ const Tutorial = (()=> {
     ];
     setLines(lines);
     step={lines,onDone(){ hide(); }};
-    // Point at the walking Reps button
     showSpot('.card[data-id="walk"] .repsBtn');
+    return true;
   }
 
-  // Upgrade bubble (fires when 10/10, 20/20, … actually upgrades)
   function onUpgrade(ex){
-    if(State.tutorial.shown.upgrade[ex.id]) return;
+    if(State.tutorial.shown.upgrade[ex.id]) return false;
     State.tutorial.shown.upgrade[ex.id]=true; save();
     const L=[{who:'JAX',html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];
     setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .cool`); setTimeout(hideSpot,1500);
+    return true;
   }
 
   // Only for Jogging
-  function onUnlockAffordableJog(ex){
-    if(ex.id!=='jog') return;
-    // Don't spam if overlay already up or we've hinted unlock for jog before
-    if(State.tutorial.shown.unlock[ex.id]) return;
+  function onUnlockAffordableJog(){
+    const ex = State.exercises.find(e=>e.id==='jog');
+    if(!ex || ex.unlocked) return false;
+    if(State.tutorial.shown.unlock[ex.id]) return false;
+    if(State.hp + 1e-6 < ex.unlockCost) return false;
     State.tutorial.shown.unlock[ex.id] = true; save();
     const L=[{who:'JAX',html:`Add to your routine! Unlock <span class="hl">${ex.name}</span> when the pill turns orange.`}];
     setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .unlockPill`);
+    return true;
   }
 
   // Only first coach
   function onCoachAffordableFirst(){
-    if(State.tutorial.shown.coachFirst) return;
-    const c0 = Coaches.list[0]; if(!c0) return;
-    if(State.coaches[c0.id]) return; // already hired
+    if(State.tutorial.shown.coachFirst) return false;
+    const c0 = Coaches.list[0]; if(!c0) return false;
+    if(State.coaches[c0.id]) return false;
     const ex = State.exercises.find(e=>e.id===c0.target);
-    if(!ex || !ex.unlocked) return;
-    if(State.hp + 1e-6 < c0.price) return;
+    if(!ex || !ex.unlocked) return false;
+    if(State.hp + 1e-6 < c0.price) return false;
     State.tutorial.shown.coachFirst = true; save();
     const L=[{who:'JAX',html:`Ready to scale? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> a coach.`}];
     setLines(L); step={lines:L,onDone(){hide();}}; showSpot('#avatarBtn');
+    return true;
+  }
+
+  // Central scanner so hints can’t be missed
+  function scanAll(){
+    if(overlayBusy()) return;
+    if(maybeRepsHint()) return;
+    if(onUnlockAffordableJog()) return;
+    if(onCoachAffordableFirst()) return;
   }
 
   // Wires
   Bus.on('upgrade',({id})=>{ const ex=State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
-  Bus.on('hp',()=>{
-    if(!overlayBusy()) {
-      const jog = State.exercises.find(e=>e.id==='jog');
-      if(jog && !jog.unlocked && State.hp + 1e-6 >= jog.unlockCost) onUnlockAffordableJog(jog);
-    }
-    if(!overlayBusy()) maybeRepsHint();
-    if(!overlayBusy()) onCoachAffordableFirst();
-  });
+  Bus.on('hp',()=>{ if(!overlayBusy()) scanAll(); });
 
-  return {startIntro};
+  return {startIntro, scanAll, hide};
 })();
 
 /* ============================================================
@@ -950,8 +960,8 @@ const Tutorial = (()=> {
 function showSplashThenStart(){ const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, 4000); }
 function wireStart(){
   const st=$('#start');
-  $('#btnStart').addEventListener('click',()=>{ AudioSys.play('ui.click'); $('#start').classList.remove('open'); AudioSys.music.setVol(0.15); AudioSys.music.start(); if(!State.tutorial.done) Tutorial.startIntro(); Offline.check(); });
-  $('#btnContinue').addEventListener('click',()=>{ AudioSys.play('ui.click'); st.classList.remove('open'); AudioSys.music.setVol(0.15); AudioSys.music.start(); Offline.check(); });
+  $('#btnStart').addEventListener('click',()=>{ AudioSys.play('ui.click'); $('#start').classList.remove('open'); AudioSys.music.setVol(0.15); AudioSys.music.start(); if(!State.tutorial.done) Tutorial.startIntro(); Offline.check(); Tutorial.scanAll(); });
+  $('#btnContinue').addEventListener('click',()=>{ AudioSys.play('ui.click'); st.classList.remove('open'); AudioSys.music.setVol(0.15); AudioSys.music.start(); Offline.check(); Tutorial.scanAll(); });
   $$('.segBtn', $('#avatarSeg')).forEach(b=>b.addEventListener('click',()=>{
     $$('.segBtn', $('#avatarSeg')).forEach(x=>x.classList.remove('active'));
     b.classList.add('active'); State.avatar=b.dataset.avatar;
