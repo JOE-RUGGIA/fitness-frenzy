@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.4.5 (compact coach icons)</title>
+<title>Fitness Frenzy — V1.4.5 (mobile-compact coach icons)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -80,14 +80,14 @@ img{max-width:100%;display:block}
    CONTENT LAYOUT
    ========================= */
 .wrap{max-width:1024px;margin:0 auto;padding:var(--space)}
-.stack{display:flex;flex-direction:column;gap:12px} /* tighter vertical spacing */
+.stack{display:flex;flex-direction:column;gap:12px}
 
 /* =========================
    EXERCISE CARD (COMPACT)
    ========================= */
 .card{
   background:var(--card);border:1px solid var(--border);border-radius:16px;
-  padding:12px; /* compact */
+  padding:12px;
   display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;
   transition:transform .18s ease, filter .18s ease, opacity .18s ease
 }
@@ -115,19 +115,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0}
 .title{font-size:clamp(18px,3.4vw,20px);margin:0}
 
-/* Coach icons: top middle (no names) — SUPER COMPACT */
-.coachDeck{
-  display:flex;justify-content:center;align-items:center;gap:4px;flex-wrap:wrap;
-  min-height:18px; /* tiny lane so card doesn’t grow */
-  margin-top:0
-}
-.coachIcon{
-  width:18px;height:18px;border-radius:50%;object-fit:cover;
-  border:1px solid #2b3d5a;box-shadow:0 0 0 1px rgba(0,0,0,.25)
-}
-@media (max-width:420px){ .coachDeck{min-height:16px} .coachIcon{width:16px;height:16px} }
-
-/* Cooldown: title sits right on top */
+/* Cooldown stack */
 .coolRow{display:flex;flex-direction:column;align-items:stretch;gap:4px}
 .coolTime{align-self:flex-end;text-align:right;font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:14px}
 .cool{flex:1;background:#0c1525;border:1px solid #223556;border-radius:12px;overflow:hidden}
@@ -136,10 +124,19 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .coolFill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.2) 0 6px,transparent 6px 12px);opacity:.65;mix-blend-mode:overlay;animation:stripe 1.2s linear infinite}
 @keyframes stripe{to{background-position:60px 0}}
 
+/* Coach icon-only deck BELOW cooldown (tiny, no text) */
+.coachDeck{
+  display:flex;justify-content:center;align-items:center;gap:6px;min-height:18px;margin-top:2px
+}
+.coachIcon{
+  width:18px;height:18px;border-radius:4px;object-fit:cover;
+  border:1px solid #2b3d5a;background:#13233b
+}
+
 /* Meta row: fixed height, no jitter */
 .metaRow{
   display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;
-  min-height:36px
+  min-height:34px
 }
 .kv{
   background:#13223a;border:1px solid #203659;border-radius:10px;padding:4px 8px;color:#cfe0ff;
@@ -149,7 +146,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   padding:10px 12px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;
   white-space:nowrap;min-width:138px;text-align:center;font-variant-numeric:tabular-nums
 }
-@media (max-width:400px){ .repsBtn{min-width:126px;font-size:13px} }
+@media (max-width:400px){ .repsBtn{min-width:126px} }
 .repsBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
 .repsBtn:not(.ready){background:#1a2a40;color:#d7e3f5}
 
@@ -264,6 +261,8 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   .coolTime{font-size:13px}
   .kv{font-size:13px;min-width:78px}
   .repsBtn{min-width:126px;font-size:13px}
+  .coachDeck{min-height:16px;gap:5px}
+  .coachIcon{width:16px;height:16px;border-radius:4px}
 }
 
 /* Offline modal */
@@ -595,7 +594,7 @@ const COACH_NAME = [
   "Inverted Ivy","Ring Raptor Max","Lever Leo","Cross Coach Iris","Victorian Victor"
 ];
 
-/* Build exercises */
+/* Build exercises from emoji set */
 function baseSet(){ return (State.avatar==='female') ? EX_EMOJI_FEMALE : EX_EMOJI_MALE; }
 function buildExercises(){
   const raw = baseSet();
@@ -632,7 +631,7 @@ const Game = {
     ex.lastTapAt = now;
     const g = Game.perTap(ex);
     Game.addHP(g); State.stats.manual++; AudioSys.play('tap.ok');
-    UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`); /* integer */
+    UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`); /* no decimals */
     UI.burst(ex.els.left); UI.bounce(ex.els.icon);
     ex.els.left.classList.add('hit'); setTimeout(()=>ex.els.left.classList.remove('hit'), 260);
     return g;
@@ -702,7 +701,7 @@ const Engine = (()=> {
         ex.lastTapAt = now;
         const g = Game.perTap(ex);
         Game.addHP(g); State.stats.auto++;
-        if(Settings.get('floats')) UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`); /* integer */
+        if(Settings.get('floats')) UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`); /* no decimals */
       }
     }
     // Cooldown visuals
@@ -777,7 +776,6 @@ const UI = {
     ex.els.reps.textContent=(n===1?`Reps • ${Util.fmtCost(cost)}`:`×${n} Reps • ${Util.fmtCost(cost)}`);
     ex.els.reps.classList.toggle('ready',can);
     ex.els.reps.disabled=!can;
-
     if(!ex.unlocked){
       const canU=State.hp+1e-6>=ex.unlockCost;
       ex.els.pill.textContent=`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`;
@@ -785,12 +783,11 @@ const UI = {
       ex.els.card.classList.toggle('unlockPulse',canU);
       if(canU && !State.tutorial.shown.unlock[ex.id]){ AudioSys.play('unlock.ready'); State.tutorial.shown.unlock[ex.id]=true; }
     }
-
-    /* Coach icons only (no text) */
+    /* Coach icons only, no text, below cooldown */
     ex.els.coachDeck.innerHTML='';
     for(const c of Coaches.ownedFor(ex.id)){
-      const ico = el('img',{class:'coachIcon', src:c.icon, alt:c.name, title:c.name});
-      ex.els.coachDeck.appendChild(ico);
+      const img=el('img',{class:'coachIcon',src:c.icon,alt:c.name,title:c.name});
+      ex.els.coachDeck.appendChild(img);
     }
   },
   build(){
@@ -808,19 +805,20 @@ const UI = {
       const right=el('div',{class:'right'});
       const head=el('div',{class:'head'}); const title=el('h3',{class:'title',text:ex.name}); head.append(title);
 
-      const coachDeck=el('div',{class:'coachDeck'}); ex.els.coachDeck=coachDeck;
-
       const coolRow=el('div',{class:'coolRow'});
       const time=el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000).toFixed(App.Config.DEC)+'s'}); ex.els.time=time;
       const cool=el('div',{class:'cool'}); const bar=el('div',{class:'coolBar'}); const fill=el('div',{class:'coolFill'}); ex.els.fill=fill; bar.append(fill); cool.append(bar);
       coolRow.append(time,cool);
+
+      /* coach deck is NOW after cooldown, icon-only */
+      const coachDeck=el('div',{class:'coachDeck'}); ex.els.coachDeck=coachDeck;
 
       const meta=el('div',{class:'metaRow'});
       const kv=el('div',{class:'kv',text:`${Game.perTap(ex)} HP`}); ex.els.kv=kv;
       const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
       meta.append(kv,el('div'),reps);
 
-      right.append(head,coachDeck,coolRow,meta);
+      right.append(head,coolRow,coachDeck,meta);
 
       const unlockRow=el('div',{class:'unlockRow'}); const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
 
@@ -829,7 +827,7 @@ const UI = {
 
       left.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save();});
       reps.addEventListener('click',()=>{ if(Game.buyReps(ex,State.qty)){ save(); }});
-      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(head,coachDeck,coolRow,meta); card.append(left,right); save(); }});
+      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(head,coolRow,coachDeck,meta); card.append(left,right); save(); }});
     });
   }
 };
@@ -984,7 +982,7 @@ const Offline = (()=> {
   return {check};
 })();
 
-/* =============== TUTORIAL (unchanged from last) =============== */
+/* =============== TUTORIAL (event-driven) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
