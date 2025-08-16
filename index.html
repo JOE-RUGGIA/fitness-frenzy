@@ -855,27 +855,132 @@ const Offline = (()=> {
 })();
 
 /* ============================================================
-   TUTORIAL (event-driven)
+   TUTORIAL (event-driven) — fixed first Reps + first Coach only
    ============================================================ */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
+
+  // add safe defaults for new flags, even on old saves
+  State.tutorial = State.tutorial || {done:false, shown:{unlock:{}, coach:{}, upgrade:{}}};
+  State.tutorial.shown = State.tutorial.shown || {unlock:{}, coach:{}, upgrade:{}};
+  if(typeof State.tutorial.shown.repsIntro==='undefined') State.tutorial.shown.repsIntro=false;
+  if(typeof State.tutorial.shown.firstCoach==='undefined') State.tutorial.shown.firstCoach=false;
+
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); }
-  function setSpeaker(who){ tWho.textContent=who; tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); }
+  function setSpeaker(who){ 
+    tWho.textContent=who; 
+    tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); 
+  }
   function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML=lines[0].html; show(); }
-  function nextLine(lines,onDone){ if(idx<lines.length-1){ idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next'); } else { if(onDone) onDone(); } }
+  function nextLine(lines,onDone){ 
+    if(idx<lines.length-1){ idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next'); } 
+    else { if(onDone) onDone(); } 
+  }
   bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines,step.onDone);});
-  function showSpot(sel){ const node=document.querySelector(sel); if(!node){hideSpot();return;} const r=node.getBoundingClientRect(); const pad=6; spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px';}
+
+  function showSpot(sel){ 
+    const node=document.querySelector(sel); 
+    if(!node){hideSpot();return;} 
+    const r=node.getBoundingClientRect(); 
+    const pad=6; 
+    spot.style.display='block'; 
+    spot.style.left=(r.left-pad)+'px'; 
+    spot.style.top=(r.top-pad)+'px'; 
+    spot.style.width=(r.width+pad*2)+'px'; 
+    spot.style.height=(r.height+pad*2)+'px';
+  }
   function hideSpot(){ spot.style.display='none'; }
-  function startIntro(){ const lines=[ {who:'JAX',html:`You look a bit low on energy. Let's fix that <span class="hl">fast</span> 💪`}, {who:'You',html:`Where do I start?`}, {who:'JAX',html:`Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`} ]; setLines(lines); step={lines,onDone(){ hide(); showSpot('.card[data-id="walk"] .left'); setTimeout(()=>hideSpot(),2500); }}; }
-  function onUpgrade(ex){ if(State.tutorial.shown.upgrade[ex.id]) return; State.tutorial.shown.upgrade[ex.id]=true; save(); const L=[{who:'JAX',html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}]; setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .cool`); setTimeout(hideSpot,1500); }
-  function onUnlockAffordable(ex){ if(ex.id!=='jog') return; if(State.tutorial.shown.unlock[ex.id]) return; const L=[{who:'JAX',html:`Add to your routine! Unlock <span class="hl">${ex.name}</span> when the pill turns orange.`}]; setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .unlockPill`); }
-  function onCoachAffordable(){ for(const c of Coaches.list){ if(State.coaches[c.id]) continue; const ex=State.exercises.find(e=>e.id===c.target); if(!ex||!ex.unlocked) continue; if(State.hp+1e-6>=c.price){ const L=[{who:'JAX',html:`Want to maximize gains? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> a coach.`}]; setLines(L); step={lines:L,onDone(){hide();}}; showSpot('#avatarBtn'); break; } } }
-  Bus.on('upgrade',({id})=>{ const ex=State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
-  Bus.on('hp',()=>{ const jog=State.exercises.find(e=>e.id==='jog'); if(jog && !jog.unlocked && State.hp+1e-6>=jog.unlockCost) onUnlockAffordable(jog); onCoachAffordable(); });
+
+  // Phase 1 intro
+  function startIntro(){
+    const lines = [
+      {who:'JAX', html:`You look a bit low on energy. Let's fix that <span class="hl">fast</span> 💪`},
+      {who:'You', html:`Where do I start?`},
+      {who:'JAX', html:`Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`},
+    ];
+    setLines(lines);
+    step = {lines, onDone(){
+      hide(); 
+      // spotlight Walking tap target (no block; player can still interact)
+      showSpot('.card[data-id="walk"] .left'); 
+      setTimeout(hideSpot, 2500);
+    }};
+  }
+
+  // Fires when the first Reps (×1) becomes affordable on Walking
+  function maybeShowFirstReps(){
+    if(State.tutorial.shown.repsIntro) return;
+    const walk = State.exercises.find(e=>e.id==='walk');
+    if(!walk || !walk.unlocked) return;
+
+    const cost1 = Game.repCost(walk, 1);  // price for ×1
+    const hasAnyReps = (walk.repHP > 0);
+    if(!hasAnyReps && State.hp + 1e-6 >= cost1){
+      State.tutorial.shown.repsIntro = true; save();
+      const L = [
+        {who:'JAX', html:`Great pace! When the <span class="hl">Reps</span> button turns orange, you can spend HP to hit harder each tap.`},
+        {who:'JAX', html:`Watch the <span class="hl">green bar</span>. Filling it upgrades this exercise and <span class="hl">halves</span> its cooldown.`},
+      ];
+      setLines(L);
+      step = {lines:L, onDone(){ hide(); }};
+      showSpot('.card[data-id="walk"] .repsBtn');
+    }
+  }
+
+  // Upgrade hint (first time per exercise)
+  function onUpgrade(ex){
+    if(State.tutorial.shown.upgrade[ex.id]) return;
+    State.tutorial.shown.upgrade[ex.id]=true; save();
+    const L = [{who:'JAX', html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];
+    setLines(L); 
+    step={lines:L, onDone(){ hide(); }};
+    showSpot(`.card[data-id="${ex.id}"] .cool`);
+    setTimeout(hideSpot, 1500);
+  }
+
+  // Jogging unlock hint (only Jogging)
+  function onUnlockAffordable(ex){
+    if(ex.id!=='jog') return;
+    if(State.tutorial.shown.unlock[ex.id]) return;
+    const L = [{who:'JAX', html:`Add to your routine! Unlock <span class="hl">${ex.name}</span> when the pill turns orange.`}];
+    setLines(L); 
+    step={lines:L, onDone(){ hide(); }};
+    showSpot(`.card[data-id="${ex.id}"] .unlockPill`);
+  }
+
+  // Coach hint — **only for the first coach** and only once
+  function onFirstCoachAffordable(){
+    if(State.tutorial.shown.firstCoach) return;
+    const first = Coaches.list?.[0];
+    if(!first) return;
+    if(State.coaches[first.id]) return; // already hired
+    const ex = State.exercises.find(e=>e.id===first.target);
+    if(!ex || !ex.unlocked) return;
+    if(State.hp + 1e-6 >= first.price){
+      State.tutorial.shown.firstCoach = true; save();
+      const L = [{who:'JAX', html:`Want to maximize gains? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> your first coach.`}];
+      setLines(L); 
+      step={lines:L, onDone(){ hide(); }};
+      showSpot('#avatarBtn');
+    }
+  }
+
+  // Wire tutorial reactions
+  Bus.on('upgrade',({id})=>{ const ex = State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
+
+  // HP changes drive three checks:
+  Bus.on('hp',()=>{
+    maybeShowFirstReps();          // show once, right when Reps becomes affordable on Walking
+    const jog = State.exercises.find(e=>e.id==='jog');
+    if(jog && !jog.unlocked && State.hp + 1e-6 >= jog.unlockCost) onUnlockAffordable(jog);
+    onFirstCoachAffordable();      // only the first coach, only once
+  });
+
   return {startIntro};
 })();
+
 
 /* ============================================================
    START / SPLASH
