@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.4.7 (title over cooldown)</title>
+<title>Fitness Frenzy — V1.4.8 (bigger logo)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -51,7 +51,7 @@ img{max-width:100%;display:block}
   display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;
   gap:12px 16px;align-items:center
 }
-.leftRow{display:flex;align-items:center;gap:14px}
+.leftRow{display:flex;align-items:center;gap:16px}
 .avatarBtn{
   position:relative;width:72px;height:72px;border-radius:50%;
   overflow:visible;border:2px solid #2a446c;background:#0b1626;cursor:pointer
@@ -63,10 +63,23 @@ img{max-width:100%;display:block}
   display:none;z-index:3
 }
 .notifDot.show{display:block}
-.logoImg{height:56px;width:auto;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
-.qtyGroup{justify-self:end;display:inline-flex;border:2px solid #2b3d5a;border-radius:14px;overflow:hidden}
-.qtyBtn{background:#13233b;color:#cfe0ff;border:0;padding:10px 12px;font-weight:900;cursor:pointer;font-size:16px}
+
+/* BIGGER LOGO */
+.logoImg{
+  height:84px;width:auto;display:block;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))
+}
+
+/* Smaller bulk-buy buttons */
+.qtyGroup{
+  justify-self:end;display:inline-flex;border:1.5px solid #2b3d5a;border-radius:12px;overflow:hidden
+}
+.qtyBtn{
+  background:#13233b;color:#cfe0ff;border:0;padding:6px 10px;
+  font-weight:900;cursor:pointer;font-size:14px;line-height:1
+}
 .qtyBtn.active{background:var(--accent);color:#fff}
+
 .hpRow{grid-column:1/-1;display:flex;align-items:center;gap:12px}
 .hpPill{
   flex:1;display:flex;align-items:center;justify-content:space-between;
@@ -80,15 +93,14 @@ img{max-width:100%;display:block}
    CONTENT LAYOUT
    ========================= */
 .wrap{max-width:1024px;margin:0 auto;padding:var(--space)}
-.stack{display:flex;flex-direction:column;gap:10px} /* tighter vertical spacing */
+.stack{display:flex;flex-direction:column;gap:10px}
 
 /* =========================
    EXERCISE CARD (COMPACT)
    ========================= */
 .card{
   background:var(--card);border:1px solid var(--border);border-radius:16px;
-  padding:10px; /* compact */
-  display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;
+  padding:10px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;
   transition:transform .18s ease, filter .18s ease, opacity .18s ease
 }
 .card .left{
@@ -117,12 +129,12 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 /* Right column — tightly stacked */
 .right{display:flex;flex-direction:column;gap:6px;min-width:0}
 
-/* NEW: Title directly above cooldown bar (with time aligned right) */
+/* Title directly above cooldown bar (with time aligned right) */
 .coolRow{display:flex;flex-direction:column;align-items:stretch;gap:4px}
 .coolTop{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .title{font-size:clamp(16px,3.2vw,18px);margin:0}
 .coolTime{font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:13px}
-.cool{flex:1;background:#0c1525;border:1px solid #223556;border-radius:12px;overflow:hidden}
+.cool{flex:1;background:#0c1525;border:1.5px solid #223556;border-radius:12px;overflow:hidden}
 .coolBar{height:var(--barH);background:#101a2a;position:relative}
 .coolFill{height:100%;width:100%;background:linear-gradient(90deg,var(--accent) 0%,var(--accent-hi) 92%);position:relative}
 .coolFill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.2) 0 6px,transparent 6px 12px);opacity:.65;mix-blend-mode:overlay;animation:stripe 1.2s linear infinite}
@@ -177,7 +189,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .panelTitle{font-weight:900}
 .hpMini{margin-left:auto;background:#132647;border:1px solid var(--pillBr);border-radius:999px;padding:6px 12px}
 .menuTabs{display:flex;gap:10px;flex-wrap:wrap;padding:10px var(--space);border-bottom:1px solid var(--border)}
-.tabBtn{padding:10px 14px;border-radius:999px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-weight:800;cursor:pointer}
+.tabBtn{padding:10px 14px;border-radius:999px;border:1.5px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-weight:800;cursor:pointer}
 .tabBtn.active{background:var(--accent);color:#fff;border-color:#e89d6b}
 .panelBody{padding:16px var(--space);overflow:auto}
 .grid{display:grid;grid-template-columns:1fr;gap:12px}
@@ -251,6 +263,8 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 
 /* Mobile tune-ups */
 @media (max-width:640px){
+  .logoImg{height:70px}
+  .qtyBtn{font-size:13px;padding:5px 9px}
   .emo{font-size:50px}
   .coolTime{font-size:12px}
   .kv{font-size:12px;min-width:70px}
@@ -769,7 +783,7 @@ const UI = {
     ex.els.repText.textContent=`${ex.repProgress}/${ex.repTarget}`;
     ex.els.repFill.style.width=Math.min(1,ex.repProgress/ex.repTarget)*100+'%';
     ex.els.lvl.textContent=`Lvl ${ex.level}`;
-    ex.els.kv.textContent=`${Game.perTap(ex)} HP`;  /* integer display */
+    ex.els.kv.textContent=`${Game.perTap(ex)} HP`;
     const n=State.qty, cost=Game.repCost(ex,n), can=State.hp+1e-6>=cost;
     ex.els.reps.textContent=(n===1?`Reps • ${Util.fmtCost(cost)}`:`×${n} Reps • ${Util.fmtCost(cost)}`);
     ex.els.reps.classList.toggle('ready',can);
@@ -781,7 +795,6 @@ const UI = {
       ex.els.card.classList.toggle('unlockPulse',canU);
       if(canU && !State.tutorial.shown.unlock[ex.id]){ AudioSys.play('unlock.ready'); State.tutorial.shown.unlock[ex.id]=true; }
     }
-    // Coach badge (icon only, top-right of the image)
     const owned = Coaches.ownedFor(ex.id)[0];
     if(owned){
       ex.els.coachBadgeImg.src = owned.icon;
@@ -807,7 +820,6 @@ const UI = {
 
       const right=el('div',{class:'right'});
 
-      /* NEW: title directly above cooldown bar (with time on the right) */
       const coolRow=el('div',{class:'coolRow'});
       const coolTop=el('div',{class:'coolTop'});
       const title=el('h3',{class:'title',text:ex.name});
