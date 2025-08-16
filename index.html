@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1</title>
+<title>Fitness Frenzy — V1.0.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -439,7 +439,7 @@ const EX_URL = {
   bench:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
   backsquat:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
   deadlift:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  handstands:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
+  handstands:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif", /* FIXED: removed newline */
   hspu:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
   muscleups:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
   frontlever:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
@@ -765,6 +765,8 @@ const UI = {
       };
       if(ex.unlocked) schedulePulse();
 
+      // mark id for tutorial spots
+      card.setAttribute('data-id', ex.id);
     });
   },
   _hpShown:0,
@@ -810,8 +812,7 @@ const Coaches = {
   },
   priceFor(idx){
     if(idx===0) return 1500; // walking
-    // tiered exponential but not insane:
-    return Math.round(1500 * Math.pow(1.8, idx)); // tweak later if needed
+    return Math.round(1500 * Math.pow(1.8, idx)); // tiered curve
   },
   isAuto(exId){ return Coaches.list.some(c=>State.coaches[c.id] && c.target===exId); },
   ownedFor(exId){ return Coaches.list.filter(c=>State.coaches[c.id] && c.target===exId); },
@@ -1034,9 +1035,9 @@ const Offline = (()=>{
    ============================================================ */
 const Tutorial = (()=>{
   const ov = $('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
-  let step=null, idx=0, gating=false, allow=[];
+  let step=null, idx=0;
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); gating=false; allow=[]; hideSpot(); }
+  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); }
   function setSpeaker(who){ tWho.textContent=who; if(who==='JAX') tFace.src=Assets.trainer; else tFace.src = (State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); }
   function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML = lines[0].html; show(); }
   function nextLine(lines, onDone){ if(idx<lines.length-1){ idx++; setSpeaker(lines[idx].who); tText.innerHTML = lines[idx].html; AudioSys.play('tutorial.next'); } else { if(onDone) onDone(); } }
@@ -1053,34 +1054,13 @@ const Tutorial = (()=>{
     ];
     setLines(lines);
     step = {lines, onDone(){
-      // Gate: 4 taps on walking
-      hide(); gating=true; allow=['.card[data-id="walk"] .left','#tut']; showSpot('.card[data-id="walk"] .left');
-      let taps=0;
-      const off = (p)=>{ if(p.id==='walk'){ taps++; if(taps>=4){ Bus.emit('__tut:done'); } } };
-      Bus.on('reps', ()=>{}); // just anchor
-      const done = ()=>{ document.removeEventListener('pointerdown',guard,true); Bus.on = ()=>{}; };
-      function guard(e){ if(!allow.some(sel=>e.target.closest(sel))){ e.stopPropagation(); e.preventDefault(); } }
-      document.addEventListener('pointerdown',guard,true);
-      const unTap = Bus.on('tap',off);
-      Bus.on('__tut:done',()=>{
-        document.removeEventListener('pointerdown',guard,true);
-        // Explain reps
-        const L2 = [
-          {who:'JAX', html:`Use <span class="hl">Reps</span> to add <span class="hl">+1 HP</span> per tap.`},
-          {who:'JAX', html:`Watch the <span class="hl">green bar</span>. When it hits <span class="hl">10/10</span>, your <span class="hl">cooldown halves</span>.`},
-        ];
-        setLines(L2);
-        step={lines:L2, onDone(){
-          hide(); showSpot('.card[data-id="walk"] .repsBtn');
-          // Wait for any reps buy on walking
-          const offBuy = (p)=>{ if(p.id==='walk'){ hideSpot(); offBuy.cancel=true; const L3=[{who:'JAX', html:`Nice! Each tap hits harder now.`}]; setLines(L3); step={lines:L3, onDone(){ hide(); }} } };
-          Bus.on('reps', offBuy);
-        }};
-      });
+      hide(); showSpot('.card[data-id="walk"] .left');
+      // Wait for any reps buy on walking — we still allow free play
+      const offBuy = (p)=>{ if(p.id==='walk'){ hideSpot(); const L3=[{who:'JAX', html:`Nice! Each tap hits harder now.`}]; setLines(L3); step={lines:L3, onDone(){ hide(); }} } };
+      Bus.on('reps', offBuy);
     }};
   }
 
-  // Event triggers (no strict sequence)
   function onUpgrade(ex){
     if(State.tutorial.shown.upgrade[ex.id]) return;
     State.tutorial.shown.upgrade[ex.id]=true; save();
@@ -1097,7 +1077,6 @@ const Tutorial = (()=>{
     setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot(`.card[data-id="${ex.id}"] .unlockPill`); 
   }
   function onCoachAffordable(){
-    // First unowned coach affordable
     for(const c of Coaches.list){
       if(State.coaches[c.id]) continue;
       const ex = State.exercises.find(e=>e.id===c.target);
@@ -1180,21 +1159,16 @@ function boot(){
   wireTopbar();
   wireStart();
   showSplashThenStart();
-  // stack ids for query
-  State.exercises.forEach(ex=>{ ex.els.card.setAttribute('data-id',ex.id); });
-  // reps click binds already in build(); listen for taps globally to handle tutorial gating
+  // reps/tap tutorial analytics hook
   State.exercises.forEach(ex=>{
     ex.els.card.addEventListener('click',e=>{
-      // emit tap for tutorial analytics when clicking left icon
       if(e.target.closest('.left')) Bus.emit('tap',{id:ex.id});
     });
   });
-  // avatar menu reflects notifier
+  // keep mini HP fresh in menu
   setInterval(()=>{ $('#hpMini').textContent = Util.fmtHP(State.hp); }, 400);
-
   // qty default
   State.qty = State.qty||1;
-
   Engine.start();
   setInterval(save, App.Config.SAVE_MS);
 }
