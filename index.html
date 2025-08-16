@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.0.4</title>
+<title>Fitness Frenzy — V1.1.0 (emoji + tap FX)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -60,10 +60,19 @@ img{max-width:100%;display:block}
    ========================= */
 .wrap{max-width:1024px;margin:0 auto;padding:var(--space)}
 .stack{display:flex;flex-direction:column;gap:var(--space)}
+
 /* Cards */
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:var(--space);display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:stretch;transition:transform .18s ease, filter .18s ease, opacity .18s ease}
-.card .left{position:relative;width:clamp(86px,18vw,120px);aspect-ratio:1;border-radius:14px;background:#102036;border:1px solid #223b60;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.card .left img{width:100%;height:100%;object-fit:cover}
+.card .left{position:relative;width:clamp(86px,18vw,120px);aspect-ratio:1;border-radius:14px;background:#102036;border:1px solid #223b60;display:flex;align-items:center;justify-content:center;overflow:hidden;transform:translateZ(0)}
+/* Emoji icon (lightweight placeholder) */
+.emo{font-size:clamp(42px,7.2vw,64px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+.tapBounce{animation:tap-bounce .18s ease-out}
+@keyframes tap-bounce{
+  0%{transform:scale(.96)}
+  60%{transform:scale(1.06)}
+  100%{transform:scale(1)}
+}
+
 .lvlBadge{position:absolute;left:6px;top:6px;background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:2px 6px;font-size:12px}
 .repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);background:#14361f;border-top:1px solid #204e2b;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
@@ -98,6 +107,16 @@ img{max-width:100%;display:block}
 /* Float +HP text */
 .float{position:fixed;left:0;top:0;transform:translate(-50%,-10px);color:#ffe6c7;font-weight:900;text-shadow:0 1px 0 rgba(0,0,0,.6);animation:rise .9s ease-out forwards;pointer-events:none;z-index:2000}
 @keyframes rise{0%{opacity:0;transform:translate(-50%,10px) scale(.9)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-40px) scale(1.05)}}
+
+/* Starburst (tap FX) */
+.burstHost{position:absolute;inset:0;pointer-events:none}
+.ray{position:absolute;left:50%;top:50%;width:4px;height:14px;border-radius:3px;background:radial-gradient(#fff, #ffd166 60%, rgba(255,209,102,0) 100%);transform-origin:50% 120%;opacity:0}
+.rayAnim{animation:ray-out .45s cubic-bezier(.2,1.1,.3,1) forwards}
+@keyframes ray-out{
+  0%{transform:translate(-50%,-50%) rotate(var(--ang)) scale(.6);opacity:0}
+  20%{opacity:1}
+  100%{transform:translate(-50%,-50%) rotate(var(--ang)) translateY(-26px) scale(1.2);opacity:0}
+}
 
 /* Banners */
 .banner{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);background:linear-gradient(135deg,#132647,#1d3a61);border-top:1px solid var(--pillBr);color:#fff;padding:12px 16px calc(12px + env(safe-area-inset-bottom));text-align:center;z-index:2500;animation:bannerIn .25s ease-out forwards, bannerOut .9s ease-in forwards 2.8s}
@@ -316,15 +335,13 @@ img{max-width:100%;display:block}
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 1,
+  SCHEMA: 2,                  // bump schema for new assets
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
   UI_MS: 80,
   SAVE_MS: 15000,
   OFFLINE_CAP_MS: 24*60*60*1000,
-  PULSE_MIN_MS: 5000,
-  PULSE_MAX_MS: 10000
 });
 
 const $ = (q,root=document)=>root.querySelector(q);
@@ -360,13 +377,7 @@ const Util = {
     if(n<1e9) return (n/1e6).toFixed(d)+'M'; 
     return (n/1e9).toFixed(d)+'B';
   },
-  now: ()=>performance.now(),
-  randInt:(a,b)=>Math.floor(a+Math.random()*(b-a+1)),
-  inView: el=>{
-    if(!el) return false; 
-    const r=el.getBoundingClientRect(); 
-    return r.bottom>0 && r.right>0 && r.left<innerWidth && r.top<innerHeight;
-  }
+  now: ()=>performance.now()
 };
 
 /* ============================================================
@@ -413,11 +424,10 @@ const State = {
   hp:0, qty:1, avatar:'male',
   stats:{manual:0, auto:0, totalEarned:0},
   coaches:{}, achievements:{}, exercises:[],
-  // NOTE: new flag doneIntro to stop initial Jax bubbles from reappearing.
   tutorial:{doneIntro:false, shown:{unlock:{}, coachFirst:false, repsHint:false, upgrade:{}}}
 };
 function save(){ try{localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify({schema:App.Config.SCHEMA, ...State}));}catch{} }
-function load(){ try{const raw=localStorage.getItem(App.Config.SAVE_KEY); if(!raw)return; const j=JSON.parse(raw); if(j.schema===App.Config.SCHEMA) Object.assign(State,j);}catch{} }
+function load(){ try{const raw=localStorage.getItem(App.Config.SAVE_KEY); if(!raw)return; const j=JSON.parse(raw); if(j.schema) Object.assign(State,j);}catch{} }
 load();
 
 const Assets = {
@@ -425,28 +435,31 @@ const Assets = {
   avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-PlayerFemaleGIFF.gif?raw=true",
   trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Trainer%20GIF.gif?raw=true"
 };
-const EX_URL = {
-  walking:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-walking.gif?raw=true",
-  jogging:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-running.gif?raw=true",
-  situps:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-sit-ups.gif?raw=true",
-  pushups:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-push-ups.gif?raw=true",
-  jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-jacks.png?raw=true",
-  pullups:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-pull.gif?raw=true",
-  jumprope:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-jump.gif?raw=true",
-  plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/plank.png?raw=true",
-  mountain:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/mountain.png?raw=true",
-  kettlebell:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-jacks.png?raw=true",
-  burpees:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  bench:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  backsquat:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  deadlift:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  handstands:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  hspu:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  muscleups:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  frontlever:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  ironcross:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif",
-  victoriancross:"https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/refs/heads/main/FF-walking.gif"
-};
+
+/* Emoji placeholders (fast!) */
+const EX_EMOJI = [
+  ['walk','Walking','🚶‍♂️', 1000],
+  ['jog','Jogging','🏃‍♂️', 3000],
+  ['sit','Sit-ups','🧎', 6000],
+  ['push','Push-ups','🤸‍♂️', 12000],
+  ['jacks','Jumping Jacks','🕺', 24000],
+  ['pull','Pull-ups','🧗‍♂️', 48000],
+  ['rope','Jump Rope','🤾‍♂️', 96000],
+  ['plank','Plank','🧘‍♂️', 192000],
+  ['mtclimb','Mountain Climbers','🥾', 384000],
+  ['kb','Kettlebell','🏋️‍♂️', 768000],
+  ['burpee','Burpees','🏃‍♂️', 1536000],
+  ['bench','Bench Press','🏋️‍♂️', 3072000],
+  ['backsq','Back Squat','🏋️‍♂️', 6144000],
+  ['dead','Deadlift','🏋️‍♂️', 12288000],
+  ['hand','Handstands','🤸‍♂️', 24576000],
+  ['hspu','Handstand Push-ups','🤸‍♂️', 49152000],
+  ['muscle','Muscle-ups','🧗‍♂️', 98304000],
+  ['lever','Front Lever','🧗‍♂️', 196608000],
+  ['icross','Iron Cross','🥇', 393216000],
+  ['vcross','Victorian Cross','🏆', 786432000]
+];
+
 const COACH_URL = [
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/coach%205.png?raw=true",
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Clips%20(4).png?raw=true",
@@ -476,46 +489,22 @@ const COACH_NAME = [
   "Inverted Ivy","Ring Raptor Max","Lever Leo","Cross Coach Iris","Victorian Victor"
 ];
 
-/* Build exercises — do NOT restore lastTapAt/_autoElapsed across sessions */
+/* Build exercises */
 function buildExercises(){
-  const L = [
-    ['walk','Walking',EX_URL.walking, 1000],
-    ['jog','Jogging',EX_URL.jogging, 3000],
-    ['sit','Sit-ups',EX_URL.situps, 6000],
-    ['push','Push-ups',EX_URL.pushups, 12000],
-    ['jacks','Jumping Jacks',EX_URL.jacks, 24000],
-    ['pull','Pull-ups',EX_URL.pullups, 48000],
-    ['rope','Jump Rope',EX_URL.jumprope, 96000],
-    ['plank','Plank',EX_URL.plank, 192000],
-    ['mtclimb','Mountain Climbers',EX_URL.mountain, 384000],
-    ['kb','Kettlebell',EX_URL.kettlebell, 768000],
-    ['burpee','Burpees',EX_URL.burpees, 1536000],
-    ['bench','Bench Press',EX_URL.bench, 3072000],
-    ['backsq','Back Squat',EX_URL.backsquat, 6144000],
-    ['dead','Deadlift',EX_URL.deadlift, 12288000],
-    ['hand','Handstands',EX_URL.handstands, 24576000],
-    ['hspu','Handstand Push-ups',EX_URL.hspu, 49152000],
-    ['muscle','Muscle-ups',EX_URL.muscleups, 98304000],
-    ['lever','Front Lever',EX_URL.frontlever, 196608000],
-    ['icross','Iron Cross',EX_URL.ironcross, 393216000],
-    ['vcross','Victorian Cross',EX_URL.victoriancross, 786432000]
-  ];
   const arr=[];
-  for(let i=0;i<L.length;i++){
-    const [id,name,url,cd] = L[i];
-    const sec = cd/1000;
+  for(let i=0;i<EX_EMOJI.length;i++){
+    const [id,name,emoji,cd] = EX_EMOJI[i];
     const prev = State.exercises.find(e=>e.id===id)||{};
+    const sec = cd/1000;
     const baseHP = (i===0)?1:Math.round(20*Math.pow(sec,1.10));
     const repBaseCost = Math.max(4, Math.round(baseHP * 0.05));
-    const unlockCost = (i===0) ? 0 : Math.round(baseHP * Math.pow(sec,0.60) * 1.15);
+    const unlockCost = (i===0) ? 0 : Math.round( baseHP * Math.pow(sec,0.60) * 1.15 );
     arr.push({
-      id,name,icon:url,baseHP,baseCooldown:cd,unlockCost,repBaseCost,
+      id,name,emoji,baseHP,baseCooldown:cd,unlockCost,repBaseCost,
       unlocked: (prev.unlocked!==undefined)?prev.unlocked:(i===0),
       repHP: prev.repHP||0, repProgress: prev.repProgress||0, repTarget: prev.repTarget||10,
       level: prev.level||1, cooldown: prev.cooldown||cd,
-      lastTapAt: 0,            // reset; never restore across sessions
-      _autoElapsed: 0,         // reset; never restore across sessions
-      els:{}
+      lastTapAt: 0, _autoElapsed: 0, els:{}
     });
   }
   State.exercises = arr;
@@ -527,7 +516,7 @@ buildExercises();
    ============================================================ */
 const Game = {
   perTap(ex){ return ex.baseHP + ex.repHP; },
-  repGrowth(ex){ const g=1.07 + 0.01*Math.log2(Math.max(1,ex.level)); return Util.clamp(g,1.07,1.15); },
+  repGrowth(ex){ const g=1.07 + 0.01*Math.log2(Math.max(1,ex.level)); return Math.max(1.07, Math.min(1.15, g)); },
   repCost(ex, n=1){ const g=Game.repGrowth(ex); const b=ex.repBaseCost*Math.pow(g,ex.repHP); if(n===1) return +(b.toFixed(App.Config.DEC)); return +((b*(Math.pow(g,n)-1)/(g-1)).toFixed(App.Config.DEC)); },
   addHP(v){ State.hp += v; if(v>0) State.stats.totalEarned += v; Bus.emit('hp', State.hp); },
   tap(ex, now=Util.now()){
@@ -537,9 +526,10 @@ const Game = {
     ex.lastTapAt = now;
     const g = Game.perTap(ex);
     Game.addHP(g); State.stats.manual++; AudioSys.play('tap.ok');
-    // Mark intro as done on first manual tap (safety so intro never reappears on return)
     if(!State.tutorial.doneIntro){ State.tutorial.doneIntro = true; save(); }
-    UI.floatFrom(ex.els.img||ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
+    UI.floatFrom(ex.els.icon||ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
+    UI.burst(ex.els.left);           // new starburst on manual tap
+    UI.bounce(ex.els.icon);          // bounce the emoji
     return g;
   },
   buyReps(ex, n){
@@ -582,7 +572,7 @@ const Engine = (()=> {
         ex.lastTapAt = now;
         const g = Game.perTap(ex);
         Game.addHP(g); State.stats.auto++;
-        if(Settings.get('floats')) UI.floatFrom(ex.els.img||ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
+        if(Settings.get('floats')) UI.floatFrom(ex.els.icon||ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
       }
     }
     // Cooldown visuals
@@ -594,7 +584,7 @@ const Engine = (()=> {
 })();
 
 /* ============================================================
-   UI (cards, banners, confetti)
+   UI (cards, tap FX, banners, confetti)
    ============================================================ */
 const UI = {
   _hpShown:0,
@@ -606,6 +596,33 @@ const UI = {
     sp.style.top=(r.top+r.height*0.15)+'px';
     document.body.appendChild(sp);
     setTimeout(()=>sp.remove(),900);
+  },
+  /* Starburst rays from the left icon box */
+  burst(leftBox){
+    if(!leftBox) return;
+    let host = leftBox.querySelector('.burstHost');
+    if(!host){
+      host = el('div',{class:'burstHost'});
+      leftBox.appendChild(host);
+    }
+    // 10 rays
+    for(let i=0;i<10;i++){
+      const ang = (360/10)*i + Math.random()*10-5;
+      const ray = el('div',{class:'ray'});
+      ray.style.setProperty('--ang', ang+'deg');
+      host.appendChild(ray);
+      // force layout for animation restart
+      void ray.offsetWidth;
+      ray.classList.add('rayAnim');
+      setTimeout(()=>ray.remove(), 500);
+    }
+  },
+  bounce(iconEl){
+    if(!iconEl) return;
+    iconEl.classList.remove('tapBounce');
+    void iconEl.offsetWidth; // restart animation
+    iconEl.classList.add('tapBounce');
+    setTimeout(()=>iconEl.classList.remove('tapBounce'), 240);
   },
   drawCooldown(ex){
     if(!ex.unlocked) return;
@@ -662,21 +679,27 @@ const UI = {
     const host=$('#stack'); host.innerHTML='';
     State.exercises.forEach(ex=>{
       const card=el('div',{class:'card','data-id':ex.id}); ex.els.card=card; if(!ex.unlocked) card.classList.add('locked');
-      const left=el('div',{class:'left'}); const img=el('img',{alt:ex.name,src:ex.icon}); ex.els.img=img;
+
+      const left=el('div',{class:'left'}); ex.els.left=left;
+      const icon=el('div',{class:'emo',text:ex.emoji}); ex.els.icon=icon;
+
       const lvl=el('div',{class:'lvlBadge',text:`Lvl ${ex.level}`}); ex.els.lvl=lvl;
-      const repBand=el('div',{class:'repBand'}); const repFill=el('div',{class:'repFill'}); const repText=el('div',{class:'repText',text:`${ex.repProgress}/${ex.repTarget}`}); ex.els.repFill=repFill; ex.els.repText=repText; repBand.append(repFill,repText); left.append(img,lvl,repBand);
+      const repBand=el('div',{class:'repBand'}); const repFill=el('div',{class:'repFill'}); const repText=el('div',{class:'repText',text:`${ex.repProgress}/${ex.repTarget}`}); ex.els.repFill=repFill; ex.els.repText=repText; repBand.append(repFill,repText);
+      left.append(icon,lvl,repBand);
+
       const right=el('div',{class:'right'}); const head=el('div',{class:'head'}); const title=el('h3',{class:'title',text:ex.name});
       const coolRow=el('div',{class:'coolRow'}); const cool=el('div',{class:'cool'}); const bar=el('div',{class:'coolBar'}); const fill=el('div',{class:'coolFill'}); ex.els.fill=fill; bar.append(fill); cool.append(bar); const time=el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000).toFixed(App.Config.DEC)+'s'}); ex.els.time=time; coolRow.append(cool,time);
       const meta=el('div',{class:'metaRow'}); const kv=el('div',{class:'kv',text:`${Game.perTap(ex).toFixed(App.Config.DEC)} HP`}); ex.els.kv=kv; const chips=el('div',{class:'chips'}); ex.els.chips=chips; const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps; meta.append(kv,chips,reps);
       right.append(head,coolRow,meta); head.append(title);
+
       const unlockRow=el('div',{class:'unlockRow'}); const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
+
       if(ex.unlocked){ card.append(left,right);} else { card.append(left,unlockRow); }
       host.appendChild(card);
+
       left.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save();});
       reps.addEventListener('click',()=>{ if(Game.buyReps(ex,State.qty)){ save(); }});
       pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(head,coolRow,meta); card.append(left,right); save(); }});
-      const schedulePulse=()=>{ if(!ex.unlocked) return; const delay=Util.randInt(App.Config.PULSE_MIN_MS,App.Config.PULSE_MAX_MS); setTimeout(()=>{ if(document.hidden) return schedulePulse(); if(!Util.inView(img)) return schedulePulse(); const base=ex.icon.split('#')[0].split('?')[0]; img.src=base+'?raw=true&t='+Date.now(); schedulePulse(); },delay); };
-      if(ex.unlocked) schedulePulse();
     });
   }
 };
@@ -865,7 +888,6 @@ const Offline = (()=> {
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
-
   function overlayBusy(){ return ov.classList.contains('show'); }
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); setTimeout(scanAll, 60); }
@@ -876,24 +898,17 @@ const Tutorial = (()=> {
   function showSpot(sel){ const node=document.querySelector(sel); if(!node){hideSpot();return;} const r=node.getBoundingClientRect(); const pad=6; spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px';}
   function hideSpot(){ spot.style.display='none'; }
 
-  // Intro — guard with doneIntro
   function startIntro(){
-    if(State.tutorial.doneIntro) return; // <-- prevents re-show
+    if(State.tutorial.doneIntro) return;
     const lines=[
       {who:'JAX',html:`You look a bit low on energy. Let's fix that <span class="hl">fast</span> 💪`},
       {who:'You',html:`Where do I start?`},
       {who:'JAX',html:`Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`}
     ];
     setLines(lines);
-    step={lines,onDone(){ 
-      hide(); 
-      State.tutorial.doneIntro = true; save();   // <-- mark intro completed
-      showSpot('.card[data-id="walk"] .left'); 
-      setTimeout(()=>{ hideSpot(); scanAll(); },1200); 
-    }};
+    step={lines,onDone(){ hide(); State.tutorial.doneIntro = true; save(); showSpot('.card[data-id="walk"] .left'); setTimeout(hideSpot,1200); }};
   }
 
-  // Rep hint at 4 HP (only once; before any reps bought)
   function maybeRepsHint(){
     if(State.tutorial.shown.repsHint) return false;
     const walk = State.exercises.find(e=>e.id==='walk');
@@ -903,11 +918,10 @@ const Tutorial = (()=> {
     State.tutorial.shown.repsHint = true; save();
     const lines=[
       {who:'JAX',html:`Great start! Use <span class="hl">Reps</span> to hit harder each tap.`},
-      {who:'JAX',html:`Watch the small <span class="hl">green bar</span> (e.g. 0/10). Each Rep fills it — when full, your <span class="hl">cooldown halves</span>.`}
+      {who:'JAX',html:`Watch the <span class="hl">green bar</span> (0/10). When it fills, your <span class="hl">cooldown halves</span>.`}
     ];
     setLines(lines);
-    step={lines,onDone(){ hide(); }};
-    showSpot('.card[data-id="walk"] .repsBtn');
+    step={lines,onDone(){ hide(); }}; showSpot('.card[data-id="walk"] .repsBtn');
     return true;
   }
 
@@ -926,7 +940,7 @@ const Tutorial = (()=> {
     if(State.tutorial.shown.unlock[ex.id]) return false;
     if(State.hp + 1e-6 < ex.unlockCost) return false;
     State.tutorial.shown.unlock[ex.id] = true; save();
-    const L=[{who:'JAX',html:`Add to your routine! Unlock <span class="hl>${ex.name}</span> when the pill turns orange.`}];
+    const L=[{who:'JAX',html:`Add to your routine! Unlock <span class="hl">${ex.name}</span> when the pill turns orange.`}];
     setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .unlockPill`);
     return true;
   }
@@ -961,7 +975,7 @@ const Tutorial = (()=> {
 /* ============================================================
    START / SPLASH
    ============================================================ */
-function showSplashThenStart(){ const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, 4000); }
+function showSplashThenStart(){ const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, 1800); }
 function wireStart(){
   const st=$('#start');
   $('#btnStart').addEventListener('click',()=>{ 
@@ -969,7 +983,7 @@ function wireStart(){
     $('#start').classList.remove('open'); 
     AudioSys.music.setVol(0.15); 
     AudioSys.music.start(); 
-    if(!State.tutorial.doneIntro) Tutorial.startIntro();  // <- only if never done
+    if(!State.tutorial.doneIntro) Tutorial.startIntro();
     Offline.check(); 
     Tutorial.scanAll(); 
   });
@@ -1012,16 +1026,27 @@ function wireTopbar(){
 }
 
 /* ============================================================
+   COACHES / NOTIFIER / MENU
+   ============================================================ */
+const Coaches = window.Coaches || Coaches; // no-op for order
+
+/* ============================================================
    INIT
    ============================================================ */
 function boot(){
   $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
   UI._hpShown=State.hp; UI.build(); UI.refreshThrottled(); Menu.wire(); wireTopbar(); wireStart(); showSplashThenStart();
+  // analytics hook
   State.exercises.forEach(ex=>{ ex.els.card.addEventListener('click',e=>{ if(e.target.closest('.left')) Bus.emit('tap',{id:ex.id});}); });
   setInterval(()=>{ $('#hpMini').textContent=Util.fmtHP(State.hp); },400);
-  State.qty=State.qty||1; Engine.start(); setInterval(save, App.Config.SAVE_MS);
+  State.qty=State.qty||1; Coaches.build(); Engine.start(); setInterval(save, App.Config.SAVE_MS);
 }
 document.addEventListener('DOMContentLoaded', boot);
+
+/* ============================================================
+   NOTIFIER
+   ============================================================ */
+function dummy(){ /* keeps order tidy */ }
 </script>
 </body>
 </html>
