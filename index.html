@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.4.6 (mobile music)</title>
+<title>Fitness Frenzy — V1.4.7 (title over cooldown)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -116,12 +116,12 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 
 /* Right column — tightly stacked */
 .right{display:flex;flex-direction:column;gap:6px;min-width:0}
-.head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0}
-.title{font-size:clamp(16px,3.2vw,18px);margin:0}
 
-/* Cooldown: title sits right on top */
+/* NEW: Title directly above cooldown bar (with time aligned right) */
 .coolRow{display:flex;flex-direction:column;align-items:stretch;gap:4px}
-.coolTime{align-self:flex-end;text-align:right;font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:13px}
+.coolTop{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.title{font-size:clamp(16px,3.2vw,18px);margin:0}
+.coolTime{font-variant-numeric:tabular-nums;color:#cfe0ff;font-size:13px}
 .cool{flex:1;background:#0c1525;border:1px solid #223556;border-radius:12px;overflow:hidden}
 .coolBar{height:var(--barH);background:#101a2a;position:relative}
 .coolFill{height:100%;width:100%;background:linear-gradient(90deg,var(--accent) 0%,var(--accent-hi) 92%);position:relative}
@@ -629,7 +629,7 @@ const Game = {
     ex.lastTapAt = now;
     const g = Game.perTap(ex);
     Game.addHP(g); State.stats.manual++; AudioSys.play('tap.ok');
-    UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`); /* no decimals */
+    UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`); /* integer */
     UI.burst(ex.els.left); UI.bounce(ex.els.icon);
     ex.els.left.classList.add('hit'); setTimeout(()=>ex.els.left.classList.remove('hit'), 260);
     return g;
@@ -806,19 +806,22 @@ const UI = {
       left.append(icon,lvl,coachBadge,repBand);
 
       const right=el('div',{class:'right'});
-      const head=el('div',{class:'head'}); const title=el('h3',{class:'title',text:ex.name}); head.append(title);
 
+      /* NEW: title directly above cooldown bar (with time on the right) */
       const coolRow=el('div',{class:'coolRow'});
+      const coolTop=el('div',{class:'coolTop'});
+      const title=el('h3',{class:'title',text:ex.name});
       const time=el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000).toFixed(App.Config.DEC)+'s'}); ex.els.time=time;
+      coolTop.append(title,time);
       const cool=el('div',{class:'cool'}); const bar=el('div',{class:'coolBar'}); const fill=el('div',{class:'coolFill'}); ex.els.fill=fill; bar.append(fill); cool.append(bar);
-      coolRow.append(time,cool);
+      coolRow.append(coolTop,cool);
 
       const meta=el('div',{class:'metaRow'});
       const kv=el('div',{class:'kv',text:`${Game.perTap(ex)} HP`}); ex.els.kv=kv;
       const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
       meta.append(kv,el('div'),reps);
 
-      right.append(head,coolRow,meta);
+      right.append(coolRow,meta);
 
       const unlockRow=el('div',{class:'unlockRow'}); const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
 
@@ -827,12 +830,12 @@ const UI = {
 
       left.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save();});
       reps.addEventListener('click',()=>{ if(Game.buyReps(ex,State.qty)){ save(); }});
-      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(head,coolRow,meta); card.append(left,right); save(); }});
+      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(coolRow,meta); card.append(left,right); save(); }});
     });
   }
 };
 const Banners={push(html){const host=$('#bannerHost'); const b=el('div',{class:'banner',html:`🎉 ${html}`}); host.appendChild(b); setTimeout(()=>b.remove(),3200);} };
-const FX={confettiAt(node){ if(!node) return; const r=node.getBoundingClientRect(); const x=r.left+r.width/2,y=r.top+r.height/2; const host=el('div'); host.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:2200'; document.body.appendChild(host); const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab']; for(let i=0;i<22;i++){ const d=el('div'); const size=5+Math.random()*6; d.style.cssText=`position:absolute;width:${size}px;height:${size}px;background:${colors[i%colors.length]};opacity:.95;border-radius:${Math.random()<.4?'50%':'2px'};left:${x+(Math.random()*110-55)}px;top:${y+(Math.random()*36-18)}px`; const dx=(Math.random()*2-1)*(innerWidth*.12), dy=(innerHeight*.22+Math.random()*innerHeight*.14); d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1100+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);} setTimeout(()=>host.remove(),2000);} };
+const FX={confettiAt(node){ if(!node) return; const r=node.getBoundingClientRect(); const x=r.left+r.width/2,y=r.top+r.height/2; const host=el('div'); host.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:2200'; document.body.appendChild(host); const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab']; for(let i=0;i<22;i++){ const d=el('div'); const size=5+Math.random()*6; d.style.cssText=`position:absolute;width:${size}px;height:${size}px;background:${colors[i%colors.length]};opacity:.95;border-radius:${Math.random()<.4?'50%':'2px'};left:${x+(Math.random()*110-55)}px;top:${y+(Math.random()*36-18)}px`; const dx=(Math.random()*2-1)*(innerWidth*.12), dy=(Math.random()*innerHeight*.28); d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1100+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);} setTimeout(()=>host.remove(),2000);} };
 
 /* =============== MENU =============== */
 const Menu = {
