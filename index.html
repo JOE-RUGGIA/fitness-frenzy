@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.6.3 (Avatar-anchored tutorial)</title>
+<title>Fitness Frenzy — V1.6.4 (Rounded avatar + pulsing GIFs)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -34,7 +34,7 @@ body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  padding-top:130px; /* adjusted at runtime to match topbar height */
+  padding-top:130px; /* adjusted at runtime */
 }
 img,video{max-width:100%;display:block}
 
@@ -52,11 +52,15 @@ img,video{max-width:100%;display:block}
   gap:12px 16px;align-items:center
 }
 .leftRow{display:flex;align-items:center;gap:16px}
+
+/* Rounded-square AVATAR (not a circle) */
 .avatarBtn{
-  position:relative;width:72px;height:72px;border-radius:50%;
+  position:relative;width:72px;height:72px;border-radius:16px;
   overflow:visible;border:2px solid #2a446c;background:#0b1626;cursor:pointer
 }
-.avatarBtn img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatarBtn img{
+  width:100%;height:100%;object-fit:cover;border-radius:12px
+}
 .notifDot{
   position:absolute;right:-10px;top:-10px;width:22px;height:22px;border-radius:50%;
   background:#39d98a;box-shadow:0 0 0 2px rgba(10,19,32,.95),0 2px 6px rgba(0,0,0,.45);
@@ -70,7 +74,7 @@ img,video{max-width:100%;display:block}
   filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))
 }
 
-/* Smaller bulk-buy buttons */
+/* Bulk-buy buttons */
 .qtyGroup{justify-self:end;display:inline-flex;border:1.5px solid #2b3d5a;border-radius:12px;overflow:hidden}
 .qtyBtn{background:#13233b;color:#cfe0ff;border:0;padding:6px 10px;font-weight:900;cursor:pointer;font-size:14px;line-height:1}
 .qtyBtn.active{background:var(--accent);color:#fff}
@@ -241,30 +245,28 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .segBtn.active[data-avatar="male"]{background:var(--brandBlue);color:#fff}
 .segBtn.active[data-avatar="female"]{background:var(--femaleTint);color:#fff}
 
-/* Tutorial — two modes: centered (JAX) or anchored to avatar (You) */
+/* Tutorial bubble modes */
 .tut{position:fixed;inset:0;z-index:4000;display:none}
 .tut.show{display:block}
 .dim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
 
-/* Base bubble */
+/* Bubble (centered or avatar-anchored) */
 .bubble{
   position:absolute;display:flex;flex-direction:column;align-items:center;text-align:center;
   background:#0f1b2b;border:2px solid var(--pillBr);
   border-radius:18px;padding:26px 28px;max-width:min(1200px,98vw);
   box-shadow:0 18px 36px rgba(0,0,0,.35)
 }
-/* Centered (JAX) */
 .bubble.center{left:50%;bottom:8vh;transform:translateX(-50%)}
-/* Anchored near avatar (You) */
 .bubble.anchored{left:var(--bx); top:var(--by); transform:none}
-/* Pointer on top-left for anchored mode */
 .bubble.tip-tl::after{
   content:""; position:absolute; width:16px; height:16px; left:12px; top:-8px;
   background:#0f1b2b; border-left:2px solid var(--pillBr); border-top:2px solid var(--pillBr);
   transform:rotate(45deg);
 }
 
-.tFace{width:122px;height:122px;border-radius:50%;overflow:hidden;border:2px solid #26406c;background:#0b1423;margin-bottom:12px}
+/* Make tFace container relatively positioned (for GIF pulsing canvas overlay) */
+.tFace{width:122px;height:122px;border-radius:50%;overflow:hidden;border:2px solid #26406c;background:#0b1423;margin-bottom:12px; position:relative}
 .tFace img{width:100%;height:100%;object-fit:cover}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
 .tText{font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch}
@@ -302,7 +304,6 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   <div class="topwrap">
     <div class="leftRow">
       <button id="avatarBtn" class="avatarBtn" title="Menu">
-        <!-- Default avatar (male). JS updates at boot if needed -->
         <img id="avatarImg" alt="Avatar" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-male.gif?raw=true">
         <span id="menuDot" class="notifDot"></span>
       </button>
@@ -434,7 +435,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 10,
+  SCHEMA: 11,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -489,7 +490,7 @@ const MusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-figh
 const MobileMusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
 
 const AudioSys = (()=> {
-  let music, musicVol = 0.15, musicOn = false, currentURL = "";
+  let music, musicVol = 0.15;
   const sfxEnabled = {on:true};
 
   const synth = (type='sine', f=660, d=0.12, g=0.06)=>{
@@ -523,8 +524,6 @@ const AudioSys = (()=> {
   function startMusic(url){
     try{
       if(music){ music.pause(); music=null; }
-      musicOn = true;
-      currentURL = url;
       music = new Audio(url);
       music.loop = true;
       music.volume = musicVol;
@@ -533,10 +532,10 @@ const AudioSys = (()=> {
   }
   function setMusicVol(v){ musicVol=v; if(music) music.volume=v; }
 
-  return { play:playSFX, music:{start:startMusic, setVol:setMusicVol, current:()=>currentURL}, sfxEnabled };
+  return { play:playSFX, music:{start:startMusic, setVol:setMusicVol}, sfxEnabled };
 })();
 
-/* =============== STATE / SAVE / MIGRATION / CONTENT =============== */
+/* =============== STATE / SAVE =============== */
 function freshState(keepAvatar){
   return {
     hp:0, qty:1, avatar: keepAvatar || 'male',
@@ -577,14 +576,14 @@ function hasSave(){
 }
 load();
 
-/* Avatars & trainer assets */
+/* Avatars & trainer assets (GIFs) */
 const Assets = {
   avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-male.gif?raw=true",
   avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-female.gif?raw=true",
   trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true"
 };
 
-/* ==== VIDEO URLS ==== */
+/* ==== VIDEO URLS (first 4 exercises) ==== */
 const VIDEO_MALE = {
   walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercise%20male%20walking.mp4?raw=true",
   jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercise%20male%20running.mp4?raw=true",
@@ -952,7 +951,7 @@ const UI = {
       v.onerror = ()=>{ wrap.innerHTML=''; useStill(); };
       ex.els.video = v; ex.els.icon = v;
       wrap.append(v);
-      UI.scheduleVideoPulse(ex);
+      UI.scheduleVideoPulse(ex); // play briefly every ~10s
     }else{
       useStill();
     }
@@ -991,7 +990,7 @@ const UI = {
       const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
       meta.append(kv,el('div'),reps);
 
-      // Locked layout: title + unlock pill
+      // Locked layout
       const unlockRow=el('div',{class:'unlockRow'}); const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
       const lockTop=el('div',{class:'coolTop'}); const titleLocked=el('h3',{class:'title',text:ex.name}); lockTop.append(titleLocked);
 
@@ -1172,6 +1171,63 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
+/* =============== GIF PULSER (for avatar & JAX trainer) =============== */
+/* Plays an animated GIF briefly, then freezes for ~5–7s by overlaying a canvas snapshot,
+   then restarts the GIF (cache-busted src) and repeats. */
+const GifPulse = (()=> {
+  const handles = new WeakMap();
+  function attach(img, container, playMs=1800){
+    if(!img || !container) return;
+    if(handles.has(img)) return handles.get(img);
+    container.style.position = container.style.position || 'relative';
+    let killed=false, timer=0, canvas=null;
+
+    function clearCanvas(){ if(canvas){ canvas.remove(); canvas=null; } }
+    function restartGif(){
+      try{
+        // cache-bust to restart
+        const base = img.src.split('#')[0].split('?')[0];
+        img.src = base + '?t=' + Date.now();
+      }catch{}
+    }
+    function playPhase(){
+      if(killed) return;
+      clearCanvas();
+      img.style.visibility='visible';
+      restartGif();
+      timer = setTimeout(pausePhase, playMs);
+    }
+    function pausePhase(){
+      if(killed) return;
+      try{
+        clearCanvas();
+        const c=document.createElement('canvas');
+        const w=container.clientWidth||img.clientWidth||72;
+        const h=container.clientHeight||img.clientHeight||72;
+        c.width=Math.max(1,Math.floor(w*devicePixelRatio));
+        c.height=Math.max(1,Math.floor(h*devicePixelRatio));
+        c.style.cssText=`position:absolute;left:0;top:0;width:${w}px;height:${h}px;pointer-events:none`;
+        const ctx=c.getContext('2d');
+        // draw current visible frame into canvas (cross-origin OK; canvas becomes tainted but we don't read it)
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        container.appendChild(c);
+        canvas=c;
+        img.style.visibility='hidden';
+      }catch{}
+      const rest = 5000 + Math.random()*2000; // ~5–7s rest
+      timer = setTimeout(playPhase, rest);
+    }
+
+    // kick off
+    playPhase();
+
+    const handle = { stop(){ killed=true; clearTimeout(timer); clearCanvas(); img.style.visibility='visible'; } };
+    handles.set(img, handle);
+    return handle;
+  }
+  return {attach};
+})();
+
 /* =============== TUTORIAL (with avatar-anchored bubble) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
@@ -1184,12 +1240,9 @@ const Tutorial = (()=> {
   function setSpeaker(who){
     tWho.textContent=who;
     tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
-    // Position bubble: avatar-anchored for "You", centered for "JAX"
-    if(who==='JAX'){
-      setCenteredBubble();
-    }else{
-      setAvatarAnchoredBubble();
-    }
+    if(who==='JAX'){ setCenteredBubble(); } else { setAvatarAnchoredBubble(); }
+    // (Re)attach GIF pulser so JAX or avatar head doesn't loop continuously
+    GifPulse.attach(tFace, tFace.parentElement, 1800);
   }
 
   function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML=lines[0].html; show(); positionCurrentMode(); }
@@ -1218,12 +1271,11 @@ const Tutorial = (()=> {
   function positionBubbleToAvatar(){
     const av = $('#avatarBtn'); if(!av) return;
     const r = av.getBoundingClientRect();
-    // Place bubble to the right of avatar, near its top, with clamp
     const bw = bubble.offsetWidth || 320; const bh = bubble.offsetHeight || 160;
     let x = r.right + 12;
     let y = r.top + 6;
     const maxX = innerWidth - bw - 8;
-    if(x > maxX){ x = Math.max(8, r.left - bw - 12); } // fallback to left side if needed
+    if(x > maxX){ x = Math.max(8, r.left - bw - 12); }
     if(y + bh > innerHeight - 8){ y = Math.max(8, innerHeight - bh - 8); }
     bubble.style.setProperty('--bx', x+'px');
     bubble.style.setProperty('--by', y+'px');
@@ -1234,7 +1286,6 @@ const Tutorial = (()=> {
   }
   function positionCurrentMode(){
     if(bubble.classList.contains('anchored')) positionBubbleToAvatar();
-    // centered mode uses CSS only
   }
   window.addEventListener('resize', positionCurrentMode);
   window.addEventListener('scroll', positionCurrentMode);
@@ -1316,7 +1367,7 @@ const Tutorial = (()=> {
   Bus.on('hp',()=>{ if(!overlayBusy()) scanAll(); });
 
   // expose tiny helpers
-  return {startIntro, scanAll, hide, positionAvatar: positionBubbleToAvatar};
+  return {startIntro, scanAll, positionAvatar: positionBubbleToAvatar};
 })();
 
 /* =============== START / SPLASH =============== */
@@ -1352,6 +1403,9 @@ function wireStart(){
     $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
     document.body.classList.toggle('femaleMode', State.avatar==='female');
 
+    // Start pulsing the avatar GIF
+    GifPulse.attach($('#avatarImg'), $('#avatarBtn'), 1800);
+
     Tutorial.startIntro();
     save();
   });
@@ -1365,6 +1419,8 @@ function wireStart(){
     AudioSys.music.start(url);
     Offline.check(); 
     Tutorial.scanAll(); 
+    // Pulse avatar GIF on continue as well
+    GifPulse.attach($('#avatarImg'), $('#avatarBtn'), 1800);
   });
 
   $$('.segBtn', $('#avatarSeg')).forEach(b=>b.addEventListener('click',()=>{
@@ -1383,6 +1439,8 @@ function wireStart(){
     });
     UI.build(); UI.refreshThrottled();
     save();
+    // Make sure the avatar GIF keeps pulsing after swap
+    GifPulse.attach($('#avatarImg'), $('#avatarBtn'), 1800);
   }));
 }
 
@@ -1412,8 +1470,8 @@ function syncTopbarOffset(){
   const h = Math.ceil(tb.getBoundingClientRect().height);
   document.body.style.paddingTop = h + 'px';
 }
-window.addEventListener('resize', ()=>{ syncTopbarOffset(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); });
-window.addEventListener('orientationchange', ()=>setTimeout(()=>{ syncTopbarOffset(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); },150));
+window.addEventListener('resize', ()=>{ syncTopbarOffset(); });
+window.addEventListener('orientationchange', ()=>setTimeout(()=>{ syncTopbarOffset(); },150));
 window.addEventListener('load', syncTopbarOffset);
 
 /* =============== INIT =============== */
@@ -1433,6 +1491,11 @@ function boot(){
   Coaches.build();
   Engine.start();
   setInterval(save, App.Config.SAVE_MS);
+
+  // Attach GIF pulsing to avatar immediately (covers cases where music gate blocks click)
+  GifPulse.attach($('#avatarImg'), $('#avatarBtn'), 1800);
+  // Attach GIF pulsing to JAX face (trainer bubble)
+  GifPulse.attach($('#tFace'), $('#tFace').parentElement, 1800);
 }
 document.addEventListener('DOMContentLoaded', boot);
 </script>
