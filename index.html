@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.5.5 (centered media)</title>
+<title>Fitness Frenzy — V1.5.6 (locked names)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -23,7 +23,7 @@
   --space:clamp(10px,2.2vw,18px);
   --r:16px;
   --barH:20px;
-  --repband:14%;          /* height reserved at bottom of the icon square */
+  --repband:14%;
   --femaleTint:#ff5fa8;
 }
 
@@ -103,8 +103,7 @@ img,video{max-width:100%;display:block}
   background:#102036;border:1px solid #223b60;overflow:hidden;transform:translateZ(0)
 }
 
-/* MEDIA LAYER
-   we reserve bottom space for the green rep band and keep media centered */
+/* MEDIA LAYER — centered inside square, reserving band */
 .card .left .mediaWrap{
   position:absolute;left:0;top:0;right:0;bottom:var(--repband);
   display:flex;align-items:center;justify-content:center;z-index:1
@@ -112,14 +111,14 @@ img,video{max-width:100%;display:block}
 .card .left .mediaWrap video,
 .card .left .mediaWrap img{
   width:100%;height:100%;
-  object-fit:contain;           /* <— key: no crop */
-  object-position:center;       /* <— key: centered */
+  object-fit:contain;
+  object-position:center;
 }
 
-/* Emoji rendering inside mediaWrap */
+/* Emoji inside mediaWrap */
 .emo{font-size:clamp(44px,9vw,60px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
 
-/* Female skin tint for the square only */
+/* Female tint */
 body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.15),#102036);border-color:#6a2a4f}
 
 /* Tap FX */
@@ -132,21 +131,21 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   100%{box-shadow:0 0 0 0 rgba(255,179,87,.0), inset 0 0 0 0 rgba(255,179,87,.0); transform:scale(1)}
 }
 
-/* Badges sit above media */
+/* Badges (top layer) */
 .lvlBadge{position:absolute;left:6px;top:6px;z-index:2;background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:2px 6px;font-size:12px}
 .coachBadge{position:absolute;right:6px;top:6px;z-index:2;width:24px;height:24px;border-radius:6px;overflow:hidden;border:1px solid #2b3d5a;background:#13233b;display:none}
 .coachBadge img{width:100%;height:100%;object-fit:cover}
 @media (max-width:420px){ .coachBadge{width:22px;height:22px} }
 
-/* Green rep band overlays at bottom (top layer) */
+/* Rep band */
 .repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);z-index:3;background:#14361f;border-top:1px solid #204e2b;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
 .repText{position:relative;font-size:12px;color:#cfead6;font-weight:700;text-shadow:0 1px 0 rgba(0,0,0,.4)}
 
-/* Right column — tightly stacked */
+/* Right column — tight */
 .right{display:flex;flex-direction:column;gap:6px;min-width:0}
 
-/* Title directly above cooldown bar (with time aligned right) */
+/* Title row + cooldown */
 .coolRow{display:flex;flex-direction:column;align-items:stretch;gap:4px}
 .coolTop{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .title{font-size:clamp(16px,3.2vw,18px);margin:0}
@@ -157,7 +156,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .coolFill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.2) 0 6px,transparent 6px 12px);opacity:.65;mix-blend-mode:overlay;animation:stripe 1.2s linear infinite}
 @keyframes stripe{to{background-position:60px 0}}
 
-/* Meta row: fixed height, no jitter */
+/* Meta row: fixed height */
 .metaRow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;min-height:34px}
 .kv{background:#13223a;border:1px solid #203659;border-radius:10px;padding:3px 8px;color:#cfe0ff;font-size:13px;min-width:76px;white-space:nowrap}
 .repsBtn{padding:8px 10px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:13px;white-space:nowrap;min-width:120px;text-align:center;font-variant-numeric:tabular-nums}
@@ -618,7 +617,7 @@ const EX_EMOJI_FEMALE = [
   ['vcross','Victorian Cross','🏆', 786432000]
 ];
 
-/* Coaches (icons & names kept from your previous lists) */
+/* Coaches */
 const COACH_URL = [
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/coach%205.png?raw=true",
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Clips%20(4).png?raw=true",
@@ -648,7 +647,7 @@ const COACH_NAME = [
   "Inverted Ivy","Ring Raptor Max","Lever Leo","Cross Coach Iris","Victorian Victor"
 ];
 
-/* Build exercises and attach video + still mappings */
+/* Build exercises */
 function baseSet(){ return (State.avatar==='female') ? EX_EMOJI_FEMALE : EX_EMOJI_MALE; }
 function videoMap(){ return (State.avatar==='female') ? VIDEO_FEMALE : VIDEO_MALE; }
 function stillMap(){ return (State.avatar==='female') ? STILL_FEMALE : STILL_MALE; }
@@ -934,7 +933,10 @@ const UI = {
       const left=el('div',{class:'left'}); ex.els.left=left;
       UI.attachMedia(ex);
 
+      // Right column elements (prepare both states)
       const right=el('div',{class:'right'});
+
+      // Unlocked layout
       const coolRow=el('div',{class:'coolRow'});
       const coolTop=el('div',{class:'coolTop'});
       const title=el('h3',{class:'title',text:ex.name});
@@ -948,16 +950,35 @@ const UI = {
       const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
       meta.append(kv,el('div'),reps);
 
-      right.append(coolRow,meta);
-
+      // Locked layout: title + unlock pill
       const unlockRow=el('div',{class:'unlockRow'}); const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
+      const lockTop=el('div',{class:'coolTop'});
+      const titleLocked=el('h3',{class:'title',text:ex.name});
+      lockTop.append(titleLocked);
 
-      if(ex.unlocked){ card.append(left,right);} else { card.append(left,unlockRow); }
+      // Attach depending on state
+      if(ex.unlocked){
+        right.append(coolRow,meta);
+        card.append(left,right);
+      }else{
+        right.append(lockTop,unlockRow);
+        card.append(left,right);
+      }
       host.appendChild(card);
 
+      // Interactions
       left.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save();});
       reps.addEventListener('click',()=>{ if(Game.buyReps(ex,State.qty)){ save(); }});
-      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); unlockRow.remove(); right.replaceChildren(coolRow,meta); card.append(left,right); save(); UI.scheduleVideoPulse(ex); }});
+      pill.addEventListener('click',()=>{ 
+        if(Game.unlock(ex)){ 
+          card.classList.remove('locked','unlockPulse');
+          unlockRow.remove();
+          right.replaceChildren(coolRow,meta);
+          card.append(left,right);
+          save(); 
+          UI.scheduleVideoPulse(ex); 
+        }
+      });
     });
   }
 };
@@ -1113,7 +1134,7 @@ const Offline = (()=> {
   return {check};
 })();
 
-/* =============== TUTORIAL (core hooks) =============== */
+/* =============== TUTORIAL =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
@@ -1223,10 +1244,9 @@ function wireStart(){
     $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
     document.body.classList.toggle('femaleMode', State.avatar==='female');
 
-    // rebuild exercises with correct video + still sources / emojis
+    // rebuild exercises with correct sources
     const prev = State.exercises;
     buildExercises();
-    // carry over dynamic state from prev list
     State.exercises.forEach(ex=>{
       const old = prev.find(p=>p.id===ex.id);
       if(old){
