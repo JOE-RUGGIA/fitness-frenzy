@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.6.2 (Avatars updated)</title>
+<title>Fitness Frenzy — V1.6.3 (Avatar-anchored tutorial)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -34,7 +34,7 @@ body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  padding-top:130px; /* adjusted at runtime */
+  padding-top:130px; /* adjusted at runtime to match topbar height */
 }
 img,video{max-width:100%;display:block}
 
@@ -241,16 +241,29 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .segBtn.active[data-avatar="male"]{background:var(--brandBlue);color:#fff}
 .segBtn.active[data-avatar="female"]{background:var(--femaleTint);color:#fff}
 
-/* Tutorial — avatar ABOVE text, larger */
+/* Tutorial — two modes: centered (JAX) or anchored to avatar (You) */
 .tut{position:fixed;inset:0;z-index:4000;display:none}
 .tut.show{display:block}
 .dim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
+
+/* Base bubble */
 .bubble{
-  position:absolute;left:50%;bottom:8vh;transform:translateX(-50%);
-  display:flex;flex-direction:column;align-items:center;text-align:center;
+  position:absolute;display:flex;flex-direction:column;align-items:center;text-align:center;
   background:#0f1b2b;border:2px solid var(--pillBr);
-  border-radius:18px;padding:26px 28px;max-width:min(1200px,98vw);box-shadow:0 18px 36px rgba(0,0,0,.35)
+  border-radius:18px;padding:26px 28px;max-width:min(1200px,98vw);
+  box-shadow:0 18px 36px rgba(0,0,0,.35)
 }
+/* Centered (JAX) */
+.bubble.center{left:50%;bottom:8vh;transform:translateX(-50%)}
+/* Anchored near avatar (You) */
+.bubble.anchored{left:var(--bx); top:var(--by); transform:none}
+/* Pointer on top-left for anchored mode */
+.bubble.tip-tl::after{
+  content:""; position:absolute; width:16px; height:16px; left:12px; top:-8px;
+  background:#0f1b2b; border-left:2px solid var(--pillBr); border-top:2px solid var(--pillBr);
+  transform:rotate(45deg);
+}
+
 .tFace{width:122px;height:122px;border-radius:50%;overflow:hidden;border:2px solid #26406c;background:#0b1423;margin-bottom:12px}
 .tFace img{width:100%;height:100%;object-fit:cover}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
@@ -289,7 +302,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   <div class="topwrap">
     <div class="leftRow">
       <button id="avatarBtn" class="avatarBtn" title="Menu">
-        <!-- UPDATED DEFAULT AVATAR SRC -->
+        <!-- Default avatar (male). JS updates at boot if needed -->
         <img id="avatarImg" alt="Avatar" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-male.gif?raw=true">
         <span id="menuDot" class="notifDot"></span>
       </button>
@@ -355,9 +368,9 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 <div id="tut" class="tut" aria-hidden="true">
   <div class="dim"></div>
   <div id="spot" class="spot" style="display:none"></div>
-  <div class="bubble" id="bubble">
+  <div class="bubble center" id="bubble">
     <div class="tFace">
-      <img id="tFace" alt="Trainer" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true">
+      <img id="tFace" alt="Speaker" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true">
     </div>
     <div class="tWho" id="tWho">JAX</div>
     <div class="tText" id="tText">…</div>
@@ -564,7 +577,7 @@ function hasSave(){
 }
 load();
 
-/* UPDATED AVATAR ASSETS */
+/* Avatars & trainer assets */
 const Assets = {
   avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-male.gif?raw=true",
   avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-female.gif?raw=true",
@@ -1159,20 +1172,78 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL =============== */
+/* =============== TUTORIAL (with avatar-anchored bubble) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
+
   function overlayBusy(){ return ov.classList.contains('show'); }
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); AudioSys.play('tutorial.hide'); hideSpot(); setTimeout(scanAll, 60); }
-  function setSpeaker(who){ tWho.textContent=who; tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); }
-  function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML=lines[0].html; show(); }
-  function nextLine(lines,onDone){ if(idx<lines.length-1){ idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next'); } else { if(onDone) onDone(); } }
-  bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines,step.onDone);});
+
+  function setSpeaker(who){
+    tWho.textContent=who;
+    tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
+    // Position bubble: avatar-anchored for "You", centered for "JAX"
+    if(who==='JAX'){
+      setCenteredBubble();
+    }else{
+      setAvatarAnchoredBubble();
+    }
+  }
+
+  function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML=lines[0].html; show(); positionCurrentMode(); }
+  function nextLine(lines,onDone){
+    if(idx<lines.length-1){
+      idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next'); positionCurrentMode();
+    } else {
+      if(onDone) onDone();
+    }
+  }
+  bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines,step.onDone); });
+
+  /* ---- Bubble modes ---- */
+  function setCenteredBubble(){
+    bubble.classList.add('center');
+    bubble.classList.remove('anchored','tip-tl');
+    bubble.style.left='50%'; bubble.style.bottom='8vh'; bubble.style.top='auto';
+    bubble.style.setProperty('--bx',''); bubble.style.setProperty('--by','');
+    bubble.style.transform='translateX(-50%)';
+  }
+  function setAvatarAnchoredBubble(){
+    bubble.classList.remove('center');
+    bubble.classList.add('anchored','tip-tl');
+    positionBubbleToAvatar();
+  }
+  function positionBubbleToAvatar(){
+    const av = $('#avatarBtn'); if(!av) return;
+    const r = av.getBoundingClientRect();
+    // Place bubble to the right of avatar, near its top, with clamp
+    const bw = bubble.offsetWidth || 320; const bh = bubble.offsetHeight || 160;
+    let x = r.right + 12;
+    let y = r.top + 6;
+    const maxX = innerWidth - bw - 8;
+    if(x > maxX){ x = Math.max(8, r.left - bw - 12); } // fallback to left side if needed
+    if(y + bh > innerHeight - 8){ y = Math.max(8, innerHeight - bh - 8); }
+    bubble.style.setProperty('--bx', x+'px');
+    bubble.style.setProperty('--by', y+'px');
+    bubble.style.left = x+'px';
+    bubble.style.top = y+'px';
+    bubble.style.bottom = 'auto';
+    bubble.style.transform = 'none';
+  }
+  function positionCurrentMode(){
+    if(bubble.classList.contains('anchored')) positionBubbleToAvatar();
+    // centered mode uses CSS only
+  }
+  window.addEventListener('resize', positionCurrentMode);
+  window.addEventListener('scroll', positionCurrentMode);
+
+  /* ---- Spot helpers ---- */
   function showSpot(sel){ const node=document.querySelector(sel); if(!node){hideSpot();return;} const r=node.getBoundingClientRect(); const pad=6; spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px';}
   function hideSpot(){ spot.style.display='none'; }
 
+  /* ---- Scripted events ---- */
   function startIntro(){
     if(State.tutorial.doneIntro) return;
     const lines=[
@@ -1194,7 +1265,8 @@ const Tutorial = (()=> {
     State.tutorial.shown.repsHint = true; save();
     const lines=[
       {who:'JAX',html:`Great start! Use <span class="hl">Reps</span> to hit harder each tap.`},
-      {who:'JAX',html:`Watch the <span class="hl">green bar</span> (0/10). When it fills, your <span class="hl">cooldown halves</span>.`}
+      {who:'You',html:`And the <span class="hl">green bar</span>?</span>`},
+      {who:'JAX',html:`When it fills, your <span class="hl">cooldown halves</span>. Big gains.`}
     ];
     setLines(lines);
     step={lines,onDone(){ hide(); }}; showSpot('.card[data-id="walk"] .repsBtn');
@@ -1243,7 +1315,8 @@ const Tutorial = (()=> {
   Bus.on('upgrade',({id})=>{ const ex=State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
   Bus.on('hp',()=>{ if(!overlayBusy()) scanAll(); });
 
-  return {startIntro, scanAll, hide};
+  // expose tiny helpers
+  return {startIntro, scanAll, hide, positionAvatar: positionBubbleToAvatar};
 })();
 
 /* =============== START / SPLASH =============== */
@@ -1339,8 +1412,8 @@ function syncTopbarOffset(){
   const h = Math.ceil(tb.getBoundingClientRect().height);
   document.body.style.paddingTop = h + 'px';
 }
-window.addEventListener('resize', ()=>syncTopbarOffset());
-window.addEventListener('orientationchange', ()=>setTimeout(syncTopbarOffset,150));
+window.addEventListener('resize', ()=>{ syncTopbarOffset(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); });
+window.addEventListener('orientationchange', ()=>setTimeout(()=>{ syncTopbarOffset(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); },150));
 window.addEventListener('load', syncTopbarOffset);
 
 /* =============== INIT =============== */
