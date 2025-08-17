@@ -1365,62 +1365,64 @@ function boot(){
 }
 document.addEventListener('DOMContentLoaded', boot);
 </script>
-<!-- ===== MP4 avatar + Jax patch (drop-in) ===== -->
+<!-- ===== MP4 avatar + Jax patch (fixed female URL + robust fallback) ===== -->
 <style>
-  /* Make the avatar truly circular and ensure videos fit */
-  .avatarBtn { border-radius:50% !important; }
+  .avatarBtn { border-radius:50% !important; overflow:hidden; }
   .avatarBtn video,
   .tFace video {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    border-radius: 50%;
   }
-  /* Keep the original images hidden once video is active (we still use them as poster fallbacks) */
+  /* Keep the original images hidden once video mounts (used as posters/fallbacks) */
   .avatarBtn img#avatarImg,
   .tFace img#tFace { display:none !important; }
 </style>
 
 <script>
 (function(){
-  // --- 1) Register your MP4 sources (with raw=1 so GitHub serves the file) ---
+  // --- 1) Register MP4 sources (corrected female URL) ---
   try {
     window.Assets = window.Assets || {};
     Assets.avatarMaleVideo   = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff%20player%20small.mp4?raw=true";
-    Assets.avatarFemaleVideo = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-%20player%20femal%20small.mp4?raw=true";
+    Assets.avatarFemaleVideo = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff%20player%20female%20small.mp4?raw=true"; // ← fixed
     Assets.trainerVideo      = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff%20Jax%20small.mp4?raw=true";
-    // Posters fall back to your existing GIFs you already had in Assets
+
+    // Posters: re-use your existing GIFs as posters if present
     Assets.avatarMalePoster   = Assets.avatarMale;
     Assets.avatarFemalePoster = Assets.avatarFemale;
     Assets.trainerPoster      = Assets.trainer;
   } catch(e) {}
 
-  // Utility: create a playsinline looping muted video
-  function makeVideo(src, poster){
+  function makeVideo(src, poster, loop=true){
     const v = document.createElement('video');
     v.muted = true;          // iOS autoplay requirement
     v.playsInline = true;    // iOS inline playback
     v.autoplay = true;
-    v.loop = true;
+    v.loop = loop;
     v.preload = 'metadata';
     if (poster) v.poster = poster;
     v.src = src;
-    // Try to play, fail silently if user gesture is required
-    v.play && v.play().catch(()=>{});
+
+    // If autoplay fails (policy) or network error, just let the poster show
+    const bailToPoster = () => { /* poster remains visible */ };
+    v.addEventListener('error', bailToPoster, {once:true});
+    v.play && v.play().catch(bailToPoster);
     return v;
   }
 
-  // --- 2) Avatar: swap <img id="avatarImg"> for a <video> sibling (keep img hidden as poster) ---
+  // --- Avatar video wiring ---
   function ensureAvatarVideo(){
     const btn = document.getElementById('avatarBtn');
     if(!btn) return null;
     let vid = btn.querySelector('video#avatarVid');
     if(!vid){
-      vid = makeVideo('', '');
-      vid.id = 'avatarVid';
-      // Hide the old IMG but leave it for poster fallback
       const img = document.getElementById('avatarImg');
-      if(img) img.style.display = 'none';
+      if(img) img.style.display = 'none'; // keep as poster fallback
+      vid = makeVideo('', '', true);
+      vid.id = 'avatarVid';
       btn.insertBefore(vid, btn.firstChild);
       // keep the green dot on top
       const dot = document.getElementById('menuDot');
@@ -1434,35 +1436,33 @@ document.addEventListener('DOMContentLoaded', boot);
     const isF = !!(window.State && State.avatar === 'female');
     const src    = isF ? Assets.avatarFemaleVideo   : Assets.avatarMaleVideo;
     const poster = isF ? Assets.avatarFemalePoster  : Assets.avatarMalePoster;
+
     if (!src) return;
-    if (vid.src !== src) vid.src = src;
     if (poster) vid.poster = poster;
+    if (vid.src !== src) vid.src = src;
     vid.play && vid.play().catch(()=>{});
   }
 
-  // If your existing code still flips #avatarImg.src on gender change, watch it and sync the video
+  // Observe avatar image SRC flips (legacy code paths) and also respond to gender toggle clicks
   const avatarImg = document.getElementById('avatarImg');
   if (avatarImg) {
     avatarImg.style.display = 'none';
-    const mo = new MutationObserver(syncAvatarVideo);
-    mo.observe(avatarImg, {attributes:true, attributeFilter:['src']});
+    new MutationObserver(syncAvatarVideo).observe(avatarImg, {attributes:true, attributeFilter:['src']});
   }
-  // Also listen for clicks on the male/female selector (segBtn) to resync
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('.segBtn[data-avatar]');
     if(btn) setTimeout(syncAvatarVideo, 0);
   });
 
-  // --- 3) Tutorial: show Jax/Player as MP4 inside .tFace (without touching your tutorial code) ---
+  // --- Tutorial face video wiring (Jax / Player) ---
   function ensureFaceVideo(){
     const box = document.querySelector('.tFace');
     if(!box) return null;
     let vid = box.querySelector('video#tFaceVid');
     if(!vid){
-      // Hide the original IMG; keep for poster fallback
       const img = document.getElementById('tFace');
       if(img) img.style.display = 'none';
-      vid = makeVideo('', '');
+      vid = makeVideo('', '', true);
       vid.id = 'tFaceVid';
       vid.style.borderRadius = '12px';
       box.appendChild(vid);
@@ -1474,7 +1474,8 @@ document.addEventListener('DOMContentLoaded', boot);
     const vid = ensureFaceVideo(); if(!vid) return;
     const whoEl = document.getElementById('tWho');
     const who = (whoEl ? whoEl.textContent : '').trim().toUpperCase();
-    let src='', poster='';
+
+    let src = '', poster = '';
     if (who === 'JAX') {
       src    = Assets.trainerVideo;
       poster = Assets.trainerPoster || Assets.trainer;
@@ -1483,28 +1484,27 @@ document.addEventListener('DOMContentLoaded', boot);
       src    = isF ? Assets.avatarFemaleVideo  : Assets.avatarMaleVideo;
       poster = isF ? Assets.avatarFemalePoster : Assets.avatarMalePoster;
     }
+
     if (!src) return;
-    if (vid.src !== src) vid.src = src;
     if (poster) vid.poster = poster;
+    if (vid.src !== src) vid.src = src;
     vid.play && vid.play().catch(()=>{});
   }
 
-  // Observe changes in the tutorial bubble to keep the video in sync
+  // Watch tutorial bubble for speaker/content changes to resync the face video
   const tutRoot = document.getElementById('tut');
   if (tutRoot) {
-    const mo2 = new MutationObserver((muts)=>{
-      // If speaker changes or bubble content updates, resync
+    new MutationObserver((muts)=>{
       for (const m of muts) {
         if (m.type === 'childList' || (m.type === 'attributes' && m.target.id === 'tWho')) {
           syncFaceVideo();
           break;
         }
       }
-    });
-    mo2.observe(tutRoot, {subtree:true, childList:true, attributes:true});
+    }).observe(tutRoot, {subtree:true, childList:true, attributes:true});
   }
 
-  // Try initial syncs once DOM is ready
+  // Initial sync
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', ()=>{ syncAvatarVideo(); syncFaceVideo(); });
   } else {
@@ -1514,6 +1514,7 @@ document.addEventListener('DOMContentLoaded', boot);
 })();
 </script>
 <!-- ===== /MP4 avatar + Jax patch ===== -->
+
 
 </body>
 </html>
