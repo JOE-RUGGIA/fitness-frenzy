@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.6.5 (GIF bursts)</title>
+<title>Fitness Frenzy — V1.6.4 (GIF media for first 4 exercises)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -108,9 +108,8 @@ img{max-width:100%;display:block}
   position:absolute;left:0;top:0;right:0;bottom:var(--repband);
   display:flex;align-items:center;justify-content:center;z-index:1
 }
-.mediaWrap > *{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.mediaWrap img{width:100%;height:100%;object-fit:contain;object-position:center}
-.mediaWrap .emo{font-size:clamp(44px,9vw,60px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35));}
+.card .left .mediaWrap img{width:100%;height:100%;object-fit:contain;object-position:center}
+.emo{font-size:clamp(44px,9vw,60px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35));display:flex;align-items:center;justify-content:center;width:100%;height:100%}
 
 /* Female tint */
 body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.15),#102036);border-color:#6a2a4f}
@@ -245,19 +244,25 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .tut{position:fixed;inset:0;z-index:4000;display:none}
 .tut.show{display:block}
 .dim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
+
+/* Base bubble */
 .bubble{
   position:absolute;display:flex;flex-direction:column;align-items:center;text-align:center;
   background:#0f1b2b;border:2px solid var(--pillBr);
   border-radius:18px;padding:26px 28px;max-width:min(1200px,98vw);
   box-shadow:0 18px 36px rgba(0,0,0,.35)
 }
+/* Centered (JAX) */
 .bubble.center{left:50%;bottom:8vh;transform:translateX(-50%)}
+/* Anchored near avatar (You) */
 .bubble.anchored{left:var(--bx); top:var(--by); transform:none}
+/* Pointer on top-left for anchored mode */
 .bubble.tip-tl::after{
   content:""; position:absolute; width:16px; height:16px; left:12px; top:-8px;
   background:#0f1b2b; border-left:2px solid var(--pillBr); border-top:2px solid var(--pillBr);
   transform:rotate(45deg);
 }
+
 .tFace{width:122px;height:122px;border-radius:50%;overflow:hidden;border:2px solid #26406c;background:#0b1423;margin-bottom:12px}
 .tFace img{width:100%;height:100%;object-fit:cover}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
@@ -296,6 +301,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   <div class="topwrap">
     <div class="leftRow">
       <button id="avatarBtn" class="avatarBtn" title="Menu">
+        <!-- Default avatar (male). JS updates at boot if needed -->
         <img id="avatarImg" alt="Avatar" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-male.gif?raw=true">
         <span id="menuDot" class="notifDot"></span>
       </button>
@@ -427,7 +433,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 12,
+  SCHEMA: 11,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -577,7 +583,7 @@ const Assets = {
   trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true"
 };
 
-/* ==== GIFs for first 4 exercises (male/female) ==== */
+/* ==== NEW GIFs for first 4 exercises ==== */
 const GIF_MALE = {
   walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.gif?raw=true",
   jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.gif?raw=true",
@@ -669,7 +675,7 @@ const COACH_NAME = [
   "Coach Hank HSPU","Coach Maya Muscle","Coach Felix Lever","Coach Iris Cross","Coach Victor Cross"
 ];
 
-/* Build exercises with GIF burst support for first 4 */
+/* Build exercises with GIFs for the first 4 */
 function baseSet(){ return (State.avatar==='female') ? EX_EMOJI_FEMALE : EX_EMOJI_MALE; }
 function gifMap(){ return (State.avatar==='female') ? GIF_FEMALE : GIF_MALE; }
 
@@ -690,8 +696,7 @@ function buildExercises(){
       unlocked: (prev.unlocked!==undefined)?prev.unlocked:(i===0),
       repHP: prev.repHP||0, repProgress: prev.repProgress||0, repTarget: prev.repTarget||10,
       level: prev.level||1, cooldown: prev.cooldown||cd,
-      lastTapAt: 0, _autoElapsed: 0, _pulseTimer: 0,
-      els:{}
+      lastTapAt: 0, _autoElapsed: 0, _pulseTimer: 0, els:{}
     });
   }
   State.exercises = arr;
@@ -711,8 +716,8 @@ const Game = {
     ex.lastTapAt = now;
     const g = Game.perTap(ex);
     Game.addHP(g); State.stats.manual++; AudioSys.play('tap.ok');
-    UI.floatFrom(UI.visibleIcon(ex) || ex.els.card, `+${g}`);
-    UI.burst(ex.els.left); UI.bounce(UI.visibleIcon(ex));
+    UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`);
+    UI.burst(ex.els.left); UI.bounce(ex.els.icon);
     ex.els.left.classList.add('hit'); setTimeout(()=>ex.els.left.classList.remove('hit'), 260);
     return g;
   },
@@ -781,7 +786,7 @@ const Engine = (()=> {
         ex.lastTapAt = now;
         const g = Game.perTap(ex);
         Game.addHP(g); State.stats.auto++;
-        if(Settings.get('floats')) UI.floatFrom(UI.visibleIcon(ex) || ex.els.card, `+${g}`);
+        if(Settings.get('floats')) UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`);
       }
     }
     // Cooldown visuals
@@ -792,16 +797,9 @@ const Engine = (()=> {
   return {start:()=>requestAnimationFrame(loop)};
 })();
 
-/* =============== UI (cards + FX + media with GIF bursts) =============== */
+/* =============== UI (cards + FX + media) =============== */
 const UI = {
   _hpShown:0,
-
-  visibleIcon(ex){
-    if(ex.els.gifImg && ex.els.gifImg.style.display!=='none') return ex.els.gifImg;
-    if(ex.els.still) return ex.els.still;
-    return ex.els.icon || ex.els.left;
-  },
-
   floatFrom(ref, text){
     if(!ref || !Settings.get('floats')) return;
     const r=ref.getBoundingClientRect();
@@ -882,34 +880,19 @@ const UI = {
     $('#hpMini').textContent=Util.fmtHP(UI._hpShown);
   },
 
-  /* ---- GIF burst scheduler ---- */
-  scheduleGifBurst(ex){
+  /* ---- GIF helpers ---- */
+  scheduleGifPulse(ex){
     if(ex._pulseTimer) clearTimeout(ex._pulseTimer);
-    if(!ex.unlocked || !ex.els.gifImg) return;
-    const delay = 9000 + Math.random()*3000;   // wait ~9–12s between bursts
-    const showMs = 1200;                       // show GIF for ~1.2s
-
+    if(!ex.unlocked || !ex.els.icon || ex.els.icon.tagName!=='IMG') return;
+    const delay = 9000 + Math.random()*3000; // ~10–12s
     ex._pulseTimer = setTimeout(()=>{
-      if(document.hidden || !Util.inView(ex.els.left) || !ex.unlocked){
-        UI.scheduleGifBurst(ex); 
-        return;
-      }
+      if(document.hidden || !Util.inView(ex.els.left)) { UI.scheduleGifPulse(ex); return; }
       try{
-        // cache-bust so GIF starts from frame 1 every burst
+        // Cache-bust to restart GIF
         const base = ex.gifUrl.split('#')[0].split('?')[0];
-        ex.els.gifImg.src = base + '?raw=true&t=' + Date.now();
+        ex.els.icon.src = base + '?raw=true&t=' + Date.now();
       }catch{}
-
-      // show GIF, hide still
-      ex.els.gifImg.style.display = 'block';
-      if(ex.els.still) ex.els.still.style.display = 'none';
-
-      setTimeout(()=>{
-        // hide GIF, show still (pause look)
-        ex.els.gifImg.style.display = 'none';
-        if(ex.els.still) ex.els.still.style.display = 'flex';
-        UI.scheduleGifBurst(ex);
-      }, showMs);
+      UI.scheduleGifPulse(ex);
     }, delay);
   },
 
@@ -922,22 +905,17 @@ const UI = {
     const coachBadge=el('div',{class:'coachBadge'}); const coachImg=el('img',{alt:'Coach'}); coachBadge.append(coachImg);
     ex.els.coachBadge=coachBadge; ex.els.coachBadgeImg=coachImg;
 
-    // still layer (emoji)
-    const still = el('div',{class:'emo',text:ex.emoji});
-    still.style.display = 'flex';
-    ex.els.still = still;
-    ex.els.icon = still; // default visible icon reference
-
-    // gif layer (hidden by default until burst)
-    let gifImg = null;
     if(ex.gifUrl){
-      gifImg = el('img',{src:ex.gifUrl, alt:ex.name});
-      gifImg.style.display = 'none';
-      ex.els.gifImg = gifImg;
-      wrap.append(gifImg);
+      const img = el('img',{src:ex.gifUrl, alt:ex.name});
+      ex.els.icon = img;
+      wrap.append(img);
+      if(ex.unlocked) UI.scheduleGifPulse(ex);
+    }else{
+      const div = el('div',{class:'emo',text:ex.emoji});
+      ex.els.icon = div;
+      wrap.append(div);
     }
 
-    wrap.append(still);
     ex.els.left.append(wrap, lvl, coachBadge);
 
     const repBand=el('div',{class:'repBand'});
@@ -946,9 +924,6 @@ const UI = {
     ex.els.repFill=repFill; ex.els.repText=repText;
     repBand.append(repFill,repText);
     ex.els.left.append(repBand);
-
-    // start burst cycle if unlocked and has GIF
-    if(ex.unlocked && ex.gifUrl) UI.scheduleGifBurst(ex);
   },
 
   build(){
@@ -998,7 +973,7 @@ const UI = {
           right.replaceChildren(coolRow,meta);
           card.append(left,right);
           save(); 
-          if(ex.gifUrl) UI.scheduleGifBurst(ex);
+          if(ex.gifUrl) UI.scheduleGifPulse(ex);
         }
       });
     });
@@ -1287,6 +1262,7 @@ const Tutorial = (()=> {
   Bus.on('upgrade',({id})=>{ const ex=State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
   Bus.on('hp',()=>{ if(!overlayBusy()) scanAll(); });
 
+  // expose tiny helpers
   return {startIntro, scanAll, hide, positionAvatar: positionBubbleToAvatar};
 })();
 
