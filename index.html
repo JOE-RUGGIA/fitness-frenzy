@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.5.9 (New Coaches)</title>
+<title>Fitness Frenzy — V1.6.0 (Mobile fix)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -418,7 +418,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 10,
+  SCHEMA: 10,   // keep schema; we migrate dynamically
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -520,7 +520,7 @@ const AudioSys = (()=> {
   return { play:playSFX, music:{start:startMusic, setVol:setMusicVol, current:()=>currentURL}, sfxEnabled };
 })();
 
-/* =============== STATE / SAVE / CONTENT =============== */
+/* =============== STATE / SAVE / MIGRATION / CONTENT =============== */
 function freshState(keepAvatar){
   return {
     hp:0, qty:1, avatar: keepAvatar || 'male',
@@ -531,6 +531,21 @@ function freshState(keepAvatar){
 }
 let State = freshState();
 
+function normalizeState(){
+  // Ensure tutorial object shape exists even for old saves
+  const t = State.tutorial;
+  if(!t || typeof t!=='object'){ State.tutorial = {doneIntro:false, shown:{unlock:{}, coachFirst:false, repsHint:false, upgrade:{}}}; return; }
+  if(typeof t.doneIntro!=='boolean'){
+    // migrate old flag if present
+    t.doneIntro = !!t.done;
+  }
+  if(!t.shown || typeof t.shown!=='object') t.shown = {};
+  if(!t.shown.unlock || typeof t.shown.unlock!=='object') t.shown.unlock = {};
+  if(typeof t.shown.coachFirst!=='boolean') t.shown.coachFirst = false;
+  if(typeof t.shown.repsHint!=='boolean') t.shown.repsHint = false;
+  if(!t.shown.upgrade || typeof t.shown.upgrade!=='object') t.shown.upgrade = {};
+}
+
 function save(){ try{localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify({schema:App.Config.SCHEMA, ...State}));}catch{} }
 function load(){
   try{
@@ -538,6 +553,7 @@ function load(){
     const j=JSON.parse(raw);
     if(j && j.schema){ State = Object.assign(freshState(j.avatar), j); }
   }catch{}
+  normalizeState();
 }
 function hasSave(){
   try{
@@ -630,7 +646,7 @@ const EX_EMOJI_FEMALE = [
 ];
 
 /* =========================
-   COACHES: new images & names
+   COACHES (images & names)
    ========================= */
 const COACH_URL = [
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c1.png?raw=true",
@@ -654,29 +670,11 @@ const COACH_URL = [
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c19.png?raw=true",
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c20.png?raw=true"
 ];
-
-/* Alternating F/M starting with female, named for each exercise */
 const COACH_NAME = [
-  "Coach Sofia Stride",   // Walking (F)
-  "Coach Mason Pace",     // Jogging (M)
-  "Coach Cara Crunch",    // Sit-ups (F)
-  "Coach Leo Press",      // Push-ups (M)
-  "Coach Jenna Jump",     // Jumping Jacks (F)
-  "Coach Mark Pull",      // Pull-ups (M)
-  "Coach Rina Rope",      // Jump Rope (F)
-  "Coach Pete Plank",     // Plank (M)
-  "Coach Mia Summit",     // Mountain Climbers (F)
-  "Coach Kyle Kettlebell",// Kettlebell (M)
-  "Coach Bella Burpee",   // Burpees (F)
-  "Coach Ben Bench",      // Bench Press (M)
-  "Coach Sara Squat",     // Back Squat (F)
-  "Coach Dan Deadlift",   // Deadlift (M)
-  "Coach Hannah Handstand",// Handstands (F)
-  "Coach Hank HSPU",      // Handstand Push-ups (M)
-  "Coach Maya Muscle",    // Muscle-ups (F)
-  "Coach Felix Lever",    // Front Lever (M)
-  "Coach Iris Cross",     // Iron Cross (F)
-  "Coach Victor Cross"    // Victorian Cross (M)
+  "Coach Sofia Stride","Coach Mason Pace","Coach Cara Crunch","Coach Leo Press","Coach Jenna Jump",
+  "Coach Mark Pull","Coach Rina Rope","Coach Pete Plank","Coach Mia Summit","Coach Kyle Kettlebell",
+  "Coach Bella Burpee","Coach Ben Bench","Coach Sara Squat","Coach Dan Deadlift","Coach Hannah Handstand",
+  "Coach Hank HSPU","Coach Maya Muscle","Coach Felix Lever","Coach Iris Cross","Coach Victor Cross"
 ];
 
 /* Build exercises */
@@ -724,7 +722,7 @@ const Game = {
     ex.lastTapAt = now;
     const g = Game.perTap(ex);
     Game.addHP(g); State.stats.manual++; AudioSys.play('tap.ok');
-    UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`); /* integer */
+    UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`);
     UI.burst(ex.els.left); UI.bounce(ex.els.icon);
     ex.els.left.classList.add('hit'); setTimeout(()=>ex.els.left.classList.remove('hit'), 260);
     return g;
@@ -848,11 +846,6 @@ const UI = {
     ex.els.fill.style.width=(pct*100).toFixed(1)+'%';
     ex.els.time.textContent=(elapsed/1000).toFixed(App.Config.DEC)+'s';
   },
-  tickTop(dt){
-    UI._hpShown += (State.hp-UI._hpShown)*Math.min(1,dt*8);
-    $('#hpTop').textContent=Util.fmtHP(UI._hpShown);
-    $('#hpMini').textContent=Util.fmtHP(UI._hpShown);
-  },
   refreshThrottled(){
     const now=performance.now();
     if(!UI._next || now>=UI._next){
@@ -874,7 +867,12 @@ const UI = {
       ex.els.pill.textContent=`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`;
       ex.els.pill.classList.toggle('ready',canU);
       ex.els.card.classList.toggle('unlockPulse',canU);
-      if(canU && !State.tutorial.shown.unlock[ex.id]){ AudioSys.play('unlock.ready'); State.tutorial.shown.unlock[ex.id]=true; }
+      // safe guard for older saves
+      if(canU && State.tutorial && State.tutorial.shown && State.tutorial.shown.unlock && !State.tutorial.shown.unlock[ex.id]){
+        AudioSys.play('unlock.ready');
+        State.tutorial.shown.unlock[ex.id]=true;
+        save();
+      }
     }
     const owned = Coaches.ownedFor(ex.id)[0];
     if(owned){
@@ -883,6 +881,11 @@ const UI = {
     }else{
       ex.els.coachBadge.style.display = 'none';
     }
+  },
+  tickTop(dt){
+    UI._hpShown += (State.hp-UI._hpShown)*Math.min(1,dt*8);
+    $('#hpTop').textContent=Util.fmtHP(UI._hpShown);
+    $('#hpMini').textContent=Util.fmtHP(UI._hpShown);
   },
 
   /* ---- media helpers ---- */
@@ -1183,11 +1186,13 @@ const Tutorial = (()=> {
   }
 
   function maybeRepsHint(){
-    if(State.tutorial.shown.repsHint) return false;
+    if(State.tutorial.shown && State.tutorial.shown.repsHint) return false;
     const walk = State.exercises.find(e=>e.id==='walk');
     if(!walk || !walk.unlocked) return false;
     if(walk.repHP>0) return false;
     if(State.hp + 1e-6 < 4) return false;
+    // safe set
+    if(!State.tutorial.shown) State.tutorial.shown = {};
     State.tutorial.shown.repsHint = true; save();
     const lines=[
       {who:'JAX',html:`Great start! Use <span class="hl">Reps</span> to hit harder each tap.`},
@@ -1198,7 +1203,9 @@ const Tutorial = (()=> {
     return true;
   }
   function onUpgrade(ex){
-    if(State.tutorial.shown.upgrade[ex.id]) return false;
+    if(State.tutorial.shown && State.tutorial.shown.upgrade && State.tutorial.shown.upgrade[ex.id]) return false;
+    if(!State.tutorial.shown) State.tutorial.shown = {};
+    if(!State.tutorial.shown.upgrade) State.tutorial.shown.upgrade = {};
     State.tutorial.shown.upgrade[ex.id]=true; save();
     const L=[{who:'JAX',html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];
     setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .cool`); setTimeout(hideSpot,1500);
@@ -1207,20 +1214,23 @@ const Tutorial = (()=> {
   function onUnlockAffordableJog(){
     const ex = State.exercises.find(e=>e.id==='jog');
     if(!ex || ex.unlocked) return false;
-    if(State.tutorial.shown.unlock[ex.id]) return false;
+    if(State.tutorial.shown && State.tutorial.shown.unlock && State.tutorial.shown.unlock[ex.id]) return false;
     if(State.hp + 1e-6 < ex.unlockCost) return false;
+    if(!State.tutorial.shown) State.tutorial.shown = {};
+    if(!State.tutorial.shown.unlock) State.tutorial.shown.unlock = {};
     State.tutorial.shown.unlock[ex.id] = true; save();
     const L=[{who:'JAX',html:`Add to your routine! Unlock <span class="hl">${ex.name}</span> when the pill turns orange.`}];
     setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .unlockPill`);
     return true;
   }
   function onCoachAffordableFirst(){
-    if(State.tutorial.shown.coachFirst) return false;
+    if(State.tutorial.shown && State.tutorial.shown.coachFirst) return false;
     const c0 = Coaches.list[0]; if(!c0) return false;
     if(State.coaches[c0.id]) return false;
     const ex = State.exercises.find(e=>e.id===c0.target);
     if(!ex || !ex.unlocked) return false;
     if(State.hp + 1e-6 < c0.price) return false;
+    if(!State.tutorial.shown) State.tutorial.shown = {};
     State.tutorial.shown.coachFirst = true; save();
     const L=[{who:'JAX',html:`Ready to scale? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> a coach.`}];
     setLines(L); step={lines:L,onDone(){hide();}}; showSpot('#avatarBtn');
@@ -1246,43 +1256,35 @@ function wireStart(){
   const btnStart = $('#btnStart');
   const btnContinue = $('#btnContinue');
 
-  // Show/hide Continue based on saved game
   if(hasSave()){
     btnContinue.style.display = 'block';
   }else{
     btnContinue.style.display = 'none';
   }
 
-  // NEW GAME: hard reset state (keeps chosen avatar), restart tutorial
   btnStart.addEventListener('click',()=>{ 
     AudioSys.play('ui.click');
-
-    // keep currently selected avatar from toggle
     const keepAvatar = State.avatar;
-    // clear saves & offline timestamp, then reset state in-place
     try{ localStorage.removeItem(App.Config.SAVE_KEY); }catch{}
     try{ localStorage.removeItem(Offline.KEY); }catch{}
     State = freshState(keepAvatar);
+    normalizeState();
     buildExercises();
     UI._hpShown = 0;
     UI.build(); UI.refreshThrottled();
     $('#start').classList.remove('open');
 
-    // music
     const url = Util.isMobile() ? MobileMusicURL : MusicURL;
     AudioSys.music.setVol(Util.isMobile()?0.03:0.15);
     AudioSys.music.start(url);
 
-    // ensure body mode & avatar image
     $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
     document.body.classList.toggle('femaleMode', State.avatar==='female');
 
-    // start tutorial fresh (no offline check on new game)
     Tutorial.startIntro();
     save();
   });
 
-  // CONTINUE: only if a save exists
   btnContinue.addEventListener('click',()=>{ 
     if(!hasSave()) return;
     AudioSys.play('ui.click'); 
@@ -1294,13 +1296,11 @@ function wireStart(){
     Tutorial.scanAll(); 
   });
 
-  // Avatar toggle
   $$('.segBtn', $('#avatarSeg')).forEach(b=>b.addEventListener('click',()=>{
     $$('.segBtn', $('#avatarSeg')).forEach(x=>x.classList.remove('active'));
     b.classList.add('active'); State.avatar=b.dataset.avatar;
     $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
     document.body.classList.toggle('femaleMode', State.avatar==='female');
-    // rebuild exercises for chosen avatar
     const prev = State.exercises; buildExercises();
     State.exercises.forEach(ex=>{
       const old = prev.find(p=>p.id===ex.id);
