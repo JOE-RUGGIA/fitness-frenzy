@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.5.3 (mp4 + still fallbacks)</title>
+<title>Fitness Frenzy — V1.5.4 (centered stills)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -107,7 +107,16 @@ img,video{max-width:100%;display:block}
   position:relative;width:clamp(80px,19vw,108px);aspect-ratio:1;border-radius:14px;
   background:#102036;border:1px solid #223b60;display:flex;align-items:center;justify-content:center;overflow:hidden;transform:translateZ(0)
 }
-.card .left video,.card .left img{width:100%;height:100%;object-fit:cover}
+/* Media fit rules */
+.card .left video{width:100%;height:100%;object-fit:cover;object-position:center}
+.card .left img{width:100%;height:100%;object-fit:cover;object-position:center}
+/* Centered stills without crop */
+.card .left img.still{
+  object-fit:contain;
+  object-position:center;
+  background:#0e1b2e; /* subtle canvas behind letterbox */
+}
+
 body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.15),#102036);border-color:#6a2a4f}
 .emo{font-size:clamp(44px,9vw,60px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
 .tapBounce{animation:tap-bounce .22s cubic-bezier(.2,1.1,.3,1)}
@@ -548,10 +557,10 @@ const VIDEO_FEMALE = {
   walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercise%20female%20walking.mp4?raw=true",
   jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercise%20female%20running.mp4?raw=true",
   sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercise%20female%20situps.mp4?raw=true",
-  push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercixe%20female%20pushups.mp4?raw=true" /* (as provided) */
+  push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercixe%20female%20pushups.mp4?raw=true"
 };
 
-/* ==== STILL IMAGE FALLBACKS (append ?raw=true for GitHub blobs) ==== */
+/* ==== STILL IMAGE FALLBACKS ==== */
 const STILL_MALE = {
   walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercise%20male%20walking.jpg?raw=true",
   jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF%20exercise%20male%20running.jpg?raw=true",
@@ -881,6 +890,7 @@ const UI = {
       ex.els.video = null;
       if(ex.stillUrl){
         const img = el('img',{src:ex.stillUrl, alt:ex.name});
+        img.classList.add('still');                 /* <-- centered still */
         ex.els.icon = img;
         ex.els.left.append(img,lvl,coachBadge);
       }else{
@@ -894,7 +904,8 @@ const UI = {
     if(ex.videoUrl){
       const v = document.createElement('video');
       v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.src = ex.videoUrl;
-      v.onerror = ()=>{ useStill(); }; // 404 / load error -> still
+      if(ex.stillUrl) v.poster = ex.stillUrl;   /* show centered poster before pulse */
+      v.onerror = ()=>{ useStill(); };          /* 404 / load error -> still */
       ex.els.video = v;
       ex.els.icon = v;
       ex.els.left.append(v,lvl,coachBadge);
