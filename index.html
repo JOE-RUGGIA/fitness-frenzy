@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.5.4 (centered stills)</title>
+<title>Fitness Frenzy — V1.5.5 (centered media)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -23,7 +23,7 @@
   --space:clamp(10px,2.2vw,18px);
   --r:16px;
   --barH:20px;
-  --repband:14%;
+  --repband:14%;          /* height reserved at bottom of the icon square */
   --femaleTint:#ff5fa8;
 }
 
@@ -71,13 +71,8 @@ img,video{max-width:100%;display:block}
 }
 
 /* Smaller bulk-buy buttons */
-.qtyGroup{
-  justify-self:end;display:inline-flex;border:1.5px solid #2b3d5a;border-radius:12px;overflow:hidden
-}
-.qtyBtn{
-  background:#13233b;color:#cfe0ff;border:0;padding:6px 10px;
-  font-weight:900;cursor:pointer;font-size:14px;line-height:1
-}
+.qtyGroup{justify-self:end;display:inline-flex;border:1.5px solid #2b3d5a;border-radius:12px;overflow:hidden}
+.qtyBtn{background:#13233b;color:#cfe0ff;border:0;padding:6px 10px;font-weight:900;cursor:pointer;font-size:14px;line-height:1}
 .qtyBtn.active{background:var(--accent);color:#fff}
 
 .hpRow{grid-column:1/-1;display:flex;align-items:center;gap:12px}
@@ -105,20 +100,29 @@ img,video{max-width:100%;display:block}
 }
 .card .left{
   position:relative;width:clamp(80px,19vw,108px);aspect-ratio:1;border-radius:14px;
-  background:#102036;border:1px solid #223b60;display:flex;align-items:center;justify-content:center;overflow:hidden;transform:translateZ(0)
-}
-/* Media fit rules */
-.card .left video{width:100%;height:100%;object-fit:cover;object-position:center}
-.card .left img{width:100%;height:100%;object-fit:cover;object-position:center}
-/* Centered stills without crop */
-.card .left img.still{
-  object-fit:contain;
-  object-position:center;
-  background:#0e1b2e; /* subtle canvas behind letterbox */
+  background:#102036;border:1px solid #223b60;overflow:hidden;transform:translateZ(0)
 }
 
-body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.15),#102036);border-color:#6a2a4f}
+/* MEDIA LAYER
+   we reserve bottom space for the green rep band and keep media centered */
+.card .left .mediaWrap{
+  position:absolute;left:0;top:0;right:0;bottom:var(--repband);
+  display:flex;align-items:center;justify-content:center;z-index:1
+}
+.card .left .mediaWrap video,
+.card .left .mediaWrap img{
+  width:100%;height:100%;
+  object-fit:contain;           /* <— key: no crop */
+  object-position:center;       /* <— key: centered */
+}
+
+/* Emoji rendering inside mediaWrap */
 .emo{font-size:clamp(44px,9vw,60px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+
+/* Female skin tint for the square only */
+body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.15),#102036);border-color:#6a2a4f}
+
+/* Tap FX */
 .tapBounce{animation:tap-bounce .22s cubic-bezier(.2,1.1,.3,1)}
 @keyframes tap-bounce{0%{transform:scale(.9)}60%{transform:scale(1.14)}100%{transform:scale(1)}}
 .left.hit{animation:hitGlow .35s ease-out}
@@ -127,12 +131,15 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   40%{box-shadow:0 0 0 10px rgba(255,179,87,.22), inset 0 0 10px rgba(255,179,87,.3); transform:scale(1.02)}
   100%{box-shadow:0 0 0 0 rgba(255,179,87,.0), inset 0 0 0 0 rgba(255,179,87,.0); transform:scale(1)}
 }
-.lvlBadge{position:absolute;left:6px;top:6px;background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:2px 6px;font-size:12px}
-.coachBadge{position:absolute;right:6px;top:6px;width:24px;height:24px;border-radius:6px;overflow:hidden;border:1px solid #2b3d5a;background:#13233b;display:none}
+
+/* Badges sit above media */
+.lvlBadge{position:absolute;left:6px;top:6px;z-index:2;background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:2px 6px;font-size:12px}
+.coachBadge{position:absolute;right:6px;top:6px;z-index:2;width:24px;height:24px;border-radius:6px;overflow:hidden;border:1px solid #2b3d5a;background:#13233b;display:none}
 .coachBadge img{width:100%;height:100%;object-fit:cover}
 @media (max-width:420px){ .coachBadge{width:22px;height:22px} }
 
-.repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);background:#14361f;border-top:1px solid #204e2b;display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* Green rep band overlays at bottom (top layer) */
+.repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);z-index:3;background:#14361f;border-top:1px solid #204e2b;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
 .repText{position:relative;font-size:12px;color:#cfead6;font-weight:700;text-shadow:0 1px 0 rgba(0,0,0,.4)}
 
@@ -151,25 +158,16 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 @keyframes stripe{to{background-position:60px 0}}
 
 /* Meta row: fixed height, no jitter */
-.metaRow{
-  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;
-  min-height:34px
-}
-.kv{
-  background:#13223a;border:1px solid #203659;border-radius:10px;padding:3px 8px;color:#cfe0ff;
-  font-size:13px;min-width:76px;white-space:nowrap
-}
-.repsBtn{
-  padding:8px 10px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:13px;
-  white-space:nowrap;min-width:120px;text-align:center;font-variant-numeric:tabular-nums
-}
+.metaRow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;min-height:34px}
+.kv{background:#13223a;border:1px solid #203659;border-radius:10px;padding:3px 8px;color:#cfe0ff;font-size:13px;min-width:76px;white-space:nowrap}
+.repsBtn{padding:8px 10px;border:0;border-radius:12px;font-weight:800;cursor:pointer;font-size:13px;white-space:nowrap;min-width:120px;text-align:center;font-variant-numeric:tabular-nums}
 .repsBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
 .repsBtn:not(.ready){background:#1a2a40;color:#d7e3f5}
 
 /* Locked state */
 .card.locked{opacity:.6;filter:grayscale(1);transform:scale(.96)}
 .unlockRow{display:flex;align-items:center;justify-content:flex-start}
-.unlockPill{padding:8px 12px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;cursor:not-allowed;font-size:13px;white-space:nowrap}
+.unlockPill{padding:8px 12px;border-radius:999px;background:#142743;border:1.5px solid #27456d;color:#ffd6a8;font-weight:900;cursor:not-allowed;font-size:13px;white-space:nowrap}
 .unlockPill.ready{background:linear-gradient(135deg,var(--accent),var(--accent-hi));color:#fff;border-color:#e89d6b;cursor:pointer;box-shadow:0 12px 26px rgba(204,107,44,.35)}
 .card.unlockPulse{animation:unlockPulse .9s ease-in-out infinite}
 @keyframes unlockPulse{0%{transform:scale(.96)}50%{transform:scale(.975)}100%{transform:scale(.96)}}
@@ -439,7 +437,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 8,
+  SCHEMA: 9,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -620,7 +618,7 @@ const EX_EMOJI_FEMALE = [
   ['vcross','Victorian Cross','🏆', 786432000]
 ];
 
-/* Coaches */
+/* Coaches (icons & names kept from your previous lists) */
 const COACH_URL = [
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/coach%205.png?raw=true",
   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Clips%20(4).png?raw=true",
@@ -882,45 +880,44 @@ const UI = {
   attachMedia(ex){
     // clear previous
     ex.els.left.innerHTML='';
+    /* media wrap reserves bottom for rep band and keeps the art centered */
+    const wrap = el('div',{class:'mediaWrap'});
+    ex.els.mediaWrap = wrap;
+
+    // badges
     const lvl=el('div',{class:'lvlBadge',text:`Lvl ${ex.level}`}); ex.els.lvl=lvl;
     const coachBadge=el('div',{class:'coachBadge'}); const coachImg=el('img',{alt:'Coach'}); coachBadge.append(coachImg);
     ex.els.coachBadge=coachBadge; ex.els.coachBadgeImg=coachImg;
 
+    // decide media
     const useStill = ()=>{
       ex.els.video = null;
       if(ex.stillUrl){
         const img = el('img',{src:ex.stillUrl, alt:ex.name});
-        img.classList.add('still');                 /* <-- centered still */
         ex.els.icon = img;
-        ex.els.left.append(img,lvl,coachBadge);
+        wrap.append(img);
       }else{
-        // final fallback: emoji
         const div = el('div',{class:'emo',text:ex.emoji});
         ex.els.icon = div;
-        ex.els.left.append(div,lvl,coachBadge);
+        wrap.append(div);
       }
     };
 
     if(ex.videoUrl){
       const v = document.createElement('video');
       v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.src = ex.videoUrl;
-      if(ex.stillUrl) v.poster = ex.stillUrl;   /* show centered poster before pulse */
-      v.onerror = ()=>{ useStill(); };          /* 404 / load error -> still */
-      ex.els.video = v;
-      ex.els.icon = v;
-      ex.els.left.append(v,lvl,coachBadge);
+      if(ex.stillUrl) v.poster = ex.stillUrl;
+      v.onerror = ()=>{ wrap.innerHTML=''; useStill(); };
+      ex.els.video = v; ex.els.icon = v;
+      wrap.append(v);
       UI.scheduleVideoPulse(ex);
-    }else if(ex.stillUrl){
-      useStill();
     }else{
-      // emoji only
-      const div = el('div',{class:'emo',text:ex.emoji});
-      ex.els.video = null;
-      ex.els.icon = div;
-      ex.els.left.append(div,lvl,coachBadge);
+      useStill();
     }
 
-    // rep band overlays (add last so it sits above media)
+    // assemble layers: media -> badges -> rep band
+    ex.els.left.append(wrap, lvl, coachBadge);
+
     const repBand=el('div',{class:'repBand'});
     const repFill=el('div',{class:'repFill'});
     const repText=el('div',{class:'repText',text:`${ex.repProgress}/${ex.repTarget}`});
