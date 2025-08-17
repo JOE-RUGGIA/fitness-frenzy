@@ -1173,19 +1173,65 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL (avatar-anchored bubble) =============== */
+/* =============== TUTORIAL (avatar-anchored bubble + 10s GIF pulse) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
+  let _faceTimer=null;                   // NEW: tutorial avatar pulse timer
+  const FACE_PULSE_MS = 10000;           // 10s cadence
 
   function overlayBusy(){ return ov.classList.contains('show'); }
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); AudioSys.play('tutorial.hide'); hideSpot(); setTimeout(scanAll, 60); }
+  function hide(){ 
+    ov.classList.remove('show'); 
+    ov.setAttribute('aria-hidden','true'); 
+    AudioSys.play('tutorial.hide'); 
+    stopFacePulse();                     // NEW: stop pulsing when hidden
+    hideSpot(); 
+    setTimeout(scanAll, 60); 
+  }
+
+  // --- GIF pulse helpers (restart the GIF by cache-busting the URL) ---
+  function restartFaceOnce(){
+    if(!tFace) return;
+    // Normalize a base URL once, then append a time param each play
+    if(!tFace.dataset.base){
+      const base = tFace.src.split('#')[0].split('?')[0];
+      // Keep ?raw=true if present; otherwise add it
+      const hasRaw = /\?raw=/.test(tFace.src);
+      tFace.dataset.base = base + (hasRaw ? '?raw=true' : '?raw=true');
+    }
+    tFace.src = tFace.dataset.base + '&t=' + Date.now();
+  }
+  function startFacePulse(){
+    stopFacePulse();
+    // Kick once immediately, then every FACE_PULSE_MS while visible
+    restartFaceOnce();
+    _faceTimer = setInterval(()=>{
+      if(!overlayBusy()) return; // don’t waste cycles if bubble closed
+      restartFaceOnce();
+    }, FACE_PULSE_MS);
+  }
+  function stopFacePulse(){
+    if(_faceTimer){ clearInterval(_faceTimer); _faceTimer=null; }
+  }
+  // --------------------------------------------------------------------
 
   function setSpeaker(who){
     tWho.textContent=who;
-    tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
+    // Stop any existing pulse before swapping speaker image
+    stopFacePulse();
+
+    // Pick face image
+    tFace.src = (who==='JAX')
+      ? Assets.trainer
+      : (State.avatar==='female' ? Assets.avatarFemale : Assets.avatarMale);
+
+    // Mode: JAX is centered; You is anchored to avatar
     if(who==='JAX'){ setCenteredBubble(); } else { setAvatarAnchoredBubble(); }
+
+    // Start pulsing the face GIF every 10s
+    startFacePulse();
   }
 
   function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML=lines[0].html; show(); positionCurrentMode(); }
@@ -1304,6 +1350,7 @@ const Tutorial = (()=> {
 
   return {startIntro, scanAll, hide, positionAvatar: positionBubbleToAvatar};
 })();
+
 
 /* =============== START / SPLASH =============== */
 function showSplashThenStart(){ const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, 5000); }
