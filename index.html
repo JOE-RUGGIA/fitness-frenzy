@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.6.5 (Locked = no animation)</title>
+<title>Fitness Frenzy — V1.6.6 (Locked uses stills, no emojis)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -108,8 +108,9 @@ img{max-width:100%;display:block}
   position:absolute;left:0;top:0;right:0;bottom:var(--repband);
   display:flex;align-items:center;justify-content:center;z-index:1
 }
-.card .left .mediaWrap img{width:100%;height:100%;object-fit:contain;object-position:center}
-.emo{font-size:clamp(44px,9vw,60px);line-height:1;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35));display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.card .left .mediaWrap img{
+  width:100%;height:100%;object-fit:contain;object-position:center;
+}
 
 /* Female tint */
 body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.15),#102036);border-color:#6a2a4f}
@@ -240,29 +241,23 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .segBtn.active[data-avatar="male"]{background:var(--brandBlue);color:#fff}
 .segBtn.active[data-avatar="female"]{background:var(--femaleTint);color:#fff}
 
-/* Tutorial — two modes: centered (JAX) or anchored to avatar (You) */
+/* Tutorial */
 .tut{position:fixed;inset:0;z-index:4000;display:none}
 .tut.show{display:block}
 .dim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
-
-/* Base bubble */
 .bubble{
   position:absolute;display:flex;flex-direction:column;align-items:center;text-align:center;
   background:#0f1b2b;border:2px solid var(--pillBr);
   border-radius:18px;padding:26px 28px;max-width:min(1200px,98vw);
   box-shadow:0 18px 36px rgba(0,0,0,.35)
 }
-/* Centered (JAX) */
 .bubble.center{left:50%;bottom:8vh;transform:translateX(-50%)}
-/* Anchored near avatar (You) */
 .bubble.anchored{left:var(--bx); top:var(--by); transform:none}
-/* Pointer on top-left for anchored mode */
 .bubble.tip-tl::after{
   content:""; position:absolute; width:16px; height:16px; left:12px; top:-8px;
   background:#0f1b2b; border-left:2px solid var(--pillBr); border-top:2px solid var(--pillBr);
   transform:rotate(45deg);
 }
-
 .tFace{width:122px;height:122px;border-radius:50%;overflow:hidden;border:2px solid #26406c;background:#0b1423;margin-bottom:12px}
 .tFace img{width:100%;height:100%;object-fit:cover}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
@@ -301,7 +296,6 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   <div class="topwrap">
     <div class="leftRow">
       <button id="avatarBtn" class="avatarBtn" title="Menu">
-        <!-- Default avatar (male). JS updates at boot if needed -->
         <img id="avatarImg" alt="Avatar" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-male.gif?raw=true">
         <span id="menuDot" class="notifDot"></span>
       </button>
@@ -433,7 +427,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 12,
+  SCHEMA: 13,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -596,51 +590,42 @@ const GIF_FEMALE = {
   sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.gif?raw=true",
   push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.gif?raw=true",
 };
+/* ==== STILLS (locked) for first 4 exercises ==== */
+const STILL_MALE = {
+  walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.png?raw=true",
+  jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.png?raw=true",
+  sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.png?raw=true",
+  push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.png?raw=true",
+};
+const STILL_FEMALE = {
+  walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.png?raw=true",
+  jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.png?raw=true",
+  sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.png?raw=true",
+  push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.png?raw=true",
+};
 
-/* Emoji sets for remaining exercises (and titles/cooldowns) */
-const EX_EMOJI_MALE = [
-  ['walk','Walking','🚶‍♂️', 1000],
-  ['jog','Jogging','🏃‍♂️', 3000],
-  ['sit','Sit-ups','🧎‍♂️', 6000],
-  ['push','Push-ups','🤸‍♂️', 12000],
-  ['jacks','Jumping Jacks','🕺', 24000],
-  ['pull','Pull-ups','🧗‍♂️', 48000],
-  ['rope','Jump Rope','🤾‍♂️', 96000],
-  ['plank','Plank','🧘‍♂️', 192000],
-  ['mtclimb','Mountain Climbers','🥾', 384000],
-  ['kb','Kettlebell','🏋️‍♂️', 768000],
-  ['burpee','Burpees','🏃‍♂️', 1536000],
-  ['bench','Bench Press','🏋️‍♂️', 3072000],
-  ['backsq','Back Squat','🏋️‍♂️', 6144000],
-  ['dead','Deadlift','🏋️‍♂️', 12288000],
-  ['hand','Handstands','🤸‍♂️', 24576000],
-  ['hspu','Handstand Push-ups','🤸‍♂️', 49152000],
-  ['muscle','Muscle-ups','🧗‍♂️', 98304000],
-  ['lever','Front Lever','🧗‍♂️', 196608000],
-  ['icross','Iron Cross','🥇', 393216000],
-  ['vcross','Victorian Cross','🏆', 786432000]
-];
-const EX_EMOJI_FEMALE = [
-  ['walk','Walking','🚶‍♀️', 1000],
-  ['jog','Jogging','🏃‍♀️', 3000],
-  ['sit','Sit-ups','🧎‍♀️', 6000],
-  ['push','Push-ups','🤸‍♀️', 12000],
-  ['jacks','Jumping Jacks','💃', 24000],
-  ['pull','Pull-ups','🧗‍♀️', 48000],
-  ['rope','Jump Rope','🤾‍♀️', 96000],
-  ['plank','Plank','🧘‍♀️', 192000],
-  ['mtclimb','Mountain Climbers','🥾', 384000],
-  ['kb','Kettlebell','🏋️‍♀️', 768000],
-  ['burpee','Burpees','🏃‍♀️', 1536000],
-  ['bench','Bench Press','🏋️‍♀️', 3072000],
-  ['backsq','Back Squat','🏋️‍♀️', 6144000],
-  ['dead','Deadlift','🏋️‍♀️', 12288000],
-  ['hand','Handstands','🤸‍♀️', 24576000],
-  ['hspu','Handstand Push-ups','🤸‍♀️', 49152000],
-  ['muscle','Muscle-ups','🧗‍♀️', 98304000],
-  ['lever','Front Lever','🧗‍♀️', 196608000],
-  ['icross','Iron Cross','🥇', 393216000],
-  ['vcross','Victorian Cross','🏆', 786432000]
+/* ==== Exercise list (no emoji) ==== */
+const EX_LIST = [
+  ['walk','Walking', 1000],
+  ['jog','Jogging', 3000],
+  ['sit','Sit-ups', 6000],
+  ['push','Push-ups', 12000],
+  ['jacks','Jumping Jacks', 24000],
+  ['pull','Pull-ups', 48000],
+  ['rope','Jump Rope', 96000],
+  ['plank','Plank', 192000],
+  ['mtclimb','Mountain Climbers', 384000],
+  ['kb','Kettlebell', 768000],
+  ['burpee','Burpees', 1536000],
+  ['bench','Bench Press', 3072000],
+  ['backsq','Back Squat', 6144000],
+  ['dead','Deadlift', 12288000],
+  ['hand','Handstands', 24576000],
+  ['hspu','Handstand Push-ups', 49152000],
+  ['muscle','Muscle-ups', 98304000],
+  ['lever','Front Lever', 196608000],
+  ['icross','Iron Cross', 393216000],
+  ['vcross','Victorian Cross', 786432000]
 ];
 
 /* =========================
@@ -675,24 +660,26 @@ const COACH_NAME = [
   "Coach Hank HSPU","Coach Maya Muscle","Coach Felix Lever","Coach Iris Cross","Coach Victor Cross"
 ];
 
-/* Build exercises with GIFs for the first 4 */
-function baseSet(){ return (State.avatar==='female') ? EX_EMOJI_FEMALE : EX_EMOJI_MALE; }
-function gifMap(){ return (State.avatar==='female') ? GIF_FEMALE : GIF_MALE; }
-
+/* Build exercises with media: GIF for first 4 when unlocked, PNG still when locked */
 function buildExercises(){
-  const raw = baseSet();
-  const gifs = gifMap();
+  const gifs = (State.avatar==='female') ? GIF_FEMALE : GIF_MALE;
+  const stills = (State.avatar==='female') ? STILL_FEMALE : STILL_MALE;
+
   const arr=[];
-  for(let i=0;i<raw.length;i++){
-    const [id,name,emoji,cd] = raw[i];
+  for(let i=0;i<EX_LIST.length;i++){
+    const [id,name,cd] = EX_LIST[i];
     const prev = State.exercises.find(e=>e.id===id)||{};
     const sec = cd/1000;
     const baseHP = (i===0)?1:Math.round(20*Math.pow(sec,1.10));
     const repBaseCost = Math.max(4, Math.round(baseHP * 0.05));
     const unlockCost = (i===0) ? 0 : Math.round( baseHP * Math.pow(sec,0.60) * 1.15 );
 
+    const gifUrl = (id in gifs)? gifs[id] : null;
+    const stillUrl = (id in stills)? stills[id] : null;
+
     arr.push({
-      id,name,emoji,gifUrl:gifs[id]||null,baseHP,baseCooldown:cd,unlockCost,repBaseCost,
+      id,name,baseHP,baseCooldown:cd,unlockCost,repBaseCost,
+      gifUrl, stillUrl,
       unlocked: (prev.unlocked!==undefined)?prev.unlocked:(i===0),
       repHP: prev.repHP||0, repProgress: prev.repProgress||0, repTarget: prev.repTarget||10,
       level: prev.level||1, cooldown: prev.cooldown||cd,
@@ -739,7 +726,7 @@ const Game = {
     if(State.hp + 1e-6 < ex.unlockCost) return false;
     Game.addHP(-ex.unlockCost); ex.unlocked = true; ex.lastTapAt=0;
     AudioSys.play('unlock.do'); FX.confettiAt(ex.els.card); Bus.emit('unlock', ex.id);
-    // Immediately swap media: emoji -> GIF (if available)
+    // Swap media to GIF if available (only for first 4)
     UI.attachMedia(ex);
     if(ex.gifUrl) UI.scheduleGifPulse(ex);
     return true;
@@ -899,6 +886,25 @@ const UI = {
     }, delay);
   },
 
+  /* ---- Placeholder SVG for exercises without provided stills/gifs ---- */
+  makePlaceholderSVG(){
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox','0 0 120 120');
+    svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
+    const tint = getComputedStyle(document.body).getPropertyValue('--accent-hi') || '#ffb357';
+    const bar = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    bar.setAttribute('x','20'); bar.setAttribute('y','56'); bar.setAttribute('width','80'); bar.setAttribute('height','8'); bar.setAttribute('rx','4');
+    bar.setAttribute('fill', tint.trim() );
+    const left = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    left.setAttribute('x','6'); left.setAttribute('y','46'); left.setAttribute('width','20'); left.setAttribute('height','28'); left.setAttribute('rx','6');
+    left.setAttribute('fill','#d4e1f8');
+    const right = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    right.setAttribute('x','94'); right.setAttribute('y','46'); right.setAttribute('width','20'); right.setAttribute('height','28'); right.setAttribute('rx','6');
+    right.setAttribute('fill','#d4e1f8');
+    svg.appendChild(left); svg.appendChild(bar); svg.appendChild(right);
+    return svg;
+  },
+
   attachMedia(ex){
     // Clear existing media
     ex.els.left.innerHTML='';
@@ -910,16 +916,20 @@ const UI = {
     const coachBadge=el('div',{class:'coachBadge'}); const coachImg=el('img',{alt:'Coach'}); coachBadge.append(coachImg);
     ex.els.coachBadge=coachBadge; ex.els.coachBadgeImg=coachImg;
 
-    // IMPORTANT: Only show GIF when UNLOCKED. Locked -> emoji (static).
+    // Choose: if unlocked and gifUrl -> GIF; else if stillUrl -> still PNG; else placeholder SVG
     if(ex.unlocked && ex.gifUrl){
       const img = el('img',{src:ex.gifUrl, alt:ex.name});
       ex.els.icon = img;
       wrap.append(img);
       UI.scheduleGifPulse(ex);
+    }else if(ex.stillUrl){
+      const img = el('img',{src:ex.stillUrl, alt:ex.name});
+      ex.els.icon = img;
+      wrap.append(img);
     }else{
-      const div = el('div',{class:'emo',text:ex.emoji});
-      ex.els.icon = div;
-      wrap.append(div);
+      const svg = UI.makePlaceholderSVG();
+      ex.els.icon = svg;
+      wrap.append(svg);
     }
 
     ex.els.left.append(wrap, lvl, coachBadge);
@@ -991,7 +1001,7 @@ const UI = {
           right.append(coolRow2,meta2);
           // wire new reps button
           reps2.addEventListener('click',()=>{ if(Game.buyReps(ex,State.qty)){ save(); }});
-          // media swap to GIF now unlocked
+          // media swap to GIF now unlocked (if available)
           UI.attachMedia(ex);
           save(); 
         }
@@ -1176,7 +1186,6 @@ const Tutorial = (()=> {
   }
   bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines,step.onDone); });
 
-  /* ---- Bubble modes ---- */
   function setCenteredBubble(){
     bubble.classList.add('center');
     bubble.classList.remove('anchored','tip-tl');
@@ -1208,11 +1217,9 @@ const Tutorial = (()=> {
   window.addEventListener('resize', positionCurrentMode);
   window.addEventListener('scroll', positionCurrentMode);
 
-  /* ---- Spot helpers ---- */
   function showSpot(sel){ const node=document.querySelector(sel); if(!node){hideSpot();return;} const r=node.getBoundingClientRect(); const pad=6; spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px';}
   function hideSpot(){ spot.style.display='none'; }
 
-  /* ---- Scripted events ---- */
   function startIntro(){
     if(State.tutorial.doneIntro) return;
     const lines=[
