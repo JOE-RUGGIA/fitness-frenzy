@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.6.8</title>
+<title>Fitness Frenzy — V1.6.9</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -94,7 +94,7 @@ img{max-width:100%;display:block}
    EXERCISE CARD (COMPACT)
    ========================= */
 .card{
-  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  background:var(--card);border:1.5px solid var(--border);border-radius:16px;
   padding:10px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;
   transition:transform .18s ease, filter .18s ease, opacity .18s ease
 }
@@ -260,7 +260,6 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 }
 .tFace{width:122px;height:122px;border-radius:50%;overflow:hidden;border:2px solid #26406c;background:#0b1423;margin-bottom:12px}
 .tFace img{width:100%;height:100%;object-fit:cover}
-/* Hideable face (player lines) */
 .tFace.hidden{display:none}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
 .tText{font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch}
@@ -400,7 +399,10 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 <div id="start" class="start" aria-hidden="true">
   <div class="startBg"></div>
   <div class="startFrame">
-    <div class="startArt"><img alt="Cover" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Cover-Art.png?raw=true"></div>
+    <div class="startArt">
+      <!-- Swapped dynamically between desktop/mobile -->
+      <img id="startArtImg" alt="Cover">
+    </div>
     <div class="startUI">
       <div class="rowBtns">
         <button id="btnStart" class="btn orange">New Game</button>
@@ -478,6 +480,19 @@ const Util = {
     return r.bottom>0 && r.right>0 && r.left<innerWidth && r.top<innerHeight;
   }
 };
+
+/* Start art sources */
+const StartArt = {
+  desktop: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-desktop.png?raw=true",
+  mobile:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-mobile.png?raw=true"
+};
+function setStartArt(){
+  const img = $('#startArtImg');
+  if(!img) return;
+  const isSmall = window.matchMedia('(max-width: 640px)').matches || Util.isMobile();
+  const want = isSmall ? StartArt.mobile : StartArt.desktop;
+  if(img.getAttribute('src') !== want) img.setAttribute('src', want);
+}
 
 /* =============== AUDIO =============== */
 const MusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music.mp3?raw=true";
@@ -572,14 +587,14 @@ function hasSave(){
 }
 load();
 
-/* Avatars & trainer assets (UPDATED URLs) */
+/* Avatars & trainer assets */
 const Assets = {
   avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true",
   avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true",
   trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true"
 };
 
-/* ==== GIFs for first 4 exercises ==== */
+/* ==== Exercise media (first 4 have gendered GIFs & stills) ==== */
 const GIF_MALE = {
   walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.gif?raw=true",
   jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.gif?raw=true",
@@ -592,7 +607,6 @@ const GIF_FEMALE = {
   sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.gif?raw=true",
   push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.gif?raw=true",
 };
-/* ==== STILLS (locked) for first 4 exercises ==== */
 const STILL_MALE = {
   walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.png?raw=true",
   jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.png?raw=true",
@@ -1161,7 +1175,7 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL (player face removed in bubble) =============== */
+/* =============== TUTORIAL (player face hidden) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tFaceWrap=$('#tFaceWrap'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
   let step=null, idx=0;
@@ -1173,12 +1187,10 @@ const Tutorial = (()=> {
   function setSpeaker(who){
     tWho.textContent=who;
     if(who==='JAX'){
-      // Show trainer face
       tFace.src = Assets.trainer;
       tFaceWrap.classList.remove('hidden');
       setCenteredBubble();
     }else{
-      // Hide player face from bubble (avatar already in top bar)
       tFaceWrap.classList.add('hidden');
       setAvatarAnchoredBubble();
     }
@@ -1188,9 +1200,7 @@ const Tutorial = (()=> {
   function nextLine(lines,onDone){
     if(idx<lines.length-1){
       idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next'); positionCurrentMode();
-    } else {
-      if(onDone) onDone();
-    }
+    } else { if(onDone) onDone(); }
   }
   bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines,step.onDone); });
 
@@ -1393,9 +1403,9 @@ function syncTopbarOffset(){
   const h = Math.ceil(tb.getBoundingClientRect().height);
   document.body.style.paddingTop = h + 'px';
 }
-window.addEventListener('resize', ()=>{ syncTopbarOffset(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); });
-window.addEventListener('orientationchange', ()=>setTimeout(()=>{ syncTopbarOffset(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); },150));
-window.addEventListener('load', syncTopbarOffset);
+window.addEventListener('resize', ()=>{ syncTopbarOffset(); setStartArt(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); });
+window.addEventListener('orientationchange', ()=>setTimeout(()=>{ syncTopbarOffset(); setStartArt(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); },150));
+window.addEventListener('load', ()=>{ setStartArt(); });
 
 /* =============== INIT =============== */
 function boot(){
@@ -1407,6 +1417,7 @@ function boot(){
   Menu.wire(); 
   wireTopbar(); 
   wireStart(); 
+  setStartArt();
   showSplashThenStart();
   syncTopbarOffset();
 
