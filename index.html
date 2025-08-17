@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.6.6 (Locked uses stills, no emojis)</title>
+<title>Fitness Frenzy — V1.6.7 (new avatar GIFs)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -296,7 +296,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   <div class="topwrap">
     <div class="leftRow">
       <button id="avatarBtn" class="avatarBtn" title="Menu">
-        <img id="avatarImg" alt="Avatar" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-male.gif?raw=true">
+        <img id="avatarImg" alt="Avatar" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true">
         <span id="menuDot" class="notifDot"></span>
       </button>
       <img class="logoImg" alt="Fitness Frenzy Logo" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Logo%20(2).png?raw=true" />
@@ -544,7 +544,7 @@ function normalizeState(){
   const t = State.tutorial;
   if(!t || typeof t!=='object'){ State.tutorial = {doneIntro:false, shown:{unlock:{}, coachFirst:false, repsHint:false, upgrade:{}}}; return; }
   if(typeof t.doneIntro!=='boolean'){ t.doneIntro = !!t.done; }
-  if(!t.shown || typeof t.shown!=='object') t.shown = {};
+  if(!t.shown || typeof t!=='object') t.shown = {};
   if(!t.shown.unlock || typeof t.shown.unlock!=='object') t.shown.unlock = {};
   if(typeof t.shown.coachFirst!=='boolean') t.shown.coachFirst = false;
   if(typeof t.shown.repsHint!=='boolean') t.shown.repsHint = false;
@@ -570,10 +570,10 @@ function hasSave(){
 }
 load();
 
-/* Avatars & trainer assets */
+/* Avatars & trainer assets (UPDATED URLs) */
 const Assets = {
-  avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-male.gif?raw=true",
-  avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-player-avatar-female.gif?raw=true",
+  avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true",
+  avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true",
   trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true"
 };
 
@@ -604,7 +604,7 @@ const STILL_FEMALE = {
   push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.png?raw=true",
 };
 
-/* ==== Exercise list (no emoji) ==== */
+/* ==== Exercise list ==== */
 const EX_LIST = [
   ['walk','Walking', 1000],
   ['jog','Jogging', 3000],
@@ -660,7 +660,7 @@ const COACH_NAME = [
   "Coach Hank HSPU","Coach Maya Muscle","Coach Felix Lever","Coach Iris Cross","Coach Victor Cross"
 ];
 
-/* Build exercises with media: GIF for first 4 when unlocked, PNG still when locked */
+/* Build exercises with media */
 function buildExercises(){
   const gifs = (State.avatar==='female') ? GIF_FEMALE : GIF_MALE;
   const stills = (State.avatar==='female') ? STILL_FEMALE : STILL_MALE;
@@ -886,7 +886,7 @@ const UI = {
     }, delay);
   },
 
-  /* ---- Placeholder SVG for exercises without provided stills/gifs ---- */
+  /* ---- Placeholder SVG ---- */
   makePlaceholderSVG(){
     const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.setAttribute('viewBox','0 0 120 120');
@@ -916,7 +916,6 @@ const UI = {
     const coachBadge=el('div',{class:'coachBadge'}); const coachImg=el('img',{alt:'Coach'}); coachBadge.append(coachImg);
     ex.els.coachBadge=coachBadge; ex.els.coachBadgeImg=coachImg;
 
-    // Choose: if unlocked and gifUrl -> GIF; else if stillUrl -> still PNG; else placeholder SVG
     if(ex.unlocked && ex.gifUrl){
       const img = el('img',{src:ex.gifUrl, alt:ex.name});
       ex.els.icon = img;
@@ -966,7 +965,7 @@ const UI = {
       const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
       meta.append(kv,el('div'),reps);
 
-      // Locked layout: title + unlock pill
+      // Locked layout
       const unlockRow=el('div',{class:'unlockRow'}); const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
       const lockTop=el('div',{class:'coolTop'}); const titleLocked=el('h3',{class:'title',text:ex.name}); lockTop.append(titleLocked);
 
@@ -1172,6 +1171,7 @@ const Tutorial = (()=> {
 
   function setSpeaker(who){
     tWho.textContent=who;
+    // UPDATED: when it's the player, use the new avatar GIFs
     tFace.src=(who==='JAX')?Assets.trainer:(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
     if(who==='JAX'){ setCenteredBubble(); } else { setAvatarAnchoredBubble(); }
   }
