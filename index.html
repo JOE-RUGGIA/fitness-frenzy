@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.3</title>
+<title>Fitness Frenzy — V1.7.4</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -21,7 +21,6 @@
   --pillBg:#132647;
   --pillBr:#2a4a78;
   --space:clamp(10px,2.2vw,18px);
-  --r:16px;
   --barH:20px;
   --repband:14%;
   --femaleTint:#ff5fa8;
@@ -268,10 +267,10 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   box-shadow:0 18px 36px rgba(0,0,0,.35)
 }
 .bubble.center{left:50%;bottom:8vh;transform:translateX(-50%)}
-.bubble.anchored{left:var(--bx); top:var(--by); transform:none}
-.bubble.tip-top::after{
+.bubble.anchored{transform:none}
+.bubble.tip-top-left::after{
   content:""; position:absolute; width:16px; height:16px; top:-8px;
-  left:var(--tipx,50%); transform:translateX(-50%) rotate(45deg);
+  left:14px; transform:rotate(45deg);
   background:#0f1b2b; border-left:2px solid var(--pillBr); border-top:2px solid var(--pillBr);
 }
 .tFace{width:122px;height:122px;border-radius:50%;overflow:hidden;border:2px solid #26406c;background:#0b1423;margin-bottom:12px}
@@ -447,7 +446,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   });
 })();
 
-/* === Ensure we always start at the very top === */
+/* === Always start top === */
 try{ if('scrollRestoration' in history){ history.scrollRestoration = 'manual'; } }catch{}
 let _didForceTop=false;
 function forceTop(times=4){
@@ -462,7 +461,7 @@ function forceTopOnce(){ if(_didForceTop) return; _didForceTop=true; forceTop(5)
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 13,
+  SCHEMA: 14,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -507,7 +506,7 @@ const Util = {
   isMobileUA: ()=> /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 };
 
-/* Start art sources */
+/* Start art (single source of truth) */
 const StartArt = {
   desktop: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-desktop.png?raw=true",
   mobile:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-mobile.png?raw=true"
@@ -1201,12 +1200,14 @@ const Tutorial = (()=> {
   function setSpeaker(who){
     tWho.textContent=who;
     if(who==='JAX'){
+      // JAX centered bubble with face
       tFace.src = Assets.trainer;
       tFaceWrap.classList.remove('hidden');
       setCenteredBubble();
     }else{
+      // Player: no face, bubble anchored under avatar with top-left arrow
       tFaceWrap.classList.add('hidden');
-      setAvatarAnchoredBubble(); // << anchored under avatar, arrow points up
+      setAvatarAnchoredBubble();
     }
   }
 
@@ -1220,37 +1221,26 @@ const Tutorial = (()=> {
 
   function setCenteredBubble(){
     bubble.classList.add('center');
-    bubble.classList.remove('anchored','tip-top');
+    bubble.classList.remove('anchored','tip-top-left');
     bubble.style.left='50%'; bubble.style.bottom='8vh'; bubble.style.top='auto';
-    bubble.style.setProperty('--bx',''); bubble.style.setProperty('--by',''); bubble.style.setProperty('--tipx','');
     bubble.style.transform='translateX(-50%)';
   }
   function setAvatarAnchoredBubble(){
     bubble.classList.remove('center');
-    bubble.classList.add('anchored','tip-top');
+    bubble.classList.add('anchored','tip-top-left');
     positionBubbleToAvatar();
   }
   function positionBubbleToAvatar(){
     const av = $('#avatarBtn'); if(!av) return;
     const r = av.getBoundingClientRect();
-
     const margin = 10;
     const bw = bubble.offsetWidth || 320;
-    const bh = bubble.offsetHeight || 180;
 
-    // Place bubble directly under the avatar, horizontally centered on avatar
-    let x = r.left + r.width/2 - bw/2;
+    // Place bubble directly under the avatar, horizontally left-aligned to avatar,
+    // but clamp so it never goes off-screen.
+    let x = r.left; 
     x = Math.max(8, Math.min(x, innerWidth - bw - 8));
-
     const y = r.bottom + margin;
-
-    // Arrow position relative to bubble
-    let tipX = (r.left + r.width/2) - x;
-    tipX = Math.max(14, Math.min(tipX, bw - 14));
-
-    bubble.style.setProperty('--bx', x+'px');
-    bubble.style.setProperty('--by', y+'px');
-    bubble.style.setProperty('--tipx', tipX+'px');
 
     bubble.style.left = x+'px';
     bubble.style.top  = y+'px';
@@ -1333,18 +1323,10 @@ const Tutorial = (()=> {
   Bus.on('upgrade',({id})=>{ const ex=State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
   Bus.on('hp',()=>{ if(!overlayBusy()) scanAll(); });
 
-  return {startIntro, scanAll, hide, positionAvatar: positionBubbleToAvatar};
+  return {startIntro, scanAll, positionAvatar: positionBubbleToAvatar};
 })();
 
-/* =============== START / SPLASH =============== */
-const StartArt = { desktop: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-desktop.png?raw=true", mobile: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-mobile.png?raw=true" };
-function setStartArt(){
-  const img = $('#startArtImg'); if(!img) return;
-  const r = window.innerWidth / Math.max(1, window.innerHeight);
-  const want = (r >= 1) ? StartArt.desktop : StartArt.mobile;
-  if(img.getAttribute('src') !== want) img.setAttribute('src', want);
-}
-
+/* =============== SPLASH / START =============== */
 function showSplashThenStart(){ 
   const s=$('#splash'); s.classList.add('open'); 
   forceTopOnce();
