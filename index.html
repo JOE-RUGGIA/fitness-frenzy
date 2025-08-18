@@ -1,523 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Fitness Frenzy – Vertical Slice (Walking)</title>
-<style>
-  :root{
-    --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
-    --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --warn:#ffcc00; --danger:#ff3860;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; background:var(--bg); color:var(--text); font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-  }
-  .topbar{
-    position:sticky; top:0; z-index:10; background:linear-gradient(180deg, #151734, #10122a);
-    border-bottom:1px solid #22254b; padding:10px 12px;
-  }
-  .row{display:flex; align-items:center; gap:10px}
-  .space{justify-content:space-between}
-  .avatar{
-    width:48px; height:48px; border-radius:50%; background:#2b2f63; display:grid; place-items:center;
-    font-weight:700; letter-spacing:0.5px; border:2px solid #3b3f78; position:relative; cursor:pointer;
-  }
-  .avatar .dot{
-    position:absolute; top:-4px; right:-4px; width:14px; height:14px; background:var(--good); border-radius:50%;
-    border:2px solid #0f1020; display:none;
-  }
-  .logo{font-weight:800; letter-spacing:0.8px}
-  .bulk{
-    display:inline-flex; background:#20244a; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden;
-  }
-  .bulk button{
-    background:transparent; color:var(--muted); border:0; padding:6px 10px; cursor:pointer; min-width:44px;
-  }
-  .bulk button.active{ background:var(--accent-2); color:#061222; font-weight:700 }
-  .hp-pill{
-    margin-top:8px; background:#182047; border:1px solid #2a2e5e; padding:8px 10px; border-radius:10px;
-    font-variant-numeric: tabular-nums; display:flex; align-items:center; justify-content:space-between;
-  }
-  .wrap{max-width:860px; margin:0 auto; padding:12px}
-  .cards{display:grid; gap:12px}
-  .card{
-    display:grid; grid-template-columns:110px 1fr; gap:12px; padding:10px; background:var(--panel); border:1px solid #262a58; border-radius:12px;
-  }
-  .tile{
-    background:var(--panel-2); border-radius:10px; position:relative; height:110px; display:grid; place-items:center;
-    user-select:none;
-  }
-  .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px}
-  .tile .tap-btn{
-    appearance:none; border:0; background:var(--accent); color:#1b0d00; font-weight:800; padding:8px 10px; border-radius:8px; cursor:pointer;
-  }
-  .tile.cooling .tap-btn{opacity:.5; cursor:not-allowed}
-  .title{font-weight:700; margin-top:2px}
-  .cooldown{
-    margin-top:6px; height:20px; background:#141739; border:1px solid #2a2e5e; border-radius:6px; overflow:hidden; position:relative;
-  }
-  .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg, #2f6df3, #41b0ff)}
-  @media (prefers-reduced-motion: no-preference){
-    .bar::after{
-      content:""; position:absolute; inset:0; background:repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 6px, transparent 6px 12px);
-      mix-blend-mode:overlay; pointer-events:none;
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fitness Frenzy — Minimal Single (VS1)</title>
+  <style>
+    :root{
+      --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
+      --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --danger:#ff3860;
+      --rep:#27c93f;
     }
-  }
-  .cooldown .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric: tabular-nums; color:var(--muted)}
-  .meta{display:flex; align-items:center; justify-content:space-between; margin-top:8px}
-  .muted{color:var(--muted)}
-  .btn{
-    appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 10px; border-radius:10px; min-width:140px; cursor:pointer;
-    font-variant-numeric: tabular-nums; display:inline-flex; align-items:center; justify-content:center; gap:6px;
-  }
-  .btn.glow{box-shadow:0 0 0 2px rgba(255, 192, 120, .25) inset, 0 0 12px rgba(255, 122, 26, .35)}
-  .small{font-size:12px}
-  .errorbar{
-    position:fixed; top:0; left:0; right:0; background:var(--danger); color:#1b0006; padding:8px 12px; font-weight:700; display:none; z-index:999;
-  }
-  .footer{
-    margin-top:18px; color:var(--muted); text-align:center; font-size:12px;
-  }
-</style>
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; background:var(--bg); color:var(--text); font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+    .topbar{position:sticky; top:0; z-index:10; background:linear-gradient(180deg, #151734, #10122a); border-bottom:1px solid #22254b; padding:10px 12px}
+    .wrap{max-width:860px; margin:0 auto; padding:12px}
+    .row{display:flex; align-items:center; gap:12px; justify-content:space-between}
+    .logo{font-weight:900; letter-spacing:0.8px}
+    .bulk{display:inline-flex; background:#20244a; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden}
+    .bulk button{background:transparent; color:#fff; border:0; padding:6px 10px; cursor:pointer; min-width:44px}
+    .bulk button.active{background:var(--accent-2); color:#061222; font-weight:700}
+    .hp-pill{margin-top:8px; background:#182047; border:1px solid #2a2e5e; padding:8px 10px; border-radius:10px; font-variant-numeric: tabular-nums; display:flex; align-items:center; justify-content:space-between}
+    .cards{display:grid; gap:12px}
+    .card{display:grid; grid-template-columns:110px 1fr; gap:12px; padding:10px; background:var(--panel); border:1px solid #262a58; border-radius:12px}
+    .tile{background:var(--panel-2); border-radius:10px; position:relative; height:110px; display:grid; place-items:center; user-select:none}
+    .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px}
+    .tap-btn{appearance:none; border:0; background:var(--accent); color:#1b0d00; font-weight:800; padding:8px 10px; border-radius:8px; cursor:pointer}
+    .tile.cooling .tap-btn{opacity:.5; cursor:not-allowed}
+    .title{font-weight:700; margin-top:2px}
+    .cooldown{margin-top:6px; height:20px; background:#141739; border:1px solid #2a2e5e; border-radius:6px; overflow:hidden; position:relative}
+    .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg, #2f6df3, #41b0ff)}
+    .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric: tabular-nums; color:var(--muted)}
+    .meta{display:flex; align-items:center; justify-content:space-between; margin-top:8px}
+    .muted{color:var(--muted)}
+    .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 10px; border-radius:10px; min-width:160px; cursor:pointer; font-variant-numeric: tabular-nums}
+    .btn.glow{box-shadow:0 0 0 2px rgba(255, 192, 120, .25) inset, 0 0 12px rgba(255, 122, 26, .35)}
+    .repband{position:absolute; left:6px; right:6px; bottom:6px; height:16px; border-radius:8px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden}
+    .repfill{height:100%; width:0%; background:linear-gradient(90deg, #17b34c, #27c93f)}
+    .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:#cfead6; text-shadow:0 1px 2px #000}
+    .menu{position:fixed; right:12px; bottom:12px; background:#14163a; border:1px solid #2a2e5e; border-radius:10px; padding:10px}
+    .menu h4{margin:0 0 8px 0}
+    .danger{color:#ff9aa5}
+    .footer{margin-top:10px; color:var(--muted); font-size:12px}
+  </style>
 </head>
 <body>
-<div id="errorbar" class="errorbar"></div>
-
-<div class="topbar">
-  <div class="wrap">
-    <div class="row space">
-      <div class="row" style="gap:12px">
-        <div id="avatar" class="avatar" title="Menu (coming soon)">FF<span class="dot" id="avatar-dot"></span></div>
-        <div class="logo">Fitness Frenzy – dev slice</div>
+  <div class="topbar">
+    <div class="wrap">
+      <div class="row">
+        <div class="logo">Fitness Frenzy — VS1</div>
+        <div class="bulk" id="bulk">
+          <button data-q="1" class="active">×1</button>
+          <button data-q="10">×10</button>
+          <button data-q="100">×100</button>
+        </div>
       </div>
-      <div class="bulk" id="bulk">
-        <button data-q="1" class="active">×1</button>
-        <button data-q="10">×10</button>
-        <button data-q="100">×100</button>
-      </div>
+      <div class="hp-pill"><span>HP</span><span id="hp-readout">0</span></div>
     </div>
-    <div class="hp-pill"><span>HP</span><span id="hp-readout">0</span></div>
   </div>
-</div>
 
-<div class="wrap">
-  <div class="cards" id="cards"></div>
-  <div class="footer small">VSlice scope: Walking only • Clean core loop • Local save • Next: coaches, tutorial, start screen</div>
-</div>
+  <div class="wrap">
+    <div id="cards" class="cards"></div>
+    <div class="footer">VS1 scope: Single exercise (Walking), Reps button, Rep progress band, Level-ups halve cooldown (min 100ms). Coach purchase below.</div>
+  </div>
 
-<script>
-/** --------------------------
- *  Tiny Event Bus
- *  -------------------------*/
-const Bus = (() => {
-  const map = new Map();
-  return {
-    on: (evt, cb) => { if(!map.has(evt)) map.set(evt, new Set()); map.get(evt).add(cb); return () => map.get(evt).delete(cb); },
-    emit: (evt, payload) => { const s = map.get(evt); if(!s) return; s.forEach(cb => { try { cb(payload); } catch(e){ console.error(e) }}); }
-  };
-})();
+  <!-- Minimal “menu” pinned bottom-right for coach + reset -->
+  <div class="menu">
+    <h4>Coaches</h4>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div style="background:#2b2f63; width:28px; height:28px; border-radius:50%; display:grid; place-items:center;">F</div>
+      <div style="flex:1;">
+        <div style="font-weight:700">Coach 1</div>
+        <div class="muted">Works on: Walking</div>
+      </div>
+      <button id="hire" class="btn">Hire • <span id="hire-price">1,500</span> HP</button>
+    </div>
+    <div style="height:8px"></div>
+    <button id="reset" class="btn danger">Reset Save</button>
+  </div>
 
-/** --------------------------
- *  Content (exercises, ids)
- *  -------------------------*/
-const Content = (() => {
-  // Full list reserved, but we ship only the first item live.
-  const ALL = [
-    { id:"walk",   name:"Walking",          baseCooldownMs:1000 },
-    { id:"jog",    name:"Jogging",          baseCooldownMs:3000 },
-    { id:"sit",    name:"Sit-ups",          baseCooldownMs:6000 },
-    { id:"push",   name:"Push-ups",         baseCooldownMs:12000 },
-  ];
-  return { ALL };
-})();
+  <script>
+    // ----- One-time guard
+    if (!window.__FF_VS1__) {
+      window.__FF_VS1__ = true;
 
-/** --------------------------
- *  Math (formulas per GDD)
- *  -------------------------*/
-const MathFx = (() => {
-  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-  const log2 = (x) => Math.log(x) / Math.log(2);
-  const sec = (baseCooldownMs) => baseCooldownMs / 1000;
+      // ----- Event bus
+      const Bus = (()=>{ const m=new Map(); return { on:(e,cb)=>{ if(!m.has(e)) m.set(e,new Set()); m.get(e).add(cb); return ()=>m.get(e).delete(cb); }, emit:(e,p)=>{ const s=m.get(e); if(!s) return; s.forEach(cb=>{ try{cb(p)}catch(err){console.error(err)} }); } }; })();
 
-  function baseHP(idx, baseCooldownMs){
-    if(idx === 0) return 1; // Walking special case
-    const s = sec(baseCooldownMs);
-    return Math.round(20 * Math.pow(s, 1.10));
-  }
+      // ----- Content & Math
+      const Exercise = { id:'walk', name:'Walking', baseCooldownMs:1000 };
+      const coachPrice = 1500;
+      const log2 = x => Math.log(x)/Math.log(2);
+      const baseHP = 1; // Walking special case
+      const perTapHP = repHP => baseHP + repHP;
+      const repBaseCost = () => Math.max(4, Math.round(baseHP * 0.05)); // =4
+      const repGrowth = level => Math.max(1.07, Math.min(1.15, 1.07 + 0.01 * log2(Math.max(1, level))));
+      const repCostSingle = (rb,g,rep) => rb * Math.pow(g, rep);
+      const repCostBulk   = (rb,g,rep,n) => rb * Math.pow(g, rep) * ((Math.pow(g,n)-1)/(g-1));
+      const nextCooldown = ms => Math.max(100, Math.floor(ms/2));
+      const fmt = n => { if(!isFinite(n)) return '0'; const a=Math.abs(n); if(a>=1e12) return (n/1e12).toFixed(2)+'T'; if(a>=1e9) return (n/1e9).toFixed(2)+'B'; if(a>=1e6) return (n/1e6).toFixed(2)+'M'; if(a>=1e3) return (n/1e3).toFixed(2)+'K'; return String(Math.floor(n)); };
 
-  function perTapHP(baseHP, repHP){ return baseHP + repHP; }
+      // ----- Storage / State
+      const KEY='ff-vs1';
+      function defaults(){ return {
+        hp:0, qty:1,
+        ex:{ id:'walk', unlocked:true, repHP:0, repTarget:10, level:1, cooldown:Exercise.baseCooldownMs, lastTapAt:0 },
+        coaches:{ c1:false }
+      };}
+      function load(){ try{ const raw=localStorage.getItem(KEY); if(!raw) return defaults(); const d=JSON.parse(raw)||{}; return { ...defaults(), ...d }; }catch{ return defaults(); } }
+      function save(s){ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch{} }
+      let S = load();
+      const get = () => S;
+      function patch(mut){ S = mut(structuredClone(S)); save(S); Bus.emit('state:changed', S); }
 
-  function repBaseCost(baseHP){
-    return Math.max(4, Math.round(baseHP * 0.05));
-  }
-
-  function repGrowth(level){
-    const g = 1.07 + 0.01 * log2(Math.max(1, level));
-    return clamp(g, 1.07, 1.15);
-  }
-
-  function repCostSingle(repBase, g, currentRepHP){
-    return repBase * Math.pow(g, currentRepHP);
-  }
-
-  function repCostBulk(repBase, g, currentRepHP, n){
-    // repBase * g^(repHP) * (g^n - 1)/(g - 1)
-    return repBase * Math.pow(g, currentRepHP) * ( (Math.pow(g, n) - 1) / (g - 1) );
-  }
-
-  function nextCooldown(currentMs){
-    return Math.max(100, Math.floor(currentMs / 2));
-  }
-
-  function unlockCost(baseHPVal, baseCooldownMs){
-    const s = sec(baseCooldownMs);
-    return Math.round(baseHPVal * Math.pow(s, 0.60) * 1.15);
-  }
-
-  return { clamp, log2, sec, baseHP, perTapHP, repBaseCost, repGrowth, repCostSingle, repCostBulk, nextCooldown, unlockCost };
-})();
-
-/** --------------------------
- *  Storage (localStorage)
- *  -------------------------*/
-const Storage = (() => {
-  const KEY = 'ff-v1';
-  const PREFS = 'ff-v1:prefs';
-  const SCHEMA = 20;
-
-  const defaults = () => ({
-    schema: SCHEMA,
-    hp: 0,
-    qty: 1, // bulk buy
-    avatar: "male",
-    stats: { manual: 0, auto: 0, totalEarned: 0 },
-    coaches: {}, // future
-    achievements: {},
-    exercises: [
-      {
-        id: "walk",
-        unlocked: true,
-        repHP: 0,
-        repTarget: 10,
-        level: 1,
-        cooldown: Content.ALL[0].baseCooldownMs,
-        lastTapAt: 0
-      }
-    ],
-    tutorial: { doneIntro: false, shown: { repsHint:false, coachFirst:false, unlock:{} , upgrade:{} } }
-  });
-
-  const load = () => {
-    try{
-      const raw = localStorage.getItem(KEY);
-      if(!raw) return defaults();
-      const data = JSON.parse(raw);
-      if(!data || typeof data !== 'object') return defaults();
-      if(data.schema !== SCHEMA){
-        // Simple migration: rebuild missing fields / bump schema
-        const d = defaults();
-        const merged = { ...d, ...data, schema: SCHEMA };
-        // Keep only valid exercises, ensure fields exist
-        merged.exercises = (data.exercises || d.exercises).map(ex => ({
-          id: ex.id ?? "walk",
-          unlocked: !!ex.unlocked,
-          repHP: ex.repHP ?? 0,
-          repTarget: ex.repTarget ?? 10,
-          level: ex.level ?? 1,
-          cooldown: ex.cooldown ?? Content.ALL.find(c=>c.id===ex.id)?.baseCooldownMs ?? d.exercises[0].cooldown,
-          lastTapAt: ex.lastTapAt ?? 0
-        }));
-        return merged;
-      }
-      return data;
-    }catch(e){
-      console.warn("Save corrupted, resetting.", e);
-      return defaults();
-    }
-  };
-
-  const save = (state) => {
-    try{ localStorage.setItem(KEY, JSON.stringify(state)); }
-    catch(e){ console.error("Save failed", e); }
-  };
-
-  const loadPrefs = () => {
-    try{
-      const raw = localStorage.getItem(PREFS);
-      if(!raw) return { floats:true };
-      const p = JSON.parse(raw);
-      return { floats: p.floats !== false };
-    }catch{ return { floats:true }; }
-  };
-  const savePrefs = (prefs) => {
-    try{ localStorage.setItem(PREFS, JSON.stringify(prefs)); }catch{}
-  };
-
-  const reset = () => { localStorage.removeItem(KEY); };
-
-  return { load, save, reset, loadPrefs, savePrefs, SCHEMA };
-})();
-
-/** --------------------------
- *  State (in-memory)
- *  -------------------------*/
-const State = (() => {
-  let S = Storage.load();
-  let PREFS = Storage.loadPrefs();
-
-  function get(){ return S; }
-  function set(partial){
-    S = { ...S, ...partial };
-    Storage.save(S);
-    Bus.emit('state:changed', S);
-  }
-  function patch(mutator){
-    const next = mutator(structuredClone(S));
-    S = next;
-    Storage.save(S);
-    Bus.emit('state:changed', S);
-  }
-  function prefs(){ return PREFS; }
-  function setPrefs(partial){
-    PREFS = { ...PREFS, ...partial };
-    Storage.savePrefs(PREFS);
-    Bus.emit('prefs:changed', PREFS);
-  }
-
-  return { get, set, patch, prefs, setPrefs };
-})();
-
-/** --------------------------
- *  Number formatting
- *  -------------------------*/
-const fmt = (n) => {
-  if (!isFinite(n)) return "0";
-  const abs = Math.abs(n);
-  if (abs >= 1e12) return (n/1e12).toFixed(2) + "T";
-  if (abs >= 1e9)  return (n/1e9).toFixed(2) + "B";
-  if (abs >= 1e6)  return (n/1e6).toFixed(2) + "M";
-  if (abs >= 1e3)  return (n/1e3).toFixed(2) + "K";
-  return String(Math.floor(n));
-};
-
-/** --------------------------
- *  UI – Topbar
- *  -------------------------*/
-const Topbar = (() => {
-  const hpEl = document.getElementById('hp-readout');
-  const bulk = document.getElementById('bulk');
-  const avatarDot = document.getElementById('avatar-dot');
-
-  bulk.addEventListener('click', (e) => {
-    const b = e.target.closest('button'); if(!b) return;
-    [...bulk.children].forEach(btn => btn.classList.toggle('active', btn === b));
-    const qty = parseInt(b.dataset.q,10);
-    State.patch(s => { s.qty = qty; return s; });
-  });
-
-  function setHP(v){ hpEl.textContent = fmt(v); }
-
-  function updateAffordabilityDot(){
-    // In this slice, we use the green dot as "you can afford at least 1 rep"
-    const s = State.get();
-    const ex = s.exercises[0];
-    const base = MathFx.baseHP(0, Content.ALL[0].baseCooldownMs);
-    const g = MathFx.repGrowth(ex.level);
-    const baseCost = MathFx.repBaseCost(base);
-    const cost = MathFx.repCostSingle(baseCost, g, ex.repHP);
-    const affordable = s.hp >= Math.ceil(cost);
-    avatarDot.style.display = affordable ? 'block' : 'none';
-  }
-
-  Bus.on('state:changed', () => {
-    setHP(State.get().hp);
-    updateAffordabilityDot();
-  });
-
-  setHP(State.get().hp);
-  updateAffordabilityDot();
-
-  return {};
-})();
-
-/** --------------------------
- *  UI – Exercise Card (Walking)
- *  -------------------------*/
-const Cards = (() => {
-  const root = document.getElementById('cards');
-
-  function render(){
-    root.innerHTML = "";
-    const s = State.get();
-    // Only the first exercise for this slice:
-    const c = Content.ALL[0];
-    const ex = s.exercises.find(e => e.id === c.id) || s.exercises[0];
-
-    const card = document.createElement('div'); card.className = 'card';
-
-    // Left tile (tap area)
-    const tile = document.createElement('div'); tile.className = 'tile';
-    const lvl = document.createElement('div'); lvl.className = 'lvl'; lvl.textContent = `Lvl ${ex.level}`;
-    const tapBtn = document.createElement('button'); tapBtn.className = 'tap-btn'; tapBtn.textContent = '+ Tap';
-    tile.append(lvl, tapBtn);
-
-    // Block taps during cooldown
-    const now = performance.now();
-    const remaining = Math.max(0, (ex.lastTapAt + ex.cooldown) - now);
-    if (remaining > 0) tile.classList.add('cooling');
-
-    tapBtn.addEventListener('click', () => {
-      const s = State.get();
-      const ex = s.exercises[0];
-      const now = performance.now();
-      const readyAt = ex.lastTapAt + ex.cooldown;
-      if (now < readyAt) return; // cooldown block
-
-      const base = MathFx.baseHP(0, Content.ALL[0].baseCooldownMs);
-      const gain = MathFx.perTapHP(base, ex.repHP);
-      State.patch(st => {
-        st.hp += gain;
-        st.stats.manual += 1;
-        st.stats.totalEarned += gain;
-        st.exercises[0].lastTapAt = now;
-        return st;
+      // ----- Topbar
+      const hpEl = document.getElementById('hp-readout');
+      const bulk = document.getElementById('bulk');
+      bulk.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if(!b) return;
+        [...bulk.children].forEach(btn => btn.classList.toggle('active', btn === b));
+        const qty = parseInt(b.dataset.q,10);
+        patch(s => { s.qty = qty; return s; });
       });
-    });
+      Bus.on('state:changed', () => { hpEl.textContent = fmt(get().hp); });
+      hpEl.textContent = fmt(get().hp);
 
-    // Right side content
-    const right = document.createElement('div');
-    const title = document.createElement('div'); title.className = 'title'; title.textContent = c.name;
+      // ----- Cards
+      const root = document.getElementById('cards');
+      let refs = null;
+      function mount(){
+        root.innerHTML='';
+        const s = get();
+        const ex = s.ex;
+        const card = document.createElement('div'); card.className='card';
+        const tile = document.createElement('div'); tile.className='tile';
+        const lvl  = document.createElement('div'); lvl.className='lvl'; lvl.textContent = 'Lvl ' + ex.level;
+        const tap  = document.createElement('button'); tap.className='tap-btn'; tap.textContent = '+ Tap';
+        const repband = document.createElement('div'); repband.className='repband';
+        const repfill = document.createElement('div'); repfill.className='repfill';
+        const reptext = document.createElement('div'); reptext.className='reptext'; reptext.textContent = ex.repHP + ' / ' + ex.repTarget;
+        repband.append(repfill, reptext);
+        tile.append(lvl, tap, repband);
 
-    // Cooldown bar
-    const cd = document.createElement('div'); cd.className = 'cooldown';
-    const bar = document.createElement('div'); bar.className = 'bar';
-    const t = document.createElement('div'); t.className = 't small'; t.textContent = 'Ready';
-    cd.append(bar, t);
+        const right = document.createElement('div');
+        const title = document.createElement('div'); title.className='title'; title.textContent = Exercise.name;
+        const cd = document.createElement('div'); cd.className='cooldown';
+        const bar = document.createElement('div'); bar.className='bar';
+        const t = document.createElement('div'); t.className='t'; t.textContent='Ready';
+        cd.append(bar, t);
+        const meta = document.createElement('div'); meta.className='meta';
+        const left = document.createElement('div'); left.className='muted';
+        const repBtn = document.createElement('button'); repBtn.className='btn';
+        meta.append(left, repBtn);
+        right.append(title, cd, meta);
+        card.append(tile, right);
+        root.append(card);
 
-    // Meta row: HP/tap & Reps button
-    const meta = document.createElement('div'); meta.className = 'meta';
-    const left = document.createElement('div'); left.className = 'muted';
-    const rightBtn = document.createElement('button'); rightBtn.className = 'btn'; // glow when affordable
-
-    function updateMeta(){
-      const s = State.get();
-      const ex = s.exercises[0];
-      const base = MathFx.baseHP(0, Content.ALL[0].baseCooldownMs);
-      left.textContent = `${MathFx.perTapHP(base, ex.repHP)} HP / tap`;
-
-      const repBase = MathFx.repBaseCost(base);
-      const g = MathFx.repGrowth(ex.level);
-      const qty = s.qty || 1;
-
-      let price = 0;
-      if (qty === 1) { price = MathFx.repCostSingle(repBase, g, ex.repHP); }
-      else           { price = MathFx.repCostBulk(repBase, g, ex.repHP, qty); }
-
-      const priceInt = Math.ceil(price);
-      rightBtn.innerHTML = `<span>Reps • ${fmt(priceInt)} HP</span>`;
-      rightBtn.classList.toggle('glow', s.hp >= priceInt);
-    }
-    updateMeta();
-
-    rightBtn.addEventListener('click', () => {
-      const s = State.get();
-      const ex = s.exercises[0];
-      const base = MathFx.baseHP(0, Content.ALL[0].baseCooldownMs);
-      const repBase = MathFx.repBaseCost(base);
-      const g = MathFx.repGrowth(ex.level);
-      const qty = s.qty || 1;
-
-      const canBuyN = (n) => {
-        const costN = n === 1 ? MathFx.repCostSingle(repBase, g, ex.repHP)
-                              : MathFx.repCostBulk(repBase, g, ex.repHP, n);
-        return Math.ceil(costN);
-      };
-
-      // Attempt to buy selected qty; if not enough, try to buy as many as possible >0
-      let n = qty;
-      let price = canBuyN(n);
-      if (s.hp < price){
-        // find max affordable n via decrement (qty choices are small in slice)
-        while(n > 1){
-          n--;
-          price = canBuyN(n);
-          if (s.hp >= price) break;
+        function updateMeta(){
+          const s = get(); const ex = s.ex;
+          left.textContent = perTapHP(ex.repHP) + ' HP / tap';
+          const rb = repBaseCost(); const g = repGrowth(ex.level); const qty = s.qty||1;
+          const price = Math.ceil(qty===1 ? repCostSingle(rb,g,ex.repHP) : repCostBulk(rb,g,ex.repHP,qty));
+          repBtn.textContent = 'Reps • ' + fmt(price) + ' HP';
+          repBtn.classList.toggle('glow', s.hp >= price);
+          reptext.textContent = ex.repHP + ' / ' + ex.repTarget;
+          const pct = Math.max(0, Math.min(100, 100 * (ex.repHP / ex.repTarget)));
+          repfill.style.width = pct + '%';
         }
-        if (s.hp < price){
-          // could still afford 0 -> bail
-          return;
-        }
+        updateMeta();
+
+        repBtn.addEventListener('click', () => {
+          const s = get(); const ex = s.ex;
+          const rb = repBaseCost(); const g = repGrowth(ex.level); const qty = s.qty||1;
+          const price = Math.ceil(qty===1 ? repCostSingle(rb,g,ex.repHP) : repCostBulk(rb,g,ex.repHP,qty));
+          if (s.hp < price) return;
+          patch(st => {
+            st.hp -= price;
+            st.ex.repHP += qty;
+            while(st.ex.repHP >= st.ex.repTarget){
+              st.ex.level += 1;
+              st.ex.cooldown = nextCooldown(st.ex.cooldown);
+              st.ex.repTarget *= 2;
+            }
+            return st;
+          });
+        });
+
+        tap.addEventListener('click', () => {
+          const s = get(); const ex = s.ex; const now = performance.now();
+          if (now < ex.lastTapAt + ex.cooldown) return;
+          const gain = perTapHP(ex.repHP);
+          patch(st => { st.hp += gain; st.ex.lastTapAt = now; return st; });
+        });
+
+        refs = { bar, t, tile, updateMeta };
       }
+      mount();
+      // Re-render on state change
+      Bus.on('state:changed', () => { mount(); });
 
-      State.patch(st => {
-        st.hp -= price;
-        st.exercises[0].repHP += n;
-
-        // Level-up check based on reaching target reps
-        while (st.exercises[0].repHP >= st.exercises[0].repTarget){
-          st.exercises[0].level += 1;
-          st.exercises[0].cooldown = MathFx.nextCooldown(st.exercises[0].cooldown);
-          st.exercises[0].repTarget *= 2;
-          // Level-up banner could be emitted here
+      // ----- Cooldown ticker
+      function tick(){
+        const s = get(); const ex = s.ex; const now = performance.now();
+        const dt = now - ex.lastTapAt; const r = Math.max(0, ex.cooldown - dt);
+        if (refs){
+          if (r<=0){ refs.bar.style.width='100%'; refs.t.textContent='Ready'; refs.tile.classList.remove('cooling'); }
+          else { const pct = 100 * (dt / ex.cooldown); refs.bar.style.width = Math.max(0,Math.min(100,pct))+'%'; refs.t.textContent=(r/1000).toFixed(2)+'s'; refs.tile.classList.add('cooling'); }
         }
-        return st;
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      // ----- Coach + Reset
+      const hireBtn = document.getElementById('hire');
+      const hirePrice = document.getElementById('hire-price');
+      hirePrice.textContent = fmt(coachPrice);
+      function updateHire(){
+        const s=get(); const hired=s.coaches.c1; const able=s.hp>=coachPrice;
+        hireBtn.textContent = hired ? 'Hired' : ('Hire • ' + fmt(coachPrice) + ' HP');
+        hireBtn.disabled = hired;
+        hireBtn.classList.toggle('glow', !hired && able);
+      }
+      hireBtn.addEventListener('click', ()=>{
+        const s=get(); if(s.coaches.c1 || s.hp<coachPrice) return;
+        patch(st => { st.hp -= coachPrice; st.coaches.c1 = true; return st; });
       });
-    });
+      Bus.on('state:changed', updateHire);
+      updateHire();
 
-    meta.append(left, rightBtn);
-
-    // Assemble right
-    right.append(title, cd, meta);
-
-    // Assemble card
-    card.append(tile, right);
-    root.append(card);
-
-    // Keep refs for live updates
-    return { bar, t, tile, lvl, updateMeta };
-  }
-
-  let refs = render();
-
-  Bus.on('state:changed', () => {
-    // Cheap way: re-render and refresh refs (slice is tiny)
-    refs = render();
-  });
-
-  // Engine ticker for cooldown bar
-  function tick(){
-    const s = State.get();
-    const ex = s.exercises[0];
-    const now = performance.now();
-    const dt = now - ex.lastTapAt;
-    const r = Math.max(0, ex.cooldown - dt);
-    if (r <= 0){
-      refs.bar.style.width = '100%';
-      refs.t.textContent = 'Ready';
-      refs.tile.classList.remove('cooling');
-    } else {
-      const pct = 100 * (dt / ex.cooldown);
-      refs.bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
-      refs.t.textContent = (r/1000).toFixed(2) + 's';
-      refs.tile.classList.add('cooling');
+      document.getElementById('reset').addEventListener('click', ()=>{
+        if(confirm('Reset your save?')){ localStorage.removeItem(KEY); S = defaults(); save(S); Bus.emit('state:changed', S); }
+      });
     }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-
-  return {};
-})();
-
-/** --------------------------
- *  Error overlay (dev-friendly)
- *  -------------------------*/
-window.addEventListener('error', (e) => {
-  const bar = document.getElementById('errorbar');
-  bar.textContent = `Error: ${e.message}`;
-  bar.style.display = 'block';
-});
-</script>
+  </script>
 </body>
 </html>
