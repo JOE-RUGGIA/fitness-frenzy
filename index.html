@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — Upgrades V1</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Fitness Frenzy — Upgrades V1 (Hotfix)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <style>
 :root{
   --bg:#0a1320;--card:#0f1b2b;--ink:#e9eef3;--muted:#9fb1c8;--border:#223556;
@@ -15,6 +15,14 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple
 img,video{max-width:100%;display:block}
 button{font:inherit}
 
+/* Crash overlay */
+.crash{position:fixed;inset:0;background:rgba(0,0,0,.85);color:#fff;z-index:99999;display:none;align-items:center;justify-content:center;padding:20px}
+.crash.open{display:flex}
+.crashCard{max-width:min(900px,95vw);background:#131a2a;border:1px solid #2c3e5e;border-radius:12px;padding:16px}
+.crash h2{margin:0 0 10px}
+.crash pre{white-space:pre-wrap;word-break:break-word;background:#0c1525;border:1px solid #223556;border-radius:8px;padding:10px;max-height:40vh;overflow:auto}
+
+/* Topbar */
 .topbar{position:sticky;top:0;z-index:1000;background:rgba(10,19,32,.95);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
 .topwrap{max-width:1024px;margin:0 auto;padding:10px var(--space) 6px;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:8px 12px;align-items:center}
 .leftRow{display:flex;align-items:center;gap:12px}
@@ -30,18 +38,21 @@ button{font:inherit}
 .hpPill{flex:1;display:flex;align-items:baseline;gap:8px;padding:8px 14px;border-radius:999px;background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid var(--pillBr)}
 .hpLabel{font-weight:900;color:var(--accent)}
 .hpVal{font-weight:900;font-variant-numeric:tabular-nums;min-width:12ch;text-align:left}
+.boostPills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:baseline;gap:6px;background:#132647;border:1px solid var(--pillBr);border-radius:999px;padding:4px 10px;font-size:12px}
+.pill .ttl{font-weight:900;color:#ffd6a8}
+.pill .t{font-variant-numeric:tabular-nums}
 
+/* Content & cards */
 .wrap{max-width:1024px;margin:0 auto;padding:var(--space)}
 .stack{display:flex;flex-direction:column;gap:var(--space)}
 
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;transition:transform .18s ease,filter .18s ease,opacity .18s ease}
 .card .left{position:relative;width:clamp(84px,20vw,110px);aspect-ratio:1;border-radius:14px;background:#102036;border:1px solid #223b60;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .mediaBox{position:relative;width:100%;height:100%;display:grid;place-items:center}
-.mediaBox img, .mediaBox video{width:100%;height:100%;object-fit:cover}
-.mediaBox .still{position:absolute;inset:0;display:grid;place-items:center;padding:6px}
-.mediaBox .still img{width:100%;height:100%;object-fit:contain}
+.mediaBox img,.mediaBox video{width:100%;height:100%;object-fit:cover}
 .lvlBadge{position:absolute;left:6px;top:6px;background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:2px 6px;font-size:12px}
-.coachMini{position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:6px;overflow:hidden;border:1px solid #32578e;background:#0d1a2c}
+.coachMini{position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:6px;overflow:hidden;border:1px solid #32578e;background:#0d1a2c;display:none}
 .repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);background:#14361f;border-top:1px solid #204e2b;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .repFill{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,#1fa24e,var(--rep))}
 .repText{position:relative;font-size:12px;color:#cfead6;font-weight:700;text-shadow:0 1px 0 rgba(0,0,0,.4)}
@@ -61,6 +72,7 @@ button{font:inherit}
 .repsBtn{padding:8px 12px;border:0;border-radius:12px;font-weight:800;cursor:pointer}
 .repsBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
 .repsBtn:not(.ready){background:#1a2a40;color:#d7e3f5}
+
 .card.locked{opacity:.58;filter:grayscale(1);transform:scale(.94)}
 .unlockRow{display:flex;align-items:center}
 .unlockPill{padding:10px 16px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;cursor:not-allowed}
@@ -75,7 +87,7 @@ button{font:inherit}
 @keyframes bannerIn{to{transform:translateY(0)}}
 @keyframes bannerOut{to{transform:translateY(10px);opacity:0}}
 
-/* menu */
+/* Menu */
 .menuOv{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:3000}
 .menuOv.open{display:flex}
 .panel{width:min(1024px,96vw);max-height:88vh;background:#0f1b2b;border:1px solid var(--border);border-radius:18px 18px 0 0;overflow:hidden;box-shadow:0 -12px 30px rgba(0,0,0,.45);display:flex;flex-direction:column}
@@ -97,7 +109,7 @@ button{font:inherit}
 .hire.ready{background:var(--accent);color:#fff}
 .hire.owned{background:#198754;color:#fff}
 
-/* start & splash (kept lightweight) */
+/* Splash & Start */
 .splash{position:fixed;inset:0;background:#fff;z-index:5000;display:none;align-items:center;justify-content:center}
 .splash.open{display:flex}
 .splashInner{width:min(90vw,900px);height:min(80vh,600px);display:flex;align-items:center;justify-content:center}
@@ -115,12 +127,12 @@ button{font:inherit}
 .btn{padding:14px 22px;border-radius:14px;border:0;font-weight:900;cursor:pointer}
 .btn.orange{background:var(--accent);color:#fff}
 .btn.blue{background:var(--brandBlue);color:#fff}
-.btn.small{padding:10px 14px;font-size:18px}
 .segment{display:inline-flex;border:1px solid #2b3d5a;border-radius:12px;overflow:hidden}
-.segBtn{background:#13233b;color:#cfe0ff;border:0;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;width:72px;height:72px;border-right:1px solid #2b3d5a}
+.segBtn{background:#13233b;border:0;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;width:72px;height:72px;border-right:1px solid #2b3d5a}
 .segBtn:last-child{border-right:0}
 .segBtn img{width:100%;height:100%;object-fit:cover}
 
+/* Tutorial */
 .tut{position:fixed;inset:0;z-index:4000;display:none}
 .tut.show{display:block}
 .dim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
@@ -131,20 +143,25 @@ button{font:inherit}
 .chev{color:var(--accent-hi);font-size:24px}
 .spot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);pointer-events:none}
 
+/* Offline modal */
 .off{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:3500}
 .off.open{display:flex}
 .offCard{width:min(520px,94vw);background:#0f1b2b;border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center}
 .offTitle{margin:0 0 6px;font-weight:900}
 .offAmt{font-weight:900;font-size:24px}
-
-/* active boost pills on top bar */
-.boostPills{display:flex;gap:6px;flex-wrap:wrap}
-.pill{display:inline-flex;align-items:baseline;gap:6px;background:#132647;border:1px solid var(--pillBr);border-radius:999px;padding:4px 10px;font-size:12px}
-.pill .ttl{font-weight:900;color:#ffd6a8}
-.pill .t{font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
+
+<!-- Crash overlay -->
+<div id="crash" class="crash" aria-hidden="true">
+  <div class="crashCard">
+    <h2>Something went wrong 😬</h2>
+    <p>The game hit an error. Here’s the message (copy this if you report it):</p>
+    <pre id="crashMsg">Unknown error</pre>
+    <button id="crashDismiss" class="btn orange" style="margin-top:10px">Dismiss</button>
+  </div>
+</div>
 
 <!-- TOP BAR -->
 <div class="topbar">
@@ -208,7 +225,7 @@ button{font:inherit}
 <div id="tut" class="tut" aria-hidden="true">
   <div class="dim"></div>
   <div id="spot" class="spot" style="display:none"></div>
-  <div class="bubble" id="bubble" style="max-width:min(1024px,96vw)">
+  <div class="bubble" id="bubble">
     <div>
       <div class="tWho" id="tWho">JAX</div>
       <div class="tText" id="tText">…</div>
@@ -239,7 +256,6 @@ button{font:inherit}
   <div class="startBg"></div>
   <div class="startFrame">
     <div class="startArt">
-      <!-- Show desktop/mobile artwork edge-to-edge based on aspect ratio -->
       <picture>
         <source media="(max-aspect-ratio: 10/16)" srcset="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-mobile.png?raw=true">
         <img alt="Cover" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-desktop.png?raw=true">
@@ -263,712 +279,104 @@ button{font:inherit}
 </div>
 
 <script>
-/* =========================
-   CONFIG / UTIL / BUS
-   ========================= */
+/* ========= Crash guard (so we never get a silent blank) ========= */
+(function crashGuard(){
+  const box = document.getElementById('crash');
+  const msg = document.getElementById('crashMsg');
+  const open = (m)=>{ msg.textContent = String(m||'Unknown error'); box.classList.add('open'); box.setAttribute('aria-hidden','false'); };
+  window.addEventListener('error', e=>{ open(e.error?.message || e.message || e.toString()); });
+  window.addEventListener('unhandledrejection', e=>{ open(e.reason?.message || e.reason || 'Unhandled rejection'); });
+  document.getElementById('crashDismiss').addEventListener('click',()=>{ box.classList.remove('open'); box.setAttribute('aria-hidden','true'); });
+})();
+
+/* ========== Core helpers ========== */
 const App = {};
 App.Config = Object.freeze({
-  SAVE_KEY: 'ff-v1',
-  SCHEMA: 2,                 // bump schema for upgrades
-  DEC: 2,
-  MIN_CD_MS: 100,
-  NOTIFY_MS: 160,
-  UI_MS: 80,
-  SAVE_MS: 15000,
-  OFFLINE_CAP_MS: 24*60*60*1000,
-  SPLASH_MS: 5000            // splash duration
+  SAVE_KEY:'ff-v1', SCHEMA:2, DEC:2,
+  MIN_CD_MS:100, NOTIFY_MS:160, UI_MS:80, SAVE_MS:15000,
+  OFFLINE_CAP_MS:24*60*60*1000, SPLASH_MS:5000
 });
+const $=(q,r=document)=>r.querySelector(q);
+const $$=(q,r=document)=>Array.from(r.querySelectorAll(q));
+const el=(t,a={})=>{const n=document.createElement(t);for(const k in a){if(k==='text')n.textContent=a[k];else if(k==='html')n.innerHTML=a[k];else n.setAttribute(k,a[k]);}return n;};
+const Bus=(()=>{const m={};return{on(e,f){(m[e]||(m[e]=[])).push(f)},emit(e,p){(m[e]||[]).slice().forEach(fn=>{try{fn(p)}catch{}})}})();
+const Util={clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),fmtHP(n){const a=Math.abs(n),d=App.Config.DEC;if(a>=1e9)return(n/1e9).toFixed(d)+'B';if(a>=1e6)return(n/1e6).toFixed(d)+'M';if(a>=1e3)return(n/1e3).toFixed(d)+'K';return n.toFixed(d)},fmtCost(n){const d=App.Config.DEC;if(n<1e3)return n.toFixed(d);if(n<1e6)return(n/1e3).toFixed(d)+'K';if(n<1e9)return(n/1e6).toFixed(d)+'M';return(n/1e9).toFixed(d)+'B'},now:()=>performance.now(),inView:n=>{if(!n)return false;const r=n.getBoundingClientRect();return r.bottom>0&&r.right>0&&r.left<innerWidth&&r.top<innerHeight;}};
 
-const $ = (q,root=document)=>root.querySelector(q);
-const $$ = (q,root=document)=>Array.from(root.querySelectorAll(q));
-const el = (tag,attrs={})=>{ const n=document.createElement(tag); for(const k in attrs){ if(k==='text')n.textContent=attrs[k]; else if(k==='html')n.innerHTML=attrs[k]; else n.setAttribute(k,attrs[k]); } return n; };
+/* ========== Audio ========== */
+const MusicURL_DESKTOP="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music.mp3?raw=true";
+const MusicURL_MOBILE="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
+const isMobile=/Mobi|Android/i.test(navigator.userAgent);
+const AudioSys=(()=>{let music,vol=isMobile?0.08:0.10,on=false,ctx;const sfxEnabled={on:true};function ac(){try{if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();}catch{}return ctx}const synth=(type='sine',f=660,d=0.12,g=0.06)=>{try{const c=ac();if(!c)return;const o=c.createOscillator(),q=c.createGain();o.type=type;o.frequency.value=f;q.gain.value=g;o.connect(q);q.connect(c.destination);o.start();q.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);o.stop(c.currentTime+d+0.02);}catch{}};function play(h){if(!sfxEnabled.on)return;if(h==='tap.ok')synth('sine',720,0.05,0.06);else if(h==='reps.buy')synth('square',430,0.12,0.08);else if(h==='unlock.do')synth('triangle',300,0.2,0.10);else if(h==='upgrade.apply'){synth('square',650,0.09,0.08);setTimeout(()=>synth('square',900,0.09,0.07),90);}else if(h==='achievement.unlock'){synth('square',600,0.10,0.08);setTimeout(()=>synth('square',800,0.10,0.07),110);setTimeout(()=>synth('square',1000,0.12,0.07),220);}else if(h==='boost.start'){synth('sine',820,0.08,0.07);setTimeout(()=>synth('square',980,0.06,0.06),60);}else if(h==='boost.end'){synth('sine',340,0.12,0.07);}else if(h.startsWith('ui.'))synth('sine',500,0.06,0.05);else if(h==='tut.type')synth('triangle',420,0.03,0.03);}function start(){if(on)return;const url=isMobile?MusicURL_MOBILE:MusicURL_DESKTOP;on=true;music=new Audio(url);music.loop=true;music.volume=vol;music.play().catch(()=>{on=false;});}function stop(){try{on=false;music&&music.pause();}catch{}}function setVol(v){vol=v;if(music)music.volume=v;}return{play,music:{start,stop,setVol},sfxEnabled}})();
 
-const Bus = (()=>{ const m={}; return {on(e,f){(m[e]||(m[e]=[])).push(f)}, emit(e,p){(m[e]||[]).slice().forEach(fn=>{try{fn(p)}catch(e){}})}})();
-
-const Util = {
-  clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
-  fmtHP(n){ const a=Math.abs(n); const d=App.Config.DEC;
-    if(a>=1e9)return (n/1e9).toFixed(d)+'B';
-    if(a>=1e6)return (n/1e6).toFixed(d)+'M';
-    if(a>=1e3)return (n/1e3).toFixed(d)+'K';
-    return n.toFixed(d);
-  },
-  fmtCost(n){ const d=App.Config.DEC;
-    if(n<1e3) return n.toFixed(d);
-    if(n<1e6) return (n/1e3).toFixed(d)+'K';
-    if(n<1e9) return (n/1e6).toFixed(d)+'M';
-    return (n/1e9).toFixed(d)+'B';
-  },
-  now: ()=>performance.now(),
-  inView: el=>{ if(!el) return false; const r=el.getBoundingClientRect(); return r.bottom>0 && r.right>0 && r.left<innerWidth && r.top<innerHeight; }
-};
-
-/* =========================
-   AUDIO (simple synths)
-   ========================= */
-const MusicURL_DESKTOP = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music.mp3?raw=true";
-const MusicURL_MOBILE  = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
-const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-
-const AudioSys = (()=> {
-  let music, musicVol = isMobile ? 0.08 : 0.10, musicOn = false;
-  const sfxEnabled = {on:true};
-  let ctx;
-
-  function ac(){ try{ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch{} return ctx; }
-
-  const synth = (type='sine', f=660, d=0.12, g=0.06)=>{
-    try{
-      const c = ac(); if(!c) return;
-      const o=c.createOscillator(), q=c.createGain();
-      o.type=type; o.frequency.value=f; q.gain.value=g;
-      o.connect(q); q.connect(c.destination);
-      o.start(); q.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + d); o.stop(c.currentTime + d + 0.02);
-    }catch{}
-  };
-
-  function playSFX(hook){
-    if(!sfxEnabled.on) return;
-    if(hook==='tap.ok') synth('sine',720,0.05,0.06);
-    else if(hook==='reps.buy') synth('square',430,0.12,0.08);
-    else if(hook==='unlock.do') synth('triangle',300,0.2,0.10);
-    else if(hook==='upgrade.apply') { synth('square',650,0.09,0.08); setTimeout(()=>synth('square',900,0.09,0.07),90); }
-    else if(hook==='achievement.unlock') { synth('square',600,0.10,0.08); setTimeout(()=>synth('square',800,0.10,0.07),110); setTimeout(()=>synth('square',1000,0.12,0.07),220);}
-    else if(hook==='boost.start') { synth('sine',820,0.08,0.07); setTimeout(()=>synth('square',980,0.06,0.06),60); }
-    else if(hook==='boost.end') { synth('sine',340,0.12,0.07); }
-    else if(hook.startsWith('ui.')) synth('sine',500,0.06,0.05);
-    else if(hook==='tut.type') synth('triangle',420,0.03,0.03);
-  }
-
-  function startMusic(){
-    if(musicOn) return;
-    const url = isMobile ? MusicURL_MOBILE : MusicURL_DESKTOP;
-    musicOn=true;
-    music = new Audio(url);
-    music.loop=true; music.volume=musicVol;
-    music.play().catch(()=>{ musicOn=false; });
-  }
-  function stopMusic(){ try{musicOn=false; music && music.pause();}catch{} }
-  function setMusicVol(v){ musicVol=v; if(music) music.volume=v; }
-
-  return { play:playSFX, music:{start:startMusic, stop:stopMusic, setVol:setMusicVol}, sfxEnabled };
-})();
-
-/* =========================
-   STATE / SAVE / DATA
-   ========================= */
-const State = {
-  hp:0, qty:1, avatar:'male',
-  stats:{manual:0, auto:0, totalEarned:0},
-  coaches:{}, achievements:{}, exercises:[],
-  tutorial:{done:false, shown:{unlock:{}, coach:{}, upgrade:{}}},
-  upgrades: {
-    // timers store end timestamps (ms) for active consumables
-    active:{}, 
-    consumables:{coffee:0, pre:0, gel:0, chalk:0},   // purchase counters (for price scaling)
-    equipment:{belt:0, shoes:0, wraps:0},
-    meta:{recovery:0, form:0},
-    crit:{chance:0, power:2.0} // dynamic via Chalk
-  }
-};
-
-function save(){ try{ localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify({schema:App.Config.SCHEMA, ...State})); }catch{} }
-function load(){
-  try{
-    const raw = localStorage.getItem(App.Config.SAVE_KEY); if(!raw) return;
-    const j = JSON.parse(raw);
-    if(j.schema>=1){ // allow migrate from older
-      Object.assign(State, j);
-      // ensure upgrades exist if migrating
-      State.upgrades = State.upgrades || {active:{},consumables:{coffee:0,pre:0,gel:0,chalk:0},equipment:{belt:0,shoes:0,wraps:0},meta:{recovery:0,form:0},crit:{chance:0,power:2}};
-      State.tutorial = State.tutorial || {done:false, shown:{unlock:{}, coach:{}, upgrade:{}}};
-    }
-  }catch{}
-}
+/* ========== State & Assets ========== */
+const State={hp:0,qty:1,avatar:'male',stats:{manual:0,auto:0,totalEarned:0},coaches:{},achievements:{},exercises:[],tutorial:{done:false,shown:{unlock:{},coach:{},upgrade:{}}},upgrades:{active:{},consumables:{coffee:0,pre:0,gel:0,chalk:0},equipment:{belt:0,shoes:0,wraps:0},meta:{recovery:0,form:0},crit:{chance:0,power:2}}};
+function save(){try{localStorage.setItem(App.Config.SAVE_KEY,JSON.stringify({schema:App.Config.SCHEMA,...State}));}catch{}}
+function load(){try{const raw=localStorage.getItem(App.Config.SAVE_KEY);if(!raw)return;const j=JSON.parse(raw);if(j.schema>=1){Object.assign(State,j);State.upgrades=State.upgrades||{active:{},consumables:{coffee:0,pre:0,gel:0,chalk:0},equipment:{belt:0,shoes:0,wraps:0},meta:{recovery:0,form:0},crit:{chance:0,power:2}};State.tutorial=State.tutorial||{done:false,shown:{unlock:{},coach:{},upgrade:{}}};}}catch{}}
 load();
+const Assets={avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true",avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true",trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true",logo:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Logo%20(2).png?raw=true"};
+const ICON={male:{walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.gif?raw=true",jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.gif?raw=true",sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.gif?raw=true",push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.gif?raw=true",jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jumping%20jacks.png?raw=true",pull:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pull%20ups.png?raw=true",rope:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jump%20rope.png?raw=true",plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20planks.png?raw=true",mountain:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20mountain%20climbers.png?raw=true",kb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20kettlebells.png?raw=true",burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20burpees.png?raw=true",bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20bench%20press.png?raw=true",backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20back%20squat.png?raw=true",dead:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20deadlifts.png?raw=true",hand:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstands.png?raw=true",hspu:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstand%20push%20ups.png?raw=true",muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20muscle%20ups.png?raw=true",lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20front%20lever.png?raw=true",icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20iron%20cross.png?raw=true",vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20victorian%20cross.png?raw=true"},female:{walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.gif?raw=true",jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.gif?raw=true",sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.gif?raw=true",push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.gif?raw=true",jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jumping%20jacks.png?raw=true",pull:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pull%20up.png?raw=true",rope:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jump%20rope.png?raw=true",plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20plank.png?raw=true",mountain:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20mountain%20climbers.png?raw=true",kb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20kettlebell.png?raw=true",burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20burpees.png?raw=true",bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20%20bench%20press.png?raw=true",backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20back%20squat.png?raw=true",dead:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20deadlift.png?raw=true",hand:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand.png?raw=true",hspu:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand%20push%20ups.png?raw=true",muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20muscle%20up.png?raw=true",lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20front%20lever.png?raw=true",icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20iron%20cross.png?raw=true",vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20victorian%20cross.png?raw=true"}};
+const COACH_URL=Array.from({length:20},(_,i)=>`https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c${i+1}.png?raw=true`);
+const COACH_NAME=["Stride Guide Sam","Pace Setter Jenna","Core Captain Cruz","Rep Sergeant Rex","Cardio Jackie","Bar Boss Piper","Rope Coach Rio","Plank Pro Parker","Summit Mitch","Bell Master Kira","Burpee Bruin","Spotter Ben","Depth Judge Dee","Hinge Hero Hank","Balance Bella","Inverted Ivy","Ring Raptor Max","Lever Leo","Cross Coach Iris","Victorian Victor"];
 
-/* assets */
-const Assets = {
-  avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true",
-  avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true",
-  trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true",
-  logo:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Logo%20(2).png?raw=true"
-};
-
-/* exercise icons (first 4 use GIFs per your latest assets; rest use labeled PNGs you provided earlier or placeholders) */
-const ICON = {
-  male:{
-    walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.gif?raw=true",
-    jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.gif?raw=true",
-    sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.gif?raw=true",
-    push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.gif?raw=true",
-    jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jumping%20jacks.png?raw=true",
-    pull:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pull%20ups.png?raw=true",
-    rope:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jump%20rope.png?raw=true",
-    plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20planks.png?raw=true",
-    mountain:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20mountain%20climbers.png?raw=true",
-    kb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20kettlebells.png?raw=true",
-    burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20burpees.png?raw=true",
-    bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20bench%20press.png?raw=true",
-    backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20back%20squat.png?raw=true",
-    dead:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20deadlifts.png?raw=true",
-    hand:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstands.png?raw=true",
-    hspu:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstand%20push%20ups.png?raw=true",
-    muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20muscle%20ups.png?raw=true",
-    lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20front%20lever.png?raw=true",
-    icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20iron%20cross.png?raw=true",
-    vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20victorian%20cross.png?raw=true",
-  },
-  female:{
-    walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.gif?raw=true",
-    jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.gif?raw=true",
-    sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.gif?raw=true",
-    push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.gif?raw=true",
-    jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jumping%20jacks.png?raw=true",
-    pull:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pull%20up.png?raw=true",
-    rope:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jump%20rope.png?raw=true",
-    plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20plank.png?raw=true",
-    mountain:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20mountain%20climbers.png?raw=true",
-    kb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20kettlebell.png?raw=true",
-    burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20burpees.png?raw=true",
-    bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20%20bench%20press.png?raw=true",
-    backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20back%20squat.png?raw=true",
-    dead:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20deadlift.png?raw=true",
-    hand:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand.png?raw=true",
-    hspu:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand%20push%20ups.png?raw=true",
-    muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20muscle%20up.png?raw=true",
-    lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20front%20lever.png?raw=true",
-    icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20iron%20cross.png?raw=true",
-    vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20victorian%20cross.png?raw=true",
-  }
-};
-
-/* coaches (images c1..c20 alternating female/male) */
-const COACH_URL = Array.from({length:20},(_,i)=>`https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c${i+1}.png?raw=true`);
-const COACH_NAME = [
-  "Stride Guide Sam","Pace Setter Jenna","Core Captain Cruz","Rep Sergeant Rex","Cardio Jackie",
-  "Bar Boss Piper","Rope Coach Rio","Plank Pro Parker","Summit Mitch","Bell Master Kira",
-  "Burpee Bruin","Spotter Ben","Depth Judge Dee","Hinge Hero Hank","Balance Bella",
-  "Inverted Ivy","Ring Raptor Max","Lever Leo","Cross Coach Iris","Victorian Victor"
-];
-
-/* build exercises */
+/* ========== Build exercises ========== */
 function buildExercises(){
-  const L = [
-    ['walk','Walking','walk', 1000],
-    ['jog','Jogging','jog', 3000],
-    ['sit','Sit-ups','sit', 6000],
-    ['push','Push-ups','push', 12000],
-    ['jacks','Jumping Jacks','jacks', 24000],
-    ['pull','Pull-ups','pull', 48000],
-    ['rope','Jump Rope','rope', 96000],
-    ['plank','Plank','plank', 192000],
-    ['mountain','Mountain Climbers','mountain', 384000],
-    ['kb','Kettlebell','kb', 768000],
-    ['burpee','Burpees','burpee', 1536000],
-    ['bench','Bench Press','bench', 3072000],
-    ['backsq','Back Squat','backsq', 6144000],
-    ['dead','Deadlift','dead', 12288000],
-    ['hand','Handstands','hand', 24576000],
-    ['hspu','Handstand Push-ups','hspu', 49152000],
-    ['muscle','Muscle-ups','muscle', 98304000],
-    ['lever','Front Lever','lever', 196608000],
-    ['icross','Iron Cross','icross', 393216000],
-    ['vcross','Victorian Cross','vcross', 786432000]
-  ];
-  const prev = Object.fromEntries((State.exercises||[]).map(e=>[e.id,e]));
-  const arr=[];
-  for(let i=0;i<L.length;i++){
-    const [id,name,key,cd]=L[i];
-    const sec = cd/1000;
-    let baseHP = (i===0)?1:Math.round(20*Math.pow(sec,1.10));
-    const repBaseCost = Math.max(4, Math.round(baseHP*0.05));
-    const unlockCost = (i===0)?0: Math.round(baseHP*Math.pow(sec,0.60)*1.15);
-    const was = prev[id]||{};
-    arr.push({
-      id,name,key,baseHP,baseCooldown:cd,unlockCost,repBaseCost,
-      unlocked: was.unlocked ?? (i===0),
-      repHP: was.repHP ?? 0,
-      repProgress: was.repProgress ?? 0,
-      repTarget: was.repTarget ?? 10,
-      level: was.level ?? 1,
-      cooldown: was.cooldown ?? cd,
-      lastTapAt: was.lastTapAt ?? 0,
-      _autoElapsed:0,
-      els:{}
-    });
-  }
-  State.exercises = arr;
+  const L=[['walk','Walking','walk',1000],['jog','Jogging','jog',3000],['sit','Sit-ups','sit',6000],['push','Push-ups','push',12000],['jacks','Jumping Jacks','jacks',24000],['pull','Pull-ups','pull',48000],['rope','Jump Rope','rope',96000],['plank','Plank','plank',192000],['mountain','Mountain Climbers','mountain',384000],['kb','Kettlebell','kb',768000],['burpee','Burpees','burpee',1536000],['bench','Bench Press','bench',3072000],['backsq','Back Squat','backsq',6144000],['dead','Deadlift','dead',12288000],['hand','Handstands','hand',24576000],['hspu','Handstand Push-ups','hspu',49152000],['muscle','Muscle-ups','muscle',98304000],['lever','Front Lever','lever',196608000],['icross','Iron Cross','icross',393216000],['vcross','Victorian Cross','vcross',786432000]];
+  const prev=Object.fromEntries((State.exercises||[]).map(e=>[e.id,e]));
+  State.exercises=L.map(([id,name,key,cd],i)=>{
+    const sec=cd/1000;
+    const baseHP=(i===0)?1:Math.round(20*Math.pow(sec,1.10));
+    const repBaseCost=Math.max(4,Math.round(baseHP*0.05));
+    const unlockCost=(i===0)?0:Math.round(baseHP*Math.pow(sec,0.60)*1.15);
+    const was=prev[id]||{};
+    return {id,name,key,baseHP,baseCooldown:cd,unlockCost,repBaseCost,unlocked:was.unlocked??(i===0),repHP:was.repHP??0,repProgress:was.repProgress??0,repTarget:was.repTarget??10,level:was.level??1,cooldown:was.cooldown??cd,lastTapAt:was.lastTapAt??0,_autoElapsed:0,els:{}};
+  });
 }
-buildExercises();
 
-/* =========================
-   UPGRADES (core math)
-   ========================= */
-const Upg = (()=>{
+/* ========== Upgrades math ========== */
+const Upg=(()=>{const base={consum:{coffee:1500,pre:2500,gel:1200,chalk:1800},equip:{belt:5000,shoes:6000,wraps:4000},meta:{recovery:7500,form:9000}},growth={consum:{coffee:1.45,pre:1.50,gel:1.40,chalk:1.45},equip:1.35,meta:1.45};
+function costConsum(k){const n=State.upgrades.consumables[k]||0;return Math.round(base.consum[k]*Math.pow(growth.consum[k],n))}
+function costEquip(k){const n=State.upgrades.equipment[k]||0;return Math.round(base.equip[k]*Math.pow(growth.equip,n))}
+function costMeta(k){const n=State.upgrades.meta[k]||0;return Math.round(base.meta[k]*Math.pow(growth.meta,n))}
+function hpTapMultiplier(){const belt=1+0.04*(State.upgrades.equipment.belt||0);const coffee=isActive('coffee')?0.15:0;const gel=isActive('gel')?0.25:0;return belt*(1+coffee+gel)}
+function cooldownMult(){const shoes=1-0.04*(State.upgrades.equipment.shoes||0);const pre=isActive('pre')?0.85:1.0;return Math.max(0.10,shoes*pre)}
+function repCostMult(){return Math.max(0.70,1-0.03*(State.upgrades.meta.form||0))}
+function offlineMult(){return 1+0.10*(State.upgrades.meta.recovery||0)}
+function critChance(){return (isActive('chalk')?0.20:0)+(State.upgrades.crit.chance||0)}
+function isActive(k){const t=State.upgrades.active[k];return t&&Date.now()<t}
+function remainingMs(k){const t=State.upgrades.active[k]||0;return Math.max(0,t-Date.now())}
+function activate(k,ms){State.upgrades.active[k]=Date.now()+ms;save();AudioSys.play('boost.start');Banners.push(`Boost active: <strong>${({coffee:'Coffee Shot',pre:'Pre-Workout',gel:'Energy Gel',chalk:'Chalk Up'})[k]||k}</strong>`)}
+function buyConsumable(k){const c=costConsum(k);if(State.hp+1e-6<c)return false;State.hp-=c;State.upgrades.consumables[k]=(State.upgrades.consumables[k]||0)+1;const dur={coffee:600000,pre:600000,gel:300000,chalk:480000}[k]||300000;activate(k,dur);save();return true}
+function buyEquip(k){const c=costEquip(k);if(State.hp+1e-6<c)return false;State.hp-=c;State.upgrades.equipment[k]=(State.upgrades.equipment[k]||0)+1;AudioSys.play('upgrade.apply');Banners.push(`Equipment upgraded: <strong>${({belt:'Lifting Belt',shoes:'Trainers',wraps:'Wrist Wraps'})[k]||k}</strong> Lv.${State.upgrades.equipment[k]}`);save();return true}
+function buyMeta(k){const c=costMeta(k);if(State.hp+1e-6<c)return false;State.hp-=c;State.upgrades.meta[k]=(State.upgrades.meta[k]||0)+1;AudioSys.play('upgrade.apply');Banners.push(`Meta improved: <strong>${({recovery:'Recovery Protocol',form:'Efficient Form'})[k]||k}</strong> Lv.${State.upgrades.meta[k]}`);save();return true}
+function renderPills(){const host=$('#boostPills');host.innerHTML='';for(const k of ['coffee','pre','gel','chalk']){if(isActive(k)){const ms=remainingMs(k),m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);const pill=el('div',{class:'pill'});pill.innerHTML=`<span class="ttl">${({coffee:'Coffee',pre:'Pre',gel:'Gel',chalk:'Chalk'})[k]}</span><span class="t">${m}:${String(s).padStart(2,'0')}</span>`;host.appendChild(pill)}}}
+return{hpTapMultiplier,cooldownMult,repCostMult,offlineMult,critChance,isActive,remainingMs,costConsum,costEquip,costMeta,buyConsumable,buyEquip,buyMeta,renderPills}})();
 
-  // Price curves
-  const base = {
-    consum:{ coffee:1500, pre:2500, gel:1200, chalk:1800 },
-    equip:{ belt:5000, shoes:6000, wraps:4000 },
-    meta:{ recovery:7500, form:9000 }
-  };
-  const growth = {
-    consum:{ coffee:1.45, pre:1.50, gel:1.40, chalk:1.45 },
-    equip: 1.35,
-    meta: 1.45
-  };
+/* ========== Game Core ========== */
+const Game={perTap(ex){return (ex.baseHP+ex.repHP)*Upg.hpTapMultiplier()},manualTap(ex){let g=ex.baseHP+ex.repHP;let mul=Upg.hpTapMultiplier();if(Math.random()<Upg.critChance())mul*=(State.upgrades.crit.power||2.0);return g*mul},repGrowth(ex){const g=1.07+0.01*Math.log2(Math.max(1,ex.level));return Util.clamp(g,1.07,1.15)},repCost(ex,n=1){const g=Game.repGrowth(ex);const b=ex.repBaseCost*Math.pow(g,ex.repHP);const mult=Upg.repCostMult();const raw=(n===1)?b:(b*(Math.pow(g,n)-1)/(g-1));return +(raw*mult).toFixed(App.Config.DEC)},addHP(v){State.hp+=v;if(v>0)State.stats.totalEarned+=v;Bus.emit('hp',State.hp)},tap(ex,now=Util.now()){if(!ex.unlocked)return 0;const cd=Math.max(App.Config.MIN_CD_MS,Math.floor(ex.cooldown*Upg.cooldownMult()));if(ex.lastTapAt>0&&now-ex.lastTapAt<cd-1){AudioSys.play('tap.blocked');return 0}ex.lastTapAt=now;const g=Game.manualTap(ex);Game.addHP(g);State.stats.manual++;AudioSys.play('tap.ok');UI.floatFrom(ex.els.img||ex.els.card,`+${g.toFixed(App.Config.DEC)}`);return g},buyReps(ex,n){const cost=Game.repCost(ex,n);if(State.hp+1e-6<cost)return false;Game.addHP(-cost);ex.repHP+=n;ex.repProgress+=n;while(ex.repProgress>=ex.repTarget){ex.repProgress-=ex.repTarget;ex.repTarget*=2;ex.level+=1;ex.cooldown=Math.max(App.Config.MIN_CD_MS,Math.floor(ex.cooldown/2));Banners.push(`${ex.name} upgraded to <strong>Lvl ${ex.level}</strong> — cooldown halved!`);AudioSys.play('upgrade.apply');FX.confettiAt(ex.els.card);Bus.emit('upgrade',{id:ex.id,level:ex.level})}AudioSys.play('reps.buy');Bus.emit('reps',{id:ex.id,qty:n});return true},unlock(ex){if(ex.unlocked)return false;if(State.hp+1e-6<ex.unlockCost)return false;Game.addHP(-ex.unlockCost);ex.unlocked=true;ex.lastTapAt=0;AudioSys.play('unlock.do');FX.confettiAt(ex.els.card);Bus.emit('unlock',ex.id);return true}};
 
-  function costConsum(key){
-    const n = State.upgrades.consumables[key]||0;
-    return Math.round(base.consum[key] * Math.pow(growth.consum[key], n));
-  }
-  function costEquip(key){
-    const lvl = State.upgrades.equipment[key]||0;
-    return Math.round(base.equip[key] * Math.pow(growth.equip, lvl));
-  }
-  function costMeta(key){
-    const lvl = State.upgrades.meta[key]||0;
-    return Math.round(base.meta[key] * Math.pow(growth.meta, lvl));
-  }
+/* ========== Engine ========== */
+const Engine=(()=>{let last=Util.now();function loop(){const now=Util.now();const dt=Math.min(0.25,(now-last)/1000);last=now;for(const ex of State.exercises){if(!Coaches.isAuto(ex.id))continue;const cd=Math.max(App.Config.MIN_CD_MS,Math.floor(ex.cooldown*Upg.cooldownMult()));ex._autoElapsed+=dt*1000;while(ex._autoElapsed>=cd){ex._autoElapsed-=cd;ex.lastTapAt=now;const g=(ex.baseHP+ex.repHP)*Upg.hpTapMultiplier();Game.addHP(g);State.stats.auto++;if(Settings.get('floats'))UI.floatFrom(ex.els.img||ex.els.card,`+${g.toFixed(App.Config.DEC)}`)}}for(const ex of State.exercises)UI.drawCooldown(ex);UI.tickTop(dt);UI.refreshThrottled();Notify.updateThrottled();Upg.renderPills();for(const k of Object.keys(State.upgrades.active||{})){if(!Upg.isActive(k)&&State.upgrades.active[k]){State.upgrades.active[k]=0;AudioSys.play('boost.end');Banners.push(`Boost ended: <strong>${({coffee:'Coffee',pre:'Pre',gel:'Gel',chalk:'Chalk'})[k]||k}</strong>`);save()}}requestAnimationFrame(loop)}return{start:()=>requestAnimationFrame(loop)}})();
 
-  // Effects
-  function hpTapMultiplier(){
-    const belt = 1 + 0.04*(State.upgrades.equipment.belt||0);
-    const coffee = Upg.isActive('coffee') ? 0.15 : 0;
-    const gel    = Upg.isActive('gel')    ? 0.25 : 0;
-    const mul = belt * (1 + coffee + gel);
-    return mul;
-  }
-  function cooldownMult(){
-    const shoes = 1 - 0.04*(State.upgrades.equipment.shoes||0);
-    const pre   = Upg.isActive('pre') ? 0.85 : 1.0;
-    return Math.max(0.10, shoes * pre);
-  }
-  function repCostMult(){
-    const form = Math.max(0.70, 1 - 0.03*(State.upgrades.meta.form||0));
-    return form;
-  }
-  function offlineMult(){
-    return 1 + 0.10*(State.upgrades.meta.recovery||0);
-  }
-  function critChance(){
-    return (Upg.isActive('chalk')?0.20:0) + (State.upgrades.crit.chance||0);
-  }
+/* ========== UI / Cards ========== */
+const UI={floatFrom(ref,text){if(!ref||!Settings.get('floats'))return;const r=ref.getBoundingClientRect();const sp=el('div',{class:'float',text});sp.style.left=(r.left+r.width/2)+'px';sp.style.top=(r.top+r.height*0.15)+'px';document.body.appendChild(sp);setTimeout(()=>sp.remove(),900)},drawCooldown(ex){if(!ex.unlocked)return;const cd=Math.max(App.Config.MIN_CD_MS,Math.floor(ex.cooldown*Upg.cooldownMult()));if(cd<=App.Config.MIN_CD_MS){ex.els.fill.style.width='100%';ex.els.time.textContent=(cd/1000).toFixed(App.Config.DEC)+'s';return}const ready=ex.lastTapAt<=0;const since=ready?cd:(Util.now()-ex.lastTapAt);const elapsed=Math.max(0,Math.min(since,cd));const pct=elapsed/cd;ex.els.fill.style.width=(pct*100).toFixed(1)+'%';ex.els.time.textContent=(elapsed/1000).toFixed(App.Config.DEC)+'s'},tickTop(dt){UI._hpShown+=(State.hp-UI._hpShown)*Math.min(1,dt*8);$('#hpTop').textContent=Util.fmtHP(UI._hpShown);$('#hpMini').textContent=Util.fmtHP(UI._hpShown)},refreshThrottled(){const now=performance.now();if(!UI._next||now>=UI._next){UI._next=now+App.Config.UI_MS;for(const ex of State.exercises)UI.refreshExercise(ex)}},refreshExercise(ex){ex.els.repText.textContent=`${ex.repProgress}/${ex.repTarget}`;ex.els.repFill.style.width=Math.min(1,ex.repProgress/ex.repTarget)*100+'%';ex.els.lvl.textContent=`Lvl ${ex.level}`;ex.els.kv.textContent=`${Math.round(ex.baseHP+ex.repHP)} HP`;const n=State.qty;const cost=Game.repCost(ex,n);const can=State.hp+1e-6>=cost;ex.els.reps.textContent=(n===1?`Reps (${Util.fmtCost(cost)} HP)`:`×${n} Reps (${Util.fmtCost(cost)} HP)`);ex.els.reps.classList.toggle('ready',can);ex.els.reps.disabled=!can;if(!ex.unlocked){const canU=State.hp+1e-6>=ex.unlockCost;ex.els.pill.textContent=`Unlock ${ex.name} • ${Util.fmtCost(ex.unlockCost)} HP`;ex.els.pill.classList.toggle('ready',canU);ex.els.card.classList.toggle('unlockPulse',canU)}ex.els.coachMini.style.display=Coaches.ownedFor(ex.id).length?'block':'none'},build(){const host=$('#stack');host.innerHTML='';const atlas=State.avatar==='female'?ICON.female:ICON.male;State.exercises.forEach(ex=>{const card=el('div',{class:'card'});ex.els.card=card;if(!ex.unlocked)card.classList.add('locked');const left=el('div',{class:'left'});const media=el('div',{class:'mediaBox'});const img=el('img',{alt:ex.name,src:atlas[ex.key]||atlas.walk});ex.els.img=img;media.append(img);const lvl=el('div',{class:'lvlBadge',text:`Lvl ${ex.level}`});ex.els.lvl=lvl;const coachMini=el('img',{class:'coachMini',alt:'Coach',src:COACH_URL[0]});ex.els.coachMini=coachMini;left.append(media,lvl,coachMini);const right=el('div',{class:'right'});const title=el('h3',{class:'title',text:ex.name});const coolRow=el('div',{class:'coolRow'});const cool=el('div',{class:'cool'});const bar=el('div',{class:'coolBar'});const fill=el('div',{class:'coolFill'});ex.els.fill=fill;bar.append(fill);cool.append(bar);const time=el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000).toFixed(App.Config.DEC)+'s'});ex.els.time=time;coolRow.append(cool,time);const meta=el('div',{class:'metaRow'});const kv=el('div',{class:'kv',text:`${Math.round(ex.baseHP+ex.repHP)} HP`});ex.els.kv=kv;const chips=el('div',{class:'chips'});ex.els.chips=chips;const reps=el('button',{class:'repsBtn',text:'Reps'});ex.els.reps=reps;meta.append(kv,chips,reps);right.append(title,coolRow,meta);const unlockRow=el('div',{class:'unlockRow'});const pill=el('button',{class:'unlockPill',text:`Unlock ${ex.name} • ${Util.fmtCost(ex.unlockCost)} HP`});ex.els.pill=pill;unlockRow.append(pill);if(ex.unlocked){card.append(left,right)}else{card.append(left,unlockRow)}host.appendChild(card);left.addEventListener('pointerdown',e=>{e.preventDefault();if(!ex.unlocked)return;Game.tap(ex);save()});reps.addEventListener('click',()=>{if(Game.buyReps(ex,State.qty)){save()}});pill.addEventListener('click',()=>{if(Game.unlock(ex)){card.classList.remove('locked','unlockPulse');unlockRow.remove();card.append(left,right);save()}});card.setAttribute('data-id',ex.id)})},_hpShown:0};
+const Banners={push(html){const host=$('#bannerHost');const b=el('div',{class:'banner',html:`🎉 ${html}`});host.appendChild(b);setTimeout(()=>b.remove(),3200)}};
+const FX={confettiAt(node){if(!node)return;const r=node.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;const host=el('div');host.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:2200';document.body.appendChild(host);const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab'];for(let i=0;i<26;i++){const d=el('div');const size=6+Math.random()*6;d.style.cssText=`position:absolute;width:${size}px;height:${size}px;background:${colors[i%colors.length]};opacity:.95;border-radius:${Math.random()<.4?'50%':'2px'};left:${x+(Math.random()*120-60)}px;top:${y+(Math.random()*40-20)}px`;const dx=(Math.random()*2-1)*(innerWidth*0.12),dy=(innerHeight*0.25+Math.random()*innerHeight*0.15);d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});host.appendChild(d)}setTimeout(()=>host.remove(),2000)}};
 
-  function isActive(key){
-    const t = State.upgrades.active[key];
-    return t && Date.now() < t;
-  }
-  function remainingMs(key){
-    const t = State.upgrades.active[key]||0;
-    return Math.max(0, t - Date.now());
-  }
-  function activate(key, ms){
-    State.upgrades.active[key] = Date.now() + ms;
-    save();
-    AudioSys.play('boost.start');
-    Banners.push(`Boost active: <strong>${keyName(key)}</strong>`);
-  }
-  function keyName(k){
-    return ({coffee:'Coffee Shot', pre:'Pre-Workout', gel:'Energy Gel', chalk:'Chalk Up'})[k] || k;
-  }
-
-  // Public purchase APIs
-  function buyConsumable(key){
-    const cost = costConsum(key);
-    if(State.hp + 1e-6 < cost) return false;
-    State.hp -= cost;
-    State.upgrades.consumables[key] = (State.upgrades.consumables[key]||0) + 1;
-    // durations
-    const dur = {coffee:10*60*1000, pre:10*60*1000, gel:5*60*1000, chalk:8*60*1000}[key] || (5*60*1000);
-    activate(key, dur);
-    save();
-    return true;
-  }
-  function buyEquip(key){
-    const cost = costEquip(key);
-    if(State.hp + 1e-6 < cost) return false;
-    State.hp -= cost;
-    State.upgrades.equipment[key] = (State.upgrades.equipment[key]||0) + 1;
-    AudioSys.play('upgrade.apply');
-    Banners.push(`Equipment upgraded: <strong>${equipName(key)}</strong> Lv.${State.upgrades.equipment[key]}`);
-    save();
-    return true;
-  }
-  function buyMeta(key){
-    const cost = costMeta(key);
-    if(State.hp + 1e-6 < cost) return false;
-    State.hp -= cost;
-    State.upgrades.meta[key] = (State.upgrades.meta[key]||0) + 1;
-    AudioSys.play('upgrade.apply');
-    Banners.push(`Meta improved: <strong>${metaName(key)}</strong> Lv.${State.upgrades.meta[key]}`);
-    save();
-    return true;
-  }
-  function equipName(k){return ({belt:'Lifting Belt', shoes:'Trainers', wraps:'Wrist Wraps'})[k]||k}
-  function metaName(k){return ({recovery:'Recovery Protocol', form:'Efficient Form'})[k]||k}
-
-  // UI badges in top bar
-  function renderPills(){
-    const host = $('#boostPills'); host.innerHTML='';
-    for(const k of ['coffee','pre','gel','chalk']){
-      if(isActive(k)){
-        const ms = remainingMs(k);
-        const m = Math.floor(ms/60000), s = Math.floor((ms%60000)/1000);
-        const pill = el('div',{class:'pill'});
-        pill.innerHTML = `<span class="ttl">${keyName(k)}</span><span class="t">${m}:${String(s).padStart(2,'0')}</span>`;
-        host.appendChild(pill);
-      }
-    }
-  }
-
-  // External hooks for game math
-  return {
-    hpTapMultiplier, cooldownMult, repCostMult, offlineMult, critChance,
-    isActive, remainingMs, costConsum, costEquip, costMeta,
-    buyConsumable, buyEquip, buyMeta, renderPills
-  };
-})();
-
-/* =========================
-   GAME CORE
-   ========================= */
-const Game = {
-  perTap(ex){
-    const base = ex.baseHP + ex.repHP;
-    let out = base * Upg.hpTapMultiplier();
-    // crit (only manual taps)
-    return out;
-  },
-  manualTap(ex){
-    // crit chance only for manual
-    let g = ex.baseHP + ex.repHP;
-    let mul = Upg.hpTapMultiplier();
-    const c = Upg.critChance();
-    if(Math.random()<c) mul *= (State.upgrades.crit.power||2.0);
-    return g * mul;
-  },
-  repGrowth(ex){
-    const g = 1.07 + 0.01 * Math.log2(Math.max(1, ex.level));
-    return Util.clamp(g,1.07,1.15);
-  },
-  repCost(ex, n=1){
-    const g = Game.repGrowth(ex);
-    const b = ex.repBaseCost * Math.pow(g, ex.repHP);
-    const mult = Upg.repCostMult();
-    const raw = (n===1) ? b : (b * (Math.pow(g,n)-1) / (g-1));
-    return +(raw*mult).toFixed(App.Config.DEC);
-  },
-  addHP(v){
-    State.hp += v;
-    if(v>0) State.stats.totalEarned += v;
-    Bus.emit('hp', State.hp);
-  },
-  tap(ex, now=Util.now()){
-    if(!ex.unlocked) return 0;
-    const cd = Math.max(App.Config.MIN_CD_MS, Math.floor(ex.cooldown * Upg.cooldownMult()));
-    if(ex.lastTapAt>0 && now-ex.lastTapAt<cd-1){ AudioSys.play('tap.blocked'); return 0; }
-    ex.lastTapAt = now;
-    const g = Game.manualTap(ex);
-    Game.addHP(g);
-    State.stats.manual++;
-    AudioSys.play('tap.ok');
-    UI.floatFrom(ex.els.img || ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
-    return g;
-  },
-  buyReps(ex, n){
-    const cost = Game.repCost(ex,n);
-    if(State.hp + 1e-6 < cost) return false;
-    Game.addHP(-cost);
-    ex.repHP += n;
-    ex.repProgress += n;
-    while(ex.repProgress >= ex.repTarget){
-      ex.repProgress -= ex.repTarget;
-      ex.repTarget *= 2;
-      ex.level += 1;
-      ex.cooldown = Math.max(App.Config.MIN_CD_MS, Math.floor(ex.cooldown/2));
-      Banners.push(`${ex.name} upgraded to <strong>Lvl ${ex.level}</strong> — cooldown halved!`);
-      AudioSys.play('upgrade.apply');
-      FX.confettiAt(ex.els.card);
-      Bus.emit('upgrade',{id:ex.id, level:ex.level});
-    }
-    AudioSys.play('reps.buy');
-    Bus.emit('reps',{id:ex.id, qty:n});
-    return true;
-  },
-  unlock(ex){
-    if(ex.unlocked) return false;
-    if(State.hp + 1e-6 < ex.unlockCost) return false;
-    Game.addHP(-ex.unlockCost);
-    ex.unlocked = true; ex.lastTapAt=0;
-    AudioSys.play('unlock.do'); FX.confettiAt(ex.els.card); Bus.emit('unlock', ex.id);
-    return true;
-  }
-};
-
-/* =========================
-   ENGINE (cooldowns & auto)
-   ========================= */
-const Engine = (()=> {
-  let last = Util.now();
-  function loop(){
-    const now = Util.now();
-    const dt = Math.min(0.25, (now-last)/1000);
-    last = now;
-
-    // Auto taps (respect cooldown with multipliers)
-    for(const ex of State.exercises){
-      if(!Coaches.isAuto(ex.id)) continue;
-      const cd = Math.max(App.Config.MIN_CD_MS, Math.floor(ex.cooldown * Upg.cooldownMult()));
-      ex._autoElapsed += dt*1000;
-      while(ex._autoElapsed >= cd){
-        ex._autoElapsed -= cd;
-        ex.lastTapAt = now;
-        const g = (ex.baseHP + ex.repHP) * Upg.hpTapMultiplier();
-        Game.addHP(g);
-        State.stats.auto++;
-        if(Settings.get('floats')) UI.floatFrom(ex.els.img || ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
-      }
-    }
-
-    // Cooldown visuals
-    for(const ex of State.exercises){ UI.drawCooldown(ex); }
-    UI.tickTop(dt);
-    UI.refreshThrottled();
-    Notify.updateThrottled();
-    Upg.renderPills();
-
-    // Expire boosts feedback
-    for(const k of Object.keys(State.upgrades.active||{})){
-      if(!Upg.isActive(k) && State.upgrades.active[k]){ // just ended
-        State.upgrades.active[k]=0;
-        AudioSys.play('boost.end');
-        Banners.push(`Boost ended: <strong>${({coffee:'Coffee Shot',pre:'Pre-Workout',gel:'Energy Gel',chalk:'Chalk Up'})[k]||k}</strong>`);
-        save();
-      }
-    }
-
-    requestAnimationFrame(loop);
-  }
-  return {start:()=>requestAnimationFrame(loop)};
-})();
-
-/* =========================
-   UI (cards, floaters, banner)
-   ========================= */
-const UI = {
-  floatFrom(ref, text){
-    if(!ref || !Settings.get('floats')) return;
-    const r = ref.getBoundingClientRect();
-    const sp = el('div',{class:'float',text});
-    sp.style.left = (r.left + r.width/2) + 'px';
-    sp.style.top  = (r.top + r.height*0.15) + 'px';
-    document.body.appendChild(sp);
-    setTimeout(()=>sp.remove(), 900);
-  },
-  drawCooldown(ex){
-    if(!ex.unlocked) return;
-    const cd = Math.max(App.Config.MIN_CD_MS, Math.floor(ex.cooldown * Upg.cooldownMult()));
-    if(cd <= App.Config.MIN_CD_MS){
-      ex.els.fill.style.width = '100%';
-      ex.els.time.textContent = (cd/1000).toFixed(App.Config.DEC)+'s';
-      return;
-    }
-    const ready = ex.lastTapAt<=0;
-    const since = ready ? cd : (Util.now()-ex.lastTapAt);
-    const elapsed = Math.max(0, Math.min(since, cd));
-    const pct = elapsed / cd;
-    ex.els.fill.style.width = (pct*100).toFixed(1)+'%';
-    ex.els.time.textContent = (elapsed/1000).toFixed(App.Config.DEC)+'s';
-  },
-  tickTop(dt){
-    UI._hpShown += (State.hp - UI._hpShown) * Math.min(1, dt*8);
-    $('#hpTop').textContent = Util.fmtHP(UI._hpShown);
-    $('#hpMini').textContent = Util.fmtHP(UI._hpShown);
-  },
-  refreshThrottled(){
-    const now = performance.now();
-    if(!UI._next || now>=UI._next){
-      UI._next = now + App.Config.UI_MS;
-      for(const ex of State.exercises) UI.refreshExercise(ex);
-    }
-  },
-  refreshExercise(ex){
-    ex.els.repText.textContent = `${ex.repProgress}/${ex.repTarget}`;
-    ex.els.repFill.style.width = Math.min(1, ex.repProgress/ex.repTarget)*100 + '%';
-    ex.els.lvl.textContent = `Lvl ${ex.level}`;
-    ex.els.kv.textContent = `${Math.round(ex.baseHP + ex.repHP)} HP`; // per your request: integer
-    const n = State.qty;
-    const cost = Game.repCost(ex, n);
-    const can = State.hp + 1e-6 >= cost;
-    ex.els.reps.textContent = (n===1?`Reps (${Util.fmtCost(cost)} HP)`:`×${n} Reps (${Util.fmtCost(cost)} HP)`);
-    ex.els.reps.classList.toggle('ready', can);
-    ex.els.reps.disabled = !can;
-    if(!ex.unlocked){
-      const canU = State.hp + 1e-6 >= ex.unlockCost;
-      ex.els.pill.textContent = `Unlock ${ex.name} • ${Util.fmtCost(ex.unlockCost)} HP`;
-      ex.els.pill.classList.toggle('ready', canU);
-      ex.els.card.classList.toggle('unlockPulse', canU);
-    }
-    // coach mini
-    ex.els.coachMini.style.display = Coaches.ownedFor(ex.id).length ? 'block' : 'none';
-  },
-  build(){
-    const host = $('#stack'); host.innerHTML='';
-    const atlas = State.avatar==='female'?ICON.female:ICON.male;
-
-    State.exercises.forEach(ex=>{
-      const card = el('div',{class:'card'}); ex.els.card=card;
-      if(!ex.unlocked) card.classList.add('locked');
-
-      // left media box
-      const left = el('div',{class:'left'});
-      const media = el('div',{class:'mediaBox'});
-      const img = el('img',{alt:ex.name, src:atlas[ex.key]||atlas.walk}); ex.els.img=img;
-      media.append(img);
-      const lvl = el('div',{class:'lvlBadge',text:`Lvl ${ex.level}`}); ex.els.lvl=lvl;
-      const coachMini = el('img',{class:'coachMini', alt:'Coach', src:COACH_URL[0]}); ex.els.coachMini=coachMini; coachMini.style.display='none';
-      const repBand = el('div',{class:'repBand'});
-      const repFill = el('div',{class:'repFill'}); const repText=el('div',{class:'repText',text:`${ex.repProgress}/${ex.repTarget}`});
-      ex.els.repFill=repFill; ex.els.repText=repText; repBand.append(repFill,repText);
-      left.append(media,lvl,coachMini,repBand);
-
-      // right side
-      const right= el('div',{class:'right'});
-      const title= el('h3',{class:'title',text:ex.name});
-      const coolRow= el('div',{class:'coolRow'});
-      const cool = el('div',{class:'cool'}); const bar  = el('div',{class:'coolBar'}); const fill = el('div',{class:'coolFill'}); ex.els.fill=fill; bar.append(fill); cool.append(bar);
-      const time = el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS, ex.cooldown)/1000).toFixed(App.Config.DEC)+'s'}); ex.els.time=time;
-      coolRow.append(cool,time);
-      const meta = el('div',{class:'metaRow'});
-      const kv   = el('div',{class:'kv',text:`${Math.round(ex.baseHP + ex.repHP)} HP`}); ex.els.kv=kv;
-      const chips= el('div',{class:'chips'}); ex.els.chips=chips;
-      const reps = el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
-      meta.append(kv,chips,reps);
-
-      right.append(title,coolRow,meta);
-
-      const unlockRow = el('div',{class:'unlockRow'});
-      const pill = el('button',{class:'unlockPill',text:`Unlock ${ex.name} • ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill;
-      unlockRow.append(pill);
-
-      if(ex.unlocked){ card.append(left,right); } else { card.append(left,unlockRow); }
-      host.appendChild(card);
-
-      // interactions
-      left.addEventListener('pointerdown',e=>{ e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save(); });
-      reps.addEventListener('click',()=>{ if(Game.buyReps(ex, State.qty)){ save(); }});
-      pill.addEventListener('click',()=>{ 
-        if(Game.unlock(ex)){ 
-          card.classList.remove('locked','unlockPulse');
-          unlockRow.remove(); card.append(left,right); save();
-        }
-      });
-
-      card.setAttribute('data-id', ex.id);
-    });
-  },
-  _hpShown:0
-};
-const Banners = { push(html){ const host = $('#bannerHost'); const b = el('div',{class:'banner',html:`🎉 ${html}`}); host.appendChild(b); setTimeout(()=>b.remove(), 3200); } };
-const FX = { confettiAt(node){ if(!node) return; const rect=node.getBoundingClientRect(); const x=rect.left+rect.width/2, y=rect.top+rect.height/2; const host=el('div'); host.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:2200'; document.body.appendChild(host); const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab']; for(let i=0;i<26;i++){ const d=el('div'); const size=6+Math.random()*6; d.style.cssText=`position:absolute;width:${size}px;height:${size}px;background:${colors[i%colors.length]};opacity:.95;border-radius:${Math.random()<.4?'50%':'2px'};left:${x+(Math.random()*120-60)}px;top:${y+(Math.random()*40-20)}px`; const dx=(Math.random()*2-1)*(innerWidth*0.12), dy=(innerHeight*0.25+Math.random()*innerHeight*0.15); d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);} setTimeout(()=>host.remove(), 2000);} };
-
-/* =========================
-   COACHES
-   ========================= */
-const Coaches = {
-  list:[],
-  build(){
-    Coaches.list = State.exercises.map((ex,idx)=>({
-      id:'c'+(idx+1),
-      name:COACH_NAME[idx],
-      icon:COACH_URL[idx],
-      target:ex.id,
-      price: Coaches.priceFor(idx)
-    }));
-  },
-  priceFor(idx){ return idx===0?1500:Math.round(1500 * Math.pow(1.8, idx)); },
-  isAuto(exId){ return Coaches.list.some(c=>State.coaches[c.id] && c.target===exId); },
-  ownedFor(exId){ return Coaches.list.filter(c=>State.coaches[c.id] && c.target===exId); },
-  renderTab(){
-    const host = $('#tab-coaches'); host.innerHTML='';
-    const intro = el('div',{class:'coachCard'}); intro.append(el('div',{class:'cInfo',text:'Coaches automatically tap a specific exercise for you (no sound). They respect cooldowns. Hire when you can afford them.'})); host.appendChild(intro);
-    const grid = el('div',{class:'grid'}); host.appendChild(grid);
-    const exBy = Object.fromEntries(State.exercises.map(e=>[e.id,e]));
-    for(const c of Coaches.list){
-      const ex = exBy[c.target]; const owned = !!State.coaches[c.id];
-      const canAfford = State.hp + 1e-6 >= c.price; const unlockedTarget = !!(ex && ex.unlocked);
-      const card = el('div',{class:'coachCard'+(unlockedTarget?'':' locked')});
-      const head = el('div',{class:'headshot'}); head.append(el('img',{src:c.icon,alt:c.name}));
-      const mid = el('div'); mid.append(el('div',{class:'cName',text:c.name}), el('div',{class:'cInfo',text:`Works on: ${ex?.name || c.target}`}));
-      const btn = el('button',{class:'hire',text: owned?'Hired': `Hire • ${Util.fmtCost(c.price)} HP`});
-      if(owned){ btn.classList.add('owned'); btn.disabled=true; } else if(unlockedTarget){ btn.classList.toggle('ready', canAfford); btn.disabled = !canAfford; }
-      card.append(head,mid,btn); grid.appendChild(card);
-      btn.addEventListener('click', ()=>{ if(owned || !unlockedTarget) return; if(State.hp + 1e-6 < c.price) return;
-        Game.addHP(-c.price); State.coaches[c.id]=true; save(); AudioSys.play('coach.hire'); UI.refreshThrottled(); Coaches.renderTab();
-      });
-    }
-  }
-};
+/* ========== Coaches & Notify ========== */
+const Coaches={list:[],build(){Coaches.list=State.exercises.map((ex,idx)=>({id:'c'+(idx+1),name:COACH_NAME[idx],icon:COACH_URL[idx],target:ex.id,price:Coaches.priceFor(idx)}))},priceFor(i){return i===0?1500:Math.round(1500*Math.pow(1.8,i))},isAuto(id){return Coaches.list.some(c=>State.coaches[c.id]&&c.target===id)},ownedFor(id){return Coaches.list.filter(c=>State.coaches[c.id]&&c.target===id)},renderTab(){const host=$('#tab-coaches');host.innerHTML='';host.appendChild((()=>{const d=el('div',{class:'coachCard'});d.append(el('div',{class:'cInfo',text:'Coaches automatically tap a specific exercise for you (no sound). They respect cooldowns. Hire when you can afford them.'}));return d})());const grid=el('div',{class:'grid'});host.appendChild(grid);const exBy=Object.fromEntries(State.exercises.map(e=>[e.id,e]));for(const c of Coaches.list){const ex=exBy[c.target];const owned=!!State.coaches[c.id];const can=State.hp+1e-6>=c.price;const unlocked=!!(ex&&ex.unlocked);const card=el('div',{class:'coachCard'+(unlocked?'':' locked')});const head=el('div',{class:'headshot'});head.append(el('img',{src:c.icon,alt:c.name}));const mid=el('div');mid.append(el('div',{class:'cName',text:c.name}),el('div',{class:'cInfo',text:`Works on: ${ex?.name||c.target}`}));const btn=el('button',{class:'hire',text:owned?'Hired':`Hire • ${Util.fmtCost(c.price)} HP`});if(owned){btn.classList.add('owned');btn.disabled=true}else if(unlocked){btn.classList.toggle('ready',can);btn.disabled=!can}card.append(head,mid,btn);grid.appendChild(card);btn.addEventListener('click',()=>{if(owned||!unlocked)return;if(State.hp+1e-6<c.price)return;Game.addHP(-c.price);State.coaches[c.id]=true;save();AudioSys.play('coach.hire');UI.refreshThrottled();Coaches.renderTab();})}}};
 Coaches.build();
+const Notify=(()=>{let next=0;function coachAvailable(){for(const c of Coaches.list){const ex=State.exercises.find(e=>e.id===c.target);if(!ex||!ex.unlocked)continue;if(State.coaches[c.id])continue;if(State.hp+1e-6>=c.price)return true}return false}function update(){$('#menuDot').classList.toggle('show',coachAvailable())}function updateThrottled(){const now=performance.now();if(now>=next){next=now+App.Config.NOTIFY_MS;update()}}Bus.on('hp',update);Bus.on('unlock',update);Bus.on('reps',update);Bus.on('upgrade',update);Bus.on('coach',update);return{update,updateThrottled}})();
 
-const Notify = (()=> {
-  let next = 0;
-  function coachAvailable(){
-    for(const c of Coaches.list){
-      const ex = State.exercises.find(e=>e.id===c.target);
-      if(!ex || !ex.unlocked) continue;
-      if(State.coaches[c.id]) continue;
-      if(State.hp + 1e-6 >= c.price) return true;
-    }
-    return false;
-  }
-  function update(){ $('#menuDot').classList.toggle('show', coachAvailable()); }
-  function updateThrottled(){ const now=performance.now(); if(now>=next){ next=now+App.Config.NOTIFY_MS; update(); } }
-  Bus.on('hp',update); Bus.on('unlock',update); Bus.on('reps',update); Bus.on('upgrade',update); Bus.on('coach',update);
-  return {update, updateThrottled};
-})();
-
-/* =========================
-   MENU (tabs + upgrades UI)
-   ========================= */
-const Menu = {
-  open(){ $('#menuOv').classList.add('open'); $('#menuOv').setAttribute('aria-hidden','false'); AudioSys.play('ui.menu.open'); },
-  close(){ $('#menuOv').classList.remove('open'); $('#menuOv').setAttribute('aria-hidden','true'); AudioSys.play('ui.menu.close'); },
-  wire(){
-    $('#avatarBtn').addEventListener('click',()=>Menu.open());
-    $('#menuClose').addEventListener('click',()=>Menu.close());
-    $('#menuOv').addEventListener('click',e=>{ if(e.target.id==='menuOv') Menu.close(); });
-    $$('.tabBtn', $('.menuTabs')).forEach(btn=>btn.addEventListener('click',()=>{
-      AudioSys.play('ui.tab.switch');
-      $$('.tabBtn', $('.menuTabs')).forEach(x=>x.classList.remove('active')); btn.classList.add('active');
-      const tab = btn.dataset.tab;
-      ['coaches','achievements','upgrades','quests','stats','settings'].forEach(t=>$('#tab-'+t).style.display = (t===tab?'block':'none'));
-      if(tab==='coaches') Coaches.renderTab();
-      if(tab==='stats') Menu.renderStats();
-      if(tab==='settings') Menu.renderSettings();
-      if(tab==='achievements') Menu.renderAchievements();
-      if(tab==='upgrades') Menu.renderUpgrades();
-    }));
-  },
-  renderStats(){
-    const host = $('#tab-stats');
-    host.innerHTML = `<div class="coachCard"><div>
+/* ========== Menu (incl. Upgrades tab) ========== */
+const Menu={open(){$('#menuOv').classList.add('open');$('#menuOv').setAttribute('aria-hidden','false');AudioSys.play('ui.menu.open')},close(){$('#menuOv').classList.remove('open');$('#menuOv').setAttribute('aria-hidden','true');AudioSys.play('ui.menu.close')},wire(){$('#avatarBtn').addEventListener('click',()=>Menu.open());$('#menuClose').addEventListener('click',()=>Menu.close());$('#menuOv').addEventListener('click',e=>{if(e.target.id==='menuOv')Menu.close()});$$('.tabBtn',$('.menuTabs')).forEach(btn=>btn.addEventListener('click',()=>{$$('.tabBtn',$('.menuTabs')).forEach(x=>x.classList.remove('active'));btn.classList.add('active');const tab=btn.dataset.tab;['coaches','achievements','upgrades','quests','stats','settings'].forEach(t=>$('#tab-'+t).style.display=(t===tab?'block':'none'));if(tab==='coaches')Coaches.renderTab();if(tab==='stats')Menu.renderStats();if(tab==='settings')Menu.renderSettings();if(tab==='achievements')Menu.renderAchievements();if(tab==='upgrades')Menu.renderUpgrades()}))},renderStats(){const host=$('#tab-stats');host.innerHTML=`<div class="coachCard"><div>
       <div><strong>Current HP:</strong> ${Util.fmtHP(State.hp)}</div>
       <div><strong>Total Earned:</strong> ${Util.fmtHP(State.stats.totalEarned||0)}</div>
       <div><strong>Manual Taps:</strong> ${State.stats.manual||0}</div>
       <div><strong>Auto Taps:</strong> ${State.stats.auto||0}</div>
       <div><strong>Exercises Unlocked:</strong> ${State.exercises.filter(e=>e.unlocked).length} / ${State.exercises.length}</div>
       <div><strong>Coaches Hired:</strong> ${Object.values(State.coaches).filter(Boolean).length} / ${Coaches.list.length}</div>
-    </div></div>`;
-  },
-  renderSettings(){
-    const host = $('#tab-settings'); host.innerHTML='';
-    const card = el('div',{class:'coachCard'});
-    const wrap = el('div');
-    wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">
-      <label><input id="set-sfx" type="checkbox" ${AudioSys.sfxEnabled.on?'checked':''}/> Sound Effects</label>
+    </div></div>`},renderSettings(){const host=$('#tab-settings');host.innerHTML='';const card=el('div',{class:'coachCard'});const wrap=el('div');wrap.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
+      <label><input id="set-sfx" type="checkbox" checked/> Sound Effects</label>
       <label>Music Volume <input id="set-music" type="range" min="0" max="1" step="0.01" value="${isMobile?0.08:0.10}" style="width:160px;vertical-align:middle"> (low)</label>
       <label><input id="set-floats" type="checkbox" checked/> Show +HP floaters</label>
     </div>
@@ -978,325 +386,73 @@ const Menu = {
       <button id="btn-reset" class="btn small" style="background:#1a2a40;color:#d7e3f5">Reset</button>
       <button id="btn-export" class="btn small" style="background:#1a2a40;color:#d7e3f5">Export</button>
       <button id="btn-import" class="btn small" style="background:#1a2a40;color:#d7e3f5">Import</button>
-    </div>`;
-    card.appendChild(wrap); host.appendChild(card);
-    $('#set-sfx').onchange = e=>AudioSys.sfxEnabled.on = !!e.target.checked;
-    $('#set-music').oninput = e=>AudioSys.music.setVol(parseFloat(e.target.value||'0.1'));
-    $('#set-floats').onchange = e=>Settings.set('floats', !!e.target.checked);
-    $('#btn-save').onclick=()=>{ save(); AudioSys.play('save.ok'); };
-    $('#btn-reset').onclick=()=>{ if(confirm('Reset your progress?')){ localStorage.removeItem(App.Config.SAVE_KEY); location.reload(); } };
-    $('#btn-export').onclick=()=>{ const blob = new Blob([localStorage.getItem(App.Config.SAVE_KEY)||'{}'],{type:'application/json'}); const a=el('a'); a.href=URL.createObjectURL(blob); a.download='fitness-frenzy-save.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); };
-    $('#btn-import').onclick=()=>{ const inp=el('input',{type:'file',accept:'application/json'}); inp.addEventListener('change',()=>{ const f=inp.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ JSON.parse(r.result); localStorage.setItem(App.Config.SAVE_KEY,r.result); alert('Imported. Reloading…'); location.reload(); }catch(e){ alert('Import failed.'); } }; r.readAsText(f);}); inp.click(); };
-  },
-  renderAchievements(){
-    const host = $('#tab-achievements'); host.innerHTML='';
-    const grid = el('div',{class:'grid'}); host.appendChild(grid);
-    for(const a of Achievements.defs){
-      const owned = !!State.achievements[a.id];
-      const card = el('div',{class:'coachCard'});
-      const head = el('div',{class:'headshot'}); head.append(el('div',{text:a.icon, style:'font-size:36px;display:flex;align-items:center;justify-content:center;width:100%;height:100%'}));
-      const mid = el('div'); mid.append(el('div',{class:'cName',text:a.title}), el('div',{class:'cInfo',text:a.desc}));
-      const right= el('div',{class:'cInfo',text: owned? 'Completed' : `Reward: +${Util.fmtCost(a.reward)} HP`});
-      card.append(head,mid,right); grid.appendChild(card);
-    }
-  },
-  renderUpgrades(){
-    const host = $('#tab-upgrades'); host.innerHTML='';
-    // Consumables
-    host.appendChild(sectionTitle('Consumables (timed)'));
-    host.appendChild(consumableCard('Coffee Shot','coffee','+15% HP/tap • 10 min'));
-    host.appendChild(consumableCard('Pre-Workout','pre','-15% cooldown • 10 min (global)'));
-    host.appendChild(consumableCard('Energy Gel','gel','+25% HP/tap (manual) • 5 min'));
-    host.appendChild(consumableCard('Chalk Up','chalk','+20% crit chance (manual) • 8 min (2× crit)'));
+    </div>`;card.appendChild(wrap);host.appendChild(card);$('#set-sfx').checked=AudioSys.sfxEnabled.on;$('#set-sfx').onchange=e=>AudioSys.sfxEnabled.on=!!e.target.checked;$('#set-music').oninput=e=>AudioSys.music.setVol(parseFloat(e.target.value||'0.1'));$('#set-floats').checked=Settings.get('floats');$('#set-floats').onchange=e=>Settings.set('floats',!!e.target.checked);$('#btn-save').onclick=()=>{save();AudioSys.play('save.ok')};$('#btn-reset').onclick=()=>{if(confirm('Reset your progress?')){localStorage.removeItem(App.Config.SAVE_KEY);location.reload()}};$('#btn-export').onclick=()=>{const blob=new Blob([localStorage.getItem(App.Config.SAVE_KEY)||'{}'],{type:'application/json'});const a=el('a');a.href=URL.createObjectURL(blob);a.download='fitness-frenzy-save.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)};$('#btn-import').onclick=()=>{const inp=el('input',{type:'file',accept:'application/json'});inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{JSON.parse(r.result);localStorage.setItem(App.Config.SAVE_KEY,r.result);alert('Imported. Reloading…');location.reload()}catch(e){alert('Import failed.')}};r.readAsText(f)});inp.click()}} ,renderAchievements(){const host=$('#tab-achievements');host.innerHTML='';const grid=el('div',{class:'grid'});host.appendChild(grid);for(const a of Achievements.defs){const owned=!!State.achievements[a.id];const card=el('div',{class:'coachCard'});const head=el('div',{class:'headshot'});head.append(el('div',{text:a.icon,style:'font-size:36px;display:flex;align-items:center;justify-content:center;width:100%;height:100%'}));const mid=el('div');mid.append(el('div',{class:'cName',text:a.title}),el('div',{class:'cInfo',text:a.desc}));const right=el('div',{class:'cInfo',text:owned?'Completed':`Reward: +${Util.fmtCost(a.reward)} HP`});card.append(head,mid,right);grid.appendChild(card)}},renderUpgrades(){const host=$('#tab-upgrades');host.innerHTML='';host.appendChild(section('Consumables (timed)'));host.appendChild(consum('Coffee Shot','coffee','+15% HP/tap • 10 min'));host.appendChild(consum('Pre-Workout','pre','-15% cooldown • 10 min (global)'));host.appendChild(consum('Energy Gel','gel','+25% HP/tap (manual) • 5 min'));host.appendChild(consum('Chalk Up','chalk','+20% crit chance (manual) • 8 min (2× crit)'));host.appendChild(section('Equipment (permanent)'));host.appendChild(equip('Lifting Belt','belt','Strength set +4% HP/tap per level'));host.appendChild(equip('Trainers','shoes','Cardio set −4% cooldown per level'));host.appendChild(equip('Wrist Wraps','wraps','(Future)'));host.appendChild(section('Meta (account-wide)'));host.appendChild(meta('Recovery Protocol','recovery','Offline gains +10% per level'));host.appendChild(meta('Efficient Form','form','Rep cost −3% per level (min 70%)'));
+  function section(t){const d=el('div',{class:'cName',text:t});const w=el('div',{class:'coachCard'});w.appendChild(d);return w}
+  function consum(title,key,desc){const card=el('div',{class:'coachCard'}),mid=el('div');mid.append(el('div',{class:'cName',text:title}),el('div',{class:'cInfo',text:desc}));const btn=el('button',{class:'hire',text:`Buy • ${Util.fmtCost(Upg.costConsum(key))} HP`});if(State.hp+1e-6>=Upg.costConsum(key))btn.classList.add('ready');card.append(el('div',{class:'headshot',html:'☕️'}),mid,btn);if(Upg.isActive(key)){const pill=el('div',{class:'cInfo',text:`Active: ${fmt(Upg.remainingMs(key))}`});mid.appendChild(pill);const t=setInterval(()=>{if(!Upg.isActive(key)){clearInterval(t);Menu.renderUpgrades()}else pill.textContent=`Active: ${fmt(Upg.remainingMs(key))}`;},1000)}btn.addEventListener('click',()=>{if(Upg.buyConsumable(key)){AudioSys.play('ui.click');Menu.renderUpgrades();save()}});return card}
+  function equip(title,key,desc){const card=el('div',{class:'coachCard'}),lvl=State.upgrades.equipment[key]||0,mid=el('div');mid.append(el('div',{class:'cName',text:`${title} (Lv.${lvl})`}),el('div',{class:'cInfo',text:desc}));const btn=el('button',{class:'hire',text:`Upgrade • ${Util.fmtCost(Upg.costEquip(key))} HP`});if(State.hp+1e-6>=Upg.costEquip(key))btn.classList.add('ready');card.append(el('div',{class:'headshot',html:'🏋️'}),mid,btn);btn.addEventListener('click',()=>{if(Upg.buyEquip(key)){AudioSys.play('ui.click');Menu.renderUpgrades();save()}});return card}
+  function meta(title,key,desc){const card=el('div',{class:'coachCard'}),lvl=State.upgrades.meta[key]||0,mid=el('div');mid.append(el('div',{class:'cName',text:`${title} (Lv.${lvl})`}),el('div',{class:'cInfo',text:desc}));const btn=el('button',{class:'hire',text:`Upgrade • ${Util.fmtCost(Upg.costMeta(key))} HP`});if(State.hp+1e-6>=Upg.costMeta(key))btn.classList.add('ready');card.append(el('div',{class:'headshot',html:'⚙️'}),mid,btn);btn.addEventListener('click',()=>{if(Upg.buyMeta(key)){AudioSys.play('ui.click');Menu.renderUpgrades();save()}});return card}
+  function fmt(ms){const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);return `${m}:${String(s).padStart(2,'0')}`}
+}};
 
-    // Equipment
-    host.appendChild(sectionTitle('Equipment (permanent)'));
-    host.appendChild(equipCard('Lifting Belt','belt','Strength set +4% HP/tap per level'));
-    host.appendChild(equipCard('Trainers','shoes','Cardio set −4% cooldown per level'));
-    host.appendChild(equipCard('Wrist Wraps','wraps','Reps act +2% stronger per level'));
+/* ========== Achievements ========== */
+const Achievements={defs:[{id:'first_steps',icon:'👣',title:'First Steps',desc:'Upgrade Walking to Lvl 2 (10/10).',reward:50,test:()=>State.exercises.find(e=>e.id==='walk')?.level>=2},{id:'add_routine',icon:'🏃',title:'Add to Routine',desc:'Unlock Jogging.',reward:100,test:()=>State.exercises.find(e=>e.id==='jog')?.unlocked},{id:'first_coach',icon:'🧑‍🏫',title:'Coach On Duty',desc:'Hire your first coach.',reward:150,test:()=>Object.values(State.coaches).some(Boolean)},{id:'speed_demon',icon:'⚡',title:'Speed Demon',desc:'Any exercise reaches ≤0.30s cooldown.',reward:180,test:()=>State.exercises.some(e=>e.unlocked&&Math.max(App.Config.MIN_CD_MS,e.cooldown)<=300)},{id:'first_boost',icon:'✨',title:'Boosted',desc:'Activate your first consumable.',reward:120,test:()=>Object.values(State.upgrades.active||{}).some(v=>v&&v>Date.now())}],checkAll(){for(const a of Achievements.defs){if(!State.achievements[a.id]&&a.test()){State.achievements[a.id]=true;Game.addHP(a.reward);AudioSys.play('achievement.unlock');Banners.push(`Achievement: <strong>${a.title}</strong> • +${Util.fmtCost(a.reward)} HP`);save()}}}};
+Bus.on('hp',()=>Achievements.checkAll());Bus.on('upgrade',()=>Achievements.checkAll());Bus.on('unlock',()=>Achievements.checkAll());Bus.on('reps',()=>Achievements.checkAll());
 
-    // Meta
-    host.appendChild(sectionTitle('Meta (account-wide)'));
-    host.appendChild(metaCard('Recovery Protocol','recovery','Offline gains +10% per level'));
-    host.appendChild(metaCard('Efficient Form','form','Rep cost −3% per level (min 70%)'));
+/* ========== Settings ========== */
+const Settings=(()=>{const d={floats:true};try{const raw=localStorage.getItem(App.Config.SAVE_KEY+':prefs');if(raw)Object.assign(d,JSON.parse(raw))}catch{}function saveS(){try{localStorage.setItem(App.Config.SAVE_KEY+':prefs',JSON.stringify(d))}catch{}}return{get:k=>d[k],set:(k,v)=>{d[k]=v;saveS()}}})();
 
-    function sectionTitle(t){ const d=el('div',{class:'cName',text:t}); const w=el('div',{class:'coachCard'}); w.appendChild(d); return w; }
+/* ========== Offline ========== */
+const Offline=(()=>{const KEY='ff-last',off=$('#off');function saveNow(){try{localStorage.setItem(KEY,Date.now().toString())}catch{}}function fmt(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);s%=60;const L=[];if(h)L.push(h+'h');if(m)L.push(m+'m');if(s||!L.length)L.push(s+'s');return L.join(' ')}function summary(ms){let sum=0;for(const ex of State.exercises){if(!ex.unlocked)continue;if(!Coaches.isAuto(ex.id))continue;const cd=Math.max(App.Config.MIN_CD_MS,Math.floor(ex.cooldown*Upg.cooldownMult()));const taps=Math.floor(ms/cd);if(taps>0)sum+=taps*((ex.baseHP+ex.repHP)*Upg.hpTapMultiplier())}return sum*Upg.offlineMult()}function check(){const last=parseInt(localStorage.getItem(KEY)||'0',10);const now=Date.now();if(last>0){const delta=now-last;const cap=Math.min(delta,App.Config.OFFLINE_CAP_MS);const gain=summary(cap);if(gain>0){$('#offDur').textContent=fmt(cap);$('#offAmt').textContent=Util.fmtHP(gain);$('#offCapNote').style.display=(delta>cap)?'block':'none';off.classList.add('open');AudioSys.play('offline.show');$('#offClaim').onclick=()=>{Game.addHP(gain);off.classList.remove('open');AudioSys.play('offline.claim');save()}}}saveNow()}window.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow()});window.addEventListener('pagehide',saveNow);window.addEventListener('beforeunload',saveNow);return{check}})();
 
-    function consumableCard(title,key,desc){
-      const card = el('div',{class:'coachCard'});
-      const mid = el('div'); mid.append(el('div',{class:'cName',text:title}), el('div',{class:'cInfo',text:desc}));
-      const owned = State.upgrades.consumables[key]||0;
-      const btn = el('button',{class:'hire',text:`Buy • ${Util.fmtCost(Upg.costConsum(key))} HP`});
-      if(State.hp + 1e-6 >= Upg.costConsum(key)) btn.classList.add('ready');
-      card.append(el('div',{class:'headshot',html:'☕️'}), mid, btn);
-      if(Upg.isActive(key)){
-        const pill = el('div',{class:'cInfo',text:`Active: ${formatMs(Upg.remainingMs(key))}`});
-        mid.appendChild(pill);
-        const t = setInterval(()=>{ if(!Upg.isActive(key)){ clearInterval(t); Menu.renderUpgrades(); } else { pill.textContent = `Active: ${formatMs(Upg.remainingMs(key))}`; } }, 1000);
-      }
-      btn.addEventListener('click',()=>{ if(Upg.buyConsumable(key)){ AudioSys.play('ui.click'); Menu.renderUpgrades(); save(); } });
-      return card;
-    }
-    function equipCard(title,key,desc){
-      const card = el('div',{class:'coachCard'});
-      const lvl = State.upgrades.equipment[key]||0;
-      const mid = el('div'); mid.append(el('div',{class:'cName',text:`${title} (Lv.${lvl})`}), el('div',{class:'cInfo',text:desc}));
-      const btn = el('button',{class:'hire',text:`Upgrade • ${Util.fmtCost(Upg.costEquip(key))} HP`});
-      if(State.hp + 1e-6 >= Upg.costEquip(key)) btn.classList.add('ready');
-      card.append(el('div',{class:'headshot',html:'🏋️'}), mid, btn);
-      btn.addEventListener('click',()=>{ if(Upg.buyEquip(key)){ AudioSys.play('ui.click'); Menu.renderUpgrades(); save(); } });
-      return card;
-    }
-    function metaCard(title,key,desc){
-      const card = el('div',{class:'coachCard'});
-      const lvl = State.upgrades.meta[key]||0;
-      const mid = el('div'); mid.append(el('div',{class:'cName',text:`${title} (Lv.${lvl})`}), el('div',{class:'cInfo',text:desc}));
-      const btn = el('button',{class:'hire',text:`Upgrade • ${Util.fmtCost(Upg.costMeta(key))} HP`});
-      if(State.hp + 1e-6 >= Upg.costMeta(key)) btn.classList.add('ready');
-      card.append(el('div',{class:'headshot',html:'⚙️'}), mid, btn);
-      btn.addEventListener('click',()=>{ if(Upg.buyMeta(key)){ AudioSys.play('ui.click'); Menu.renderUpgrades(); save(); } });
-      return card;
-    }
-    function formatMs(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000); return `${m}:${String(s).padStart(2,'0')}`; }
-  }
-};
+/* ========== Tutorial (typed) ========== */
+const Tutorial=(()=>{const ov=$('#tut'),bubble=$('#bubble'),tWho=$('#tWho'),tText=$('#tText'),spot=$('#spot');let step=null,idx=0,typer;
+function show(){ov.classList.add('show');ov.setAttribute('aria-hidden','false')}
+function hide(){ov.classList.remove('show');ov.setAttribute('aria-hidden','true');hideSpot()}
+function setSpeaker(who){tWho.textContent=who}
+function typeHTML(html,speed=26){let i=0;tText.innerHTML='';clearInterval(typer);typer=setInterval(()=>{if(i<html.length){tText.innerHTML+=html[i++];AudioSys.play('tut.type')}else clearInterval(typer)},speed)}
+function setLines(lines){idx=0;setSpeaker(lines[0].who);typeHTML(lines[0].html);show()}
+function nextLine(lines,onDone){if(idx<lines.length-1){idx++;setSpeaker(lines[idx].who);typeHTML(lines[idx].html);AudioSys.play('ui.click')}else{if(onDone)onDone()}}
+bubble.addEventListener('click',()=>{if(step)nextLine(step.lines,step.onDone)});
+function showSpot(sel){const node=document.querySelector(sel);if(!node){hideSpot();return}const r=node.getBoundingClientRect(),pad=6;spot.style.display='block';spot.style.left=(r.left-pad)+'px';spot.style.top=(r.top-pad)+'px';spot.style.width=(r.width+pad*2)+'px';spot.style.height=(r.height+pad*2)+'px'}
+function hideSpot(){spot.style.display='none'}
+function startIntro(){const lines=[{who:'JAX',html:`You look a bit low on energy. Let's fix that <span class="hl">fast</span> 💪`},{who:'You',html:`Where do I start?`},{who:'JAX',html:`Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`},];setLines(lines);step={lines,onDone(){hide();showSpot('.card[data-id="walk"] .left')}}}
+Bus.on('upgrade',({id})=>{const ex=State.exercises.find(e=>e.id===id);if(!ex)return;if(State.tutorial.shown.upgrade[ex.id])return;State.tutorial.shown.upgrade[ex.id]=true;save();const L=[{who:'JAX',html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];setLines(L);step={lines:L,onDone(){hide()}};showSpot(`.card[data-id="${ex.id}"] .cool`);setTimeout(hideSpot,1500)});
+Bus.on('hp',()=>{const jog=State.exercises.find(e=>e.id==='jog');if(jog&&!jog.unlocked&&State.hp+1e-6>=jog.unlockCost&&!State.tutorial.shown.unlock['jog']){State.tutorial.shown.unlock['jog']=true;save();const L=[{who:'JAX',html:`Add to your routine! Unlock <span class="hl">${jog.name}</span> when the pill turns orange.`}];setLines(L);step={lines:L,onDone(){hide()}};showSpot(`.card[data-id="jog"] .unlockPill`)}for(const c of Coaches.list){if(State.coaches[c.id])continue;const ex=State.exercises.find(e=>e.id===c.target);if(!ex||!ex.unlocked)continue;if(State.hp+1e-6>=c.price&&!State.tutorial.shown.coach['first']){State.tutorial.shown.coach['first']=true;save();const L=[{who:'JAX',html:`Want to maximize gains? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> a coach.`}];setLines(L);step={lines:L,onDone(){hide()}};showSpot('#avatarBtn');break}}});return{startIntro}})();
 
-/* =========================
-   ACHIEVEMENTS
-   ========================= */
-const Achievements = {
-  defs:[
-    {id:'first_steps', icon:'👣', title:'First Steps', desc:'Upgrade Walking to Lvl 2 (10/10).', reward:50, test:()=>State.exercises.find(e=>e.id==='walk')?.level>=2},
-    {id:'add_routine', icon:'🏃', title:'Add to Routine', desc:'Unlock Jogging.', reward:100, test:()=>State.exercises.find(e=>e.id==='jog')?.unlocked},
-    {id:'first_coach', icon:'🧑‍🏫', title:'Coach On Duty', desc:'Hire your first coach.', reward:150, test:()=>Object.values(State.coaches).some(Boolean)},
-    {id:'speed_demon', icon:'⚡', title:'Speed Demon', desc:'Any exercise reaches ≤0.30s cooldown.', reward:180, test:()=>State.exercises.some(e=>e.unlocked && Math.max(App.Config.MIN_CD_MS,e.cooldown)<=300)},
-    {id:'first_boost', icon:'✨', title:'Boosted', desc:'Activate your first consumable.', reward:120, test:()=>Object.values(State.upgrades.active||{}).some(v=>v && v>Date.now())},
-  ],
-  checkAll(){
-    for(const a of Achievements.defs){
-      if(!State.achievements[a.id] && a.test()){
-        State.achievements[a.id]=true;
-        Game.addHP(a.reward);
-        AudioSys.play('achievement.unlock');
-        Banners.push(`Achievement: <strong>${a.title}</strong> • +${Util.fmtCost(a.reward)} HP`);
-        save();
-      }
-    }
-  }
-};
-Bus.on('hp',()=>Achievements.checkAll());
-Bus.on('upgrade',()=>Achievements.checkAll());
-Bus.on('unlock',()=>Achievements.checkAll());
-Bus.on('reps',()=>Achievements.checkAll());
-
-/* =========================
-   SETTINGS
-   ========================= */
-const Settings = (()=> {
-  const d = {floats:true};
-  try{ const raw = localStorage.getItem(App.Config.SAVE_KEY+':prefs'); if(raw){ Object.assign(d, JSON.parse(raw)); } }catch{}
-  function saveSettings(){ try{ localStorage.setItem(App.Config.SAVE_KEY+':prefs', JSON.stringify(d)); }catch{} }
-  return { get:k=>d[k], set:(k,v)=>{ d[k]=v; saveSettings(); } };
-})();
-
-/* =========================
-   OFFLINE GAINS
-   ========================= */
-const Offline = (()=> {
-  const KEY='ff-last'; const off = $('#off');
-  function saveNow(){ try{ localStorage.setItem(KEY, Date.now().toString()); }catch{} }
-  function fmt(ms){ let s=Math.floor(ms/1000), h=Math.floor(s/3600); s%=3600; const m=Math.floor(s/60); s%=60; const L=[]; if(h)L.push(h+'h'); if(m)L.push(m+'m'); if(s||!L.length)L.push(s+'s'); return L.join(' '); }
-  function summary(ms){
-    let sum=0;
-    for(const ex of State.exercises){
-      if(!ex.unlocked) continue;
-      if(!Coaches.isAuto(ex.id)) continue;
-      const cd = Math.max(App.Config.MIN_CD_MS, Math.floor(ex.cooldown * Upg.cooldownMult()));
-      const taps = Math.floor(ms / cd);
-      if(taps>0) sum += taps * ((ex.baseHP + ex.repHP) * Upg.hpTapMultiplier());
-    }
-    return sum * Upg.offlineMult();
-  }
-  function check(){
-    const last = parseInt(localStorage.getItem(KEY)||'0',10);
-    const now = Date.now();
-    if(last>0){
-      const delta = now-last;
-      const cap = Math.min(delta, App.Config.OFFLINE_CAP_MS);
-      const gain = summary(cap);
-      if(gain>0){
-        $('#offDur').textContent = fmt(cap);
-        $('#offAmt').textContent = Util.fmtHP(gain);
-        $('#offCapNote').style.display = (delta>cap)?'block':'none';
-        off.classList.add('open'); AudioSys.play('offline.show');
-        $('#offClaim').onclick=()=>{ Game.addHP(gain); off.classList.remove('open'); AudioSys.play('offline.claim'); save(); };
-      }
-    }
-    saveNow();
-  }
-  window.addEventListener('visibilitychange',()=>{ if(document.hidden) saveNow(); });
-  window.addEventListener('pagehide',saveNow);
-  window.addEventListener('beforeunload',saveNow);
-  return {check};
-})();
-
-/* =========================
-   TUTORIAL (light; unchanged triggers)
-   ========================= */
-const Tutorial = (()=> {
-  const ov = $('#tut'), bubble=$('#bubble'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
-  let step=null, idx=0, typer;
-
-  function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); }
-  function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); }
-  function setSpeaker(who){ tWho.textContent=who; }
-  function typeHTML(html, speed=26){
-    // simple typewriter (fixed-height container due to CSS min-height)
-    let i=0; tText.innerHTML='';
-    clearInterval(typer);
-    typer = setInterval(()=>{ if(i<html.length){ tText.innerHTML += html[i++]; AudioSys.play('tut.type'); } else clearInterval(typer); }, speed);
-  }
-
-  function setLines(lines){ idx=0; setSpeaker(lines[0].who); typeHTML(lines[0].html); show(); }
-  function nextLine(lines, onDone){ if(idx<lines.length-1){ idx++; setSpeaker(lines[idx].who); typeHTML(lines[idx].html); AudioSys.play('ui.click'); } else { if(onDone) onDone(); } }
-  bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines, step.onDone); });
-
-  function showSpot(sel){ const node=document.querySelector(sel); if(!node){hideSpot();return;} const r=node.getBoundingClientRect(); const pad=6; spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px'; }
-  function hideSpot(){ spot.style.display='none'; }
-
-  function startIntro(){
-    const lines = [
-      {who:'JAX', html:`You look a bit low on energy. Let's fix that <span class="hl">fast</span> 💪`},
-      {who:'You', html:`Where do I start?`},
-      {who:'JAX', html:`Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`},
-    ];
-    setLines(lines);
-    step = {lines, onDone(){ hide(); showSpot('.card[data-id="walk"] .left'); }};
-  }
-
-  Bus.on('upgrade',({id})=>{ const ex = State.exercises.find(e=>e.id===id); if(!ex) return;
-    if(State.tutorial.shown.upgrade[ex.id]) return; State.tutorial.shown.upgrade[ex.id]=true; save();
-    const L=[{who:'JAX', html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];
-    setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot(`.card[data-id="${ex.id}"] .cool`); setTimeout(hideSpot,1500);
-  });
-
-  Bus.on('hp',()=>{
-    const jog = State.exercises.find(e=>e.id==='jog');
-    if(jog && !jog.unlocked && State.hp + 1e-6 >= jog.unlockCost && !State.tutorial.shown.unlock['jog']){
-      State.tutorial.shown.unlock['jog']=true; save();
-      const L=[{who:'JAX', html:`Add to your routine! Unlock <span class="hl">${jog.name}</span> when the pill turns orange.`}];
-      setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot(`.card[data-id="jog"] .unlockPill`);
-    }
-    // first coach hint (only once)
-    for(const c of Coaches.list){
-      if(State.coaches[c.id]) continue;
-      const ex = State.exercises.find(e=>e.id===c.target);
-      if(!ex || !ex.unlocked) continue;
-      if(State.hp + 1e-6 >= c.price && !State.tutorial.shown.coach['first']){
-        State.tutorial.shown.coach['first']=true; save();
-        const L=[{who:'JAX', html:`Want to maximize gains? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> a coach.`}];
-        setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot('#avatarBtn'); break;
-      }
-    }
-  });
-
-  return {startIntro};
-})();
-
-/* =========================
-   START / SPLASH
-   ========================= */
-function showSplashThenStart(){
-  const s = $('#splash'); s.classList.add('open');
-  setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, App.Config.SPLASH_MS);
-}
-function wireStart(){
-  const st = $('#start');
-  // show Continue only if save exists (and has some progress)
-  const hasSave = !!localStorage.getItem(App.Config.SAVE_KEY);
-  if(hasSave) $('#btnContinue').style.display='inline-block';
-  $('#btnStart').textContent = 'New Game';
-
-  $('#btnStart').addEventListener('click',()=>{
-    AudioSys.play('ui.click');
-    // Reset progress for New Game
-    localStorage.removeItem(App.Config.SAVE_KEY);
-    Object.assign(State, {
-      hp:0, qty:1, avatar:State.avatar||'male',
-      stats:{manual:0, auto:0, totalEarned:0},
-      coaches:{}, achievements:{}, exercises:[],
-      tutorial:{done:false, shown:{unlock:{}, coach:{}, upgrade:{}}},
-      upgrades:{active:{},consumables:{coffee:0,pre:0,gel:0,chalk:0},equipment:{belt:0,shoes:0,wraps:0},meta:{recovery:0,form:0},crit:{chance:0,power:2}}
-    });
-    buildExercises(); UI._hpShown=0; UI.build(); save();
-
-    $('#start').classList.remove('open');
-    AudioSys.music.start();
-    Tutorial.startIntro();
-    Offline.check();
-  });
-
-  $('#btnContinue').addEventListener('click',()=>{
-    AudioSys.play('ui.click');
-    st.classList.remove('open');
-    AudioSys.music.start();
-    Offline.check();
-  });
-
-  $$('.segBtn', $('#avatarSeg')).forEach(b=>b.addEventListener('click',()=>{
-    $$('.segBtn', $('#avatarSeg')).forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    State.avatar = b.dataset.avatar;
-    $('#avatarImg').src = (State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
-    UI.build(); save();
-  }));
+/* ========== Splash / Start ========== */
+function showSplashThenStart(){const s=$('#splash');s.classList.add('open');setTimeout(()=>{s.classList.remove('open');$('#start').classList.add('open')},App.Config.SPLASH_MS)}
+function wireStart(){const st=$('#start');const hasSave=!!localStorage.getItem(App.Config.SAVE_KEY);if(hasSave)$('#btnContinue').style.display='inline-block';$('#btnStart').textContent='New Game';
+  $('#btnStart').addEventListener('click',()=>{AudioSys.play('ui.click');localStorage.removeItem(App.Config.SAVE_KEY);Object.assign(State,{hp:0,qty:1,avatar:State.avatar||'male',stats:{manual:0,auto:0,totalEarned:0},coaches:{},achievements:{},exercises:[],tutorial:{done:false,shown:{unlock:{},coach:{},upgrade:{}}},upgrades:{active:{},consumables:{coffee:0,pre:0,gel:0,chalk:0},equipment:{belt:0,shoes:0,wraps:0},meta:{recovery:0,form:0},crit:{chance:0,power:2}}});buildExercises();UI._hpShown=0;UI.build();save();st.classList.remove('open');AudioSys.music.start();Tutorial.startIntro();Offline.check()});
+  $('#btnContinue').addEventListener('click',()=>{AudioSys.play('ui.click');st.classList.remove('open');AudioSys.music.start();Offline.check()});
+  $$('.segBtn',$('#avatarSeg')).forEach(b=>b.addEventListener('click',()=>$$('.segBtn',$('#avatarSeg')).forEach(x=>x.classList.remove('active'))||b.classList.add('active')||(State.avatar=b.dataset.avatar)||($('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale))||UI.build()||save()))
 }
 
-/* =========================
-   INPUT GUARDS
-   ========================= */
-(function mobileGuards(){
-  let lastTouch=0;
-  document.addEventListener('touchend',e=>{ const n=Date.now(); if(n-lastTouch<300){ e.preventDefault(); } lastTouch=n; },{passive:false});
-  document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
-  document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
-})();
+/* ========== Input guards & topbar ========== */
+(function mobileGuards(){let lastTouch=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastTouch<300){e.preventDefault()}lastTouch=n},{passive:false});document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false})})();
+function wireTopbar(){const g=$('#qtyGroup');$$('.qtyBtn',g).forEach(btn=>btn.addEventListener('click',()=>$$('.qtyBtn',g).forEach(x=>x.classList.remove('active'))||btn.classList.add('active')||(State.qty=parseInt(btn.dataset.q,10)||1)||save()||AudioSys.play('ui.click')||UI.refreshThrottled()))}
 
-/* =========================
-   TOPBAR WIRING
-   ========================= */
-function wireTopbar(){
-  const g = $('#qtyGroup'); $$('.qtyBtn',g).forEach(btn=>{
-    btn.addEventListener('click',()=>{ $$('.qtyBtn',g).forEach(x=>x.classList.remove('active')); btn.classList.add('active'); State.qty=parseInt(btn.dataset.q,10)||1; save(); AudioSys.play('ui.click'); UI.refreshThrottled(); });
-  });
-}
-
-/* =========================
-   INIT
-   ========================= */
+/* ========== Boot ========== */
 function boot(){
-  // ensure top is at the top
-  scrollTo({top:0, behavior:'instant'});
-
-  $('#avatarImg').src = (State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
-  $('.logoImg').src = Assets.logo;
-  UI._hpShown = State.hp;
+  // Safe scroll reset (fixes previous 'instant' bug)
+  try{ window.scrollTo(0,0); }catch{}
+  $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
+  $('.logoImg').src=Assets.logo;
+  UI._hpShown=State.hp;
+  buildExercises();
   UI.build();
   UI.refreshThrottled();
   Menu.wire();
   wireTopbar();
   wireStart();
   showSplashThenStart();
-
-  // keep mini HP fresh in menu
-  setInterval(()=>{ $('#hpMini').textContent = Util.fmtHP(State.hp); }, 400);
-
-  State.qty = State.qty||1;
+  setInterval(()=>{ $('#hpMini').textContent=Util.fmtHP(State.hp)},400);
+  State.qty=State.qty||1;
   Coaches.build();
   Engine.start();
-  setInterval(save, App.Config.SAVE_MS);
+  setInterval(save,App.Config.SAVE_MS);
 }
-document.addEventListener('DOMContentLoaded', boot);
+document.addEventListener('DOMContentLoaded',()=>{try{boot()}catch(e){const box=document.getElementById('crash');const msg=document.getElementById('crashMsg');msg.textContent=String(e&&e.stack||e);box.classList.add('open');box.setAttribute('aria-hidden','false')}});
+
 </script>
 </body>
 </html>
