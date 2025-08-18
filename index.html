@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.9 (stable tutorial width)</title>
+<title>Fitness Frenzy — V1.8.0 (tutorial height fix)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -276,8 +276,14 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .tFace.hidden{display:none}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
 
-/* Typing effect (fixed height; width locked via JS) */
-.tText{font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch;min-height:2.1em;overflow:hidden}
+/* Typing text — width locked via JS; height pre-measured; no clipping */
+.tText{
+  font-size:clamp(20px,4.2vw,28px);
+  line-height:1.35;
+  max-width:78ch;
+  /* IMPORTANT: allow full height so nothing gets clipped */
+  overflow:visible;
+}
 .tText.typing::after{
   content:""; display:inline-block; width:2px; height:1em; background:#ffd6a8;
   margin-left:4px; animation:caretBlink 1s steps(1,end) infinite; vertical-align:-0.2em;
@@ -467,7 +473,7 @@ function forceTopOnce(){ if(_didForceTop) return; _didForceTop=true; forceTop(5)
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 18, /* bump schema */
+  SCHEMA: 19, /* bump schema */
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -525,7 +531,7 @@ function setStartArt(){
   if(img.getAttribute('src') !== want) img.setAttribute('src', want);
 }
 
-/* =============== AUDIO CORE (shared context + unlock) =============== */
+/* =============== AUDIO CORE =============== */
 const AudioCore = (()=> {
   let ctx=null;
   function get(){
@@ -977,27 +983,17 @@ const UI = {
 
   attachMedia(ex){
     ex.els.left.innerHTML='';
-
-    const wrap = el('div',{class:'mediaWrap'});
-    ex.els.mediaWrap = wrap;
-
+    const wrap = el('div',{class:'mediaWrap'}); ex.els.mediaWrap = wrap;
     const lvl=el('div',{class:'lvlBadge',text:`Lvl ${ex.level}`}); ex.els.lvl=lvl;
     const coachBadge=el('div',{class:'coachBadge'}); const coachImg=el('img',{alt:'Coach'}); coachBadge.append(coachImg);
     ex.els.coachBadge=coachBadge; ex.els.coachBadgeImg=coachImg;
 
     if(ex.unlocked && ex.gifUrl){
-      const img = el('img',{src:ex.gifUrl, alt:ex.name});
-      ex.els.icon = img;
-      wrap.append(img);
-      UI.scheduleGifPulse(ex);
+      const img = el('img',{src:ex.gifUrl, alt:ex.name}); ex.els.icon = img; wrap.append(img); UI.scheduleGifPulse(ex);
     }else if(ex.stillUrl){
-      const img = el('img',{src:ex.stillUrl, alt:ex.name});
-      ex.els.icon = img;
-      wrap.append(img);
+      const img = el('img',{src:ex.stillUrl, alt:ex.name}); ex.els.icon = img; wrap.append(img);
     }else{
-      const svg = UI.makePlaceholderSVG();
-      ex.els.icon = svg;
-      wrap.append(svg);
+      const svg = UI.makePlaceholderSVG(); ex.els.icon = svg; wrap.append(svg);
     }
 
     ex.els.left.append(wrap, lvl, coachBadge);
@@ -1223,7 +1219,7 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL (typing with SFX, width locked) =============== */
+/* =============== TUTORIAL (typing with SFX, width + height lock) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tFaceWrap=$('#tFaceWrap'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot'), tNextLabel=$('#tNextLabel');
   let step=null, idx=0;
@@ -1239,38 +1235,34 @@ const Tutorial = (()=> {
       speedMs = isMobile ? 45 : 35;
     }
 
-    function measureHTMLHeight(html){
-      const m = document.createElement('div');
-      m.className = 'tText';
-      m.style.position='absolute';
-      m.style.visibility='hidden';
-      m.style.pointerEvents='none';
-      m.style.left='-9999px';
-      m.style.top='-9999px';
-      m.style.maxWidth = getComputedStyle(tText).maxWidth;
-      m.innerHTML = html;
-      document.body.appendChild(m);
-      const h = Math.ceil(m.getBoundingClientRect().height);
-      m.remove();
-      return h;
-    }
-
+    /* Lock the bubble width for the full line (no horizontal growth) */
     function lockBubbleWidthFor(html){
-      // Temporarily render the full text invisibly inside the real bubble to capture final width
-      const prevVis = tText.style.visibility;
       const prevHTML = tText.innerHTML;
+      const prevVis  = tText.style.visibility;
       tText.style.visibility = 'hidden';
       tText.innerHTML = html;
-
-      // Allow layout flush
+      // Allow layout to compute the natural width at this content
       const desired = Math.ceil(bubble.getBoundingClientRect().width);
-
-      // Lock the bubble width so typing doesn't expand it
       bubble.style.width = desired + 'px';
-
-      // Restore
       tText.innerHTML = prevHTML;
       tText.style.visibility = prevVis || '';
+    }
+
+    /* Measure final text height at the CURRENT bubble width */
+    function measureHeightFor(html){
+      const probe = document.createElement('div');
+      probe.className = 'tText';
+      probe.style.position='absolute';
+      probe.style.visibility='hidden';
+      probe.style.pointerEvents='none';
+      // Set same width as the actual text node has inside the bubble right now
+      const tw = tText.clientWidth || (bubble.clientWidth - 56); // minus padding-ish fallback
+      probe.style.width = Math.max(100, tw) + 'px';
+      probe.innerHTML = html;
+      bubble.appendChild(probe);
+      const h = Math.ceil(probe.getBoundingClientRect().height) + 2; // +2 for caret slack
+      probe.remove();
+      return h;
     }
 
     function buildSkeleton(html){
@@ -1323,21 +1315,22 @@ const Tutorial = (()=> {
       stop(false, target);
       setSpeed();
 
-      // Determine final height & width (lock them)
-      const h = measureHTMLHeight(html);
-      target.style.height = h + 'px';
+      // 1) Lock width based on full line
       lockBubbleWidthFor(html);
+      positionCurrentMode();
 
-      // Build skeleton & start typing
+      // 2) Measure final height at locked width and freeze it
+      const h = measureHeightFor(html);
+      target.style.height = h + 'px';
+      target.style.minHeight = h + 'px';
+
+      // 3) Build skeleton & type
       target.innerHTML='';
       const frag = buildSkeleton(html);
       target.appendChild(frag);
       nodeIndex=0; charIndex=0; doneCb=onDone; typedCount=0; lastTickAt=0;
       target.classList.add('typing');
       tNextLabel.textContent = 'Skip';
-
-      // Reposition (important for anchored mode)
-      positionCurrentMode();
 
       timer = setInterval(()=>stepTick(target), speedMs);
     }
@@ -1354,7 +1347,7 @@ const Tutorial = (()=> {
       map=null; nodeIndex=0; charIndex=0;
       tNextLabel.textContent = 'Next';
       if(callDone && typeof doneCb==='function'){ const cb=doneCb; doneCb=null; cb(); }
-      // Keep bubble width locked during each line; it will be re-locked for the next line
+      // Keep width & height locked for this line; next line will re-lock
     }
 
     function isTyping(){ return !!timer; }
