@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.2</title>
+<title>Fitness Frenzy — V1.7.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -269,10 +269,10 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 }
 .bubble.center{left:50%;bottom:8vh;transform:translateX(-50%)}
 .bubble.anchored{left:var(--bx); top:var(--by); transform:none}
-.bubble.tip-tl::after{
-  content:""; position:absolute; width:16px; height:16px; left:12px; top:-8px;
+.bubble.tip-top::after{
+  content:""; position:absolute; width:16px; height:16px; top:-8px;
+  left:var(--tipx,50%); transform:translateX(-50%) rotate(45deg);
   background:#0f1b2b; border-left:2px solid var(--pillBr); border-top:2px solid var(--pillBr);
-  transform:rotate(45deg);
 }
 .tFace{width:122px;height:122px;border-radius:50%;overflow:hidden;border:2px solid #26406c;background:#0b1423;margin-bottom:12px}
 .tFace img{width:100%;height:100%;object-fit:cover}
@@ -1206,7 +1206,7 @@ const Tutorial = (()=> {
       setCenteredBubble();
     }else{
       tFaceWrap.classList.add('hidden');
-      setAvatarAnchoredBubble();
+      setAvatarAnchoredBubble(); // << anchored under avatar, arrow points up
     }
   }
 
@@ -1220,28 +1220,40 @@ const Tutorial = (()=> {
 
   function setCenteredBubble(){
     bubble.classList.add('center');
-    bubble.classList.remove('anchored','tip-tl');
+    bubble.classList.remove('anchored','tip-top');
     bubble.style.left='50%'; bubble.style.bottom='8vh'; bubble.style.top='auto';
-    bubble.style.setProperty('--bx',''); bubble.style.setProperty('--by','');
+    bubble.style.setProperty('--bx',''); bubble.style.setProperty('--by',''); bubble.style.setProperty('--tipx','');
     bubble.style.transform='translateX(-50%)';
   }
   function setAvatarAnchoredBubble(){
     bubble.classList.remove('center');
-    bubble.classList.add('anchored','tip-tl');
+    bubble.classList.add('anchored','tip-top');
     positionBubbleToAvatar();
   }
   function positionBubbleToAvatar(){
     const av = $('#avatarBtn'); if(!av) return;
     const r = av.getBoundingClientRect();
-    const bw = bubble.offsetWidth || 320; const bh = bubble.offsetHeight || 160;
-    let x = r.right + 12; let y = r.top + 6;
-    const maxX = innerWidth - bw - 8;
-    if(x > maxX){ x = Math.max(8, r.left - bw - 12); }
-    if(y + bh > innerHeight - 8){ y = Math.max(8, innerHeight - bh - 8); }
+
+    const margin = 10;
+    const bw = bubble.offsetWidth || 320;
+    const bh = bubble.offsetHeight || 180;
+
+    // Place bubble directly under the avatar, horizontally centered on avatar
+    let x = r.left + r.width/2 - bw/2;
+    x = Math.max(8, Math.min(x, innerWidth - bw - 8));
+
+    const y = r.bottom + margin;
+
+    // Arrow position relative to bubble
+    let tipX = (r.left + r.width/2) - x;
+    tipX = Math.max(14, Math.min(tipX, bw - 14));
+
     bubble.style.setProperty('--bx', x+'px');
     bubble.style.setProperty('--by', y+'px');
+    bubble.style.setProperty('--tipx', tipX+'px');
+
     bubble.style.left = x+'px';
-    bubble.style.top = y+'px';
+    bubble.style.top  = y+'px';
     bubble.style.bottom = 'auto';
     bubble.style.transform = 'none';
   }
@@ -1325,13 +1337,21 @@ const Tutorial = (()=> {
 })();
 
 /* =============== START / SPLASH =============== */
+const StartArt = { desktop: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-desktop.png?raw=true", mobile: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-mobile.png?raw=true" };
+function setStartArt(){
+  const img = $('#startArtImg'); if(!img) return;
+  const r = window.innerWidth / Math.max(1, window.innerHeight);
+  const want = (r >= 1) ? StartArt.desktop : StartArt.mobile;
+  if(img.getAttribute('src') !== want) img.setAttribute('src', want);
+}
+
 function showSplashThenStart(){ 
   const s=$('#splash'); s.classList.add('open'); 
-  forceTopOnce(); /* keep at top while splash is visible */
+  forceTopOnce();
   setTimeout(()=>{ 
     s.classList.remove('open'); 
     $('#start').classList.add('open'); 
-    forceTopOnce(); /* keep at top when start menu appears */
+    forceTopOnce();
   }, 5000); 
 }
 
@@ -1366,7 +1386,7 @@ function wireStart(){
     $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
     document.body.classList.toggle('femaleMode', State.avatar==='female');
 
-    forceTopOnce(); /* ensure first exercise is visible */
+    forceTopOnce();
     Tutorial.startIntro();
     save();
   });
@@ -1379,7 +1399,7 @@ function wireStart(){
     const url = useMobile ? MobileMusicURL : MusicURL;
     AudioSys.music.setVol(useMobile ? 0.03 : 0.15);
     AudioSys.music.start(url);
-    forceTopOnce(); /* show top on resume */
+    forceTopOnce();
     Offline.check(); 
     Tutorial.scanAll(); 
   });
@@ -1428,7 +1448,7 @@ function syncTopbarOffset(){
   if(!tb) return;
   const h = Math.ceil(tb.getBoundingClientRect().height);
   document.body.style.paddingTop = h + 'px';
-  forceTopOnce(); /* if padding changes on first layout, keep view at top */
+  forceTopOnce();
 }
 window.addEventListener('resize', ()=>{ syncTopbarOffset(); setStartArt(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); });
 window.addEventListener('orientationchange', ()=>setTimeout(()=>{ syncTopbarOffset(); setStartArt(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); },150));
@@ -1453,7 +1473,6 @@ function boot(){
   Engine.start();
   setInterval(save, App.Config.SAVE_MS);
 
-  /* Just in case: make sure we begin at the very top on initial boot */
   forceTopOnce();
 }
 document.addEventListener('DOMContentLoaded', boot);
