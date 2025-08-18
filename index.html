@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.8 (louder desktop SFX + softer desktop music)</title>
+<title>Fitness Frenzy — V1.7.9 (fixed-size tutorial bubble while typing)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -276,11 +276,22 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .tFace.hidden{display:none}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
 
-/* Typing effect (fixed height) */
-.tText{font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch;min-height:2.1em;overflow:hidden}
+/* Typing effect — fixed height & caret doesn't affect layout */
+.tText{
+  position:relative;
+  font-size:clamp(20px,4.2vw,28px);
+  line-height:1.35;
+  max-width:78ch;
+  overflow:hidden;
+  /* height is set via JS to the full needed height at current width */
+}
 .tText.typing::after{
-  content:""; display:inline-block; width:2px; height:1em; background:#ffd6a8;
-  margin-left:4px; animation:caretBlink 1s steps(1,end) infinite; vertical-align:-0.2em;
+  content:"";
+  position:absolute; /* <-- no flow impact */
+  right:-4px; bottom:0;
+  width:2px; height:1em;
+  background:#ffd6a8;
+  animation:caretBlink 1s steps(1,end) infinite;
 }
 @keyframes caretBlink{50%{opacity:0}}
 .hl{color:var(--accent);font-weight:900}
@@ -544,11 +555,11 @@ const AudioCore = (()=> {
 const MusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music.mp3?raw=true";
 const MobileMusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
 
-/* New audio level prefs */
+/* Audio level prefs */
 const AudioLevels = {
-  musicDesktop: 0.12,  // lowered desktop music
-  musicMobile: 0.03,   // unchanged mobile music
-  sfxGainDesktop: 1.8, // boost desktop SFX ~+80%
+  musicDesktop: 0.12,
+  musicMobile: 0.03,
+  sfxGainDesktop: 1.8,
   sfxGainMobile: 1.0
 };
 
@@ -563,7 +574,7 @@ const AudioSys = (()=> {
       AudioCore.resume();
       const o=ctx.createOscillator(), q=ctx.createGain();
       const sfxBoost = Util.isMobileUA() ? AudioLevels.sfxGainMobile : AudioLevels.sfxGainDesktop;
-      const gain = Math.min(0.6, g * sfxBoost);  // safety cap
+      const gain = Math.min(0.6, g * sfxBoost);
       o.type=type; o.frequency.value=f; q.gain.value=gain;
       o.connect(q); q.connect(ctx.destination);
       const now = ctx.currentTime;
@@ -586,7 +597,7 @@ const AudioSys = (()=> {
     else if(hook==='tutorial.show'){ synth('triangle',520,0.12,0.08); setTimeout(()=>synth('triangle',740,0.10,0.07),90); }
     else if(hook==='tutorial.next'){ synth('sine',780,0.08,0.07); }
     else if(hook==='tutorial.hide'){ synth('sine',420,0.06,0.06); }
-    else if(hook==='tutorial.tick'){ synth('sine',1200,0.028,0.035); } /* slightly louder tick */
+    else if(hook==='tutorial.tick'){ synth('sine',1200,0.028,0.035); }
     else if(hook==='offline.show'){ synth('triangle',420,0.10,0.08); }
     else if(hook==='offline.claim'){ synth('square',760,0.10,0.08); }
     else if(hook.startsWith('ui.')) synth('sine',500,0.06,0.06);
@@ -1223,7 +1234,7 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL (typing with SFX) =============== */
+/* =============== TUTORIAL (typing with fixed-size container) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tFaceWrap=$('#tFaceWrap'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot'), tNextLabel=$('#tNextLabel');
   let step=null, idx=0;
@@ -1239,7 +1250,8 @@ const Tutorial = (()=> {
       speedMs = isMobile ? 45 : 35;
     }
 
-    function measureHTMLHeight(html){
+    // Measure using the CURRENT WIDTH of the real text box, so height stays fixed while typing
+    function measureAtWidth(html, pxWidth){
       const m = document.createElement('div');
       m.className = 'tText';
       m.style.position='absolute';
@@ -1247,6 +1259,7 @@ const Tutorial = (()=> {
       m.style.pointerEvents='none';
       m.style.left='-9999px';
       m.style.top='-9999px';
+      if(pxWidth && pxWidth>0) m.style.width = pxWidth + 'px';
       m.innerHTML = html;
       document.body.appendChild(m);
       const h = Math.ceil(m.getBoundingClientRect().height);
@@ -1303,12 +1316,18 @@ const Tutorial = (()=> {
     function start(target, html, onDone){
       stop(false, target);
       setSpeed();
-      target.innerHTML='';
-      const h = measureHTMLHeight(html);
-      target.style.height = h + 'px';
 
+      // Compute fixed height at the CURRENT layout width of the text box
+      const w = Math.max(0, target.getBoundingClientRect().width || 0);
+      const fixedH = measureAtWidth(html, w > 0 ? w : undefined);
+      target.style.height = fixedH + 'px';
+      target.style.overflow = 'hidden';
+
+      // Now build the typed skeleton
+      target.innerHTML='';
       const frag = buildSkeleton(html);
       target.appendChild(frag);
+
       nodeIndex=0; charIndex=0; doneCb=onDone; typedCount=0; lastTickAt=0;
       target.classList.add('typing');
       tNextLabel.textContent = 'Skip';
