@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.4</title>
+<title>Fitness Frenzy — V1.7.5 (typing)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -34,7 +34,7 @@ body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  padding-top:130px; /* adjusted at runtime to match topbar height */
+  padding-top:130px; /* adjusted at runtime */
   overscroll-behavior-y: none;
 }
 img{max-width:100%;display:block}
@@ -60,12 +60,12 @@ img{max-width:100%;display:block}
 .avatarBtn img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .notifDot{
   position:absolute;right:-10px;top:-10px;width:22px;height:22px;border-radius:50%;
-  background:#39d98a;box-shadow:0 0 0 2px rgba(10,19,32,.95),0 2px 6px rgba(0,0,0,.45);
+  background:#39d98a;box-shadow:0 0 0 2px rgba(0,0,0,.65),0 2px 6px rgba(0,0,0,.45);
   display:none;z-index:3
 }
 .notifDot.show{display:block}
 
-/* BIGGER LOGO */
+/* Bigger logo */
 .logoImg{
   height:84px;width:auto;display:block;
   filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))
@@ -229,7 +229,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
   display:flex;align-items:center;justify-content:center
 }
 .startArt{position:absolute;inset:0;background:#000}
-.startArt img{width:100%;height:100%;object-fit:cover} /* fill to edges */
+.startArt img{width:100%;height:100%;object-fit:cover}
 
 /* Buttons panel */
 .startUI{
@@ -277,7 +277,14 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .tFace img{width:100%;height:100%;object-fit:cover}
 .tFace.hidden{display:none}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
-.tText{font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch}
+
+/* Typing effect */
+.tText{font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch;min-height:2.1em}
+.tText.typing::after{
+  content:""; display:inline-block; width:2px; height:1em; background:#ffd6a8;
+  margin-left:4px; animation:caretBlink 1s steps(1,end) infinite; vertical-align:-0.2em;
+}
+@keyframes caretBlink{50%{opacity:0}}
 .hl{color:var(--accent);font-weight:900}
 .tNext{margin-top:12px;font-size:18px;color:#cfe0ff;display:flex;align-items:center;gap:10px}
 .chev{color:var(--accent-hi);font-size:30px}
@@ -297,6 +304,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 @media (prefers-reduced-motion: reduce){
   .coolFill::after{animation:none}
   .banner{animation:none}
+  .tText.typing::after{animation:none}
 }
 </style>
 </head>
@@ -383,7 +391,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
     </div>
     <div class="tWho" id="tWho">JAX</div>
     <div class="tText" id="tText">…</div>
-    <div class="tNext"><span>Next</span><span class="chev">›</span></div>
+    <div class="tNext"><span id="tNextLabel">Next</span><span class="chev">›</span></div>
   </div>
 </div>
 
@@ -461,7 +469,7 @@ function forceTopOnce(){ if(_didForceTop) return; _didForceTop=true; forceTop(5)
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 14,
+  SCHEMA: 15,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -532,8 +540,8 @@ const AudioSys = (()=> {
       const ctx = new (window.AudioContext||window.webkitAudioContext)();
       const o=ctx.createOscillator(), q=ctx.createGain();
       o.type=type; o.frequency.value=f; q.gain.value=g;
-      o.connect(q); q.connect(ctx.destination);
-      o.start(); q.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + d);
+      o.connect(q); o.start(); q.connect(ctx.destination);
+      q.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + d);
       o.stop(ctx.currentTime + d + 0.02);
     }catch{}
   };
@@ -558,11 +566,9 @@ const AudioSys = (()=> {
   function startMusic(url){
     try{
       if(music){ music.pause(); music=null; }
-      musicOn = true;
-      currentURL = url;
+      musicOn = true; currentURL = url;
       music = new Audio(url);
-      music.loop = true;
-      music.volume = musicVol;
+      music.loop = true; music.volume = musicVol;
       music.play().catch(()=>{});
     }catch{}
   }
@@ -1188,10 +1194,86 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL =============== */
+/* =============== TUTORIAL (with typing effect) =============== */
 const Tutorial = (()=> {
-  const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tFaceWrap=$('#tFaceWrap'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot');
+  const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tFaceWrap=$('#tFaceWrap'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot'), tNextLabel=$('#tNextLabel');
   let step=null, idx=0;
+
+  /* --- Typewriter: safely types HTML content --- */
+  const Typer = (()=> {
+    let timer=null, map=null, nodeIndex=0, charIndex=0, doneCb=null, speedMs=18;
+
+    function setSpeed(){
+      // Slightly slower on mobile for readability
+      speedMs = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 22 : 16;
+    }
+
+    function buildSkeleton(html){
+      const tmp=document.createElement('div'); tmp.innerHTML=html;
+      map=[];
+      const out=document.createDocumentFragment();
+      function cloneWalk(src, dstParent){
+        src.childNodes.forEach(ch=>{
+          if(ch.nodeType===Node.TEXT_NODE){
+            const full = ch.nodeValue || '';
+            const txt = document.createTextNode('');
+            map.push([txt, full]);
+            dstParent.appendChild(txt);
+          }else if(ch.nodeType===Node.ELEMENT_NODE){
+            const el = document.createElement(ch.tagName);
+            // copy attributes
+            for(const a of ch.attributes){ el.setAttribute(a.name, a.value); }
+            dstParent.appendChild(el);
+            cloneWalk(ch, el);
+          }
+        });
+      }
+      cloneWalk(tmp, out);
+      return out;
+    }
+
+    function stepTick(target){
+      if(!map || nodeIndex>=map.length){ stop(true, target); return; }
+      const [node, full] = map[nodeIndex];
+      if(charIndex < full.length){
+        node.nodeValue = full.slice(0, charIndex+1);
+        charIndex++;
+      }else{
+        nodeIndex++; charIndex=0;
+      }
+    }
+
+    function start(target, html, onDone){
+      stop(false, target);
+      setSpeed();
+      target.innerHTML='';
+      const frag = buildSkeleton(html);
+      target.appendChild(frag);
+      nodeIndex=0; charIndex=0; doneCb=onDone;
+      target.classList.add('typing');
+      tNextLabel.textContent = 'Skip';
+      timer = setInterval(()=>stepTick(target), speedMs);
+    }
+
+    function finish(target){
+      if(!map) return;
+      for(const [node, full] of map){ node.nodeValue = full; }
+      stop(true, target);
+    }
+
+    function stop(callDone, target){
+      if(timer){ clearInterval(timer); timer=null; }
+      if(target){ target.classList.remove('typing'); }
+      map=null; nodeIndex=0; charIndex=0;
+      tNextLabel.textContent = 'Next';
+      if(callDone && typeof doneCb==='function'){ const cb=doneCb; doneCb=null; cb(); }
+    }
+
+    function isTyping(){ return !!timer; }
+
+    return { start, finish, isTyping };
+  })();
+  /* --- end Typewriter --- */
 
   function overlayBusy(){ return ov.classList.contains('show'); }
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
@@ -1200,23 +1282,42 @@ const Tutorial = (()=> {
   function setSpeaker(who){
     tWho.textContent=who;
     if(who==='JAX'){
-      // JAX centered bubble with face
       tFace.src = Assets.trainer;
       tFaceWrap.classList.remove('hidden');
       setCenteredBubble();
     }else{
-      // Player: no face, bubble anchored under avatar with top-left arrow
       tFaceWrap.classList.add('hidden');
       setAvatarAnchoredBubble();
     }
   }
 
-  function setLines(lines){ idx=0; setSpeaker(lines[0].who); tText.innerHTML=lines[0].html; show(); positionCurrentMode(); }
-  function nextLine(lines,onDone){
-    if(idx<lines.length-1){
-      idx++; setSpeaker(lines[idx].who); tText.innerHTML=lines[idx].html; AudioSys.play('tutorial.next'); positionCurrentMode();
-    } else { if(onDone) onDone(); }
+  function typeLine(lineHtml, onDone){
+    Typer.start(tText, lineHtml, onDone||null);
   }
+
+  function setLines(lines){
+    idx=0;
+    setSpeaker(lines[0].who);
+    show();
+    typeLine(lines[0].html);
+  }
+
+  function nextLine(lines,onDone){
+    if(Typer.isTyping()){
+      Typer.finish(tText); // complete instantly on first click
+      return;
+    }
+    if(idx<lines.length-1){
+      idx++;
+      setSpeaker(lines[idx].who);
+      typeLine(lines[idx].html);
+      AudioSys.play('tutorial.next');
+      positionCurrentMode();
+    } else {
+      if(onDone) onDone();
+    }
+  }
+
   bubble.addEventListener('click',()=>{ if(step) nextLine(step.lines,step.onDone); });
 
   function setCenteredBubble(){
@@ -1235,13 +1336,9 @@ const Tutorial = (()=> {
     const r = av.getBoundingClientRect();
     const margin = 10;
     const bw = bubble.offsetWidth || 320;
-
-    // Place bubble directly under the avatar, horizontally left-aligned to avatar,
-    // but clamp so it never goes off-screen.
-    let x = r.left; 
+    let x = r.left;
     x = Math.max(8, Math.min(x, innerWidth - bw - 8));
     const y = r.bottom + margin;
-
     bubble.style.left = x+'px';
     bubble.style.top  = y+'px';
     bubble.style.bottom = 'auto';
