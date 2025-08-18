@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.9 (fixed-size tutorial bubble while typing)</title>
+<title>Fitness Frenzy — V1.7.9 (static tutorial box)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -276,22 +276,15 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .tFace.hidden{display:none}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
 
-/* Typing effect — fixed height & caret doesn't affect layout */
+/* Typing effect — STATIC HEIGHT */
 .tText{
-  position:relative;
-  font-size:clamp(20px,4.2vw,28px);
-  line-height:1.35;
-  max-width:78ch;
-  overflow:hidden;
-  /* height is set via JS to the full needed height at current width */
+  font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch;
+  overflow:hidden;display:block; /* important to lock height */
+  /* height/min/max set dynamically per line */
 }
 .tText.typing::after{
-  content:"";
-  position:absolute; /* <-- no flow impact */
-  right:-4px; bottom:0;
-  width:2px; height:1em;
-  background:#ffd6a8;
-  animation:caretBlink 1s steps(1,end) infinite;
+  content:""; display:inline-block; width:2px; height:1em; background:#ffd6a8;
+  margin-left:4px; animation:caretBlink 1s steps(1,end) infinite; vertical-align:-0.2em;
 }
 @keyframes caretBlink{50%{opacity:0}}
 .hl{color:var(--accent);font-weight:900}
@@ -478,7 +471,7 @@ function forceTopOnce(){ if(_didForceTop) return; _didForceTop=true; forceTop(5)
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 17,
+  SCHEMA: 18,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -555,7 +548,6 @@ const AudioCore = (()=> {
 const MusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music.mp3?raw=true";
 const MobileMusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
 
-/* Audio level prefs */
 const AudioLevels = {
   musicDesktop: 0.12,
   musicMobile: 0.03,
@@ -1157,7 +1149,7 @@ const Menu = {
     </div>`;
     card.appendChild(wrap); host.appendChild(card);
     $('#set-sfx').onchange=e=>AudioSys.sfxEnabled.on=!!e.target.checked;
-    $('#set-music').oninput=e=>AudioSys.music.setVol(parseFloat(e.target.value||String(Util.isMobileUA()?AudioLevels.musicMobile:AudioLevels.musicDesktop)));
+    $('#set-music').oninput=e=>AudioSys.music.setVol(parseFloat(e.target.value||String(Util.isMobileUA()?AudioLevels.musicMobile:AudioLevels.musicDesktop))));
     $('#set-floats').onchange=e=>Settings.set('floats',!!e.target.checked);
     $('#btn-save').onclick=()=>{ save(); AudioSys.play('save.ok'); };
     $('#btn-reset').onclick=()=>{ if(confirm('Reset your progress?')){ localStorage.removeItem(App.Config.SAVE_KEY); location.reload(); } };
@@ -1234,7 +1226,7 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL (typing with fixed-size container) =============== */
+/* =============== TUTORIAL (typing with SFX, STATIC HEIGHT) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tFaceWrap=$('#tFaceWrap'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot'), tNextLabel=$('#tNextLabel');
   let step=null, idx=0;
@@ -1250,16 +1242,25 @@ const Tutorial = (()=> {
       speedMs = isMobile ? 45 : 35;
     }
 
-    // Measure using the CURRENT WIDTH of the real text box, so height stays fixed while typing
-    function measureAtWidth(html, pxWidth){
+    function measureHTMLHeightAtWidth(html, target){
+      // Make an offscreen measurement node that matches target width & typography
       const m = document.createElement('div');
       m.className = 'tText';
       m.style.position='absolute';
       m.style.visibility='hidden';
       m.style.pointerEvents='none';
-      m.style.left='-9999px';
-      m.style.top='-9999px';
-      if(pxWidth && pxWidth>0) m.style.width = pxWidth + 'px';
+      m.style.left='-99999px';
+      m.style.top='-99999px';
+      // Copy computed styles to ensure accurate wrap
+      const cs = getComputedStyle(target);
+      m.style.fontSize = cs.fontSize;
+      m.style.lineHeight = cs.lineHeight;
+      m.style.fontFamily = cs.fontFamily;
+      m.style.fontWeight = cs.fontWeight;
+      m.style.letterSpacing = cs.letterSpacing;
+      // Width must match the *content* width of target
+      const w = Math.max(10, target.clientWidth || 600);
+      m.style.width = w + 'px';
       m.innerHTML = html;
       document.body.appendChild(m);
       const h = Math.ceil(m.getBoundingClientRect().height);
@@ -1317,13 +1318,14 @@ const Tutorial = (()=> {
       stop(false, target);
       setSpeed();
 
-      // Compute fixed height at the CURRENT layout width of the text box
-      const w = Math.max(0, target.getBoundingClientRect().width || 0);
-      const fixedH = measureAtWidth(html, w > 0 ? w : undefined);
-      target.style.height = fixedH + 'px';
-      target.style.overflow = 'hidden';
+      // Ensure bubble is visible and sized before measuring
+      const needed = measureHTMLHeightAtWidth(html, target);
+      // LOCK height so the box never grows while typing
+      target.style.height = needed + 'px';
+      target.style.minHeight = needed + 'px';
+      target.style.maxHeight = needed + 'px';
 
-      // Now build the typed skeleton
+      // Now build the skeleton and type into it
       target.innerHTML='';
       const frag = buildSkeleton(html);
       target.appendChild(frag);
