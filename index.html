@@ -1,722 +1,523 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — Clean V2a (null-guarded)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Fitness Frenzy – Vertical Slice (Walking)</title>
 <style>
-:root{
-  --bg:#0a1320;
-  --card:#0f1b2b;
-  --ink:#e9eef3;
-  --muted:#9fb1c8;
-  --border:#223556;
-  --accent:#cc6b2c;
-  --accent-hi:#ffb357;
-  --brandBlue:#2b6cb0;
-  --rep:#22c55e;
-  --pillBg:#132647;
-  --pillBr:#2a4a78;
-  --space:clamp(10px,2.2vw,18px);
-  --r:16px;
-  --barH:18px;
-  --repband:15%;
-  --shadow-deep:0 8px 28px rgba(0,0,0,.35);
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-html{scroll-behavior:smooth}
-body{
-  margin:0;background:var(--bg);color:var(--ink);
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-}
-img,video{max-width:100%;display:block}
-button{font:inherit}
-.hidden{display:none !important}
-
-/* Error bar */
-.err{position:fixed;left:0;right:0;top:0;background:#a11;color:#fff;padding:8px 12px;z-index:6000;display:none}
-
-/* Top bar */
-.topbar{position:sticky;top:0;z-index:2000;background:rgba(10,19,32,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
-.topwrap{
-  max-width:1024px;margin:0 auto;padding:10px var(--space) 6px;
-  display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:8px 12px;align-items:center
-}
-.leftRow{display:flex;align-items:center;gap:12px}
-.avatarBtn{
-  position:relative;width:72px;height:72px;border-radius:50%;
-  overflow:hidden;border:2px solid #2a446c;background:#0b1626;cursor:pointer;flex:0 0 auto
-}
-.avatarBtn img{width:100%;height:100%;object-fit:cover}
-.notifDot{position:absolute;right:-6px;top:-6px;width:20px;height:20px;border-radius:50%;background:#39d98a;box-shadow:0 0 0 3px rgba(10,19,32,.96);display:none;pointer-events:none}
-.notifDot.show{display:block}
-.logoImg{height:84px;width:auto;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
-.qtyGroup{justify-self:end;display:inline-flex;border:1px solid #2b3d5a;border-radius:12px;overflow:hidden}
-.qtyBtn{background:#13233b;color:#cfe0ff;border:0;padding:8px 12px;font-weight:800;cursor:pointer}
-.qtyBtn.active{background:var(--accent);color:#fff}
-.hpRow{grid-column:1/-1}
-.hpPill{display:flex;align-items:baseline;gap:6px;padding:10px 16px;border-radius:999px;background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid var(--pillBr);font-variant-numeric:tabular-nums}
-.hpLabel{font-weight:900;color:var(--accent)}
-.hpVal{font-weight:900;min-width:12ch;text-align:left}
-
-/* Layout */
-.wrap{max-width:1024px;margin:0 auto;padding:var(--space)}
-.stack{display:flex;flex-direction:column;gap:var(--space)}
-
-/* Cards */
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:stretch;transition:transform .18s ease, filter .18s ease, opacity .18s ease}
-.card .left{position:relative;width:clamp(86px,18vw,108px);aspect-ratio:1;border-radius:14px;background:#102036;border:1px solid #223b60;overflow:hidden;display:grid;place-items:center}
-.mediaBox{position:relative;width:100%;height:100%;display:grid;place-items:center}
-.mediaBox img,.mediaBox video{width:100%;height:100%;object-fit:contain}
-.lvlBadge{position:absolute;left:6px;top:6px;background:linear-gradient(135deg,#203a63,#32578e);border:1px solid #4776b8;color:#fff;font-weight:900;border-radius:8px;padding:2px 6px;font-size:12px}
-.coachDot{position:absolute;right:6px;top:6px;width:24px;height:24px;border-radius:6px;border:1px solid #4776b8;background:#122a48;display:none;overflow:hidden}
-.coachDot img{width:100%;height:100%;object-fit:cover}
-.repBand{position:absolute;left:0;right:0;bottom:0;height:var(--repband);background:#14361f;border-top:1px solid #204e2b;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.repFill{position:absolute;left:0;top:0;height:100%;width:0;background:linear-gradient(90deg,#1fa24e,var(--rep))}
-.repText{position:relative;font-size:12px;color:#cfead6;font-weight:700;text-shadow:0 1px 0 rgba(0,0,0,.4)}
-
-.right{display:flex;flex-direction:column;gap:8px;min-width:0}
-.title{margin:0;font-size:clamp(16px,3.2vw,18px)}
-.coolRow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-.cool{flex:1;background:#0c1525;border:1px solid #223556;border-radius:12px;overflow:hidden}
-.coolBar{height:var(--barH);background:#101a2a;position:relative}
-.coolFill{height:100%;width:100%;background:linear-gradient(90deg,var(--accent) 0%,var(--accent-hi) 92%);position:relative}
-.coolFill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.2) 0 6px,transparent 6px 12px);opacity:.65;mix-blend-mode:overlay;animation:stripe 1.2s linear infinite}
-@keyframes stripe{to{background-position:60px 0}}
-.coolTime{min-width:64px;text-align:right;font-variant-numeric:tabular-nums;color:#cfe0ff}
-.metaRow{display:flex;align-items:center;gap:10px;justify-content:space-between}
-.kv{background:#13223a;border:1px solid #203659;border-radius:10px;padding:6px 10px;color:#cfe0ff;font-size:14px}
-.repsBtn{padding:10px 14px;border:0;border-radius:12px;font-weight:800;cursor:pointer;min-width:160px;text-align:center}
-.repsBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(204,107,44,.35)}
-.repsBtn:not(.ready){background:#1a2a40;color:#d7e3f5}
-
-/* Locked */
-.card.locked{opacity:.65;filter:grayscale(1);transform:scale(.96)}
-.lockName{margin:0 0 6px 0;font-weight:800;color:#cfe0ff}
-.unlockRow{display:flex;align-items:center;justify-content:flex-start}
-.unlockPill{padding:10px 16px;border-radius:999px;background:#142743;border:1px solid #27456d;color:#ffd6a8;font-weight:900;cursor:not-allowed}
-.unlockPill.ready{background:linear-gradient(135deg,var(--accent),var(--accent-hi));color:#fff;border-color:#e89d6b;cursor:pointer;box-shadow:0 12px 26px rgba(204,107,44,.35)}
-.card.unlockPulse{animation:unlockPulse .9s ease-in-out infinite}
-@keyframes unlockPulse{0%{transform:scale(.96)}50%{transform:scale(.975)}100%{transform:scale(.96)}}
-
-/* Tap FX */
-.tapFX{animation:tapPop .18s cubic-bezier(.2,1.2,.3,1)}
-@keyframes tapPop{0%{transform:scale(.96)}100%{transform:scale(1)}}
-.rays{pointer-events:none;position:absolute;inset:0}
-.rays:before{content:"";position:absolute;left:50%;top:50%;width:0;height:0;border:8px solid rgba(255,179,87,.65);border-radius:50%;transform:translate(-50%,-50%);animation:rays .35s ease-out}
-@keyframes rays{to{width:120%;height:120%;opacity:0}}
-
-/* Float +HP */
-.float{position:fixed;left:0;top:0;transform:translate(-50%,-10px);color:#ffe6c7;font-weight:900;text-shadow:0 1px 0 rgba(0,0,0,.6);animation:rise .9s ease-out forwards;pointer-events:none;z-index:2200}
-@keyframes rise{0%{opacity:0;transform:translate(-50%,10px) scale(.9)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-40px) scale(1.05)}}
-
-/* Banner */
-.banner{position:fixed;left:0;right:0;bottom:0;transform:translateY(100%);background:linear-gradient(135deg,#132647,#1d3a61);border-top:1px solid var(--pillBr);color:#fff;padding:12px 16px calc(12px + env(safe-area-inset-bottom));text-align:center;z-index:2500;animation:bannerIn .25s ease-out forwards, bannerOut .9s ease-in forwards 2.8s}
-@keyframes bannerIn{to{transform:translateY(0)}}
-@keyframes bannerOut{to{transform:translateY(10px);opacity:0}}
-
-/* Menu */
-.menuOv{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:3000}
-.menuOv.open{display:flex}
-.panel{width:min(1024px,96vw);max-height:88vh;background:#0f1b2b;border:1px solid var(--border);border-radius:18px 18px 0 0;overflow:hidden;box-shadow:0 -12px 30px rgba(0,0,0,.45);display:flex;flex-direction:column}
-.panelHead{display:flex;align-items:center;gap:10px;padding:10px var(--space);border-bottom:1px solid var(--border)}
-.panelTitle{font-weight:900}
-.hpMini{margin-left:auto;background:#132647;border:1px solid var(--pillBr);border-radius:999px;padding:4px 10px}
-.menuTabs{display:flex;gap:8px;flex-wrap:wrap;padding:8px var(--space);border-bottom:1px solid var(--border)}
-.tabBtn{padding:8px 12px;border-radius:999px;border:1px solid #2b3d5a;background:#13233b;color:#cfe0ff;font-weight:800;cursor:pointer}
-.tabBtn.active{background:var(--accent);color:#fff;border-color:#e89d6b}
-.panelBody{padding:14px var(--space);overflow:auto}
-.grid{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
-.coachCard{display:flex;gap:12px;align-items:center;background:#0c1525;border:1px solid #223556;border-radius:12px;padding:12px}
-.coachCard.locked{opacity:.58;filter:grayscale(1)}
-.headshot{width:64px;height:64px;border-radius:12px;overflow:hidden;border:1px solid #1a2f4a;background:#12243b;display:flex;align-items:center;justify-content:center}
-.headshot img{width:100%;height:100%;object-fit:cover}
-.cName{font-weight:900}
-.cInfo{color:var(--muted);font-size:14px;margin-top:4px}
-.hire{padding:10px 14px;border-radius:10px;border:0;font-weight:800;cursor:pointer;background:#1a2a40;color:#d7e3f5}
-.hire.ready{background:var(--accent);color:#fff}
-.hire.owned{background:#198754;color:#fff}
-
-/* Splash & Start */
-.splash{position:fixed;inset:0;background:#fff;z-index:5000;display:none;align-items:center;justify-content:center}
-.splash.open{display:flex}
-.splashInner{width:min(90vw,900px);height:min(80vh,600px);display:flex;align-items:center;justify-content:center;position:relative}
-.splashLogo{max-width:100%;max-height:100%;animation:splashPop 1100ms cubic-bezier(.2,1.2,.3,1);filter:drop-shadow(0 6px 22px rgba(0,0,0,.25))}
-@keyframes splashPop{0%{transform:scale(.82);opacity:0}45%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
-
-.start{position:fixed;inset:0;z-index:4500;display:none;align-items:center;justify-content:center;background:#000}
-.start.open{display:flex}
-.startFrame{position:relative;z-index:1;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.startArt{position:absolute;inset:0}
-.startArt img{width:100%;height:100%;object-fit:cover}
-.startUI{position:absolute;left:50%;bottom:8vh;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:14px;width:min(92%,780px)}
-.rowBtns{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%}
-.btn{padding:14px 22px;border-radius:14px;border:0;font-weight:900;cursor:pointer}
-.btn.orange{background:var(--accent);color:#fff}
-.btn.blue{background:var(--brandBlue);color:#fff}
-.btn.small{padding:10px 14px;font-size:18px}
-.segment{display:flex;gap:16px;justify-content:center}
-.avatarChoice{width:86px;height:86px;border-radius:16px;border:3px solid transparent;overflow:hidden;cursor:pointer;box-shadow:var(--shadow-deep)}
-.avatarChoice img{width:100%;height:100%;object-fit:cover}
-.avatarChoice.active{border-color:var(--accent)}
-
-/* Tutorial */
-.tut{position:fixed;inset:0;z-index:4000;display:none}
-.tut.show{display:block}
-.dim{position:absolute;inset:0;background:rgba(0,0,0,.22)}
-.bubble{position:absolute;left:50%;bottom:12vh;transform:translateX(-50%);background:#0f1b2b;border:2px solid var(--pillBr);border-radius:18px;padding:18px 20px;max-width:min(1024px,96vw);box-shadow:0 18px 36px rgba(0,0,0,.35);overflow:hidden}
-.tWho{font-weight:900;color:#ffd6a8;margin-bottom:8px}
-.tText{font-size:clamp(18px,3.6vw,22px);line-height:1.35;min-height:3.6em}
-.hl{color:var(--accent);font-weight:900}
-.tNext{margin-top:12px;font-size:14px;color:#cfe0ff;display:flex;align-items:center;gap:10px}
-.chev{color:var(--accent-hi);font-size:24px}
-.spot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);pointer-events:none}
-.arrow{position:absolute;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:12px solid #0f1b2b}
-.bubble.anchorTop{bottom:auto}
-.arrowTopLeft{top:-12px;left:22px;transform:rotate(180deg)}
-
-@media (max-width:560px){
-  .avatarBtn{width:64px;height:64px}
-  .logoImg{height:72px}
-  .hpPill{padding:8px 12px}
-  .card{grid-template-columns:92px 1fr}
-  .title{font-size:16px}
-  .coolTime{min-width:54px}
-  .bubble{max-width:94vw}
-}
-
-@media (prefers-reduced-motion: reduce){
-  .coolFill::after{animation:none}
-  .banner{animation:none}
-  .splashLogo{animation:none}
-}
+  :root{
+    --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
+    --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --warn:#ffcc00; --danger:#ff3860;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  }
+  .topbar{
+    position:sticky; top:0; z-index:10; background:linear-gradient(180deg, #151734, #10122a);
+    border-bottom:1px solid #22254b; padding:10px 12px;
+  }
+  .row{display:flex; align-items:center; gap:10px}
+  .space{justify-content:space-between}
+  .avatar{
+    width:48px; height:48px; border-radius:50%; background:#2b2f63; display:grid; place-items:center;
+    font-weight:700; letter-spacing:0.5px; border:2px solid #3b3f78; position:relative; cursor:pointer;
+  }
+  .avatar .dot{
+    position:absolute; top:-4px; right:-4px; width:14px; height:14px; background:var(--good); border-radius:50%;
+    border:2px solid #0f1020; display:none;
+  }
+  .logo{font-weight:800; letter-spacing:0.8px}
+  .bulk{
+    display:inline-flex; background:#20244a; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden;
+  }
+  .bulk button{
+    background:transparent; color:var(--muted); border:0; padding:6px 10px; cursor:pointer; min-width:44px;
+  }
+  .bulk button.active{ background:var(--accent-2); color:#061222; font-weight:700 }
+  .hp-pill{
+    margin-top:8px; background:#182047; border:1px solid #2a2e5e; padding:8px 10px; border-radius:10px;
+    font-variant-numeric: tabular-nums; display:flex; align-items:center; justify-content:space-between;
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:12px}
+  .cards{display:grid; gap:12px}
+  .card{
+    display:grid; grid-template-columns:110px 1fr; gap:12px; padding:10px; background:var(--panel); border:1px solid #262a58; border-radius:12px;
+  }
+  .tile{
+    background:var(--panel-2); border-radius:10px; position:relative; height:110px; display:grid; place-items:center;
+    user-select:none;
+  }
+  .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px}
+  .tile .tap-btn{
+    appearance:none; border:0; background:var(--accent); color:#1b0d00; font-weight:800; padding:8px 10px; border-radius:8px; cursor:pointer;
+  }
+  .tile.cooling .tap-btn{opacity:.5; cursor:not-allowed}
+  .title{font-weight:700; margin-top:2px}
+  .cooldown{
+    margin-top:6px; height:20px; background:#141739; border:1px solid #2a2e5e; border-radius:6px; overflow:hidden; position:relative;
+  }
+  .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg, #2f6df3, #41b0ff)}
+  @media (prefers-reduced-motion: no-preference){
+    .bar::after{
+      content:""; position:absolute; inset:0; background:repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 6px, transparent 6px 12px);
+      mix-blend-mode:overlay; pointer-events:none;
+    }
+  }
+  .cooldown .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric: tabular-nums; color:var(--muted)}
+  .meta{display:flex; align-items:center; justify-content:space-between; margin-top:8px}
+  .muted{color:var(--muted)}
+  .btn{
+    appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 10px; border-radius:10px; min-width:140px; cursor:pointer;
+    font-variant-numeric: tabular-nums; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .btn.glow{box-shadow:0 0 0 2px rgba(255, 192, 120, .25) inset, 0 0 12px rgba(255, 122, 26, .35)}
+  .small{font-size:12px}
+  .errorbar{
+    position:fixed; top:0; left:0; right:0; background:var(--danger); color:#1b0006; padding:8px 12px; font-weight:700; display:none; z-index:999;
+  }
+  .footer{
+    margin-top:18px; color:var(--muted); text-align:center; font-size:12px;
+  }
 </style>
 </head>
 <body>
+<div id="errorbar" class="errorbar"></div>
 
-<div id="err" class="err"></div>
-
-<!-- Top bar -->
 <div class="topbar">
-  <div class="topwrap">
-    <div class="leftRow">
-      <button id="avatarBtn" class="avatarBtn" title="Menu">
-        <img id="avatarImg" alt="Avatar">
-        <span id="menuDot" class="notifDot"></span>
-      </button>
-      <img class="logoImg" alt="Fitness Frenzy Logo" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-Logo%20(2).png?raw=true" />
+  <div class="wrap">
+    <div class="row space">
+      <div class="row" style="gap:12px">
+        <div id="avatar" class="avatar" title="Menu (coming soon)">FF<span class="dot" id="avatar-dot"></span></div>
+        <div class="logo">Fitness Frenzy – dev slice</div>
+      </div>
+      <div class="bulk" id="bulk">
+        <button data-q="1" class="active">×1</button>
+        <button data-q="10">×10</button>
+        <button data-q="100">×100</button>
+      </div>
     </div>
-    <div class="qtyGroup" id="qtyGroup">
-      <button class="qtyBtn active" data-q="1">×1</button>
-      <button class="qtyBtn" data-q="10">×10</button>
-      <button class="qtyBtn" data-q="100">×100</button>
-    </div>
-    <div></div>
-    <div class="hpRow">
-      <div class="hpPill"><span class="hpLabel">HP:</span> <span id="hpTop" class="hpVal">0.00</span></div>
-    </div>
+    <div class="hp-pill"><span>HP</span><span id="hp-readout">0</span></div>
   </div>
 </div>
 
-<!-- Content -->
 <div class="wrap">
-  <div id="stack" class="stack"></div>
-</div>
-
-<div id="bannerHost"></div>
-
-<!-- Menu overlay -->
-<div id="menuOv" class="menuOv" aria-hidden="true">
-  <div class="panel" role="dialog" aria-modal="true">
-    <div class="panelHead">
-      <div class="panelTitle">Menu</div>
-      <div class="hpMini">HP: <span id="hpMini">0.00</span></div>
-      <button id="menuClose" class="btn small" style="margin-left:auto;background:#1a2a40;color:#d7e3f5">Close</button>
-    </div>
-    <div class="menuTabs">
-      <button class="tabBtn active" data-tab="coaches">Coaches</button>
-      <button class="tabBtn" data-tab="achievements">Achievements</button>
-      <button class="tabBtn" data-tab="upgrades">Upgrades</button>
-      <button class="tabBtn" data-tab="quests">Side Quests</button>
-      <button class="tabBtn" data-tab="stats">Stats</button>
-      <button class="tabBtn" data-tab="settings">Settings</button>
-    </div>
-    <div class="panelBody">
-      <div id="tab-coaches"></div>
-      <div id="tab-achievements" style="display:none"></div>
-      <div id="tab-upgrades" style="display:none">
-        <div class="coachCard"><div class="cInfo">Future boosts (energy drinks, pre-workout, coffee, weighted vests) will live here.</div></div>
-      </div>
-      <div id="tab-quests" style="display:none">
-        <div class="coachCard"><div class="cInfo">Side Quests idea bin (placeholder).</div></div>
-      </div>
-      <div id="tab-stats" style="display:none"></div>
-      <div id="tab-settings" style="display:none"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Tutorial -->
-<div id="tut" class="tut" aria-hidden="true">
-  <div class="dim"></div>
-  <div id="spot" class="spot" style="display:none"></div>
-  <div class="bubble" id="bubble">
-    <div class="tWho" id="tWho">JAX</div>
-    <div class="tText" id="tText">…</div>
-    <div class="tNext" id="tNext"><span id="tNextText">Next</span><span class="chev">›</span></div>
-    <div class="arrow" id="tArrow"></div>
-  </div>
-</div>
-
-<!-- Offline -->
-<div id="off" class="off" aria-hidden="true">
-  <div class="offCard">
-    <h3 class="offTitle">Welcome back! 👋</h3>
-    <div>You were away for <strong id="offDur">0s</strong>.</div>
-    <div class="offAmt">You earned <strong id="offAmt">0.00</strong> HP while away.</div>
-    <button id="offClaim" class="btn orange" style="margin-top:10px">Claim</button>
-    <div id="offCapNote" style="color:#9fb1c8;margin-top:8px;display:none">Offline gains were capped for long absences.</div>
-  </div>
-</div>
-
-<!-- Splash + Start -->
-<div id="splash" class="splash" aria-hidden="true">
-  <div class="splashInner">
-    <img class="splashLogo" alt="GameBros" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/GameBros%20Logo.png?raw=true">
-  </div>
-</div>
-
-<div id="start" class="start" aria-hidden="true">
-  <div class="startFrame">
-    <div class="startArt"><img id="startBG" alt="Cover"></div>
-    <div class="startUI">
-      <div class="rowBtns">
-        <button id="btnNew" class="btn orange">New Game</button>
-        <button id="btnContinue" class="btn blue hidden">Continue</button>
-      </div>
-      <div class="segment" id="avatarSeg">
-        <button class="avatarChoice active" data-avatar="male" title="Male">
-          <img src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true" alt="Male">
-        </button>
-        <button class="avatarChoice" data-avatar="female" title="Female">
-          <img src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true" alt="Female">
-        </button>
-      </div>
-    </div>
-  </div>
+  <div class="cards" id="cards"></div>
+  <div class="footer small">VSlice scope: Walking only • Clean core loop • Local save • Next: coaches, tutorial, start screen</div>
 </div>
 
 <script>
-/* ============ Helpers ============ */
-const App = {};
-App.Config = Object.freeze({
-  SAVE_KEY:'ff-v1', SCHEMA:21, DEC:2,
-  MIN_CD_MS:100, NOTIFY_MS:160, UI_MS:80, SAVE_MS:15000,
-  OFFLINE_CAP_MS:86400000, SPLASH_MS:5000,
-  PULSE_MIN_MS:9000, PULSE_MAX_MS:12000
-});
-const $=(q,r=document)=>r.querySelector(q);
-const $$=(q,r=document)=>Array.from(r.querySelectorAll(q));
-const el=(t,a={})=>{const n=document.createElement(t);for(const k in a){if(k==='text')n.textContent=a[k];else if(k==='html')n.innerHTML=a[k];else n.setAttribute(k,a[k]);}return n;};
-const Bus=(()=>{const m={};return{on(e,f){(m[e]||(m[e]=[])).push(f)},emit(e,p){(m[e]||[]).forEach(fn=>{try{fn(p)}catch(err){console.error(err)}})}})();
-const Util = {
-  clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
-  fmtHP(n){const a=Math.abs(n),d=App.Config.DEC;if(a>=1e9)return(n/1e9).toFixed(d)+'B';if(a>=1e6)return(n/1e6).toFixed(d)+'M';if(a>=1e3)return(n/1e3).toFixed(d)+'K';return n.toFixed(d);},
-  fmtCost(n){const d=App.Config.DEC;if(n<1e3)return n.toFixed(d);if(n<1e6)return(n/1e3).toFixed(d)+'K';if(n<1e9)return(n/1e6).toFixed(d)+'M';return(n/1e9).toFixed(d)+'B';},
-  now:()=>performance.now(),
-  randInt:(a,b)=>Math.floor(a+Math.random()*(b-a+1)),
-  inView:node=>{if(!node)return false;const r=node.getBoundingClientRect();return r.bottom>0&&r.right>0&&r.left<innerWidth&&r.top<innerHeight;},
-  isMobile:()=>/Mobi|Android/i.test(navigator.userAgent)
-};
+/** --------------------------
+ *  Tiny Event Bus
+ *  -------------------------*/
+const Bus = (() => {
+  const map = new Map();
+  return {
+    on: (evt, cb) => { if(!map.has(evt)) map.set(evt, new Set()); map.get(evt).add(cb); return () => map.get(evt).delete(cb); },
+    emit: (evt, payload) => { const s = map.get(evt); if(!s) return; s.forEach(cb => { try { cb(payload); } catch(e){ console.error(e) }}); }
+  };
+})();
 
-/* ============ Audio ============ */
-const MusicURL_DESKTOP="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music.mp3?raw=true";
-const MusicURL_MOBILE ="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
-const AudioSys=(()=>{let music,musicVol=Util.isMobile()?0.03:0.10,musicOn=false;const sfxEnabled={on:true};
-const synth=(type='sine',f=660,d=0.1,g=0.09)=>{try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator(),q=ctx.createGain();o.type=type;o.frequency.value=f;q.gain.value=g;o.connect(q);q.connect(ctx.destination);o.start();q.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+d);o.stop(ctx.currentTime+d+0.02);}catch{}};
-function play(h){if(!sfxEnabled.on)return;
- if(h==='tap.ok')synth('sine',720,0.07,0.10);
- else if(h==='reps.buy')synth('square',420,0.12,0.10);
- else if(h==='unlock.do')synth('triangle',300,0.20,0.12);
- else if(h==='unlock.ready')synth('triangle',520,0.15,0.10);
- else if(h==='upgrade.apply'){synth('square',650,0.09,0.10);setTimeout(()=>synth('square',900,0.09,0.09),100);}
- else if(h==='achievement.unlock'){synth('square',600,0.10,0.10);setTimeout(()=>synth('square',800,0.10,0.09),120);setTimeout(()=>synth('square',1000,0.12,0.09),240);}
- else if(h==='coach.hire'){synth('sine',500,0.12,0.11);setTimeout(()=>synth('sine',640,0.10,0.09),90);}
- else if(h==='tutorial.show'||h==='tutorial.next'||h==='tutorial.hide'){synth('triangle',560,0.08,0.08);}
- else if(h==='tutorial.tick'){synth('square',1040,0.02,Util.isMobile()?0.025:0.07);}
- else if(h==='ui.click'||h==='ui.menu.open'||h==='ui.menu.close'||h==='ui.tab.switch'){synth('sine',500,0.06,0.07);}
- else if(h==='offline.show')synth('sine',720,0.12,0.10);
- else if(h==='offline.claim')synth('square',840,0.12,0.10);}
-function start(){if(musicOn)return;musicOn=true;const url=Util.isMobile()?MusicURL_MOBILE:MusicURL_DESKTOP;music=new Audio(url);music.loop=true;music.volume=musicVol;music.play().catch(()=>{musicOn=false;});}
-function stop(){try{musicOn=false;music&&music.pause();}catch{}}
-function setVol(v){musicVol=v;try{if(music)music.volume=v;}catch{}}
-return{play,music:{start,stop,setVol},sfxEnabled};})();
+/** --------------------------
+ *  Content (exercises, ids)
+ *  -------------------------*/
+const Content = (() => {
+  // Full list reserved, but we ship only the first item live.
+  const ALL = [
+    { id:"walk",   name:"Walking",          baseCooldownMs:1000 },
+    { id:"jog",    name:"Jogging",          baseCooldownMs:3000 },
+    { id:"sit",    name:"Sit-ups",          baseCooldownMs:6000 },
+    { id:"push",   name:"Push-ups",         baseCooldownMs:12000 },
+  ];
+  return { ALL };
+})();
 
-/* ============ State & Assets ============ */
-const State={hp:0,qty:1,avatar:'male',stats:{manual:0,auto:0,totalEarned:0},coaches:{},achievements:{},exercises:[],tutorial:{doneIntro:false,shown:{repsHint:false,coachFirst:false,unlock:{},upgrade:{}}}};
-function save(){try{localStorage.setItem(App.Config.SAVE_KEY,JSON.stringify({schema:App.Config.SCHEMA,...State}));}catch{}}
-function hasSave(){try{const raw=localStorage.getItem(App.Config.SAVE_KEY);if(!raw)return false;const j=JSON.parse(raw);return j&&j.schema;}catch{return false}}
-function load(){try{const raw=localStorage.getItem(App.Config.SAVE_KEY);if(!raw)return;const j=JSON.parse(raw);if(j.schema){Object.assign(State,j);}}catch{}} load();
+/** --------------------------
+ *  Math (formulas per GDD)
+ *  -------------------------*/
+const MathFx = (() => {
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const log2 = (x) => Math.log(x) / Math.log(2);
+  const sec = (baseCooldownMs) => baseCooldownMs / 1000;
 
-const Assets={
-  avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true",
-  avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true",
-  trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true",
-  startDesktop:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-desktop.png?raw=true",
-  startMobile:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-mobile.png?raw=true",
-  splash:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/GameBros%20Logo.png?raw=true",
-};
-
-const MEDIA={
-  male:{
-    walk:{gif:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.gif?raw=true", png:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.png?raw=true"},
-    jog :{gif:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.gif?raw=true", png:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.png?raw=true"},
-    sit :{gif:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.gif?raw=true",  png:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.png?raw=true"},
-    push:{gif:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.gif?raw=true", png:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.png?raw=true"},
-    jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jumping%20jacks.png?raw=true",
-    pull :"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pull%20ups.png?raw=true",
-    rope :"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jump%20rope.png?raw=true",
-    plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20planks.png?raw=true",
-    mountain:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20mountain%20climbers.png?raw=true",
-    kettlebell:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20kettlebells.png?raw=true",
-    burpees:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20burpees.png?raw=true",
-    bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20bench%20press.png?raw=true",
-    backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20back%20squat.png?raw=true",
-    dead:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20deadlifts.png?raw=true",
-    hand:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstands.png?raw=true",
-    hspu:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstand%20push%20ups.png?raw=true",
-    muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20muscle%20ups.png?raw=true",
-    lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20front%20lever.png?raw=true",
-    icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20iron%20cross.png?raw=true",
-    vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20victorian%20cross.png?raw=true"
-  },
-  female:{
-    walk:{gif:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.gif?raw=true", png:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.png?raw=true"},
-    jog :{gif:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.gif?raw=true", png:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.png?raw=true"},
-    sit :{gif:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.gif?raw=true",  png:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.png?raw=true"},
-    push:{gif:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.gif?raw=true", png:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.png?raw=true"},
-    jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jumping%20jacks.png?raw=true",
-    pull :"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pull%20up.png?raw=true",
-    rope :"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jump%20rope.png?raw=true",
-    plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20plank.png?raw=true",
-    mountain:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20mountain%20climbers.png?raw=true",
-    kettlebell:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20kettlebell.png?raw=true",
-    burpees:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20burpees.png?raw=true",
-    bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20bench%20press.png?raw=true",
-    backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20back%20squat.png?raw=true",
-    dead:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20deadlift.png?raw=true",
-    hand:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand.png?raw=true",
-    hspu:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand%20push%20ups.png?raw=true",
-    muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20muscle%20up.png?raw=true",
-    lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20front%20lever.png?raw=true",
-    icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20iron%20cross.png?raw=true",
-    vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20victorian%20cross.png?raw=true"
+  function baseHP(idx, baseCooldownMs){
+    if(idx === 0) return 1; // Walking special case
+    const s = sec(baseCooldownMs);
+    return Math.round(20 * Math.pow(s, 1.10));
   }
-};
 
-const COACH_URL=Array.from({length:20},(_,i)=>`https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c${i+1}.png?raw=true`);
-const COACH_NAME=["Stride Guide Sam","Pace Setter Jenna","Core Captain Cruz","Rep Sergeant Rex","Cardio Jackie","Bar Boss Piper","Rope Coach Rio","Plank Pro Parker","Summit Mitch","Bell Master Kira","Burpee Bruin","Spotter Ben","Depth Judge Dee","Hinge Hero Hank","Balance Bella","Inverted Ivy","Ring Raptor Max","Lever Leo","Cross Coach Iris","Victorian Victor"];
+  function perTapHP(baseHP, repHP){ return baseHP + repHP; }
 
-/* ============ Build exercises ============ */
-function buildExercises(){
-  const L=[['walk','Walking',1000],['jog','Jogging',3000],['sit','Sit-ups',6000],['push','Push-ups',12000],['jacks','Jumping Jacks',24000],['pull','Pull-ups',48000],['rope','Jump Rope',96000],['plank','Plank',192000],['mountain','Mountain Climbers',384000],['kettlebell','Kettlebell',768000],['burpees','Burpees',1536000],['bench','Bench Press',3072000],['backsq','Back Squat',6144000],['dead','Deadlift',12288000],['hand','Handstands',24576000],['hspu','Handstand Push-ups',49152000],['muscle','Muscle-ups',98304000],['lever','Front Lever',196608000],['icross','Iron Cross',393216000],['vcross','Victorian Cross',786432000]];
-  const prior=Object.fromEntries((State.exercises||[]).map(e=>[e.id,e]));
-  const arr=[];
-  for(let i=0;i<L.length;i++){
-    const [id,name,cd]=L[i];const sec=cd/1000;
-    const baseHP=(i===0)?1:Math.round(20*Math.pow(sec,1.10));
-    const repBaseCost=Math.max(4,Math.round(baseHP*0.05));
-    const unlockCost=(i===0)?0:Math.round(baseHP*Math.pow(sec,0.60)*1.15);
-    const keep=prior[id]||{};
-    arr.push({id,name,baseHP,baseCooldown:cd,unlockCost,repBaseCost,unlocked: keep.unlocked ?? (i===0),repHP:keep.repHP ?? 0,repProgress:keep.repProgress ?? 0,repTarget:keep.repTarget ?? 10,level:keep.level ?? 1,cooldown:keep.cooldown ?? cd,lastTapAt:keep.lastTapAt ?? 0,_autoElapsed:0,els:{}});
+  function repBaseCost(baseHP){
+    return Math.max(4, Math.round(baseHP * 0.05));
   }
-  State.exercises=arr;
-}
-buildExercises();
 
-/* ============ Game logic ============ */
-const Game={
-  perTap:(ex)=>ex.baseHP+ex.repHP,
-  repGrowth:(ex)=>Util.clamp(1.07+0.01*Math.log2(Math.max(1,ex.level)),1.07,1.15),
-  repCost(ex,n=1){const g=Game.repGrowth(ex);const b=ex.repBaseCost*Math.pow(g,ex.repHP);if(n===1)return +(b.toFixed(App.Config.DEC));return +((b*(Math.pow(g,n)-1)/(g-1)).toFixed(App.Config.DEC));},
-  addHP(v){State.hp+=v;if(v>0)State.stats.totalEarned+=v;Bus.emit('hp',State.hp)},
-  tap(ex,now=Util.now(),isAuto=false){
-    if(!ex.unlocked)return 0;const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown);
-    if(ex.lastTapAt>0 && now-ex.lastTapAt<cd-1){return 0}
-    ex.lastTapAt=now;const g=Game.perTap(ex);Game.addHP(g);if(isAuto)State.stats.auto++;else State.stats.manual++;
-    if(!isAuto){AudioSys.play('tap.ok');UI.floatFrom(ex.els.img||ex.els.card,`+${g.toFixed(App.Config.DEC)}`);UI.tapFX(ex);}
-    return g;
-  },
-  buyReps(ex,n){const cost=Game.repCost(ex,n);if(State.hp+1e-6<cost)return false;Game.addHP(-cost);ex.repHP+=n;ex.repProgress+=n;
-    while(ex.repProgress>=ex.repTarget){ex.repProgress-=ex.repTarget;ex.repTarget*=2;ex.level+=1;ex.cooldown=Math.max(App.Config.MIN_CD_MS,Math.floor(ex.cooldown/2));Banners.push(`${ex.name} upgraded to <strong>Lvl ${ex.level}</strong> — cooldown halved!`);AudioSys.play('upgrade.apply');FX.confettiAt(ex.els.card);Bus.emit('upgrade',{id:ex.id,level:ex.level});}
-    AudioSys.play('reps.buy');Bus.emit('reps',{id:ex.id,qty:n});return true;}
-};
+  function repGrowth(level){
+    const g = 1.07 + 0.01 * log2(Math.max(1, level));
+    return clamp(g, 1.07, 1.15);
+  }
 
-/* ============ Engine ============ */
-const Engine=(()=>{let last=Util.now();function loop(){const now=Util.now();const dt=Math.min(0.25,(now-last)/1000);last=now;
-  for(const ex of State.exercises){if(!Coaches.isAuto(ex.id))continue;const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown);ex._autoElapsed+=dt*1000;while(ex._autoElapsed>=cd){ex._autoElapsed-=cd;Game.tap(ex,now,true);}}
-  for(const ex of State.exercises){UI.drawCooldown(ex)}
-  UI.tickTop(dt);UI.refreshThrottled();Notify.updateThrottled();requestAnimationFrame(loop);}
-  return{start:()=>requestAnimationFrame(loop)};})();
+  function repCostSingle(repBase, g, currentRepHP){
+    return repBase * Math.pow(g, currentRepHP);
+  }
 
-/* ============ UI ============ */
-const UI={
-  _hpShown:0,
-  floatFrom(ref,text){if(!ref||!Settings.get('floats'))return;const r=ref.getBoundingClientRect();const sp=el('div',{class:'float',text});sp.style.left=(r.left+r.width/2)+'px';sp.style.top=(r.top+r.height*0.15)+'px';document.body.appendChild(sp);setTimeout(()=>sp.remove(),900);},
-  tapFX(ex){if(!ex?.els?.left)return;ex.els.left.classList.remove('tapFX');void ex.els.left.offsetWidth;ex.els.left.classList.add('tapFX');const rays=el('div',{class:'rays'});ex.els.left.appendChild(rays);setTimeout(()=>rays.remove(),350);},
-  drawCooldown(ex){if(!ex.unlocked)return;const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown);const fill=ex.els.fill, time=ex.els.time;if(!fill||!time)return;
-    if(cd<=App.Config.MIN_CD_MS){fill.style.width='100%';time.textContent=(cd/1000).toFixed(App.Config.DEC)+'s';return;}
-    const ready=ex.lastTapAt<=0;const since=ready?cd:(Util.now()-ex.lastTapAt);const elapsed=Math.max(0,Math.min(since,cd));const pct=elapsed/cd;
-    fill.style.width=(pct*100).toFixed(1)+'%';time.textContent=(elapsed/1000).toFixed(App.Config.DEC)+'s';},
-  tickTop(dt){UI._hpShown+=(State.hp-UI._hpShown)*Math.min(1,dt*8);const top=$('#hpTop');if(top)top.textContent=Util.fmtHP(UI._hpShown);const mini=$('#hpMini');if(mini)mini.textContent=Util.fmtHP(UI._hpShown);},
-  refreshThrottled(){const now=performance.now();if(!UI._next||now>=UI._next){UI._next=now+App.Config.UI_MS;for(const ex of State.exercises)UI.refreshExercise(ex)}},
-  exerciseMediaFor(ex){const g=MEDIA[State.avatar==='female'?'female':'male'];const id=ex.id;if(['walk','jog','sit','push'].includes(id)){const mm=g[id];return {gif:mm.gif,png:mm.png};}const url=g[id];return {gif:null,png:url};},
-  setCardMedia(ex){const box=ex.els.media;if(!box)return;box.innerHTML='';const media=UI.exerciseMediaFor(ex);
-    if(ex.unlocked && media.gif){const img=el('img',{alt:ex.name,src:media.gif});ex.els.img=img;box.appendChild(img);UI.schedulePulse(ex,media.gif);}
-    else{const img=el('img',{alt:ex.name,src:media.png});img.style.objectFit='contain';ex.els.img=img;box.appendChild(img);}
-  },
-  schedulePulse(ex,base){function pulse(){if(!ex.unlocked)return; if(!Util.inView(ex.els?.card))return schedule(); if(ex.els?.img){ex.els.img.src=base.split('#')[0].split('?')[0]+'?raw=true&t='+Date.now();} schedule();}
-    function schedule(){const d=Util.randInt(App.Config.PULSE_MIN_MS,App.Config.PULSE_MAX_MS);ex._pulseTimer&&clearTimeout(ex._pulseTimer);ex._pulseTimer=setTimeout(pulse,d);}
-    schedule();
-  },
-  refreshExercise(ex){
-    if(ex.els.repText) ex.els.repText.textContent=`${ex.repProgress}/${ex.repTarget}`;
-    if(ex.els.repFill) ex.els.repFill.style.width=Math.min(1,ex.repProgress/ex.repTarget)*100+'%';
-    if(ex.els.lvl) ex.els.lvl.textContent=`Lvl ${ex.level}`;
-    if(ex.els.kv) ex.els.kv.textContent=`${Game.perTap(ex).toFixed(0)} HP`;
-    const n=State.qty; const cost=Game.repCost(ex,n); const can=State.hp+1e-6>=cost;
-    if(ex.els.reps){ex.els.reps.textContent=(n===1?`Reps • ${Util.fmtCost(cost)} HP`:`×${n} Reps • ${Util.fmtCost(cost)} HP`);ex.els.reps.classList.toggle('ready',can);ex.els.reps.disabled=!can;}
-    if(!ex.unlocked){
-      const canU=State.hp+1e-6>=ex.unlockCost;
-      if(ex.els.pill){ex.els.pill.textContent=`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`;ex.els.pill.classList.toggle('ready',canU);}
-      if(ex.els.card) ex.els.card.classList.toggle('unlockPulse',canU);
-      if(canU && !State.tutorial.shown.unlock[ex.id]){AudioSys.play('unlock.ready');State.tutorial.shown.unlock[ex.id]=true;save();}
-    }
-    const hasCoach=Coaches.ownedFor(ex.id).length>0;
-    if(ex.els.coachDot) ex.els.coachDot.style.display=hasCoach?'block':'none';
-  },
-  build(){
-    const host=$('#stack'); if(!host) return; host.innerHTML='';
-    State.exercises.forEach(ex=>{
-      const card=el('div',{class:'card','data-id':ex.id});ex.els.card=card;
-      if(!ex.unlocked) card.classList.add('locked');
+  function repCostBulk(repBase, g, currentRepHP, n){
+    // repBase * g^(repHP) * (g^n - 1)/(g - 1)
+    return repBase * Math.pow(g, currentRepHP) * ( (Math.pow(g, n) - 1) / (g - 1) );
+  }
 
-      const left=el('div',{class:'left'});ex.els.left=left;
-      const media=el('div',{class:'mediaBox'});ex.els.media=media;
-      const lvl=el('div',{class:'lvlBadge',text:`Lvl ${ex.level}`});ex.els.lvl=lvl;
-      const coachDot=el('div',{class:'coachDot'});coachDot.append(el('img',{alt:'Coach'}));ex.els.coachDot=coachDot;
-      const repBand=el('div',{class:'repBand'});
-      const repFill=el('div',{class:'repFill'});const repText=el('div',{class:'repText',text:`${ex.repProgress}/${ex.repTarget}`});
-      ex.els.repFill=repFill;ex.els.repText=repText;repBand.append(repFill,repText);
-      left.append(media,lvl,coachDot,repBand);UI.setCardMedia(ex);
+  function nextCooldown(currentMs){
+    return Math.max(100, Math.floor(currentMs / 2));
+  }
 
-      const right=el('div',{class:'right'});
-      const title=el('h3',{class:'title',text:ex.name});
-      const coolRow=el('div',{class:'coolRow'});
-      const cool=el('div',{class:'cool'});const bar=el('div',{class:'coolBar'});const fill=el('div',{class:'coolFill'});ex.els.fill=fill;bar.append(fill);cool.append(bar);
-      const time=el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000).toFixed(App.Config.DEC)+'s'});ex.els.time=time;coolRow.append(cool,time);
-      const meta=el('div',{class:'metaRow'});
-      const kv=el('div',{class:'kv',text:`${Game.perTap(ex).toFixed(0)} HP`});ex.els.kv=kv;
-      const reps=el('button',{class:'repsBtn',text:'Reps'});ex.els.reps=reps;meta.append(kv,reps);
+  function unlockCost(baseHPVal, baseCooldownMs){
+    const s = sec(baseCooldownMs);
+    return Math.round(baseHPVal * Math.pow(s, 0.60) * 1.15);
+  }
 
-      if(ex.unlocked){right.append(title,coolRow,meta);card.append(left,right);}
-      else{
-        const lockName=el('div',{class:'lockName',text:ex.name});
-        const unlockRow=el('div',{class:'unlockRow'});
-        const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`});ex.els.pill=pill;
-        unlockRow.append(pill);right.append(lockName,unlockRow);card.append(left,right);
+  return { clamp, log2, sec, baseHP, perTapHP, repBaseCost, repGrowth, repCostSingle, repCostBulk, nextCooldown, unlockCost };
+})();
+
+/** --------------------------
+ *  Storage (localStorage)
+ *  -------------------------*/
+const Storage = (() => {
+  const KEY = 'ff-v1';
+  const PREFS = 'ff-v1:prefs';
+  const SCHEMA = 20;
+
+  const defaults = () => ({
+    schema: SCHEMA,
+    hp: 0,
+    qty: 1, // bulk buy
+    avatar: "male",
+    stats: { manual: 0, auto: 0, totalEarned: 0 },
+    coaches: {}, // future
+    achievements: {},
+    exercises: [
+      {
+        id: "walk",
+        unlocked: true,
+        repHP: 0,
+        repTarget: 10,
+        level: 1,
+        cooldown: Content.ALL[0].baseCooldownMs,
+        lastTapAt: 0
       }
-      host.appendChild(card);
+    ],
+    tutorial: { doneIntro: false, shown: { repsHint:false, coachFirst:false, unlock:{} , upgrade:{} } }
+  });
 
-      left.addEventListener('pointerdown',e=>{e.preventDefault();if(!ex.unlocked)return;Game.tap(ex);save();});
-      if(ex.els.reps) ex.els.reps.addEventListener('click',()=>{if(Game.buyReps(ex,State.qty)){save();}});
-      if(ex.els.pill) ex.els.pill.addEventListener('click',()=>{if(Game.unlock(ex)){card.classList.remove('locked','unlockPulse');right.innerHTML='';right.append(title,coolRow,meta);UI.setCardMedia(ex);save();}});
+  const load = () => {
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return defaults();
+      const data = JSON.parse(raw);
+      if(!data || typeof data !== 'object') return defaults();
+      if(data.schema !== SCHEMA){
+        // Simple migration: rebuild missing fields / bump schema
+        const d = defaults();
+        const merged = { ...d, ...data, schema: SCHEMA };
+        // Keep only valid exercises, ensure fields exist
+        merged.exercises = (data.exercises || d.exercises).map(ex => ({
+          id: ex.id ?? "walk",
+          unlocked: !!ex.unlocked,
+          repHP: ex.repHP ?? 0,
+          repTarget: ex.repTarget ?? 10,
+          level: ex.level ?? 1,
+          cooldown: ex.cooldown ?? Content.ALL.find(c=>c.id===ex.id)?.baseCooldownMs ?? d.exercises[0].cooldown,
+          lastTapAt: ex.lastTapAt ?? 0
+        }));
+        return merged;
+      }
+      return data;
+    }catch(e){
+      console.warn("Save corrupted, resetting.", e);
+      return defaults();
+    }
+  };
+
+  const save = (state) => {
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch(e){ console.error("Save failed", e); }
+  };
+
+  const loadPrefs = () => {
+    try{
+      const raw = localStorage.getItem(PREFS);
+      if(!raw) return { floats:true };
+      const p = JSON.parse(raw);
+      return { floats: p.floats !== false };
+    }catch{ return { floats:true }; }
+  };
+  const savePrefs = (prefs) => {
+    try{ localStorage.setItem(PREFS, JSON.stringify(prefs)); }catch{}
+  };
+
+  const reset = () => { localStorage.removeItem(KEY); };
+
+  return { load, save, reset, loadPrefs, savePrefs, SCHEMA };
+})();
+
+/** --------------------------
+ *  State (in-memory)
+ *  -------------------------*/
+const State = (() => {
+  let S = Storage.load();
+  let PREFS = Storage.loadPrefs();
+
+  function get(){ return S; }
+  function set(partial){
+    S = { ...S, ...partial };
+    Storage.save(S);
+    Bus.emit('state:changed', S);
+  }
+  function patch(mutator){
+    const next = mutator(structuredClone(S));
+    S = next;
+    Storage.save(S);
+    Bus.emit('state:changed', S);
+  }
+  function prefs(){ return PREFS; }
+  function setPrefs(partial){
+    PREFS = { ...PREFS, ...partial };
+    Storage.savePrefs(PREFS);
+    Bus.emit('prefs:changed', PREFS);
+  }
+
+  return { get, set, patch, prefs, setPrefs };
+})();
+
+/** --------------------------
+ *  Number formatting
+ *  -------------------------*/
+const fmt = (n) => {
+  if (!isFinite(n)) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 1e12) return (n/1e12).toFixed(2) + "T";
+  if (abs >= 1e9)  return (n/1e9).toFixed(2) + "B";
+  if (abs >= 1e6)  return (n/1e6).toFixed(2) + "M";
+  if (abs >= 1e3)  return (n/1e3).toFixed(2) + "K";
+  return String(Math.floor(n));
+};
+
+/** --------------------------
+ *  UI – Topbar
+ *  -------------------------*/
+const Topbar = (() => {
+  const hpEl = document.getElementById('hp-readout');
+  const bulk = document.getElementById('bulk');
+  const avatarDot = document.getElementById('avatar-dot');
+
+  bulk.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if(!b) return;
+    [...bulk.children].forEach(btn => btn.classList.toggle('active', btn === b));
+    const qty = parseInt(b.dataset.q,10);
+    State.patch(s => { s.qty = qty; return s; });
+  });
+
+  function setHP(v){ hpEl.textContent = fmt(v); }
+
+  function updateAffordabilityDot(){
+    // In this slice, we use the green dot as "you can afford at least 1 rep"
+    const s = State.get();
+    const ex = s.exercises[0];
+    const base = MathFx.baseHP(0, Content.ALL[0].baseCooldownMs);
+    const g = MathFx.repGrowth(ex.level);
+    const baseCost = MathFx.repBaseCost(base);
+    const cost = MathFx.repCostSingle(baseCost, g, ex.repHP);
+    const affordable = s.hp >= Math.ceil(cost);
+    avatarDot.style.display = affordable ? 'block' : 'none';
+  }
+
+  Bus.on('state:changed', () => {
+    setHP(State.get().hp);
+    updateAffordabilityDot();
+  });
+
+  setHP(State.get().hp);
+  updateAffordabilityDot();
+
+  return {};
+})();
+
+/** --------------------------
+ *  UI – Exercise Card (Walking)
+ *  -------------------------*/
+const Cards = (() => {
+  const root = document.getElementById('cards');
+
+  function render(){
+    root.innerHTML = "";
+    const s = State.get();
+    // Only the first exercise for this slice:
+    const c = Content.ALL[0];
+    const ex = s.exercises.find(e => e.id === c.id) || s.exercises[0];
+
+    const card = document.createElement('div'); card.className = 'card';
+
+    // Left tile (tap area)
+    const tile = document.createElement('div'); tile.className = 'tile';
+    const lvl = document.createElement('div'); lvl.className = 'lvl'; lvl.textContent = `Lvl ${ex.level}`;
+    const tapBtn = document.createElement('button'); tapBtn.className = 'tap-btn'; tapBtn.textContent = '+ Tap';
+    tile.append(lvl, tapBtn);
+
+    // Block taps during cooldown
+    const now = performance.now();
+    const remaining = Math.max(0, (ex.lastTapAt + ex.cooldown) - now);
+    if (remaining > 0) tile.classList.add('cooling');
+
+    tapBtn.addEventListener('click', () => {
+      const s = State.get();
+      const ex = s.exercises[0];
+      const now = performance.now();
+      const readyAt = ex.lastTapAt + ex.cooldown;
+      if (now < readyAt) return; // cooldown block
+
+      const base = MathFx.baseHP(0, Content.ALL[0].baseCooldownMs);
+      const gain = MathFx.perTapHP(base, ex.repHP);
+      State.patch(st => {
+        st.hp += gain;
+        st.stats.manual += 1;
+        st.stats.totalEarned += gain;
+        st.exercises[0].lastTapAt = now;
+        return st;
+      });
     });
-  }
-};
 
-/* Banners & FX */
-const Banners={push(html){const host=$('#bannerHost');if(!host)return;const b=el('div',{class:'banner',html:`🎉 ${html}`});host.appendChild(b);setTimeout(()=>b.remove(),3200);}};
-const FX={confettiAt(node){if(!node)return;const rect=node.getBoundingClientRect();const x=rect.left+rect.width/2,y=rect.top+rect.height/2;const host=el('div');host.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:2200';document.body.appendChild(host);const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab'];for(let i=0;i<24;i++){const d=el('div');const size=6+Math.random()*6;d.style.cssText=`position:absolute;width:${size}px;height:${size}px;background:${colors[i%colors.length]};opacity:.95;border-radius:${Math.random()<.4?'50%':'2px'};left:${x+(Math.random()*120-60)}px;top:${y+(Math.random()*40-20)}px`;const dx=(Math.random()*2-1)*(innerWidth*0.12),dy=(innerHeight*0.25+Math.random()*innerHeight*0.15);d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px, ${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1200+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});host.appendChild(d);}setTimeout(()=>host.remove(),2000);}};
+    // Right side content
+    const right = document.createElement('div');
+    const title = document.createElement('div'); title.className = 'title'; title.textContent = c.name;
 
-/* Coaches & Menu & Notify */
-const Coaches={
-  list:[],
-  build(){Coaches.list=State.exercises.map((ex,idx)=>({id:'c'+(idx+1),name:COACH_NAME[idx],icon:COACH_URL[idx],target:ex.id,price:Coaches.priceFor(idx)}));},
-  priceFor(idx){if(idx===0)return 1500;return Math.round(1500*Math.pow(1.8,idx));},
-  isAuto(exId){return Coaches.list.some(c=>State.coaches[c.id]&&c.target===exId)},
-  ownedFor(exId){return Coaches.list.filter(c=>State.coaches[c.id]&&c.target===exId)},
-  renderTab(){
-    const host=$('#tab-coaches'); if(!host) return; host.innerHTML='';
-    const intro=el('div',{class:'coachCard'});intro.append(el('div',{class:'cInfo',text:'Coaches auto-tap a specific exercise (no tap sound).'}));host.appendChild(intro);
-    const grid=el('div',{class:'grid'});host.appendChild(grid);
-    const exBy=Object.fromEntries(State.exercises.map(e=>[e.id,e]));
-    for(const c of Coaches.list){
-      const ex=exBy[c.target];const owned=!!State.coaches[c.id];const canAfford=State.hp+1e-6>=c.price;const unlockedTarget=!!(ex&&ex.unlocked);
-      const card=el('div',{class:'coachCard'+(unlockedTarget?'':' locked')});
-      const head=el('div',{class:'headshot'});head.append(el('img',{src:c.icon,alt:c.name}));
-      const mid=el('div');mid.append(el('div',{class:'cName',text:c.name}),el('div',{class:'cInfo',text:`Works on: ${ex?.name||c.target}`}));
-      const btn=el('button',{class:'hire',text:owned?'Hired':`Hire • ${Util.fmtCost(c.price)} HP`});
-      if(owned){btn.classList.add('owned');btn.disabled=true;}
-      else if(unlockedTarget){btn.classList.toggle('ready',canAfford);btn.disabled=!canAfford;}
-      card.append(head,mid,btn);grid.appendChild(card);
-      btn.addEventListener('click',()=>{if(owned||!unlockedTarget)return;if(State.hp+1e-6<c.price)return;Game.addHP(-c.price);State.coaches[c.id]=true;const exCard=State.exercises.find(e=>e.id===c.target);if(exCard?.els?.coachDot){const img=exCard.els.coachDot.querySelector('img');if(img)img.src=c.icon;exCard.els.coachDot.style.display='block';}save();AudioSys.play('coach.hire');UI.refreshThrottled();Coaches.renderTab();});
+    // Cooldown bar
+    const cd = document.createElement('div'); cd.className = 'cooldown';
+    const bar = document.createElement('div'); bar.className = 'bar';
+    const t = document.createElement('div'); t.className = 't small'; t.textContent = 'Ready';
+    cd.append(bar, t);
+
+    // Meta row: HP/tap & Reps button
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const left = document.createElement('div'); left.className = 'muted';
+    const rightBtn = document.createElement('button'); rightBtn.className = 'btn'; // glow when affordable
+
+    function updateMeta(){
+      const s = State.get();
+      const ex = s.exercises[0];
+      const base = MathFx.baseHP(0, Content.ALL[0].baseCooldownMs);
+      left.textContent = `${MathFx.perTapHP(base, ex.repHP)} HP / tap`;
+
+      const repBase = MathFx.repBaseCost(base);
+      const g = MathFx.repGrowth(ex.level);
+      const qty = s.qty || 1;
+
+      let price = 0;
+      if (qty === 1) { price = MathFx.repCostSingle(repBase, g, ex.repHP); }
+      else           { price = MathFx.repCostBulk(repBase, g, ex.repHP, qty); }
+
+      const priceInt = Math.ceil(price);
+      rightBtn.innerHTML = `<span>Reps • ${fmt(priceInt)} HP</span>`;
+      rightBtn.classList.toggle('glow', s.hp >= priceInt);
     }
+    updateMeta();
+
+    rightBtn.addEventListener('click', () => {
+      const s = State.get();
+      const ex = s.exercises[0];
+      const base = MathFx.baseHP(0, Content.ALL[0].baseCooldownMs);
+      const repBase = MathFx.repBaseCost(base);
+      const g = MathFx.repGrowth(ex.level);
+      const qty = s.qty || 1;
+
+      const canBuyN = (n) => {
+        const costN = n === 1 ? MathFx.repCostSingle(repBase, g, ex.repHP)
+                              : MathFx.repCostBulk(repBase, g, ex.repHP, n);
+        return Math.ceil(costN);
+      };
+
+      // Attempt to buy selected qty; if not enough, try to buy as many as possible >0
+      let n = qty;
+      let price = canBuyN(n);
+      if (s.hp < price){
+        // find max affordable n via decrement (qty choices are small in slice)
+        while(n > 1){
+          n--;
+          price = canBuyN(n);
+          if (s.hp >= price) break;
+        }
+        if (s.hp < price){
+          // could still afford 0 -> bail
+          return;
+        }
+      }
+
+      State.patch(st => {
+        st.hp -= price;
+        st.exercises[0].repHP += n;
+
+        // Level-up check based on reaching target reps
+        while (st.exercises[0].repHP >= st.exercises[0].repTarget){
+          st.exercises[0].level += 1;
+          st.exercises[0].cooldown = MathFx.nextCooldown(st.exercises[0].cooldown);
+          st.exercises[0].repTarget *= 2;
+          // Level-up banner could be emitted here
+        }
+        return st;
+      });
+    });
+
+    meta.append(left, rightBtn);
+
+    // Assemble right
+    right.append(title, cd, meta);
+
+    // Assemble card
+    card.append(tile, right);
+    root.append(card);
+
+    // Keep refs for live updates
+    return { bar, t, tile, lvl, updateMeta };
   }
-}; Coaches.build();
 
-const Notify=(()=>{let next=0;function coachAvailable(){for(const c of Coaches.list){const ex=State.exercises.find(e=>e.id===c.target);if(!ex||!ex.unlocked)continue;if(State.coaches[c.id])continue;if(State.hp+1e-6>=c.price)return true;}return false;}
-function update(){const d=$('#menuDot');if(d)d.classList.toggle('show',coachAvailable());}
-function updateThrottled(){const now=performance.now();if(now>=next){next=now+App.Config.NOTIFY_MS;update();}}
-Bus.on('hp',update);Bus.on('unlock',update);Bus.on('reps',update);Bus.on('upgrade',update);
-return{update,updateThrottled};})();
+  let refs = render();
 
-const Menu={
-  open(){const ov=$('#menuOv');if(!ov)return;ov.classList.add('open');ov.setAttribute('aria-hidden','false');AudioSys.play('ui.menu.open');Coaches.renderTab();},
-  close(){const ov=$('#menuOv');if(!ov)return;ov.classList.remove('open');ov.setAttribute('aria-hidden','true');AudioSys.play('ui.menu.close');},
-  wire(){
-    const btn=$('#avatarBtn'), close=$('#menuClose'), ov=$('#menuOv'); if(btn)btn.addEventListener('click',()=>Menu.open()); if(close)close.addEventListener('click',()=>Menu.close());
-    if(ov) ov.addEventListener('click',e=>{if(e.target.id==='menuOv')Menu.close();});
-    const tabs=$('.menuTabs'); if(tabs){
-      $$('.tabBtn',tabs).forEach(btn=>btn.addEventListener('click',()=>{
-        AudioSys.play('ui.tab.switch'); $$('.tabBtn',tabs).forEach(x=>x.classList.remove('active')); btn.classList.add('active');
-        const tab=btn.dataset.tab; ['coaches','achievements','upgrades','quests','stats','settings'].forEach(t=>{const sec=$('#tab-'+t); if(sec) sec.style.display=(t===tab?'block':'none');});
-        if(tab==='coaches')Coaches.renderTab(); if(tab==='stats')Menu.renderStats(); if(tab==='settings')Menu.renderSettings(); if(tab==='achievements')Menu.renderAchievements();
-      }));
+  Bus.on('state:changed', () => {
+    // Cheap way: re-render and refresh refs (slice is tiny)
+    refs = render();
+  });
+
+  // Engine ticker for cooldown bar
+  function tick(){
+    const s = State.get();
+    const ex = s.exercises[0];
+    const now = performance.now();
+    const dt = now - ex.lastTapAt;
+    const r = Math.max(0, ex.cooldown - dt);
+    if (r <= 0){
+      refs.bar.style.width = '100%';
+      refs.t.textContent = 'Ready';
+      refs.tile.classList.remove('cooling');
+    } else {
+      const pct = 100 * (dt / ex.cooldown);
+      refs.bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      refs.t.textContent = (r/1000).toFixed(2) + 's';
+      refs.tile.classList.add('cooling');
     }
-  },
-  renderStats(){const host=$('#tab-stats'); if(!host) return; host.innerHTML=`<div class="coachCard"><div>
-    <div><strong>Current HP:</strong> ${Util.fmtHP(State.hp)}</div>
-    <div><strong>Total Earned:</strong> ${Util.fmtHP(State.stats.totalEarned||0)}</div>
-    <div><strong>Manual Taps:</strong> ${State.stats.manual||0}</div>
-    <div><strong>Auto Taps:</strong> ${State.stats.auto||0}</div>
-    <div><strong>Exercises Unlocked:</strong> ${State.exercises.filter(e=>e.unlocked).length} / ${State.exercises.length}</div>
-    <div><strong>Coaches Hired:</strong> ${Object.values(State.coaches).filter(Boolean).length} / ${Coaches.list.length}</div>
-  </div></div>`;},
-  renderSettings(){
-    const host=$('#tab-settings'); if(!host) return; host.innerHTML='';
-    const card=el('div',{class:'coachCard'});
-    const wrap=el('div'); wrap.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
-      <label><input id="set-sfx" type="checkbox" ${AudioSys.sfxEnabled.on?'checked':''}/> Sound Effects</label>
-      <label>Music Volume <input id="set-music" type="range" min="0" max="1" step="0.01" value="${Util.isMobile()?0.03:0.10}" style="width:160px;vertical-align:middle"> (low)</label>
-      <label><input id="set-floats" type="checkbox" ${Settings.get('floats')?'checked':''}/> Show +HP floaters</label>
-    </div>
-    <hr style="border:0;border-top:1px solid #223556;margin:10px 0">
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button id="btn-save" class="btn small" style="background:#1a2a40;color:#d7e3f5">Save</button>
-      <button id="btn-reset" class="btn small" style="background:#1a2a40;color:#d7e3f5">Reset</button>
-      <button id="btn-export" class="btn small" style="background:#1a2a40;color:#d7e3f5">Export</button>
-      <button id="btn-import" class="btn small" style="background:#1a2a40;color:#d7e3f5">Import</button>
-    </div>`;
-    card.appendChild(wrap); host.appendChild(card);
-    const sfx=$('#set-sfx'), mv=$('#set-music'), fl=$('#set-floats');
-    if(sfx) sfx.onchange=e=>AudioSys.sfxEnabled.on=!!e.target.checked;
-    if(mv)  mv.oninput =e=>AudioSys.music.setVol(parseFloat(e.target.value||'0.10'));
-    if(fl)  fl.onchange=e=>Settings.set('floats',!!e.target.checked);
-    const bsave=$('#btn-save'), breset=$('#btn-reset'), bex=$('#btn-export'), bimp=$('#btn-import');
-    if(bsave) bsave.onclick=()=>{save();AudioSys.play('ui.click');};
-    if(breset) breset.onclick=()=>{if(confirm('Reset your progress?')){localStorage.removeItem(App.Config.SAVE_KEY);location.reload();}};
-    if(bex) bex.onclick=()=>{const blob=new Blob([localStorage.getItem(App.Config.SAVE_KEY)||'{}'],{type:'application/json'});const a=el('a');a.href=URL.createObjectURL(blob);a.download='fitness-frenzy-save.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);};
-    if(bimp) bimp.onclick=()=>{const inp=el('input',{type:'file',accept:'application/json'});inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{JSON.parse(r.result);localStorage.setItem(App.Config.SAVE_KEY,r.result);alert('Imported. Reloading…');location.reload();}catch{alert('Import failed.');}};r.readAsText(f);});inp.click();};
-  },
-  renderAchievements(){
-    const host=$('#tab-achievements'); if(!host) return; host.innerHTML=''; const grid=el('div',{class:'grid'});host.appendChild(grid);
-    for(const a of Achievements.defs){const owned=!!State.achievements[a.id];const card=el('div',{class:'coachCard'});const head=el('div',{class:'headshot'});head.append(el('div',{text:a.icon,style:'font-size:36px;display:flex;align-items:center;justify-content:center;width:100%;height:100%'}));const mid=el('div');mid.append(el('div',{class:'cName',text:a.title}),el('div',{class:'cInfo',text:a.desc}));const right=el('div',{class:'cInfo',text:owned?'Completed':`Reward: +${Util.fmtCost(a.reward)} HP`});card.append(head,mid,right);grid.appendChild(card);}
+    requestAnimationFrame(tick);
   }
-};
+  requestAnimationFrame(tick);
 
-/* Achievements */
-const Achievements={defs:[
-  {id:'first_steps',icon:'👣',title:'First Steps',desc:'Upgrade Walking to Lvl 2 (10/10).',reward:50,test:()=>State.exercises.find(e=>e.id==='walk')?.level>=2},
-  {id:'add_routine',icon:'🏃',title:'Add to Routine',desc:'Unlock Jogging.',reward:100,test:()=>State.exercises.find(e=>e.id==='jog')?.unlocked},
-  {id:'first_coach',icon:'🧑‍🏫',title:'Coach On Duty',desc:'Hire your first coach.',reward:150,test:()=>Object.values(State.coaches).some(Boolean)},
-  {id:'speed_demon',icon:'⚡',title:'Speed Demon',desc:'Any exercise reaches ≤0.30s cooldown.',reward:180,test:()=>State.exercises.some(e=>e.unlocked&&Math.max(App.Config.MIN_CD_MS,e.cooldown)<=300)}
-],checkAll(){for(const a of Achievements.defs){if(!State.achievements[a.id]&&a.test()){State.achievements[a.id]=true;Game.addHP(a.reward);AudioSys.play('achievement.unlock');Banners.push(`Achievement: <strong>${a.title}</strong> • +${Util.fmtCost(a.reward)} HP`);save();}}}};
-Bus.on('hp',()=>Achievements.checkAll());
-Bus.on('upgrade',()=>Achievements.checkAll());
-Bus.on('unlock',()=>Achievements.checkAll());
-Bus.on('reps',()=>Achievements.checkAll());
+  return {};
+})();
 
-/* Settings */
-const Settings=(()=>{const d={floats:true};try{const raw=localStorage.getItem(App.Config.SAVE_KEY+':prefs');if(raw)Object.assign(d,JSON.parse(raw));}catch{}function saveS(){try{localStorage.setItem(App.Config.SAVE_KEY+':prefs',JSON.stringify(d));}catch{}}return{get:k=>d[k],set:(k,v)=>{d[k]=v;saveS();}}})();
-
-/* Offline */
-const Offline=(()=>{const KEY='ff-last';const off=$('#off');function saveNow(){try{localStorage.setItem(KEY,Date.now().toString());}catch{}}
-function fmt(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);s%=60;const L=[];if(h)L.push(h+'h');if(m)L.push(m+'m');if(s||!L.length)L.push(s+'s');return L.join(' ');}
-function summary(ms){let sum=0;for(const ex of State.exercises){if(!ex.unlocked)continue;if(!Coaches.isAuto(ex.id))continue;const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown);const taps=Math.floor(ms/cd);if(taps>0)sum+=taps*Game.perTap(ex);}return sum;}
-function check(){const last=parseInt(localStorage.getItem(KEY)||'0',10);const now=Date.now();if(last>0){const delta=now-last;const cap=Math.min(delta,App.Config.OFFLINE_CAP_MS);const gain=summary(cap);if(gain>0){const d=$('#offDur'),a=$('#offAmt'),capNote=$('#offCapNote');if(d)d.textContent=fmt(cap);if(a)a.textContent=Util.fmtHP(gain);if(capNote)capNote.style.display=(delta>cap)?'block':'none';if(off)off.classList.add('open');AudioSys.play('offline.show');const claim=$('#offClaim');if(claim)claim.onclick=()=>{Game.addHP(gain);if(off)off.classList.remove('open');AudioSys.play('offline.claim');save();};}}saveNow();}
-window.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow();});
-window.addEventListener('pagehide',saveNow);
-window.addEventListener('beforeunload',saveNow);
-return{check};})();
-
-/* Tutorial with typing + guards */
-const Tutorial=(()=>{const ov=$('#tut'),bubble=$('#bubble'),tWho=$('#tWho'),tText=$('#tText'),spot=$('#spot'),arrow=$('#tArrow');const nextBtn=$('#tNext');let step=null,idx=0,typingTimer=null,typingIndex=0,fullHTML="",anchored=false;
-function show(){if(!ov)return;ov.classList.add('show');ov.setAttribute('aria-hidden','false');AudioSys.play('tutorial.show');}
-function hide(){if(!ov)return;ov.classList.remove('show');ov.setAttribute('aria-hidden','true');hideSpot();AudioSys.play('tutorial.hide');}
-function setSpeaker(w){if(tWho)tWho.textContent=w;}
-function typeLine(html){
-  if(!tText||!bubble){return;}
-  const measure=document.createElement('div');measure.style.position='absolute';measure.style.visibility='hidden';measure.style.pointerEvents='none';measure.style.width=(tText.clientWidth||300)+'px';measure.style.font=window.getComputedStyle(tText).font;measure.innerHTML=html;document.body.appendChild(measure);const targetH=Math.max(tText.clientHeight,measure.clientHeight);tText.style.height=targetH+'px';document.body.removeChild(measure);
-  tText.innerHTML='';typingIndex=0;fullHTML=html;typingTimer&&clearInterval(typingTimer);
-  typingTimer=setInterval(()=>{tText.innerHTML=fullHTML.slice(0,++typingIndex);if(typingIndex%(Util.isMobile()?3:2)===0)AudioSys.play('tutorial.tick');if(typingIndex>=fullHTML.length){clearInterval(typingTimer);}},Util.isMobile()?28:18);
-}
-function setLines(lines){idx=0;setSpeaker(lines[0].who);lockBubbleWidth(lines[0].html);typeLine(lines[0].html);show();}
-function lockBubbleWidth(html){if(!bubble||!tText)return;const m=document.createElement('div');m.style.position='absolute';m.style.visibility='hidden';m.style.pointerEvents='none';m.style.maxWidth=window.getComputedStyle(bubble).maxWidth;m.style.font=window.getComputedStyle(tText).font;m.innerHTML=html;document.body.appendChild(m);const w=Math.min(m.clientWidth+20,Math.min(innerWidth*0.96,1024));bubble.style.width=w+'px';document.body.removeChild(m);}
-if(nextBtn) nextBtn.addEventListener('click',()=>{if(!step)return;if(typingIndex<fullHTML.length){if(tText)tText.innerHTML=fullHTML;typingIndex=fullHTML.length;typingTimer&&clearInterval(typingTimer);return;}
-  if(idx<step.lines.length-1){idx++;setSpeaker(step.lines[idx].who);lockBubbleWidth(step.lines[idx].html);typeLine(step.lines[idx].html);AudioSys.play('tutorial.next');}
-  else{if(step.onDone)step.onDone();}
+/** --------------------------
+ *  Error overlay (dev-friendly)
+ *  -------------------------*/
+window.addEventListener('error', (e) => {
+  const bar = document.getElementById('errorbar');
+  bar.textContent = `Error: ${e.message}`;
+  bar.style.display = 'block';
 });
-function showSpot(sel){if(!spot)return;const node=document.querySelector(sel);if(!node){hideSpot();return;}const r=node.getBoundingClientRect();const pad=6;spot.style.display='block';spot.style.left=(r.left-pad)+'px';spot.style.top=(r.top-pad)+'px';spot.style.width=(r.width+pad*2)+'px';spot.style.height=(r.height+pad*2)+'px';}
-function hideSpot(){if(spot)spot.style.display='none';}
-function anchorToAvatar(){if(!bubble||!arrow)return;const a=$('#avatarBtn');if(!a)return;const r=a.getBoundingClientRect();bubble.classList.add('anchorTop');bubble.style.left=Math.max(10,r.left-14)+'px';bubble.style.top=(r.bottom+10)+'px';bubble.style.transform='none';arrow.className='arrow arrowTopLeft';arrow.style.left='22px';}
-function centerBubble(){if(!bubble||!arrow)return;bubble.classList.remove('anchorTop');bubble.style.left='50%';bubble.style.bottom='12vh';bubble.style.top='';bubble.style.transform='translateX(-50%)';arrow.className='arrow';arrow.style.left='';arrow.style.top='';}
-function startIntro(){const lines=[{who:'JAX',html:`You look a bit low on energy. Let's fix that <span class="hl">fast</span> 💪`},{who:'You',html:`Where do I start?`},{who:'JAX',html:`Tap <span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`},];centerBubble();hideSpot();setLines(lines);step={lines,onDone(){hide();showSpot('.card[data-id="walk"] .left');}}}
-function onFourHP(){if(State.tutorial.shown.repsHint)return;State.tutorial.shown.repsHint=true;save();const L=[{who:'JAX',html:`Great start! Use <span class="hl">Reps</span> to hit harder each tap.`},{who:'JAX',html:`Fill the <span class="hl">green bar</span> to upgrade — your cooldown <span class="hl">halves</span>!`}];centerBubble();showSpot('.card[data-id="walk"] .repsBtn');setLines(L);step={lines:L,onDone(){hide();hideSpot();}}}
-function onUpgrade(ex){if(State.tutorial.shown.upgrade[ex.id])return;State.tutorial.shown.upgrade[ex.id]=true;save();const L=[{who:'JAX',html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];centerBubble();showSpot(`.card[data-id="${ex.id}"] .cool`);setLines(L);step={lines:L,onDone(){hide();hideSpot();}}}
-function onUnlockAffordable(ex){if(ex.id!=='jog')return;if(State.tutorial.shown.unlock[ex.id])return;const L=[{who:'JAX',html:`Add to your routine! Unlock <span class="hl">${ex.name}</span> when the pill turns orange.`}];centerBubble();showSpot(`.card[data-id="${ex.id}"] .unlockPill`);setLines(L);step={lines:L,onDone(){hide();hideSpot();State.tutorial.shown.unlock[ex.id]=true;save();}}}
-function onCoachAffordable(){if(State.tutorial.shown.coachFirst)return;const c=Coaches.list[0];if(!c||State.coaches[c.id])return;const ex=State.exercises.find(e=>e.id===c.target);if(!ex||!ex.unlocked)return;if(State.hp+1e-6<c.price)return;const L=[{who:'JAX',html:`Ready to scale? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> a coach.`}];anchorToAvatar();anchored=true;hideSpot();setLines(L);step={lines:L,onDone(){hide();State.tutorial.shown.coachFirst=true;save();anchored=false;centerBubble();}}}
-Bus.on('hp',()=>{const walk=State.exercises.find(e=>e.id==='walk');if(!State.tutorial.shown.repsHint && walk && walk.unlocked && State.hp>=4 && walk.repHP===0){onFourHP();}const jog=State.exercises.find(e=>e.id==='jog');if(jog && !jog.unlocked && State.hp+1e-6>=jog.unlockCost) onUnlockAffordable(jog);onCoachAffordable();});
-Bus.on('upgrade',({id})=>{const ex=State.exercises.find(e=>e.id===id);if(ex)onUpgrade(ex);});
-return{startIntro,hide};})();
-
-/* Start / Splash */
-function showSplashThenStart(){const s=$('#splash');if(!s)return;s.classList.add('open');s.setAttribute('aria-hidden','false');setTimeout(()=>{s.classList.remove('open');s.setAttribute('aria-hidden','true');const start=$('#start');if(start){start.classList.add('open');start.setAttribute('aria-hidden','false');}},App.Config.SPLASH_MS);}
-function wireStart(){const st=$('#start'),bg=$('#startBG');if(bg) bg.src=Util.isMobile()?Assets.startMobile:Assets.startDesktop;
-  const cont=$('#btnContinue');if(cont){if(hasSave())cont.classList.remove('hidden');else cont.classList.add('hidden');}
-  $$('.avatarChoice',$('#avatarSeg')||document).forEach(b=>b.addEventListener('click',()=>{$$('.avatarChoice',$('#avatarSeg')||document).forEach(x=>x.classList.remove('active'));b.classList.add('active');State.avatar=b.dataset.avatar;const a=$('#avatarImg');if(a)a.src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);save();}));
-  const btnNew=$('#btnNew'); if(btnNew) btnNew.addEventListener('click',()=>{AudioSys.play('ui.click');const keep=State.avatar;localStorage.removeItem(App.Config.SAVE_KEY);Object.assign(State,{hp:0,qty:1,avatar:keep,stats:{manual:0,auto:0,totalEarned:0},coaches:{},achievements:{},tutorial:{doneIntro:false,shown:{repsHint:false,coachFirst:false,unlock:{},upgrade:{}}},exercises:[]});buildExercises();Coaches.build();save();if(st){st.classList.remove('open');st.setAttribute('aria-hidden','true');}AudioSys.music.start();Tutorial.startIntro();Offline.check();window.scrollTo({top:0,behavior:'instant'});});
-  if(cont) cont.addEventListener('click',()=>{AudioSys.play('ui.click');if(st){st.classList.remove('open');st.setAttribute('aria-hidden','true');}AudioSys.music.start();Tutorial.hide();Offline.check();window.scrollTo({top:0,behavior:'instant'});});
-}
-
-/* Guards */
-(function mobileGuards(){let lastTouch=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastTouch<300){e.preventDefault();}lastTouch=n;},{passive:false});document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});})();
-
-/* Qty / Topbar */
-function wireTopbar(){const g=$('#qtyGroup'); if(!g) return; $$('.qtyBtn',g).forEach(btn=>btn.addEventListener('click',()=>{$$('.qtyBtn',g).forEach(x=>x.classList.remove('active'));btn.classList.add('active');State.qty=parseInt(btn.dataset.q,10)||1;save();AudioSys.play('ui.click');UI.refreshThrottled();}));}
-
-/* Boot */
-function boot(){
-  const av=$('#avatarImg'); if(av) av.src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
-  UI._hpShown=State.hp;
-  UI.build(); UI.refreshThrottled();
-  Menu.wire(); wireTopbar(); wireStart(); showSplashThenStart();
-  setInterval(()=>{const mini=$('#hpMini'); if(mini) mini.textContent=Util.fmtHP(State.hp);},400);
-  State.qty=State.qty||1;
-  Engine.start();
-  setInterval(save,App.Config.SAVE_MS);
-  setTimeout(()=>window.scrollTo({top:0,behavior:'instant'}),30);
-}
-
-/* Error surface */
-window.addEventListener('error',e=>{const bar=$('#err');if(!bar)return;bar.textContent='Script error: '+(e.message||'Unknown');bar.style.display='block';setTimeout(()=>{bar.style.display='none';},6000);});
-
-/* Init */
-document.addEventListener('DOMContentLoaded',boot);
 </script>
 </body>
 </html>
