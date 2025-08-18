@@ -335,7 +335,7 @@ img{max-width:100%;display:block}
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 2,          // bumped schema for Fitcoin
+  SCHEMA: 2,          // schema for Fitcoin
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -390,7 +390,7 @@ const Util = {
 /* ============================================================
    AUDIO (MUSIC + SFX HOOKS)
    ============================================================ */
-const MusicURL_DESKTOP = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true"; // gentle
+const MusicURL_DESKTOP = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
 const MusicURL_MOBILE  = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
 
 const AudioSys = (()=> {
@@ -474,7 +474,6 @@ function load(){
     const j = JSON.parse(raw);
     if(j.schema>=1){
       Object.assign(State, j);
-      // migrate if needed
       if(j.schema < App.Config.SCHEMA){
         if(State.fitcoin==null) State.fitcoin=0;
         if(State.coinProgress==null) State.coinProgress=0;
@@ -491,7 +490,7 @@ const Assets = {
   trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true"
 };
 
-/* Placeholder exercise art (you can swap to your final images/videos later) */
+/* Placeholder exercise art (images) */
 const FEMALE_IMG = {
   walking:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.png?raw=true",
   running:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.png?raw=true",
@@ -591,7 +590,6 @@ function awardCoinIfReady(){
     State.coinProgress -= App.Config.COIN_THRESHOLD;
     State.fitcoin += 1;
     AudioSys.play('coin.ping');
-    // sparkle near Fitcoin pill
     const pill = document.getElementById('fcTop');
     if(pill){
       const r = pill.getBoundingClientRect();
@@ -638,7 +636,6 @@ const Game = {
     State.stats.manual++;
     AudioSys.play('tap.ok');
     UI.floatFrom(ex.els.img || ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
-    // Fitcoin points
     State.coinProgress += coinPointsFor(ex, false);
     awardCoinIfReady();
     return g;
@@ -698,7 +695,6 @@ const Engine = (()=> {
         Game.addHP(g); 
         State.stats.auto++;
         if(Settings.get('floats')) UI.floatFrom(ex.els.img || ex.els.card, `+${g.toFixed(App.Config.DEC)}`);
-        // Fitcoin (auto ratio)
         State.coinProgress += coinPointsFor(ex, true);
         awardCoinIfReady();
       }
@@ -746,7 +742,6 @@ const UI = {
     UI._hpShown += (State.hp - UI._hpShown) * Math.min(1, dt*8);
     $('#hpTop').textContent = Util.fmtHP(UI._hpShown);
     $('#hpMini').textContent = Util.fmtHP(UI._hpShown);
-    // Fitcoin is integer; no easing needed but we can mirror with quick snap
     $('#fcTop').textContent = State.fitcoin.toString();
   },
   refreshThrottled(){
@@ -757,31 +752,22 @@ const UI = {
     }
   },
   refreshExercise(ex){
-    // rep bar
     ex.els.repText.textContent = `${ex.repProgress}/${ex.repTarget}`;
     ex.els.repFill.style.width = Math.min(1, ex.repProgress/ex.repTarget)*100 + '%';
-    
-    // level badge & per-tap HP text
     ex.els.lvl.textContent = `Lvl ${ex.level}`;
-    ex.els.kv.textContent = `${Game.perTap(ex).toFixed(0)} HP`; // no decimals per your earlier space save
-    
-    // reps button
+    ex.els.kv.textContent = `${Game.perTap(ex).toFixed(0)} HP`;
     const n = State.qty;
     const cost = Game.repCost(ex, n);
     const can = State.hp + 1e-6 >= cost;
     ex.els.reps.textContent = (n===1?`Reps (${Util.fmtCost(cost)} HP)`:`×${n} Reps (${Util.fmtCost(cost)} HP)`);
     ex.els.reps.classList.toggle('ready', can);
     ex.els.reps.disabled = !can;
-    
-    // unlock pill
     if(!ex.unlocked){
       const canU = State.hp + 1e-6 >= ex.unlockCost;
       ex.els.pill.textContent = `Unlock for ${Util.fmtCost(ex.unlockCost)} HP`;
       ex.els.pill.classList.toggle('ready', canU);
       ex.els.card.classList.toggle('unlockPulse', canU);
     }
-    
-    // coach dot in icon (small only)
     ex.els.coachDot.innerHTML='';
     const owned = Coaches.ownedFor(ex.id)[0];
     if(owned){
@@ -798,7 +784,6 @@ const UI = {
       ex.els.card=card;
       if(!ex.unlocked) card.classList.add('locked');
 
-      // left icon + Lvl + rep band + coach dot
       const left = el('div',{class:'left'});
       const img  = el('img',{alt:ex.name, src:ex.icon}); 
       ex.els.img=img;
@@ -815,7 +800,6 @@ const UI = {
       repBand.append(repFill,repText);
       left.append(img,lvl,coachDot,repBand);
 
-      // right column
       const right= el('div',{class:'right'});
       const head = el('div',{class:'head'});
       const title= el('h3',{class:'title',text:ex.name});
@@ -841,7 +825,6 @@ const UI = {
       right.append(head,coolRow,meta);
       head.append(title);
 
-      // Locked section or live section
       if(ex.unlocked){
         card.append(left,right);
       }else{
@@ -856,7 +839,6 @@ const UI = {
       }
       host.appendChild(card);
 
-      // Interactions
       left.addEventListener('pointerdown',e=>{ 
         e.preventDefault(); 
         if(!ex.unlocked) return; 
@@ -869,16 +851,14 @@ const UI = {
       if(!ex.unlocked){
         ex.els.pill.addEventListener('click',()=>{ 
           if(Game.unlock(ex)){ 
-            // rebuild this card to show live view
             UI.build(); 
             save();
           }
         });
       }
 
-      // image refresh pulse scheduler (for GIFs/images cache-bust)
       const schedulePulse = ()=>{
-        if(!ex.unlocked) return; // only pulse when active
+        if(!ex.unlocked) return;
         const delay = Util.randInt(App.Config.PULSE_MIN_MS, App.Config.PULSE_MAX_MS);
         setTimeout(()=>{
           if(document.hidden) return schedulePulse();
@@ -1038,7 +1018,6 @@ const Menu = {
     $('#menuOv').classList.add('open'); 
     $('#menuOv').setAttribute('aria-hidden','false'); 
     AudioSys.play('ui.menu.open'); 
-    // default to Coaches tab expanded
     $$('.tabBtn').forEach(b=>b.classList.remove('active'));
     $$('[data-tab="coaches"]').forEach(b=>b.classList.add('active'));
     ['coaches','achievements','upgrades','quests','stats','settings'].forEach(t=>{
@@ -1201,7 +1180,6 @@ const Offline = (()=>{
       const cd = Math.max(App.Config.MIN_CD_MS, ex.cooldown);
       const taps = Math.floor(ms / cd);
       if(taps>0) sum += taps * Game.perTap(ex);
-      // Fitcoin offline (same as auto ratio)
       const pAuto = Math.floor(coinPointsFor(ex, true) * (ms/cd));
       State.coinProgress += pAuto;
     }
@@ -1234,11 +1212,11 @@ const Offline = (()=>{
   window.addEventListener('visibilitychange',()=>{ if(document.hidden) saveNow(); });
   window.addEventListener('pagehide',saveNow);
   window.addEventListener('beforeunload',saveNow);
-  return {check};
+  return {check, saveNow};
 })();
 
 /* ============================================================
-   TUTORIAL (minimal, typed)
+   TUTORIAL (typed)
    ============================================================ */
 const Tutorial = (()=> {
   const ov = $('#tut'), bubble=$('#bubble'), tText=$('#tText'), spot=$('#spot');
@@ -1248,7 +1226,6 @@ const Tutorial = (()=> {
   function hide(){ ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); }
   function typeText(html){
     if(typer) clearInterval(typer);
-    // strip tags while typing (simple): we’ll reveal full HTML at once, but “simulate” typing by substring on textContent
     const tmp = document.createElement('div'); tmp.innerHTML = html; const text = tmp.textContent || tmp.innerText || '';
     let i=0; tText.textContent=''; 
     typer = setInterval(()=>{ 
@@ -1278,8 +1255,8 @@ const Tutorial = (()=> {
   Bus.on('upgrade',({id})=>{ 
     const ex = State.exercises.find(e=>e.id===id); 
     if(!ex) return;
-    if(State.tutorial.shown.upgrade?.[ex.id]) return;
     State.tutorial.shown.upgrade = State.tutorial.shown.upgrade||{};
+    if(State.tutorial.shown.upgrade[ex.id]) return;
     State.tutorial.shown.upgrade[ex.id]=true; save();
     const L = [{html:`<span class="hl">${ex.name}</span> upgraded! Cooldown halved.`}];
     setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot(`.card[data-id="${ex.id}"] .cool`); setTimeout(hideSpot, 1500);
@@ -1287,23 +1264,24 @@ const Tutorial = (()=> {
 
   Bus.on('hp',()=>{
     const jog = State.exercises.find(e=>e.id==='jog');
-    if(jog && !jog.unlocked && State.hp + 1e-6 >= jog.unlockCost && !State.tutorial.shown.unlock?.[jog.id]){
-      State.tutorial.shown.unlock = State.tutorial.shown.unlock||{};
+    State.tutorial.shown.unlock = State.tutorial.shown.unlock||{};
+    if(jog && !jog.unlocked && State.hp + 1e-6 >= jog.unlockCost && !State.tutorial.shown.unlock[jog.id]){
       State.tutorial.shown.unlock[jog.id]=true; save();
       const L = [{html:`Add to your routine! Unlock <span class="hl">${jog.name}</span> when the pill turns orange.`}];
       setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot(`.card[data-id="${jog.id}"] .unlockPill`);
     }
-    // first affordable coach
-    for(const c of Coaches.list){
-      if(State.coaches[c.id]) continue;
-      const ex = State.exercises.find(e=>e.id===c.target);
-      if(!ex || !ex.unlocked) continue;
-      if(State.hp + 1e-6 >= c.price && !State.tutorial.shown.coach?.[c.id]){
-        State.tutorial.shown.coach = State.tutorial.shown.coach||{};
-        if(Object.keys(State.tutorial.shown.coach).length>0) break; // only first coach tip
-        State.tutorial.shown.coach[c.id]=true; save();
-        const L = [{html:`Want to maximize gains? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> a coach.`}];
-        setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot('#avatarBtn'); break;
+    // first affordable coach only
+    State.tutorial.shown.coach = State.tutorial.shown.coach||{};
+    if(Object.keys(State.tutorial.shown.coach).length===0){
+      for(const c of Coaches.list){
+        if(State.coaches[c.id]) continue;
+        const ex = State.exercises.find(e=>e.id===c.target);
+        if(!ex || !ex.unlocked) continue;
+        if(State.hp + 1e-6 >= c.price){
+          State.tutorial.shown.coach[c.id]=true; save();
+          const L = [{html:`Want to maximize gains? Open the <span class="hl">Menu</span> (your avatar) and <span class="hl">Hire</span> a coach.`}];
+          setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot('#avatarBtn'); break;
+        }
       }
     }
   });
@@ -1320,33 +1298,53 @@ function showSplashThenStart(){
   setTimeout(()=>{ 
     s.classList.remove('open'); 
     $('#start').classList.add('open'); 
-    // Continue button only if save exists
     const hasSave = !!localStorage.getItem(App.Config.SAVE_KEY);
     if(hasSave){ $('#btnContinue').style.display='inline-block'; }
-  }, 5000); // 5s per your request
+  }, 5000);
 }
+
+function newGame(){
+  // clear save and reset state in place (no reload, no splash loop)
+  try{ localStorage.removeItem(App.Config.SAVE_KEY); }catch{}
+  const chosen = State.avatar || 'male';
+  Object.assign(State, {
+    hp:0, qty:1, avatar:chosen,
+    stats:{manual:0, auto:0, totalEarned:0},
+    coaches:{},
+    achievements:{},
+    exercises:[],
+    tutorial:{done:false, shown:{unlock:{}, coach:{}, upgrade:{}}},
+    fitcoin:0, coinProgress:0
+  });
+  buildExercises();
+  Coaches.build();
+  UI.build(); UI.refreshThrottled();
+  $('#start').classList.remove('open');
+  AudioSys.music.start();
+  // reset offline anchor so no immediate offline gains from old run
+  try{ localStorage.setItem('ff-last', Date.now().toString()); }catch{}
+  Tutorial.startIntro();
+  window.scrollTo(0,0);
+}
+
 function wireStart(){
   const st = $('#start');
   $('#btnStart').addEventListener('click',()=>{
     AudioSys.play('ui.click');
-    // New Game = reset
-    localStorage.removeItem(App.Config.SAVE_KEY);
-    location.reload();
+    newGame();
   });
   $('#btnContinue').addEventListener('click',()=>{
     AudioSys.play('ui.click');
     st.classList.remove('open'); 
     AudioSys.music.start(); 
     Offline.check();
-    // scroll to top to ensure first card visible
-    window.scrollTo({top:0,behavior:'instant'});
+    window.scrollTo(0,0);
   });
   $$('.segBtn', $('#avatarSeg')).forEach(b=>b.addEventListener('click',()=>{
     $$('.segBtn', $('#avatarSeg')).forEach(x=>x.classList.remove('active'));
     b.classList.add('active'); 
     State.avatar = b.dataset.avatar; 
     $('#avatarImg').src = (State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); 
-    // rebuild exercise icons for current avatar
     buildExercises(); UI.build(); UI.refreshThrottled();
     save();
   }));
@@ -1392,15 +1390,11 @@ function boot(){
   wireStart();
   showSplashThenStart();
   
-  // keep mini HP fresh in menu
   setInterval(()=>{ $('#hpMini').textContent = Util.fmtHP(State.hp); }, 400);
-  
   State.qty = State.qty||1;
   Engine.start();
   setInterval(save, App.Config.SAVE_MS);
-
-  // Ensure we start at top (first card visible)
-  window.scrollTo({top:0,behavior:'instant'});
+  window.scrollTo(0,0);
 }
 
 document.addEventListener('DOMContentLoaded', boot);
