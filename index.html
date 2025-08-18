@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.0</title>
+<title>Fitness Frenzy — V1.7.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -229,18 +229,36 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 }
 .startArt{position:absolute;inset:0;background:#000}
 .startArt img{width:100%;height:100%;object-fit:cover} /* fill to edges */
-.startUI{position:absolute;left:50%;bottom:6vh;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:14px;width:min(92%,760px)}
+
+/* --- Buttons moved up and made more visible --- */
+.startUI{
+  position:absolute;left:50%;bottom:16vh;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:14px;width:min(92%,760px)
+}
+.uiPanel{
+  width:100%;
+  background:rgba(0,0,0,.58);
+  border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(10px);
+  border-radius:18px;
+  padding:16px;
+  box-shadow:0 10px 36px rgba(0,0,0,.55);
+  display:flex;flex-direction:column;gap:14px;align-items:stretch
+}
 .rowBtns{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%}
-.btn{padding:16px 24px;border-radius:16px;border:0;font-weight:900;cursor:pointer;font-size:18px}
+.btn{padding:18px 26px;border-radius:16px;border:0;font-weight:900;cursor:pointer;font-size:20px;box-shadow:0 8px 26px rgba(0,0,0,.45)}
 .btn.orange{background:var(--accent);color:#fff}
 .btn.blue{background:var(--brandBlue);color:#fff}
-.btn.small{padding:10px 14px;font-size:18px}
-.segment{display:inline-flex;border:2px solid #2b3d5a;border-radius:14px;overflow:hidden}
-.segBtn{background:#13233b;border:0;padding:12px 18px;font-weight:900;cursor:pointer;font-size:28px}
-.segBtn[data-avatar="male"]{color:var(--brandBlue)}
-.segBtn[data-avatar="female"]{color:var(--femaleTint)}
-.segBtn.active[data-avatar="male"]{background:var(--brandBlue);color:#fff}
-.segBtn.active[data-avatar="female"]{background:var(--femaleTint);color:#fff}
+
+/* Avatar choice as GIFs */
+.segment{display:flex;gap:12px;justify-content:center}
+.segBtn.avatar{
+  width:96px;height:96px;padding:0;border-radius:14px;border:2px solid #2b3d5a;
+  background:rgba(19,35,59,.85);cursor:pointer;display:flex;align-items:center;justify-content:center
+}
+.segBtn.avatar img{width:88px;height:88px;object-fit:cover;border-radius:12px}
+.segBtn.avatar.active[data-avatar="male"]{border-color:var(--brandBlue);box-shadow:0 0 0 3px rgba(59,130,246,.45) inset}
+.segBtn.avatar.active[data-avatar="female"]{border-color:var(--femaleTint);box-shadow:0 0 0 3px rgba(255,95,168,.45) inset}
 
 /* Tutorial */
 .tut{position:fixed;inset:0;z-index:4000;display:none}
@@ -400,17 +418,22 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 <div id="start" class="start" aria-hidden="true">
   <div class="startFrame">
     <div class="startArt">
-      <!-- Swapped dynamically via aspect ratio -->
       <img id="startArtImg" alt="Cover">
     </div>
     <div class="startUI">
-      <div class="rowBtns">
-        <button id="btnStart" class="btn orange">New Game</button>
-        <button id="btnContinue" class="btn blue" style="display:none">Continue</button>
-      </div>
-      <div class="segment" id="avatarSeg" title="Choose avatar">
-        <button class="segBtn active" data-avatar="male" aria-label="Male">👨</button>
-        <button class="segBtn" data-avatar="female" aria-label="Female">👩</button>
+      <div class="uiPanel">
+        <div class="rowBtns">
+          <button id="btnStart" class="btn orange">New Game</button>
+          <button id="btnContinue" class="btn blue" style="display:none">Continue</button>
+        </div>
+        <div class="segment" id="avatarSeg" title="Choose avatar">
+          <button class="segBtn avatar active" data-avatar="male" aria-label="Male">
+            <img alt="Male avatar" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true">
+          </button>
+          <button class="segBtn avatar" data-avatar="female" aria-label="Female">
+            <img alt="Female avatar" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true">
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -481,7 +504,6 @@ const StartArt = {
   desktop: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-desktop.png?raw=true",
   mobile:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-mobile.png?raw=true"
 };
-/* Aspect-ratio chooser: desktop when width/height >= 1, otherwise mobile */
 function setStartArt(){
   const img = $('#startArtImg');
   if(!img) return;
@@ -534,7 +556,7 @@ const AudioSys = (()=> {
       music = new Audio(url);
       music.loop = true;
       music.volume = musicVol;
-      music.play().catch(()=>{ /* autoplay gate */ });
+      music.play().catch(()=>{});
     }catch{}
   }
   function setMusicVol(v){ musicVol=v; if(music) music.volume=v; }
@@ -542,7 +564,7 @@ const AudioSys = (()=> {
   return { play:playSFX, music:{start:startMusic, setVol:setMusicVol, current:()=>currentURL}, sfxEnabled };
 })();
 
-/* =============== STATE / SAVE / CONTENT (unchanged) =============== */
+/* =============== STATE / SAVE / CONTENT =============== */
 function freshState(keepAvatar){
   return {
     hp:0, qty:1, avatar: keepAvatar || 'male',
@@ -583,7 +605,6 @@ function hasSave(){
 }
 load();
 
-/* Avatars & trainer assets */
 const Assets = {
   avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true",
   avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true",
@@ -699,10 +720,6 @@ function buildExercises(){
   State.exercises = arr;
 }
 buildExercises();
-
-/* ===== GAME / UI / COACHES / ENGINE / MENU / TUTORIAL / OFFLINE (unchanged from last working) ===== */
-/* (For brevity in this message, these sections are identical to the previous working version you approved,
-   with no logic changes except start-art chooser & edge-to-edge start frame.) */
 
 /* =============== GAME LOGIC =============== */
 const Game = {
@@ -1325,8 +1342,9 @@ function wireStart(){
     UI.build(); UI.refreshThrottled();
     $('#start').classList.remove('open');
 
-    const url = (window.innerWidth/Math.max(1,window.innerHeight) < 1 ? MobileMusicURL : MusicURL);
-    AudioSys.music.setVol((window.innerWidth/Math.max(1,window.innerHeight) < 1) ? 0.03 : 0.15);
+    const useMobile = (window.innerWidth/Math.max(1,window.innerHeight) < 1);
+    const url = useMobile ? MobileMusicURL : MusicURL;
+    AudioSys.music.setVol(useMobile ? 0.03 : 0.15);
     AudioSys.music.start(url);
 
     $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
@@ -1340,8 +1358,9 @@ function wireStart(){
     if(!hasSave()) return;
     AudioSys.play('ui.click'); 
     st.classList.remove('open'); 
-    const url = (window.innerWidth/Math.max(1,window.innerHeight) < 1 ? MobileMusicURL : MusicURL);
-    AudioSys.music.setVol((window.innerWidth/Math.max(1,window.innerHeight) < 1) ? 0.03 : 0.15);
+    const useMobile = (window.innerWidth/Math.max(1,window.innerHeight) < 1);
+    const url = useMobile ? MobileMusicURL : MusicURL;
+    AudioSys.music.setVol(useMobile ? 0.03 : 0.15);
     AudioSys.music.start(url);
     Offline.check(); 
     Tutorial.scanAll(); 
