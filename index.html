@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.5 (typing)</title>
+<title>Fitness Frenzy — V1.7.6 (typing+sfx)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -469,7 +469,7 @@ function forceTopOnce(){ if(_didForceTop) return; _didForceTop=true; forceTop(5)
 const App = {};
 App.Config = Object.freeze({
   SAVE_KEY: 'ff-v1',
-  SCHEMA: 15,
+  SCHEMA: 16,
   DEC: 2,
   MIN_CD_MS: 100,
   NOTIFY_MS: 160,
@@ -514,7 +514,7 @@ const Util = {
   isMobileUA: ()=> /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 };
 
-/* Start art (single source of truth) */
+/* Start art */
 const StartArt = {
   desktop: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-desktop.png?raw=true",
   mobile:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-mobile.png?raw=true"
@@ -558,6 +558,7 @@ const AudioSys = (()=> {
     else if(hook==='tutorial.show'){ synth('triangle',520,0.12,0.06); setTimeout(()=>synth('triangle',740,0.10,0.05),90); }
     else if(hook==='tutorial.next'){ synth('sine',780,0.08,0.05); }
     else if(hook==='tutorial.hide'){ synth('sine',420,0.06,0.05); }
+    else if(hook==='tutorial.tick'){ synth('sine',1200,0.025,0.02); } /* soft typing tick */
     else if(hook==='offline.show'){ synth('triangle',420,0.10,0.06); }
     else if(hook==='offline.claim'){ synth('square',760,0.10,0.07); }
     else if(hook.startsWith('ui.')) synth('sine',500,0.06,0.05);
@@ -1194,18 +1195,22 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL (with typing effect) =============== */
+/* =============== TUTORIAL (with slower typing + tick SFX) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tFaceWrap=$('#tFaceWrap'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot'), tNextLabel=$('#tNextLabel');
   let step=null, idx=0;
 
   /* --- Typewriter: safely types HTML content --- */
   const Typer = (()=> {
-    let timer=null, map=null, nodeIndex=0, charIndex=0, doneCb=null, speedMs=18;
+    let timer=null, map=null, nodeIndex=0, charIndex=0, doneCb=null;
+    let speedMs=30;            // base, tuned below
+    let typedCount=0;          // count of visible chars to gate ticks
+    let lastTickAt=0;          // throttle tick SFX time
 
     function setSpeed(){
-      // Slightly slower on mobile for readability
-      speedMs = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 22 : 16;
+      // Slower overall (per request): desktop ~35ms/char, mobile ~45ms/char
+      const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      speedMs = isMobile ? 45 : 35;
     }
 
     function buildSkeleton(html){
@@ -1221,7 +1226,6 @@ const Tutorial = (()=> {
             dstParent.appendChild(txt);
           }else if(ch.nodeType===Node.ELEMENT_NODE){
             const el = document.createElement(ch.tagName);
-            // copy attributes
             for(const a of ch.attributes){ el.setAttribute(a.name, a.value); }
             dstParent.appendChild(el);
             cloneWalk(ch, el);
@@ -1232,12 +1236,25 @@ const Tutorial = (()=> {
       return out;
     }
 
+    function maybeTickSFX(ch){
+      // Only on non-whitespace characters, every ~2 chars, min 90ms apart
+      const now = Date.now();
+      if(!ch || /\s/.test(ch)) return;
+      typedCount++;
+      if(typedCount % 2 !== 0) return;
+      if(now - lastTickAt < 90) return;
+      lastTickAt = now;
+      AudioSys.play('tutorial.tick');
+    }
+
     function stepTick(target){
       if(!map || nodeIndex>=map.length){ stop(true, target); return; }
       const [node, full] = map[nodeIndex];
       if(charIndex < full.length){
+        const ch = full.charAt(charIndex);
         node.nodeValue = full.slice(0, charIndex+1);
         charIndex++;
+        maybeTickSFX(ch);
       }else{
         nodeIndex++; charIndex=0;
       }
@@ -1249,7 +1266,7 @@ const Tutorial = (()=> {
       target.innerHTML='';
       const frag = buildSkeleton(html);
       target.appendChild(frag);
-      nodeIndex=0; charIndex=0; doneCb=onDone;
+      nodeIndex=0; charIndex=0; doneCb=onDone; typedCount=0; lastTickAt=0;
       target.classList.add('typing');
       tNextLabel.textContent = 'Skip';
       timer = setInterval(()=>stepTick(target), speedMs);
