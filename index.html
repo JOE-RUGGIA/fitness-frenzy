@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.7 (desktop audio + fixed typing size)</title>
+<title>Fitness Frenzy — V1.7.8 (louder desktop SFX + softer desktop music)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -29,7 +29,7 @@
 /* Reset / base */
 *{box-sizing:border-box}
 html,body{height:100%}
-html, body { overflow-anchor: none; } /* prevent scroll anchoring nudges */
+html, body { overflow-anchor: none; }
 body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
@@ -103,8 +103,6 @@ img{max-width:100%;display:block}
   position:relative;width:clamp(80px,19vw,108px);aspect-ratio:1;border-radius:14px;
   background:#102036;border:1px solid #223b60;overflow:hidden;transform:translateZ(0)
 }
-
-/* MEDIA LAYER */
 .card .left .mediaWrap{
   position:absolute;left:0;top:0;right:0;bottom:var(--repband);
   display:flex;align-items:center;justify-content:center;z-index:1
@@ -278,7 +276,7 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .tFace.hidden{display:none}
 .tWho{font-weight:900;color:#ffd6a8;margin-bottom:6px;font-size:20px}
 
-/* Typing effect */
+/* Typing effect (fixed height) */
 .tText{font-size:clamp(20px,4.2vw,28px);line-height:1.35;max-width:78ch;min-height:2.1em;overflow:hidden}
 .tText.typing::after{
   content:""; display:inline-block; width:2px; height:1em; background:#ffd6a8;
@@ -538,7 +536,6 @@ const AudioCore = (()=> {
     return ctx;
   }
   function resume(){ const c=get(); if(c && c.state==='suspended'){ c.resume().catch(()=>{}); } }
-  // Unlock on first user interaction
   window.addEventListener('pointerdown', ()=>{ resume(); }, {once:true, capture:true});
   return {get, resume};
 })();
@@ -547,8 +544,16 @@ const AudioCore = (()=> {
 const MusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music.mp3?raw=true";
 const MobileMusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
 
+/* New audio level prefs */
+const AudioLevels = {
+  musicDesktop: 0.12,  // lowered desktop music
+  musicMobile: 0.03,   // unchanged mobile music
+  sfxGainDesktop: 1.8, // boost desktop SFX ~+80%
+  sfxGainMobile: 1.0
+};
+
 const AudioSys = (()=> {
-  let music, musicVol = 0.25, musicOn = false, currentURL = "";
+  let music, musicVol = 0.12, musicOn = false, currentURL = "";
   const sfxEnabled = {on:true};
 
   function synth(type='sine', f=660, d=0.12, g=0.06){
@@ -557,11 +562,13 @@ const AudioSys = (()=> {
       if(!ctx) return;
       AudioCore.resume();
       const o=ctx.createOscillator(), q=ctx.createGain();
-      o.type=type; o.frequency.value=f; q.gain.value=g;
+      const sfxBoost = Util.isMobileUA() ? AudioLevels.sfxGainMobile : AudioLevels.sfxGainDesktop;
+      const gain = Math.min(0.6, g * sfxBoost);  // safety cap
+      o.type=type; o.frequency.value=f; q.gain.value=gain;
       o.connect(q); q.connect(ctx.destination);
       const now = ctx.currentTime;
       o.start(now);
-      q.gain.setValueAtTime(g, now);
+      q.gain.setValueAtTime(gain, now);
       q.gain.exponentialRampToValueAtTime(0.0001, now + d);
       o.stop(now + d + 0.02);
     }catch{}
@@ -569,20 +576,20 @@ const AudioSys = (()=> {
 
   function playSFX(hook){
     if(!sfxEnabled.on) return;
-    if(hook==='tap.ok') synth('sine',700,0.07,0.07);
-    else if(hook==='reps.buy') synth('square',420,0.12,0.08);
-    else if(hook==='unlock.do') synth('triangle',300,0.20,0.10);
-    else if(hook==='unlock.ready') synth('triangle',500,0.12,0.07);
-    else if(hook==='upgrade.apply'){ synth('square',650,0.09,0.08); setTimeout(()=>synth('square',900,0.09,0.07),90); }
-    else if(hook==='achievement.unlock'){ synth('square',600,0.10,0.08); setTimeout(()=>synth('square',800,0.10,0.08),110); setTimeout(()=>synth('square',1000,0.12,0.07),220); }
-    else if(hook==='coach.hire'){ synth('sawtooth',520,0.10,0.08); setTimeout(()=>synth('square',660,0.09,0.07),100); }
-    else if(hook==='tutorial.show'){ synth('triangle',520,0.12,0.06); setTimeout(()=>synth('triangle',740,0.10,0.05),90); }
-    else if(hook==='tutorial.next'){ synth('sine',780,0.08,0.05); }
-    else if(hook==='tutorial.hide'){ synth('sine',420,0.06,0.05); }
-    else if(hook==='tutorial.tick'){ synth('sine',1200,0.025,0.02); } /* soft typing tick */
-    else if(hook==='offline.show'){ synth('triangle',420,0.10,0.06); }
-    else if(hook==='offline.claim'){ synth('square',760,0.10,0.07); }
-    else if(hook.startsWith('ui.')) synth('sine',500,0.06,0.05);
+    if(hook==='tap.ok') synth('sine',700,0.07,0.08);
+    else if(hook==='reps.buy') synth('square',420,0.12,0.10);
+    else if(hook==='unlock.do') synth('triangle',300,0.20,0.12);
+    else if(hook==='unlock.ready') synth('triangle',500,0.12,0.09);
+    else if(hook==='upgrade.apply'){ synth('square',650,0.09,0.10); setTimeout(()=>synth('square',900,0.09,0.09),90); }
+    else if(hook==='achievement.unlock'){ synth('square',600,0.10,0.10); setTimeout(()=>synth('square',800,0.10,0.09),110); setTimeout(()=>synth('square',1000,0.12,0.09),220); }
+    else if(hook==='coach.hire'){ synth('sawtooth',520,0.10,0.10); setTimeout(()=>synth('square',660,0.09,0.09),100); }
+    else if(hook==='tutorial.show'){ synth('triangle',520,0.12,0.08); setTimeout(()=>synth('triangle',740,0.10,0.07),90); }
+    else if(hook==='tutorial.next'){ synth('sine',780,0.08,0.07); }
+    else if(hook==='tutorial.hide'){ synth('sine',420,0.06,0.06); }
+    else if(hook==='tutorial.tick'){ synth('sine',1200,0.028,0.035); } /* slightly louder tick */
+    else if(hook==='offline.show'){ synth('triangle',420,0.10,0.08); }
+    else if(hook==='offline.claim'){ synth('square',760,0.10,0.08); }
+    else if(hook.startsWith('ui.')) synth('sine',500,0.06,0.06);
   }
 
   function startMusic(url){
@@ -591,7 +598,6 @@ const AudioSys = (()=> {
       musicOn = true; currentURL = url;
       music = new Audio(url);
       music.loop = true; music.volume = musicVol;
-      // try twice in case of timing with resume
       const playIt = ()=>music.play().catch(()=>{});
       playIt();
       setTimeout(playIt, 60);
@@ -835,7 +841,6 @@ const Engine = (()=> {
     const now = performance.now();
     const dt = Math.min(0.25, (now-last)/1000);
     last = now;
-    // Auto taps
     for(const ex of State.exercises){
       if(!Coaches.isAuto(ex.id)) continue;
       const cd = Math.max(App.Config.MIN_CD_MS, ex.cooldown);
@@ -848,7 +853,6 @@ const Engine = (()=> {
         if(Settings.get('floats')) UI.floatFrom(ex.els.icon||ex.els.card, `+${g}`);
       }
     }
-    // Cooldown visuals
     for(const ex of State.exercises) UI.drawCooldown(ex);
     UI.tickTop(dt); UI.refreshThrottled(); Notify.updateThrottled();
     requestAnimationFrame(loop);
@@ -1130,7 +1134,7 @@ const Menu = {
     const host=$('#tab-settings'); host.innerHTML=''; const card=el('div',{class:'coachCard'}); const wrap=el('div');
     wrap.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
       <label><input id="set-sfx" type="checkbox" ${AudioSys.sfxEnabled.on?'checked':''}/> Sound Effects</label>
-      <label>Music Volume <input id="set-music" type="range" min="0" max="1" step="0.01" value="${(Util.isMobileUA()?0.03:0.25)}" style="width:160px;vertical-align:middle"> (low)</label>
+      <label>Music Volume <input id="set-music" type="range" min="0" max="1" step="0.01" value="${(Util.isMobileUA()?AudioLevels.musicMobile:AudioLevels.musicDesktop)}" style="width:160px;vertical-align:middle"> (low)</label>
       <label><input id="set-floats" type="checkbox" checked/> Show +HP floaters</label>
     </div>
     <hr style="border:0;border-top:1px solid #223556;margin:10px 0">
@@ -1142,7 +1146,7 @@ const Menu = {
     </div>`;
     card.appendChild(wrap); host.appendChild(card);
     $('#set-sfx').onchange=e=>AudioSys.sfxEnabled.on=!!e.target.checked;
-    $('#set-music').oninput=e=>AudioSys.music.setVol(parseFloat(e.target.value||'0.25'));
+    $('#set-music').oninput=e=>AudioSys.music.setVol(parseFloat(e.target.value||String(Util.isMobileUA()?AudioLevels.musicMobile:AudioLevels.musicDesktop)));
     $('#set-floats').onchange=e=>Settings.set('floats',!!e.target.checked);
     $('#btn-save').onclick=()=>{ save(); AudioSys.play('save.ok'); };
     $('#btn-reset').onclick=()=>{ if(confirm('Reset your progress?')){ localStorage.removeItem(App.Config.SAVE_KEY); location.reload(); } };
@@ -1219,21 +1223,20 @@ const Offline = (()=> {
   return {check, KEY};
 })();
 
-/* =============== TUTORIAL (slower typing + tick SFX + fixed height) =============== */
+/* =============== TUTORIAL (typing with SFX) =============== */
 const Tutorial = (()=> {
   const ov=$('#tut'), bubble=$('#bubble'), tFace=$('#tFace'), tFaceWrap=$('#tFaceWrap'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot'), tNextLabel=$('#tNextLabel');
   let step=null, idx=0;
 
-  /* --- Typewriter with fixed-height per line --- */
   const Typer = (()=> {
     let timer=null, map=null, nodeIndex=0, charIndex=0, doneCb=null;
-    let speedMs=35;         // tuned below for desktop; mobile set a bit slower
+    let speedMs=35;
     let typedCount=0;
     let lastTickAt=0;
 
     function setSpeed(){
       const isMobile = Util.isMobileUA();
-      speedMs = isMobile ? 45 : 35;  // slower on mobile
+      speedMs = isMobile ? 45 : 35;
     }
 
     function measureHTMLHeight(html){
@@ -1278,8 +1281,8 @@ const Tutorial = (()=> {
       const now = Date.now();
       if(!ch || /\s/.test(ch)) return;
       typedCount++;
-      if(typedCount % 2 !== 0) return;   // every 2 visible chars
-      if(now - lastTickAt < 90) return;  // min spacing
+      if(typedCount % 2 !== 0) return;
+      if(now - lastTickAt < 90) return;
       lastTickAt = now;
       AudioSys.play('tutorial.tick');
     }
@@ -1301,7 +1304,6 @@ const Tutorial = (()=> {
       stop(false, target);
       setSpeed();
       target.innerHTML='';
-      // set fixed height so bubble doesn't grow while typing
       const h = measureHTMLHeight(html);
       target.style.height = h + 'px';
 
@@ -1331,7 +1333,6 @@ const Tutorial = (()=> {
 
     return { start, finish, isTyping };
   })();
-  /* --- end Typewriter --- */
 
   function overlayBusy(){ return ov.classList.contains('show'); }
   function show(){ ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show'); }
@@ -1362,7 +1363,7 @@ const Tutorial = (()=> {
 
   function nextLine(lines,onDone){
     if(Typer.isTyping()){
-      Typer.finish(tText); // complete instantly on first click
+      Typer.finish(tText);
       return;
     }
     if(idx<lines.length-1){
@@ -1470,13 +1471,13 @@ const Tutorial = (()=> {
     return true;
   }
   function scanAll(){
-    if(overlayBusy()) return;
+    if(ov.classList.contains('show')) return;
     if(maybeRepsHint()) return;
     if(onUnlockAffordableJog()) return;
     if(onCoachAffordableFirst()) return;
   }
   Bus.on('upgrade',({id})=>{ const ex=State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex); });
-  Bus.on('hp',()=>{ if(!overlayBusy()) scanAll(); });
+  Bus.on('hp',()=>{ if(!ov.classList.contains('show')) scanAll(); });
 
   return {startIntro, scanAll, positionAvatar: positionBubbleToAvatar};
 })();
@@ -1506,7 +1507,7 @@ function wireStart(){
   const isMobileUA = Util.isMobileUA();
 
   btnStart.addEventListener('click',()=>{ 
-    AudioCore.resume(); // ensure SFX ready
+    AudioCore.resume();
     AudioSys.play('ui.click');
     const keepAvatar = State.avatar;
     try{ localStorage.removeItem(App.Config.SAVE_KEY); }catch{}
@@ -1519,7 +1520,8 @@ function wireStart(){
     $('#start').classList.remove('open');
 
     const url = isMobileUA ? MobileMusicURL : MusicURL;
-    AudioSys.music.setVol(isMobileUA ? 0.03 : 0.25);
+    const vol = isMobileUA ? AudioLevels.musicMobile : AudioLevels.musicDesktop;
+    AudioSys.music.setVol(vol);
     AudioSys.music.start(url);
 
     $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
@@ -1536,7 +1538,8 @@ function wireStart(){
     AudioSys.play('ui.click'); 
     st.classList.remove('open'); 
     const url = isMobileUA ? MobileMusicURL : MusicURL;
-    AudioSys.music.setVol(isMobileUA ? 0.03 : 0.25);
+    const vol = isMobileUA ? AudioLevels.musicMobile : AudioLevels.musicDesktop;
+    AudioSys.music.setVol(vol);
     AudioSys.music.start(url);
     forceTopOnce();
     Offline.check(); 
@@ -1592,9 +1595,6 @@ function syncTopbarOffset(){
 window.addEventListener('resize', ()=>{ syncTopbarOffset(); setStartArt(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); });
 window.addEventListener('orientationchange', ()=>setTimeout(()=>{ syncTopbarOffset(); setStartArt(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); },150));
 window.addEventListener('load', ()=>{ setStartArt(); });
-
-/* =============== OFFLINE =============== */
-/* (already defined above) */
 
 /* =============== INIT =============== */
 function boot(){
