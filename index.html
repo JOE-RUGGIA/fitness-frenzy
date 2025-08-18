@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — V1.7.1</title>
+<title>Fitness Frenzy — V1.7.2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 /* =========================
@@ -27,14 +27,16 @@
   --femaleTint:#ff5fa8;
 }
 
-/* Reset */
+/* Reset / base */
 *{box-sizing:border-box}
 html,body{height:100%}
+html, body { overflow-anchor: none; } /* prevent scroll anchoring nudges */
 body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
   padding-top:130px; /* adjusted at runtime to match topbar height */
+  overscroll-behavior-y: none;
 }
 img{max-width:100%;display:block}
 
@@ -230,19 +232,14 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
 .startArt{position:absolute;inset:0;background:#000}
 .startArt img{width:100%;height:100%;object-fit:cover} /* fill to edges */
 
-/* --- Buttons moved up and made more visible --- */
+/* Buttons panel */
 .startUI{
   position:absolute;left:50%;bottom:16vh;transform:translateX(-50%);
   display:flex;flex-direction:column;align-items:center;gap:14px;width:min(92%,760px)
 }
 .uiPanel{
-  width:100%;
-  background:rgba(0,0,0,.58);
-  border:1px solid rgba(255,255,255,.10);
-  backdrop-filter:blur(10px);
-  border-radius:18px;
-  padding:16px;
-  box-shadow:0 10px 36px rgba(0,0,0,.55);
+  width:100%;background:rgba(0,0,0,.58);border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(10px);border-radius:18px;padding:16px;box-shadow:0 10px 36px rgba(0,0,0,.55);
   display:flex;flex-direction:column;gap:14px;align-items:stretch
 }
 .rowBtns{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%}
@@ -449,6 +446,17 @@ body.femaleMode .card .left{background:linear-gradient(145deg,rgba(255,95,168,.1
     b.style.display = 'block';
   });
 })();
+
+/* === Ensure we always start at the very top === */
+try{ if('scrollRestoration' in history){ history.scrollRestoration = 'manual'; } }catch{}
+let _didForceTop=false;
+function forceTop(times=4){
+  for(let i=0;i<times;i++){
+    setTimeout(()=>{ try{ window.scrollTo({top:0,left:0,behavior:'auto'}); }catch{ window.scrollTo(0,0); } }, i*50);
+  }
+  requestAnimationFrame(()=>{ try{ window.scrollTo(0,0); }catch{} });
+}
+function forceTopOnce(){ if(_didForceTop) return; _didForceTop=true; forceTop(5); }
 
 /* =============== CONFIG / UTIL / BUS =============== */
 const App = {};
@@ -1317,7 +1325,15 @@ const Tutorial = (()=> {
 })();
 
 /* =============== START / SPLASH =============== */
-function showSplashThenStart(){ const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{ s.classList.remove('open'); $('#start').classList.add('open'); }, 5000); }
+function showSplashThenStart(){ 
+  const s=$('#splash'); s.classList.add('open'); 
+  forceTopOnce(); /* keep at top while splash is visible */
+  setTimeout(()=>{ 
+    s.classList.remove('open'); 
+    $('#start').classList.add('open'); 
+    forceTopOnce(); /* keep at top when start menu appears */
+  }, 5000); 
+}
 
 function wireStart(){
   const st=$('#start');
@@ -1350,6 +1366,7 @@ function wireStart(){
     $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
     document.body.classList.toggle('femaleMode', State.avatar==='female');
 
+    forceTopOnce(); /* ensure first exercise is visible */
     Tutorial.startIntro();
     save();
   });
@@ -1362,6 +1379,7 @@ function wireStart(){
     const url = useMobile ? MobileMusicURL : MusicURL;
     AudioSys.music.setVol(useMobile ? 0.03 : 0.15);
     AudioSys.music.start(url);
+    forceTopOnce(); /* show top on resume */
     Offline.check(); 
     Tutorial.scanAll(); 
   });
@@ -1410,6 +1428,7 @@ function syncTopbarOffset(){
   if(!tb) return;
   const h = Math.ceil(tb.getBoundingClientRect().height);
   document.body.style.paddingTop = h + 'px';
+  forceTopOnce(); /* if padding changes on first layout, keep view at top */
 }
 window.addEventListener('resize', ()=>{ syncTopbarOffset(); setStartArt(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); });
 window.addEventListener('orientationchange', ()=>setTimeout(()=>{ syncTopbarOffset(); setStartArt(); if($('#bubble').classList.contains('anchored')) Tutorial.positionAvatar(); },150));
@@ -1433,6 +1452,9 @@ function boot(){
   Coaches.build();
   Engine.start();
   setInterval(save, App.Config.SAVE_MS);
+
+  /* Just in case: make sure we begin at the very top on initial boot */
+  forceTopOnce();
 }
 document.addEventListener('DOMContentLoaded', boot);
 </script>
