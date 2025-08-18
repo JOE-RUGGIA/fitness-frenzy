@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Fitness Frenzy — Fitcoin V1</title>
+<title>Fitness Frenzy — Fitcoin V1.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{
@@ -13,31 +13,34 @@
 }
 
 /* Base */
-*{box-sizing:border-box} html,body{height:100%}
+*{box-sizing:border-box}
+html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
-img,video{display:block;max-width:100%}
+img{display:block;max-width:100%}
 
 /* Topbar */
 .topbar{position:sticky;top:0;z-index:1000;background:rgba(10,19,32,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--border)}
-.topwrap{max-width:1024px;margin:0 auto;padding:8px var(--space) 6px;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:8px 12px;align-items:center}
-.leftRow{display:flex;align-items:center;gap:12px}
-.avatarBtn{position:relative;width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid #2a446c;background:#0b1626;cursor:pointer}
+.topwrap{max-width:1024px;margin:0 auto;padding:10px var(--space) 8px;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:10px 14px;align-items:center}
+.leftRow{display:flex;align-items:center;gap:14px}
+.avatarBtn{position:relative;width:64px;height:64px;border-radius:50%;overflow:hidden;border:2px solid #2a446c;background:#0b1626;cursor:pointer}
 .avatarBtn img{width:100%;height:100%;object-fit:cover}
-.notifDot{position:absolute;right:-6px;top:-6px;width:16px;height:16px;border-radius:50%;background:#39d98a;box-shadow:0 0 0 2px rgba(10,19,32,.95);display:none}
+.notifDot{position:absolute;right:-6px;top:-8px;width:18px;height:18px;border-radius:50%;background:#39d98a;box-shadow:0 0 0 2px rgba(10,19,32,.95);display:none}
 .notifDot.show{display:block}
-.logoImg{height:36px;width:auto;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+.logoImg{height:42px;width:auto;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
 .qtyGroup{justify-self:end;display:inline-flex;border:1px solid #2b3d5a;border-radius:12px;overflow:hidden}
-.qtyBtn{background:#13233b;color:#cfe0ff;border:0;padding:8px 10px;font-weight:800;cursor:pointer;font-size:14px}
+.qtyBtn{background:#13233b;color:#cfe0ff;border:0;padding:8px 10px;font-weight:800;cursor:pointer;font-size:13px}
 .qtyBtn.active{background:var(--accent);color:#fff}
-.hpRow{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hpRow{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .hpPill,.coinPill{display:flex;align-items:baseline;gap:6px;padding:8px 12px;border-radius:999px;background:linear-gradient(135deg,#132647,#1d3a61);border:1px solid var(--pillBr)}
-.hpLabel{font-weight:900;color:var(--accent)} .hpVal{font-weight:900;font-variant-numeric:tabular-nums;min-width:10ch;text-align:left}
-.coinLabel{font-weight:900;color:var(--coin)} .coinVal{font-weight:900;font-variant-numeric:tabular-nums;min-width:6ch;text-align:left}
+.hpLabel{font-weight:900;color:var(--accent)}
+.hpVal{font-weight:900;font-variant-numeric:tabular-nums;min-width:10ch;text-align:left}
+.coinLabel{font-weight:900;color:var(--coin)}
+.coinVal{font-weight:900;font-variant-numeric:tabular-nums;min-width:6ch;text-align:left}
 
 /* Layout + Cards */
 .wrap{max-width:1024px;margin:0 auto;padding:var(--space)}
 .stack{display:flex;flex-direction:column;gap:var(--space)}
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;transition:transform .16s ease, filter .16s ease, opacity .16s ease}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;transition:transform .16s ease, filter .16s ease, opacity .16s ease}
 .card .left{position:relative;width:92px;aspect-ratio:1;border-radius:12px;background:#102036;border:1px solid #223b60;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .iconBox{position:relative;width:100%;height:100%}
 .iconBox img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
@@ -58,7 +61,7 @@ img,video{display:block;max-width:100%}
 .metaRow{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .kv{background:#13223a;border:1px solid #203659;border-radius:8px;padding:4px 8px;color:#cfe0ff;font-size:13px}
 .chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.repsBtn{padding:8px 10px;border:0;border-radius:10px;font-weight:900;cursor:pointer;font-size:13px;white-space:nowrap}
+.repsBtn{padding:8px 10px;border:0;border-radius:10px;font-weight:900;cursor:pointer;font-size:12px;white-space:nowrap;min-width:160px}
 .repsBtn.ready{background:var(--accent);color:#fff;box-shadow:0 8px 18px rgba(204,107,44,.35)}
 .repsBtn:not(.ready){background:#1a2a40;color:#d7e3f5}
 
@@ -103,24 +106,24 @@ img,video{display:block;max-width:100%}
 .hire.ready{background:var(--accent);color:#fff}
 .hire.owned{background:#198754;color:#fff}
 
-/* Start / Splash */
+/* Splash */
 .splash{position:fixed;inset:0;background:#fff;z-index:5000;display:none;align-items:center;justify-content:center}
 .splash.open{display:flex}
 .splashInner{width:min(90vw,900px);height:min(80vh,600px);display:flex;align-items:center;justify-content:center}
 .splashLogo{max-width:100%;max-height:100%;animation:splashPop 1100ms cubic-bezier(.2,1.2,.3,1)}
 @keyframes splashPop{0%{transform:scale(.82);opacity:0}45%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
 
+/* Start */
 .start{position:fixed;inset:0;z-index:4500;display:none;align-items:center;justify-content:center;background:#000}
 .start.open{display:flex}
-.startFrame{position:relative;z-index:1;width:min(96vw,1200px);height:min(92vh,1200px);border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.0);display:flex;align-items:center;justify-content:center}
+.startFrame{position:relative;z-index:1;width:min(96vw,1200px);height:min(92vh,1200px);display:flex;align-items:center;justify-content:center}
 .cover{position:absolute;inset:0;background:#000}
 .cover img{width:100%;height:100%;object-fit:contain}
-.startUI{position:absolute;left:50%;bottom:8vh;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;width:min(92%,720px)}
+.startUI{position:absolute;left:50%;bottom:10vh;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;width:min(92%,720px)}
 .rowBtns{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%}
 .btn{padding:14px 22px;border-radius:14px;border:0;font-weight:900;cursor:pointer}
 .btn.orange{background:var(--accent);color:#fff}
 .btn.blue{background:var(--brandBlue);color:#fff}
-.btn.small{padding:10px 14px;font-size:18px}
 .segment{display:inline-flex;border:1px solid #2b3d5a;border-radius:12px;overflow:hidden;background:#13233b}
 .segBtn{background:transparent;color:#cfe0ff;border:0;padding:6px 8px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:8px}
 .segBtn.active{background:var(--accent);color:#fff}
@@ -139,21 +142,21 @@ img,video{display:block;max-width:100%}
 .hl{color:var(--accent);font-weight:900}
 .spot{position:absolute;border-radius:16px;box-shadow:0 0 0 4px rgba(255,179,87,.95),0 0 0 14px rgba(255,179,87,.20),0 0 42px rgba(255,179,87,.45);pointer-events:none}
 
-/* Offline modal */
+/* Offline */
 .off{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:3500}
 .off.open{display:flex}
 .offCard{width:min(520px,94vw);background:#0f1b2b;border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center}
 .offTitle{margin:0 0 6px;font-weight:900}
 .offAmt{font-weight:900;font-size:24px}
 
-/* Mobile compacting */
+/* Mobile */
 @media(max-width:520px){
-  .card{grid-template-columns:auto 1fr;gap:10px;padding:10px}
+  .card{grid-template-columns:auto 1fr;gap:8px;padding:8px}
   .title{font-size:15px}
   .iconBox{transform:scale(.98)}
   .coolTime{font-size:12px}
   .kv{font-size:12px}
-  .repsBtn{font-size:12px;padding:6px 8px}
+  .repsBtn{font-size:12px;padding:6px 8px;min-width:140px}
 }
 
 /* Reduced motion */
@@ -198,7 +201,7 @@ img,video{display:block;max-width:100%}
     <div class="panelHead">
       <div class="panelTitle">Menu</div>
       <div class="hpMini">HP: <span id="hpMini">0.00</span> • FC: <span id="fcMini">0</span></div>
-      <button id="menuClose" class="btn small" style="margin-left:auto;background:#1a2a40;color:#d7e3f5">Close</button>
+      <button id="menuClose" class="btn" style="margin-left:auto;background:#1a2a40;color:#d7e3f5">Close</button>
     </div>
     <div class="menuTabs">
       <button class="tabBtn active" data-tab="coaches">Coaches</button>
@@ -212,10 +215,10 @@ img,video{display:block;max-width:100%}
       <div id="tab-coaches"></div>
       <div id="tab-achievements" style="display:none"></div>
       <div id="tab-upgrades" style="display:none">
-        <div class="coachCard"><div class="cInfo">Boosts (Fitcoin): Coffee, Energy Drink, Pre-Workout, and permanent perks will go here.</div></div>
+        <div class="coachCard"><div class="cInfo">Boosts purchasable with Fitcoin will live here (coffee, energy drinks, pre-workout, etc.).</div></div>
       </div>
       <div id="tab-quests" style="display:none">
-        <div class="coachCard"><div class="cInfo">Side Quests (future): 5K/Half/Marathon, sunrise hike, fasting streaks, buddy workout. (Placeholder)</div></div>
+        <div class="coachCard"><div class="cInfo">Side Quests ideas: 5K/Half/Marathon, sunrise hike, fasting streak, buddy workout. (Placeholder)</div></div>
       </div>
       <div id="tab-stats" style="display:none"></div>
       <div id="tab-settings" style="display:none"></div>
@@ -227,7 +230,7 @@ img,video{display:block;max-width:100%}
 <div id="tut" class="tut" aria-hidden="true">
   <div class="dim"></div>
   <div id="spot" class="spot" style="display:none"></div>
-  <div class="bubble" id="bubble" style="left:50%;transform:translateX(-50%)">
+  <div class="bubble" id="bubble">
     <div>
       <div class="tWho" id="tWho">JAX</div>
       <div class="tText" id="tText">…</div>
@@ -270,81 +273,86 @@ img,video{display:block;max-width:100%}
         <button id="btnContinue" class="btn blue" style="display:none">Continue</button>
       </div>
       <div class="segment" id="avatarSeg" title="Choose Avatar">
-        <button class="segBtn active" data-avatar="male"><span class="segImg"><img alt="Male" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true"></span><span>Male</span></button>
-        <button class="segBtn" data-avatar="female"><span class="segImg"><img alt="Female" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true"></span><span>Female</span></button>
+        <button class="segBtn active" data-avatar="male">
+          <span class="segImg"><img alt="Male" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true"></span>
+          <span>Male</span>
+        </button>
+        <button class="segBtn" data-avatar="female">
+          <span class="segImg"><img alt="Female" src="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true"></span>
+          <span>Female</span>
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-/* ========= CONFIG / UTIL ========= */
-const App = {};
-App.Config = Object.freeze({
-  SAVE_KEY:'ff-fitcoin-v1', SCHEMA: 2, DEC: 2,
-  MIN_CD_MS: 100, NOTIFY_MS: 160, UI_MS: 80, SAVE_MS: 15000,
-  OFFLINE_CAP_MS: 24*60*60*1000, PULSE_MIN_MS: 5000, PULSE_MAX_MS: 10000,
-  COIN_THRESHOLD: 100, AUTO_COIN_RATIO: 0.20
-});
-
-const $=(q,r=document)=>r.querySelector(q);
-const $$=(q,r=document)=>Array.from(r.querySelectorAll(q));
+/* ========== HELPERS ========== */
+const $=(q,root=document)=>root.querySelector(q);
+const $$=(q,root=document)=>Array.from(root.querySelectorAll(q));
 const el=(t,a={})=>{const n=document.createElement(t);for(const k in a){if(k==='text')n.textContent=a[k];else if(k==='html')n.innerHTML=a[k];else n.setAttribute(k,a[k]);}return n;};
 const Bus=(()=>{const m={};return{on(e,f){(m[e]||(m[e]=[])).push(f)},emit(e,p){(m[e]||[]).slice().forEach(fn=>{try{fn(p)}catch{}})}})();
 const Util={
   clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
-  fmtHP(n){const a=Math.abs(n),d=App.Config.DEC; if(a>=1e9)return(n/1e9).toFixed(d)+'B'; if(a>=1e6)return(n/1e6).toFixed(d)+'M'; if(a>=1e3)return(n/1e3).toFixed(d)+'K'; return n.toFixed(d);},
-  fmtCost(n){const d=App.Config.DEC; if(n<1e3)return n.toFixed(d); if(n<1e6)return(n/1e3).toFixed(d)+'K'; if(n<1e9)return(n/1e6).toFixed(d)+'M'; return(n/1e9).toFixed(d)+'B';},
+  fmtHP(n){const a=Math.abs(n),d=2;if(a>=1e9)return(n/1e9).toFixed(d)+'B';if(a>=1e6)return(n/1e6).toFixed(d)+'M';if(a>=1e3)return(n/1e3).toFixed(d)+'K';return n.toFixed(d);},
+  fmtCost(n){const d=2;if(n<1e3)return n.toFixed(d);if(n<1e6)return(n/1e3).toFixed(d)+'K';if(n<1e9)return(n/1e6).toFixed(d)+'M';return(n/1e9).toFixed(d)+'B';},
   fmtCoin:n=>n.toLocaleString(),
   now:()=>performance.now(),
   randInt:(a,b)=>Math.floor(a+Math.random()*(b-a+1)),
-  inView: el=>{if(!el)return false;const r=el.getBoundingClientRect();return r.bottom>0&&r.right>0&&r.left<innerWidth&&r.top<innerHeight;}
+  inView:el=>{if(!el)return false;const r=el.getBoundingClientRect();return r.bottom>0&&r.right>0&&r.left<innerWidth&&r.top<innerHeight;}
 };
 
-/* ========= AUDIO ========= */
-const MusicURL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
-const AudioSys=(()=>{let music, vol=0.10, on=false; const sfx={on:true};
+/* ========== CONFIG ========== */
+const App={};
+App.Config=Object.freeze({
+  SAVE_KEY:'ff-fitcoin-v1-1', SCHEMA: 3,
+  MIN_CD_MS:100, NOTIFY_MS:160, UI_MS:80, SAVE_MS:15000,
+  OFFLINE_CAP_MS:24*60*60*1000,
+  COIN_THRESHOLD:100, AUTO_COIN_RATIO:0.20
+});
+
+/* ========== AUDIO ========== */
+const MusicURL="https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/FF-fighting%20music%20(soft).mp3?raw=true";
+const AudioSys=(()=>{let music,vol=0.10,on=false; const sfx={on:true};
   const ctxTry=()=>{try{return new (window.AudioContext||window.webkitAudioContext)()}catch{return null}};
-  const synth=(type='sine',f=660,d=0.1,g=0.07)=>{const ctx=ctxTry(); if(!ctx) return; const o=ctx.createOscillator(),q=ctx.createGain();o.type=type;o.frequency.value=f;q.gain.value=g;o.connect(q);q.connect(ctx.destination);o.start();q.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+d);o.stop(ctx.currentTime+d+.02);};
-  function play(h){ if(!sfx.on) return;
-    if(h==='tap.ok') synth('sine',720,.07,.07);
-    else if(h==='reps.buy') synth('square',420,.11,.08);
-    else if(h==='unlock.do') synth('triangle',300,.18,.1);
-    else if(h==='upgrade.apply'){synth('square',650,.08,.08); setTimeout(()=>synth('square',900,.08,.07),90);}
-    else if(h==='achievement.unlock'){synth('square',600,.09,.08); setTimeout(()=>synth('square',800,.09,.07),110); setTimeout(()=>synth('square',1000,.11,.07),220);}
-    else if(h==='ui.click') synth('sine',550,.06,.05);
-    else if(h==='ui.menu.open') synth('triangle',500,.07,.06);
-    else if(h==='ui.menu.close') synth('triangle',380,.07,.06);
-    else if(h==='tutorial.show'||h==='tutorial.next') synth('sine',700,.04,.05);
-    else if(h==='coin.tick') synth('triangle',880,.06,.06);
-    else if(h==='offline.show') synth('sine',600,.1,.07);
-    else if(h==='offline.claim') synth('square',720,.1,.08);
-    else if(h==='type.tick') synth('triangle',1000,.02,.03);
+  const synth=(type='sine',f=660,d=0.1,g=0.08)=>{const ctx=ctxTry(); if(!ctx)return; const o=ctx.createOscillator(),q=ctx.createGain();o.type=type;o.frequency.value=f;q.gain.value=g;o.connect(q);q.connect(ctx.destination);o.start();q.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+d);o.stop(ctx.currentTime+d+.02);};
+  function play(h){if(!sfx.on)return;
+    if(h==='tap.ok')synth('sine',740,.07,.08);
+    else if(h==='reps.buy')synth('square',420,.11,.09);
+    else if(h==='unlock.do')synth('triangle',300,.18,.10);
+    else if(h==='upgrade.apply'){synth('square',650,.08,.09);setTimeout(()=>synth('square',900,.08,.07),90);}
+    else if(h==='achievement.unlock'){synth('square',600,.09,.09);setTimeout(()=>synth('square',800,.09,.08),110);setTimeout(()=>synth('square',1000,.11,.08),220);}
+    else if(h==='ui.click')synth('sine',550,.06,.07);
+    else if(h==='ui.menu.open')synth('triangle',520,.07,.07);
+    else if(h==='ui.menu.close')synth('triangle',380,.07,.07);
+    else if(h==='tutorial.show'||h==='tutorial.next')synth('sine',700,.04,.06);
+    else if(h==='coin.tick')synth('triangle',880,.06,.08);
+    else if(h==='offline.show')synth('sine',600,.1,.08);
+    else if(h==='offline.claim')synth('square',720,.1,.09);
+    else if(h==='type.tick')synth('triangle',1000,.02,.05);
   }
-  function start(){ if(on) return; on=true; music=new Audio(MusicURL); music.loop=true; music.volume=vol; music.play().catch(()=>{on=false;}); }
-  function stop(){ try{on=false; music&&music.pause();}catch{} }
+  function start(){if(on)return; on=true; music=new Audio(MusicURL); music.loop=true; music.volume=vol; music.play().catch(()=>{on=false;});}
+  function stop(){try{on=false;music&&music.pause();}catch{}}
   function setVol(v){vol=v; if(music) music.volume=v;}
-  return {play, music:{start,stop,setVol}, sfx};
+  return{play,music:{start,stop,setVol},sfx};
 })();
 
-/* ========= STATE / SAVE ========= */
-const State={hp:0, qty:1, avatar:'male', stats:{manual:0,auto:0,totalEarned:0}, coaches:{}, achievements:{}, exercises:[], tutorial:{done:false, shown:{unlock:{}, coach:{}, upgrade:{}}}, fitcoin:0, coinProgress:0};
-function save(){try{localStorage.setItem(App.Config.SAVE_KEY, JSON.stringify({schema:App.Config.SCHEMA, ...State}));}catch{}}
-function load(){try{const raw=localStorage.getItem(App.Config.SAVE_KEY); if(!raw) return; const j=JSON.parse(raw); if(j.schema===App.Config.SCHEMA){Object.assign(State,j);}}catch{}}
-load(); // ensure new fields exist even on old saves
-State.fitcoin = State.fitcoin ?? 0;
-State.coinProgress = State.coinProgress ?? 0;
-State.tutorial = State.tutorial ?? {done:false, shown:{unlock:{},coach:{},upgrade:{}}};
+/* ========== STATE / SAVE ========== */
+const State={hp:0,qty:1,avatar:'male',stats:{manual:0,auto:0,totalEarned:0},coaches:{},achievements:{},exercises:[],tutorial:{done:false,shown:{unlock:{},coach:{},upgrade:{}}},fitcoin:0,coinProgress:0};
+function save(){try{localStorage.setItem(App.Config.SAVE_KEY,JSON.stringify({schema:App.Config.SCHEMA,...State}));}catch{}}
+function load(){try{const raw=localStorage.getItem(App.Config.SAVE_KEY);if(!raw)return;const j=JSON.parse(raw);if(j.schema===App.Config.SCHEMA){Object.assign(State,j);}}catch{}}
+load();
+State.fitcoin=State.fitcoin??0;
+State.coinProgress=State.coinProgress??0;
+State.tutorial=State.tutorial??{done:false,shown:{unlock:{},coach:{},upgrade:{}}};
 
-/* ========= ASSETS ========= */
+/* ========== ASSETS ========== */
 const Assets={
   avatarMale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20MALE%20AVATAR.gif?raw=true",
   avatarFemale:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/NEW%20FEMALE%20AVATAR.gif?raw=true",
   trainer:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/fitness%20frenzy-%20coaches%20128%20x128%20test.gif?raw=true",
 };
-
-/* Exercise icon maps (still PNGs) */
-const ICONS_M = {
+const ICONS_M={
   walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.png?raw=true",
   jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.png?raw=true",
   sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.png?raw=true",
@@ -366,7 +374,7 @@ const ICONS_M = {
   icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20iron%20cross.png?raw=true",
   vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20victorian%20cross.png?raw=true",
 };
-const ICONS_F = {
+const ICONS_F={
   walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.png?raw=true",
   jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.png?raw=true",
   sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.png?raw=true",
@@ -388,89 +396,44 @@ const ICONS_F = {
   icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20iron%20cross.png?raw=true",
   vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20victorian%20cross.png?raw=true",
 };
-
-/* Coaches icons (c1..c20) */
 const COACH_URL=[
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c1.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c2.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c3.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c4.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c5.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c6.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c7.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c8.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c9.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c10.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c11.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c12.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c13.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c14.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c15.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c16.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c17.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c18.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c19.png?raw=true",
-"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c20.png?raw=true"
+  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c1.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c2.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c3.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c4.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c5.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c6.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c7.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c8.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c9.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c10.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c11.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c12.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c13.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c14.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c15.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c16.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c17.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c18.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c19.png?raw=true","https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/c20.png?raw=true"
 ];
 const COACH_NAME=[
-"Coach A","Coach B","Coach C","Coach D","Coach E","Coach F","Coach G","Coach H","Coach I","Coach J",
-"Coach K","Coach L","Coach M","Coach N","Coach O","Coach P","Coach Q","Coach R","Coach S","Coach T"
+  "Coach A","Coach B","Coach C","Coach D","Coach E","Coach F","Coach G","Coach H","Coach I","Coach J","Coach K","Coach L","Coach M","Coach N","Coach O","Coach P","Coach Q","Coach R","Coach S","Coach T"
 ];
 
-/* ========= CONTENT BUILD ========= */
+/* ========== BUILD EXERCISES ========== */
+const EX_ORDER=['walk','jog','sit','push','jacks','pull','rope','plank','mtclimb','kb','burpee','bench','backsq','dead','hand','hspu','muscle','lever','icross','vcross'];
 function buildExercises(){
   const L=[
-    ['walk','Walking', 1000],
-    ['jog','Jogging', 3000],
-    ['sit','Sit-ups', 6000],
-    ['push','Push-ups', 12000],
-    ['jacks','Jumping Jacks', 24000],
-    ['pull','Pull-ups', 48000],
-    ['rope','Jump Rope', 96000],
-    ['plank','Plank', 192000],
-    ['mtclimb','Mountain Climbers', 384000],
-    ['kb','Kettlebell', 768000],
-    ['burpee','Burpees', 1536000],
-    ['bench','Bench Press', 3072000],
-    ['backsq','Back Squat', 6144000],
-    ['dead','Deadlift', 12288000],
-    ['hand','Handstands', 24576000],
-    ['hspu','Handstand Push-ups', 49152000],
-    ['muscle','Muscle-ups', 98304000],
-    ['lever','Front Lever', 196608000],
-    ['icross','Iron Cross', 393216000],
-    ['vcross','Victorian Cross', 786432000]
+    ['walk','Walking',1000],['jog','Jogging',3000],['sit','Sit-ups',6000],['push','Push-ups',12000],
+    ['jacks','Jumping Jacks',24000],['pull','Pull-ups',48000],['rope','Jump Rope',96000],['plank','Plank',192000],
+    ['mtclimb','Mountain Climbers',384000],['kb','Kettlebell',768000],['burpee','Burpees',1536000],['bench','Bench Press',3072000],
+    ['backsq','Back Squat',6144000],['dead','Deadlift',12288000],['hand','Handstands',24576000],['hspu','Handstand Push-ups',49152000],
+    ['muscle','Muscle-ups',98304000],['lever','Front Lever',196608000],['icross','Iron Cross',393216000],['vcross','Victorian Cross',786432000]
   ];
+  const prior=State.exercises.reduce((m,e)=>{m[e.id]=e;return m;}, {});
   const arr=[];
-  const prior = State.exercises.reduce((m,e)=>{m[e.id]=e;return m;}, {});
   for(let i=0;i<L.length;i++){
-    const [id,name,cd]=L[i];
-    const sec=cd/1000;
-    let baseHP; if(i===0) baseHP=1; else baseHP=Math.round(20*Math.pow(sec,1.10));
+    const [id,name,cd]=L[i], sec=cd/1000;
+    const baseHP=(i===0)?1:Math.round(20*Math.pow(sec,1.10));
     const repBaseCost=Math.max(4,Math.round(baseHP*0.05));
     const unlockCost=(i===0)?0:Math.round(baseHP*Math.pow(sec,0.60)*1.15);
     const prev=prior[id]||{};
-    arr.push({
-      id,name,baseHP,baseCooldown:cd,unlockCost,repBaseCost,
+    arr.push({id,name,baseHP,baseCooldown:cd,unlockCost,repBaseCost,
       unlocked: prev.unlocked ?? (i===0),
-      repHP: prev.repHP ?? 0,
-      repProgress: prev.repProgress ?? 0,
-      repTarget: prev.repTarget ?? 10,
-      level: prev.level ?? 1,
-      cooldown: prev.cooldown ?? cd,
-      lastTapAt: prev.lastTapAt ?? 0,
-      _autoElapsed:0,
-      els:{}
-    });
+      repHP: prev.repHP ?? 0, repProgress: prev.repProgress ?? 0, repTarget: prev.repTarget ?? 10,
+      level: prev.level ?? 1, cooldown: prev.cooldown ?? cd, lastTapAt: prev.lastTapAt ?? 0, _autoElapsed:0, els:{}});
   }
   State.exercises=arr;
 }
 buildExercises();
 
-/* ========= FITCOIN ========= */
+/* ========== FITCOIN ========== */
 function coinPointsFor(ex,isAuto=false){
-  const cdSec=Math.max(App.Config.MIN_CD_MS, ex.cooldown)/1000;
-  const base=Math.max(1, Math.round(Math.pow(cdSec,0.6)));
+  const cdSec=Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000;
+  const base=Math.max(1,Math.round(Math.pow(cdSec,0.6)));
   return isAuto ? Math.floor(base*App.Config.AUTO_COIN_RATIO) : base;
 }
 function awardCoinPoints(points){
@@ -482,37 +445,34 @@ function awardCoinPoints(points){
     State.fitcoin += 1; minted++;
   }
   if(minted>0){ AudioSys.play('coin.tick'); Banners.push(`+${minted} Fitcoin`); }
-  Bus.emit('coin', State.fitcoin);
+  Bus.emit('coin',State.fitcoin);
 }
 
-/* ========= GAME LOGIC ========= */
+/* ========== GAME LOGIC ========== */
 const Game={
-  perTap:(ex)=>ex.baseHP+ex.repHP,
-  repGrowth:(ex)=>Util.clamp(1.07 + 0.01*Math.log2(Math.max(1,ex.level)), 1.07, 1.15),
-  repCost(ex,n=1){const g=Game.repGrowth(ex); const b=ex.repBaseCost*Math.pow(g,ex.repHP); if(n===1)return +(b.toFixed(App.Config.DEC)); return +((b*(Math.pow(g,n)-1)/(g-1)).toFixed(App.Config.DEC));},
+  perTap:ex=>ex.baseHP+ex.repHP,
+  repGrowth:ex=>Math.min(1.15,1.07+0.01*Math.log2(Math.max(1,ex.level))),
+  repCost(ex,n=1){const g=Game.repGrowth(ex), b=ex.repBaseCost*Math.pow(g,ex.repHP); return n===1? +b.toFixed(2) : +((b*(Math.pow(g,n)-1)/(g-1))).toFixed(2);},
   addHP(v){State.hp+=v; if(v>0) State.stats.totalEarned+=v; Bus.emit('hp',State.hp);},
-  tap(ex,now=Util.now()){
+  tap(ex,now=performance.now()){
     if(!ex.unlocked) return 0;
-    const cd=Math.max(App.Config.MIN_CD_MS, ex.cooldown);
+    const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown);
     if(ex.lastTapAt>0 && now-ex.lastTapAt<cd-1){return 0;}
     ex.lastTapAt=now;
     const g=Game.perTap(ex);
-    Game.addHP(g); State.stats.manual++; AudioSys.play('tap.ok'); UI.floatFrom(ex.els.icon, `+${g.toFixed(App.Config.DEC)}`);
-    awardCoinPoints( coinPointsFor(ex,false) );
+    Game.addHP(g); State.stats.manual++; AudioSys.play('tap.ok'); UI.floatFrom(ex.els.icon,`+${g.toFixed(2)}`);
+    awardCoinPoints(coinPointsFor(ex,false));
     return g;
   },
   buyReps(ex,n){
     const cost=Game.repCost(ex,n);
     if(State.hp+1e-6<cost) return false;
     Game.addHP(-cost);
-    ex.repHP += n; ex.repProgress += n;
-    while(ex.repProgress >= ex.repTarget){
-      ex.repProgress -= ex.repTarget; ex.repTarget *= 2; ex.level += 1;
-      ex.cooldown = Math.max(App.Config.MIN_CD_MS, Math.floor(ex.cooldown/2));
-      Banners.push(`${ex.name} upgraded to <strong>Lvl ${ex.level}</strong> — cooldown halved!`);
-      AudioSys.play('upgrade.apply'); FX.confettiAt(ex.els.card); Bus.emit('upgrade',{id:ex.id,level:ex.level});
-      // Fitcoin milestone for level-up
-      const idx=EX_ORDER.findIndex(x=>x===ex.id); State.fitcoin += 1 + Math.floor(ex.level/3) + Math.floor(idx/4); Bus.emit('coin',State.fitcoin);
+    ex.repHP+=n; ex.repProgress+=n;
+    while(ex.repProgress>=ex.repTarget){
+      ex.repProgress-=ex.repTarget; ex.repTarget*=2; ex.level+=1; ex.cooldown=Math.max(App.Config.MIN_CD_MS,Math.floor(ex.cooldown/2));
+      Banners.push(`${ex.name} upgraded to <strong>Lvl ${ex.level}</strong> — cooldown halved!`); AudioSys.play('upgrade.apply'); FX.confettiAt(ex.els.card); Bus.emit('upgrade',{id:ex.id,level:ex.level});
+      const idx=EX_ORDER.indexOf(ex.id); State.fitcoin += 1 + Math.floor(ex.level/3) + Math.max(0,Math.floor(idx/4)); Bus.emit('coin',State.fitcoin);
     }
     AudioSys.play('reps.buy'); Bus.emit('reps',{id:ex.id,qty:n}); return true;
   },
@@ -520,88 +480,73 @@ const Game={
     if(ex.unlocked) return false;
     if(State.hp+1e-6<ex.unlockCost) return false;
     Game.addHP(-ex.unlockCost); ex.unlocked=true; ex.lastTapAt=0; AudioSys.play('unlock.do'); FX.confettiAt(ex.els.card); Bus.emit('unlock',ex.id);
-    // Fitcoin milestone for unlock
-    const idx=EX_ORDER.findIndex(x=>x===ex.id); State.fitcoin += 2 + Math.min(Math.max(idx,0),10); Bus.emit('coin',State.fitcoin);
+    const idx=EX_ORDER.indexOf(ex.id); State.fitcoin += 2 + Math.max(0,Math.min(idx,10)); Bus.emit('coin',State.fitcoin);
     return true;
   }
 };
 
-/* ========= ENGINE ========= */
-const Engine=(()=>{let last=Util.now();
-  function loop(){const now=Util.now(); const dt=Math.min(0.25,(now-last)/1000); last=now;
+/* ========== ENGINE ========== */
+const Engine=(()=>{let last=performance.now();
+  function loop(){const now=performance.now(); const dt=Math.min(0.25,(now-last)/1000); last=now;
     for(const ex of State.exercises){
       if(!Coaches.isAuto(ex.id)) continue;
-      const cd=Math.max(App.Config.MIN_CD_MS, ex.cooldown);
-      ex._autoElapsed += dt*1000;
-      while(ex._autoElapsed >= cd){
-        ex._autoElapsed -= cd; ex.lastTapAt=now;
-        const g=Game.perTap(ex); Game.addHP(g); State.stats.auto++; if(Settings.get('floats')) UI.floatFrom(ex.els.icon, `+${g.toFixed(App.Config.DEC)}`);
-        awardCoinPoints( coinPointsFor(ex,true) );
+      const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown); ex._autoElapsed+=dt*1000;
+      while(ex._autoElapsed>=cd){
+        ex._autoElapsed-=cd; ex.lastTapAt=now; const g=Game.perTap(ex);
+        Game.addHP(g); State.stats.auto++; if(Settings.get('floats')) UI.floatFrom(ex.els.icon,`+${g.toFixed(2)}`);
+        awardCoinPoints(coinPointsFor(ex,true));
       }
     }
-    for(const ex of State.exercises){ UI.drawCooldown(ex); }
+    for(const ex of State.exercises){UI.drawCooldown(ex);}
     UI.tickTop(dt); UI.refreshThrottled(); Notify.updateThrottled();
     requestAnimationFrame(loop);
   }
-  return {start:()=>requestAnimationFrame(loop)};
+  return{start:()=>requestAnimationFrame(loop)};
 })();
 
-/* ========= UI / FX ========= */
+/* ========== UI / FX ========== */
 const UI={
   _hpShown:0,
-  floatFrom(ref,text){ if(!ref||!Settings.get('floats')) return; const r=ref.getBoundingClientRect(); const sp=el('div',{class:'float',text}); sp.style.left=(r.left+r.width/2)+'px'; sp.style.top=(r.top+r.height*0.15)+'px'; document.body.appendChild(sp); setTimeout(()=>sp.remove(),900); },
+  floatFrom(ref,text){if(!ref||!Settings.get('floats'))return; const r=ref.getBoundingClientRect(); const sp=el('div',{class:'float',text}); sp.style.left=(r.left+r.width/2)+'px'; sp.style.top=(r.top+r.height*0.15)+'px'; document.body.appendChild(sp); setTimeout(()=>sp.remove(),900);},
   drawCooldown(ex){
     if(!ex.unlocked) return;
-    const cd=Math.max(App.Config.MIN_CD_MS, ex.cooldown);
-    if(cd<=App.Config.MIN_CD_MS){ex.els.fill.style.width='100%'; ex.els.time.textContent=(cd/1000).toFixed(App.Config.DEC)+'s'; return;}
-    const ready=ex.lastTapAt<=0; const since=ready?cd:(Util.now()-ex.lastTapAt); const elapsed=Math.max(0,Math.min(since,cd)); const pct=elapsed/cd;
-    ex.els.fill.style.width=(pct*100).toFixed(1)+'%'; ex.els.time.textContent=(elapsed/1000).toFixed(App.Config.DEC)+'s';
+    const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown);
+    if(cd<=App.Config.MIN_CD_MS){ex.els.fill.style.width='100%'; ex.els.time.textContent=(cd/1000).toFixed(2)+'s'; return;}
+    const ready=ex.lastTapAt<=0, since=ready?cd:(performance.now()-ex.lastTapAt), elap=Math.max(0,Math.min(since,cd)), pct=elap/cd;
+    ex.els.fill.style.width=(pct*100).toFixed(1)+'%'; ex.els.time.textContent=(elap/1000).toFixed(2)+'s';
   },
   tickTop(dt){
-    UI._hpShown += (State.hp-UI._hpShown)*Math.min(1,dt*8);
-    $('#hpTop').textContent=Util.fmtHP(UI._hpShown);
-    $('#hpMini').textContent=Util.fmtHP(UI._hpShown);
-    $('#coinTop').textContent=Util.fmtCoin(State.fitcoin);
-    $('#fcMini').textContent=Util.fmtCoin(State.fitcoin);
+    UI._hpShown+=(State.hp-UI._hpShown)*Math.min(1,dt*8);
+    $('#hpTop').textContent=Util.fmtHP(UI._hpShown); $('#hpMini').textContent=Util.fmtHP(UI._hpShown);
+    $('#coinTop').textContent=Util.fmtCoin(State.fitcoin); $('#fcMini').textContent=Util.fmtCoin(State.fitcoin);
   },
-  refreshThrottled(){const now=performance.now(); if(!UI._next||now>=UI._next){UI._next=now+App.Config.UI_MS; for(const ex of State.exercises) UI.refreshExercise(ex);}},
+  refreshThrottled(){const now=performance.now(); if(!UI._next||now>=UI._next){UI._next=now+80; for(const ex of State.exercises) UI.refreshExercise(ex);}},
   refreshExercise(ex){
-    // icon swap per avatar
-    const icons = (State.avatar==='female') ? ICONS_F : ICONS_M;
-    ex.els.iconImg.src = icons[ex.id] || icons['walk'];
-
-    // rep bar
-    ex.els.repText.textContent = `${ex.repProgress}/${ex.repTarget}`;
-    ex.els.repFill.style.width = Math.min(1, ex.repProgress/ex.repTarget)*100 + '%';
-
-    // level + per-tap (no decimals as requested)
+    const icons=(State.avatar==='female')?ICONS_F:ICONS_M;
+    ex.els.iconImg.src=icons[ex.id]||icons['walk'];
+    ex.els.repText.textContent=`${ex.repProgress}/${ex.repTarget}`;
+    ex.els.repFill.style.width=Math.min(1,ex.repProgress/ex.repTarget)*100+'%';
     ex.els.lvl.textContent=`Lvl ${ex.level}`;
-    ex.els.kv.textContent = `${Math.round(Game.perTap(ex))} HP`;
-
-    // reps button
-    const n=State.qty; const cost=Game.repCost(ex,n); const can=State.hp+1e-6>=cost;
-    ex.els.reps.textContent = (n===1?`Reps (${Util.fmtCost(cost)} HP)`:`×${n} Reps (${Util.fmtCost(cost)} HP)`);
+    ex.els.kv.textContent=`${Math.round(Game.perTap(ex))} HP`;
+    const n=State.qty, cost=Game.repCost(ex,n), can=State.hp+1e-6>=cost;
+    ex.els.reps.textContent=(n===1?`Reps (${Util.fmtCost(cost)} HP)`:`×${n} Reps (${Util.fmtCost(cost)} HP)`);
     ex.els.reps.classList.toggle('ready',can); ex.els.reps.disabled=!can;
-
-    // unlock pill
-    if(!ex.unlocked){ const canU=State.hp+1e-6>=ex.unlockCost;
+    if(!ex.unlocked){
+      const canU=State.hp+1e-6>=ex.unlockCost;
       ex.els.pill.textContent=`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`;
       ex.els.pill.classList.toggle('ready',canU);
       ex.els.card.classList.toggle('unlockPulse',canU);
     }
-
-    // coach chip: only dot in corner
-    ex.els.coachDot.style.display = Coaches.isAuto(ex.id) ? 'flex' : 'none';
+    ex.els.coachDot.style.display=Coaches.isAuto(ex.id)?'flex':'none';
   },
   build(){
     const host=$('#stack'); host.innerHTML='';
-    const icons=(State.avatar==='female') ? ICONS_F : ICONS_M;
+    const icons=(State.avatar==='female')?ICONS_F:ICONS_M;
     State.exercises.forEach(ex=>{
       const card=el('div',{class:'card','data-id':ex.id}); ex.els.card=card; if(!ex.unlocked) card.classList.add('locked');
-
       const left=el('div',{class:'left'});
       const iconBox=el('div',{class:'iconBox'}); ex.els.icon=iconBox;
-      const iconImg=el('img',{alt:ex.name, src:icons[ex.id]||icons['walk']}); ex.els.iconImg=iconImg;
+      const iconImg=el('img',{alt:ex.name,src:icons[ex.id]||icons['walk']}); ex.els.iconImg=iconImg;
       const lvl=el('div',{class:'lvlBadge',text:`Lvl ${ex.level}`}); ex.els.lvl=lvl;
       const coachDot=el('div',{class:'coachDot',text:'★'}); ex.els.coachDot=coachDot; coachDot.style.display='none';
       const repBand=el('div',{class:'repBand'}); const repFill=el('div',{class:'repFill'}); const repText=el('div',{class:'repText',text:`${ex.repProgress}/${ex.repTarget}`}); ex.els.repFill=repFill; ex.els.repText=repText; repBand.append(repFill,repText);
@@ -611,79 +556,82 @@ const UI={
       const title=el('h3',{class:'title',text:ex.name});
       const coolRow=el('div',{class:'coolRow'});
       const cool=el('div',{class:'cool'}); const bar=el('div',{class:'coolBar'}); const fill=el('div',{class:'coolFill'}); ex.els.fill=fill; bar.append(fill); cool.append(bar);
-      const time=el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000).toFixed(App.Config.DEC)+'s'}); ex.els.time=time; coolRow.append(cool,time);
+      const time=el('div',{class:'coolTime',text:(Math.max(App.Config.MIN_CD_MS,ex.cooldown)/1000).toFixed(2)+'s'}); ex.els.time=time; coolRow.append(cool,time);
       const meta=el('div',{class:'metaRow'});
       const kv=el('div',{class:'kv',text:`${Math.round(Game.perTap(ex))} HP`}); ex.els.kv=kv;
       const chips=el('div',{class:'chips'}); ex.els.chips=chips;
       const reps=el('button',{class:'repsBtn',text:'Reps'}); ex.els.reps=reps;
       meta.append(kv,chips,reps);
 
-      // Locked row
       const lockName=el('div',{class:'lockName',text:ex.name});
       const unlockRow=el('div',{class:'unlockRow'});
       const pill=el('button',{class:'unlockPill',text:`Unlock for ${Util.fmtCost(ex.unlockCost)} HP`}); ex.els.pill=pill; unlockRow.append(pill);
 
-      if(ex.unlocked){ card.append(left,title,coolRow,meta); } else { card.append(left,lockName,unlockRow); }
+      if(ex.unlocked){card.append(left,title,coolRow,meta);} else {card.append(left,lockName,unlockRow);}
       host.appendChild(card);
 
-      // Interactions
-      left.addEventListener('pointerdown',e=>{e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save();});
-      reps.addEventListener('click',()=>{ if(Game.buyReps(ex,State.qty)){ save(); } });
-      pill.addEventListener('click',()=>{ if(Game.unlock(ex)){ card.classList.remove('locked','unlockPulse'); lockName.remove(); unlockRow.remove(); card.replaceChildren(left,title,coolRow,meta); save(); } });
-
-      // tap bounce + border flash
-      left.addEventListener('pointerdown',()=>{ left.animate([{transform:'scale(1)'},{transform:'scale(.96)'},{transform:'scale(1)'}],{duration:140}); left.animate([{boxShadow:'0 0 0 0 rgba(255,179,87,0)'},{boxShadow:'0 0 0 4px rgba(255,179,87,.35)'},{boxShadow:'0 0 0 0 rgba(255,179,87,0)'}],{duration:240}); });
+      left.addEventListener('pointerdown',e=>{e.preventDefault(); if(!ex.unlocked) return; Game.tap(ex); save(); left.animate([{transform:'scale(1)'},{transform:'scale(.96)'},{transform:'scale(1)'}],{duration:140}); left.animate([{boxShadow:'0 0 0 0 rgba(255,179,87,0)'},{boxShadow:'0 0 0 4px rgba(255,179,87,.35)'},{boxShadow:'0 0 0 0 rgba(255,179,87,0)'}],{duration:240});});
+      reps.addEventListener('click',()=>{if(Game.buyReps(ex,State.qty)){save();}});
+      pill.addEventListener('click',()=>{if(Game.unlock(ex)){card.classList.remove('locked','unlockPulse'); lockName.remove(); unlockRow.remove(); card.replaceChildren(left,title,coolRow,meta); save();}});
     });
   }
 };
-
-/* Banners / Confetti */
 const Banners={push(html){const host=$('#bannerHost'); const b=el('div',{class:'banner',html:`🎉 ${html}`}); host.appendChild(b); setTimeout(()=>b.remove(),3200);}};
-const FX={confettiAt(node){if(!node)return; const rect=node.getBoundingClientRect(); const x=rect.left+rect.width/2, y=rect.top+rect.height/2; const host=el('div'); host.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:2200'; document.body.appendChild(host);
-  const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab']; for(let i=0;i<22;i++){const d=el('div'); const size=6+Math.random()*6; d.style.cssText=`position:absolute;width:${size}px;height:${size}px;background:${colors[i%colors.length]};opacity:.95;border-radius:${Math.random()<.4?'50%':'2px'};left:${x+(Math.random()*120-60)}px;top:${y+(Math.random()*40-20)}px`;
-    const dx=(Math.random()*2-1)*(innerWidth*0.12), dy=(innerHeight*0.25+Math.random()*innerHeight*0.15);
-    d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1100+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);}
-  setTimeout(()=>host.remove(),1800);}};
+const FX={confettiAt(node){if(!node)return; const rect=node.getBoundingClientRect(); const x=rect.left+rect.width/2,y=rect.top+rect.height/2; const host=el('div'); host.style.cssText='position:fixed;left:0;top:0;pointer-events:none;z-index:2200'; document.body.appendChild(host); const colors=['#ffb357','#ffd166','#7bd88f','#6bd3ff','#d4bfff','#ff8fab']; for(let i=0;i<22;i++){const d=el('div'); const size=6+Math.random()*6; d.style.cssText=`position:absolute;width:${size}px;height:${size}px;background:${colors[i%colors.length]};opacity:.95;border-radius:${Math.random()<.4?'50%':'2px'};left:${x+(Math.random()*120-60)}px;top:${y+(Math.random()*40-20)}px`; const dx=(Math.random()*2-1)*(innerWidth*0.12),dy=(innerHeight*0.25+Math.random()*innerHeight*0.15); d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${180+Math.random()*180}deg)`,opacity:0}],{duration:1100+Math.random()*600,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'}); host.appendChild(d);} setTimeout(()=>host.remove(),1800);}};
 
-/* ========= COACHES / NOTIFY / MENU ========= */
-const EX_ORDER=['walk','jog','sit','push','jacks','pull','rope','plank','mtclimb','kb','burpee','bench','backsq','dead','hand','hspu','muscle','lever','icross','vcross'];
-
+/* ========== COACHES / NOTIFY / MENU ========== */
 const Coaches={
   list:[],
-  build(){ Coaches.list=State.exercises.map((ex,idx)=>({id:'c'+(idx+1),name:COACH_NAME[idx],icon:COACH_URL[idx]||COACH_URL[COACH_URL.length-1],target:ex.id,price: Coaches.priceFor(idx)})); },
-  priceFor(idx){ if(idx===0) return 1500; return Math.round(1500*Math.pow(1.8,idx)); },
+  build(){Coaches.list=State.exercises.map((ex,idx)=>({id:'c'+(idx+1),name:COACH_NAME[idx],icon:COACH_URL[idx]||COACH_URL[COACH_URL.length-1],target:ex.id,price:Coaches.priceFor(idx)}));},
+  priceFor(idx){return idx===0?1500:Math.round(1500*Math.pow(1.8,idx));},
   isAuto(exId){return Coaches.list.some(c=>State.coaches[c.id]&&c.target===exId);},
   ownedFor(exId){return Coaches.list.filter(c=>State.coaches[c.id]&&c.target===exId);},
-  renderTab(){const host=$('#tab-coaches'); host.innerHTML=''; const intro=el('div',{class:'coachCard'}); intro.append(el('div',{class:'cInfo',text:'Coaches automatically tap a specific exercise for you (no sound). They respect cooldowns. Hire when you can afford them.'})); host.appendChild(intro);
+  renderTab(){
+    const host=$('#tab-coaches'); host.innerHTML='';
+    const intro=el('div',{class:'coachCard'}); intro.append(el('div',{class:'cInfo',text:'Coaches automatically tap a specific exercise for you (no sound). They respect cooldowns. Hire when you can afford them.'})); host.appendChild(intro);
     const grid=el('div',{class:'grid'}); host.appendChild(grid);
     const exBy=Object.fromEntries(State.exercises.map(e=>[e.id,e]));
-    for(const c of Coaches.list){const ex=exBy[c.target]; const owned=!!State.coaches[c.id]; const canAfford=State.hp+1e-6>=c.price; const unlockedTarget=!!(ex&&ex.unlocked);
-      const card=el('div',{class:'coachCard'+(unlockedTarget?'':' locked')}); const head=el('div',{class:'headshot'}); head.append(el('img',{src:c.icon,alt:c.name}));
-      const mid=el('div'); mid.append(el('div',{class:'cName',text:c.name}), el('div',{class:'cInfo',text:`Works on: ${ex?.name||c.target}`}));
-      const btn=el('button',{class:'hire',text: owned?'Hired': `Hire • ${Util.fmtCost(c.price)} HP`});
+    for(const c of Coaches.list){
+      const ex=exBy[c.target], owned=!!State.coaches[c.id], canAfford=State.hp+1e-6>=c.price, unlockedTarget=!!(ex&&ex.unlocked);
+      const card=el('div',{class:'coachCard'+(unlockedTarget?'':' locked')});
+      const head=el('div',{class:'headshot'}); head.append(el('img',{src:c.icon,alt:c.name}));
+      const mid=el('div'); mid.append(el('div',{class:'cName',text:c.name}),el('div',{class:'cInfo',text:`Works on: ${ex?.name||c.target}`}));
+      const btn=el('button',{class:'hire',text:owned?'Hired':`Hire • ${Util.fmtCost(c.price)} HP`});
       if(owned){btn.classList.add('owned');btn.disabled=true;} else if(unlockedTarget){btn.classList.toggle('ready',canAfford);btn.disabled=!canAfford;}
       card.append(head,mid,btn); grid.appendChild(card);
-      btn.addEventListener('click',()=>{ if(owned||!unlockedTarget) return; if(State.hp+1e-6<c.price) return; Game.addHP(-c.price); State.coaches[c.id]=true; save(); AudioSys.play('ui.click'); UI.refreshThrottled(); Coaches.renderTab(); });
+      btn.addEventListener('click',()=>{if(owned||!unlockedTarget)return; if(State.hp+1e-6<c.price)return; Game.addHP(-c.price); State.coaches[c.id]=true; save(); AudioSys.play('ui.click'); UI.refreshThrottled(); Coaches.renderTab();});
     }
   }
 };
 Coaches.build();
 
 const Notify=(()=>{let next=0; function coachAvailable(){for(const c of Coaches.list){const ex=State.exercises.find(e=>e.id===c.target); if(!ex||!ex.unlocked) continue; if(State.coaches[c.id]) continue; if(State.hp+1e-6>=c.price) return true;} return false;}
-  function update(){ $('#menuDot').classList.toggle('show', coachAvailable()); }
-  function updateThrottled(){const now=performance.now(); if(now>=next){next=now+App.Config.NOTIFY_MS; update();}}
+  function update(){$('#menuDot').classList.toggle('show',coachAvailable());}
+  function updateThrottled(){const now=performance.now(); if(now>=next){next=now+160; update();}}
   Bus.on('hp',update); Bus.on('unlock',update); Bus.on('reps',update); Bus.on('upgrade',update); Bus.on('coach',update);
-  return {update,updateThrottled};
+  return{update,updateThrottled};
 })();
 
-/* ========= MENU ========= */
+/* ========== MENU ========== */
 const Menu={
-  open(){ $('#menuOv').classList.add('open'); $('#menuOv').setAttribute('aria-hidden','false'); AudioSys.play('ui.menu.open'); $('.tabBtn[data-tab="coaches"]').click(); },
+  open(){ $('#menuOv').classList.add('open'); $('#menuOv').setAttribute('aria-hidden','false'); AudioSys.play('ui.menu.open'); // default to Coaches
+    const btn=$('.tabBtn[data-tab="coaches"]'); if(btn){btn.click();}
+  },
   close(){ $('#menuOv').classList.remove('open'); $('#menuOv').setAttribute('aria-hidden','true'); AudioSys.play('ui.menu.close'); },
-  wire(){ $('#avatarBtn').addEventListener('click',()=>Menu.open()); $('#menuClose').addEventListener('click',()=>Menu.close()); $('#menuOv').addEventListener('click',e=>{ if(e.target.id==='menuOv') Menu.close(); });
-    $$('.tabBtn',$('.menuTabs')).forEach(btn=>btn.addEventListener('click',()=>{ AudioSys.play('ui.click'); $$('.tabBtn',$('.menuTabs')).forEach(x=>x.classList.remove('active')); btn.classList.add('active');
-      const tab=btn.dataset.tab; ['coaches','achievements','upgrades','quests','stats','settings'].forEach(t=>{$('#tab-'+t).style.display=(t===tab?'block':'none');});
-      if(tab==='coaches') Coaches.renderTab(); if(tab==='stats') Menu.renderStats(); if(tab==='settings') Menu.renderSettings(); if(tab==='achievements') Menu.renderAchievements();
+  wire(){
+    $('#avatarBtn').addEventListener('click',()=>Menu.open());
+    $('#menuClose').addEventListener('click',()=>Menu.close());
+    $('#menuOv').addEventListener('click',e=>{if(e.target.id==='menuOv') Menu.close();});
+    $$('.tabBtn',$('.menuTabs')).forEach(btn=>btn.addEventListener('click',()=>{
+      AudioSys.play('ui.click');
+      $$('.tabBtn',$('.menuTabs')).forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+      const tab=btn.dataset.tab;
+      ['coaches','achievements','upgrades','quests','stats','settings'].forEach(t=>{$('#tab-'+t).style.display=(t===tab?'block':'none');});
+      if(tab==='coaches') Coaches.renderTab();
+      if(tab==='stats') Menu.renderStats();
+      if(tab==='settings') Menu.renderSettings();
+      if(tab==='achievements') Menu.renderAchievements();
     }));
   },
   renderStats(){const host=$('#tab-stats'); host.innerHTML=`<div class="coachCard"><div>
@@ -696,139 +644,120 @@ const Menu={
     <div><strong>Coaches Hired:</strong> ${Object.values(State.coaches).filter(Boolean).length} / ${Coaches.list.length}</div>
   </div></div>`;},
   renderSettings(){const host=$('#tab-settings'); host.innerHTML=''; const card=el('div',{class:'coachCard'}); const wrap=el('div'); wrap.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
-    <label><input id="set-sfx" type="checkbox" ${AudioSys.sfx.on?'checked':''}/> Sound Effects</label>
-    <label>Music Volume <input id="set-music" type="range" min="0" max="1" step="0.01" value="0.10" style="width:160px;vertical-align:middle"> (low)</label>
+    <label><input id="set-sfx" type="checkbox" checked/> Sound Effects</label>
+    <label>Music Volume <input id="set-music" type="range" min="0" max="1" step="0.01" value="0.10" style="width:160px;vertical-align:middle"></label>
     <label><input id="set-floats" type="checkbox" checked/> Show +HP floaters</label>
   </div>
   <hr style="border:0;border-top:1px solid #223556;margin:10px 0">
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button id="btn-save" class="btn small" style="background:#1a2a40;color:#d7e3f5">Save</button>
-    <button id="btn-reset" class="btn small" style="background:#1a2a40;color:#d7e3f5">Reset</button>
-    <button id="btn-export" class="btn small" style="background:#1a2a40;color:#d7e3f5">Export</button>
-    <button id="btn-import" class="btn small" style="background:#1a2a40;color:#d7e3f5">Import</button>
-  </div>`; card.appendChild(wrap); host.appendChild(card);
-    $('#set-sfx').onchange=e=>AudioSys.sfx.on=!!e.target.checked; $('#set-music').oninput=e=>AudioSys.music.setVol(parseFloat(e.target.value||'0.10')); $('#set-floats').onchange=e=>Settings.set('floats',!!e.target.checked);
-    $('#btn-save').onclick=()=>{save();AudioSys.play('ui.click');}; $('#btn-reset').onclick=()=>{if(confirm('Reset your progress?')){localStorage.removeItem(App.Config.SAVE_KEY); location.reload();}};
+    <button id="btn-save" class="btn" style="background:#1a2a40;color:#d7e3f5">Save</button>
+    <button id="btn-reset" class="btn" style="background:#1a2a40;color:#d7e3f5">Reset</button>
+    <button id="btn-export" class="btn" style="background:#1a2a40;color:#d7e3f5">Export</button>
+    <button id="btn-import" class="btn" style="background:#1a2a40;color:#d7e3f5">Import</button>
+  </div>`;
+    card.appendChild(wrap); host.appendChild(card);
+    $('#set-sfx').checked=AudioSys.sfx.on; $('#set-sfx').onchange=e=>AudioSys.sfx.on=!!e.target.checked;
+    $('#set-music').value=0.10; $('#set-music').oninput=e=>AudioSys.music.setVol(parseFloat(e.target.value||'0.10'));
+    $('#set-floats').checked=Settings.get('floats'); $('#set-floats').onchange=e=>Settings.set('floats',!!e.target.checked);
+    $('#btn-save').onclick=()=>{save();AudioSys.play('ui.click');};
+    $('#btn-reset').onclick=()=>{if(confirm('Reset your progress?')){localStorage.removeItem(App.Config.SAVE_KEY); location.reload();}};
     $('#btn-export').onclick=()=>{const blob=new Blob([localStorage.getItem(App.Config.SAVE_KEY)||'{}'],{type:'application/json'}); const a=el('a'); a.href=URL.createObjectURL(blob); a.download='fitness-frenzy-save.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500);};
     $('#btn-import').onclick=()=>{const inp=el('input',{type:'file',accept:'application/json'}); inp.addEventListener('change',()=>{const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{JSON.parse(r.result); localStorage.setItem(App.Config.SAVE_KEY,r.result); alert('Imported. Reloading…'); location.reload();}catch(e){alert('Import failed.')}}; r.readAsText(f);}); inp.click();};
   },
   renderAchievements(){const host=$('#tab-achievements'); host.innerHTML=''; const grid=el('div',{class:'grid'}); host.appendChild(grid);
-    for(const a of Achievements.defs){const owned=!!State.achievements[a.id]; const card=el('div',{class:'coachCard'}); const head=el('div',{class:'headshot'}); head.append(el('div',{text:a.icon,style:'font-size:36px;display:flex;align-items:center;justify-content:center;width:100%;height:100%'}));
-      const mid=el('div'); mid.append(el('div',{class:'cName',text:a.title}), el('div',{class:'cInfo',text:a.desc})); const right=el('div',{class:'cInfo',text:owned?'Completed':`Reward: +${Util.fmtCost(a.reward)} HP`});
-      card.append(head,mid,right); grid.appendChild(card);
-    }
+    for(const a of Achievements.defs){const owned=!!State.achievements[a.id]; const card=el('div',{class:'coachCard'}); const head=el('div',{class:'headshot'}); head.append(el('div',{text:a.icon,style:'font-size:36px;display:flex;align-items:center;justify-content:center;width:100%;height:100%'})); const mid=el('div'); mid.append(el('div',{class:'cName',text:a.title}),el('div',{class:'cInfo',text:a.desc})); const right=el('div',{class:'cInfo',text:owned?'Completed':`Reward: +${Util.fmtCost(a.reward)} HP`}); card.append(head,mid,right); grid.appendChild(card);}
   }
 };
 
-/* ========= ACHIEVEMENTS (light) ========= */
+/* ========== ACHIEVEMENTS ========== */
 const Achievements={
   defs:[
-    {id:'first_steps', icon:'👣', title:'First Steps', desc:'Upgrade Walking to Lvl 2 (10/10).', reward:50, test:()=>State.exercises.find(e=>e.id==='walk')?.level>=2},
-    {id:'add_routine', icon:'🏃', title:'Add to Routine', desc:'Unlock Jogging.', reward:100, test:()=>State.exercises.find(e=>e.id==='jog')?.unlocked},
-    {id:'first_coach', icon:'🧑‍🏫', title:'Coach On Duty', desc:'Hire your first coach.', reward:150, test:()=>Object.values(State.coaches).some(Boolean)},
-    {id:'speed_demon', icon:'⚡', title:'Speed Demon', desc:'Any exercise reaches ≤0.30s cooldown.', reward:180, test:()=>State.exercises.some(e=>e.unlocked && Math.max(App.Config.MIN_CD_MS,e.cooldown)<=300)},
+    {id:'first_steps',icon:'👣',title:'First Steps',desc:'Upgrade Walking to Lvl 2 (10/10).',reward:50,test:()=>State.exercises.find(e=>e.id==='walk')?.level>=2},
+    {id:'add_routine',icon:'🏃',title:'Add to Routine',desc:'Unlock Jogging.',reward:100,test:()=>State.exercises.find(e=>e.id==='jog')?.unlocked},
+    {id:'first_coach',icon:'🧑‍🏫',title:'Coach On Duty',desc:'Hire your first coach.',reward:150,test:()=>Object.values(State.coaches).some(Boolean)},
+    {id:'speed_demon',icon:'⚡',title:'Speed Demon',desc:'Any exercise reaches ≤0.30s cooldown.',reward:180,test:()=>State.exercises.some(e=>e.unlocked && Math.max(App.Config.MIN_CD_MS,e.cooldown)<=300)},
   ],
-  checkAll(){for(const a of Achievements.defs){if(!State.achievements[a.id] && a.test()){State.achievements[a.id]=true; Game.addHP(a.reward); AudioSys.play('achievement.unlock'); Banners.push(`Achievement: <strong>${a.title}</strong> • +${Util.fmtCost(a.reward)} HP`); save();}}}
+  checkAll(){for(const a of Achievements.defs){if(!State.achievements[a.id]&&a.test()){State.achievements[a.id]=true;Game.addHP(a.reward);AudioSys.play('achievement.unlock');Banners.push(`Achievement: <strong>${a.title}</strong> • +${Util.fmtCost(a.reward)} HP`);save();}}}
 };
 Bus.on('hp',()=>Achievements.checkAll()); Bus.on('upgrade',()=>Achievements.checkAll()); Bus.on('unlock',()=>Achievements.checkAll()); Bus.on('reps',()=>Achievements.checkAll());
 
-/* ========= SETTINGS ========= */
+/* ========== SETTINGS (prefs) ========== */
 const Settings=(()=>{const d={floats:true}; try{const raw=localStorage.getItem(App.Config.SAVE_KEY+':prefs'); if(raw){Object.assign(d,JSON.parse(raw));}}catch{} function savePref(){try{localStorage.setItem(App.Config.SAVE_KEY+':prefs',JSON.stringify(d));}catch{}} return{get:k=>d[k],set:(k,v)=>{d[k]=v;savePref();}}})();
 
-/* ========= OFFLINE ========= */
+/* ========== OFFLINE ========== */
 const Offline=(()=>{const KEY='ff-last'; const off=$('#off');
   function saveNow(){try{localStorage.setItem(KEY,Date.now().toString());}catch{}}
   function fmt(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);s%=60;const L=[];if(h)L.push(h+'h');if(m)L.push(m+'m');if(s||!L.length)L.push(s+'s');return L.join(' ');}
-  function summary(ms){let hp=0, pts=0; for(const ex of State.exercises){ if(!ex.unlocked||!Coaches.isAuto(ex.id)) continue; const cd=Math.max(App.Config.MIN_CD_MS, ex.cooldown); const taps=Math.floor(ms/cd); if(taps>0){hp += taps*Game.perTap(ex); pts += taps*coinPointsFor(ex,true);} } return {hp,pts};}
-  function check(){const last=parseInt(localStorage.getItem(KEY)||'0',10); const now=Date.now(); if(last>0){const delta=now-last; const cap=Math.min(delta,App.Config.OFFLINE_CAP_MS); const s=summary(cap);
-      if(s.hp>0||s.pts>0){$('#offDur').textContent=fmt(cap); $('#offAmt').textContent=Util.fmtHP(s.hp); $('#offCoin').textContent=s.pts; $('#offCapNote').style.display=(delta>cap)?'block':'none'; off.classList.add('open'); AudioSys.play('offline.show');
-        $('#offClaim').onclick=()=>{ if(s.hp>0) Game.addHP(s.hp); if(s.pts>0) awardCoinPoints(s.pts); off.classList.remove('open'); AudioSys.play('offline.claim'); save(); };
-      }
-    } saveNow();}
+  function summary(ms){let hp=0,pts=0; for(const ex of State.exercises){if(!ex.unlocked||!Coaches.isAuto(ex.id))continue; const cd=Math.max(App.Config.MIN_CD_MS,ex.cooldown); const taps=Math.floor(ms/cd); if(taps>0){hp+=taps*Game.perTap(ex); pts+=taps*coinPointsFor(ex,true);}} return{hp,pts};}
+  function check(){const last=parseInt(localStorage.getItem(KEY)||'0',10); const now=Date.now(); if(last>0){const delta=now-last; const cap=Math.min(delta,App.Config.OFFLINE_CAP_MS); const s=summary(cap); if(s.hp>0||s.pts>0){$('#offDur').textContent=fmt(cap); $('#offAmt').textContent=Util.fmtHP(s.hp); $('#offCoin').textContent=s.pts; $('#offCapNote').style.display=(delta>cap)?'block':'none'; off.classList.add('open'); AudioSys.play('offline.show'); $('#offClaim').onclick=()=>{if(s.hp>0)Game.addHP(s.hp); if(s.pts>0)awardCoinPoints(s.pts); off.classList.remove('open'); AudioSys.play('offline.claim'); save();};} } saveNow();}
   window.addEventListener('visibilitychange',()=>{if(document.hidden) saveNow();}); window.addEventListener('pagehide',saveNow); window.addEventListener('beforeunload',saveNow);
-  return {check};
+  return{check};
 })();
 
-/* ========= TUTORIAL (typed) ========= */
-const Tutorial=(()=>{const ov=$('#tut'), bubble=$('#bubble'), tWho=$('#tWho'), tText=$('#tText'), spot=$('#spot'); let step=null, idx=0, typingTimer=null, typingPos=0, typingStr='';
+/* ========== TUTORIAL (typed, anchored) ========== */
+const Tutorial=(()=>{const ov=$('#tut'),bubble=$('#bubble'),tWho=$('#tWho'),tText=$('#tText'),spot=$('#spot'); let step=null,idx=0,tm=null,pos=0,str='';
   function show(){ov.classList.add('show'); ov.setAttribute('aria-hidden','false'); AudioSys.play('tutorial.show');}
-  function hide(){ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); stopTyping();}
-  function setSpeaker(who){tWho.textContent=who;}
-  function typeLine(str){stopTyping(); typingStr=str; typingPos=0; tText.textContent=''; const tick=()=>{if(typingPos<=typingStr.length){tText.textContent=typingStr.slice(0,typingPos); if(typingPos%3===0) AudioSys.play('type.tick'); typingPos++; typingTimer=setTimeout(tick, 28);} else {stopTyping();}}; tick();}
-  function stopTyping(){if(typingTimer){clearTimeout(typingTimer); typingTimer=null;}}
-  function setLines(lines){idx=0; setSpeaker(lines[0].who); typeLine(lines[0].text); show();}
-  function nextLine(lines,onDone){ if(idx<lines.length-1){idx++; setSpeaker(lines[idx].who); typeLine(lines[idx].text); AudioSys.play('tutorial.next');} else { if(onDone) onDone(); } }
-  bubble.addEventListener('click',()=>{if(step) nextLine(step.lines, step.onDone);});
+  function hide(){ov.classList.remove('show'); ov.setAttribute('aria-hidden','true'); hideSpot(); stop(); }
+  function setSpeaker(w){tWho.textContent=w;}
+  function type(line){stop(); str=line; pos=0; tText.textContent=''; const tick=()=>{if(pos<=str.length){tText.textContent=str.slice(0,pos); if(pos%3===0)AudioSys.play('type.tick'); pos++; tm=setTimeout(tick,32);} else stop();}; tick();}
+  function stop(){if(tm){clearTimeout(tm); tm=null;}}
+  function setLines(lines){idx=0; setSpeaker(lines[0].who); type(lines[0].text); show();}
+  function next(lines,done){ if(idx<lines.length-1){idx++; setSpeaker(lines[idx].who); type(lines[idx].text); AudioSys.play('tutorial.next'); } else if(done){done();} }
+  bubble.addEventListener('click',()=>{if(step) next(step.lines,step.onDone);});
   function showSpot(sel){const node=document.querySelector(sel); if(!node){hideSpot();return;} const r=node.getBoundingClientRect(); const pad=6; spot.style.display='block'; spot.style.left=(r.left-pad)+'px'; spot.style.top=(r.top-pad)+'px'; spot.style.width=(r.width+pad*2)+'px'; spot.style.height=(r.height+pad*2)+'px';}
   function hideSpot(){spot.style.display='none';}
   function startIntro(){
     if(State.tutorial.done) return;
-    // anchor bubble under avatar icon, arrow implied via spot ring
-    const avatarRect = $('#avatarBtn').getBoundingClientRect();
-    bubble.style.left = (avatarRect.left + avatarRect.width/2)+'px';
-    bubble.style.bottom = 'calc(100% - 54px)'; // near top bar
-    bubble.style.transform = 'translateX(-50%)';
+    const avatarRect=$('#avatarBtn').getBoundingClientRect();
+    bubble.style.left=(avatarRect.left+avatarRect.width/2)+'px';
+    bubble.style.bottom='calc(100% - 54px)';
+    bubble.style.transform='translateX(-50%)';
     const lines=[
-      {who:'JAX', text:`You look a bit low on energy. Let's fix that fast 💪`},
-      {who:'You', text:`Where do I start?`},
-      {who:'JAX', text:`Tap ${State.avatar==='female'?'': ''}<span class="hl">Walking</span> to earn <span class="hl">1 HP</span>. Then we'll power up.`.replace(/<[^>]+>/g,'')},
+      {who:'JAX',text:`You look a bit low on energy. Let's fix that fast 💪`},
+      {who:'You',text:`Where do I start?`},
+      {who:'JAX',text:`Tap Walking to earn 1 HP. Then we'll power up.`},
     ];
     setLines(lines);
-    step={lines, onDone(){ hide(); showSpot('.card[data-id="walk"] .left'); }};
+    step={lines,onDone(){ hide(); showSpot('.card[data-id="walk"] .left'); }};
   }
-  function onUpgrade(ex){ if(State.tutorial.shown.upgrade?.[ex.id]) return; State.tutorial.shown.upgrade=State.tutorial.shown.upgrade||{}; State.tutorial.shown.upgrade[ex.id]=true; save();
-    const L=[{who:'JAX', text:`${ex.name} upgraded! Cooldown halved.`}]; setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot(`.card[data-id="${ex.id}"] .cool`); setTimeout(hideSpot,1500);
+  function onUpgrade(ex){const shown=(State.tutorial.shown.upgrade||{})[ex.id]; if(shown) return; State.tutorial.shown.upgrade.upgrade??={}; State.tutorial.shown.upgrade[ex.id]=true; save();
+    const L=[{who:'JAX',text:`${ex.name} upgraded! Cooldown halved.`}]; setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .cool`); setTimeout(hideSpot,1500);
   }
-  function onUnlockAffordable(ex){ if(ex.id!=='jog') return; if(State.tutorial.shown.unlock?.[ex.id]) return;
-    const L=[{who:'JAX', text:`Add to your routine! Unlock ${ex.name} when the pill turns orange.`}]; setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot(`.card[data-id="${ex.id}"] .unlockPill`);
+  function onUnlockAffordable(ex){ if(ex.id!=='jog') return; if((State.tutorial.shown.unlock||{})[ex.id]) return;
+    const L=[{who:'JAX',text:`Add to your routine! Unlock ${ex.name} when the pill turns orange.`}]; setLines(L); step={lines:L,onDone(){hide();}}; showSpot(`.card[data-id="${ex.id}"] .unlockPill`);
   }
-  function onCoachAffordable(){ // first coach only
-    const c=Coaches.list[1]; // jogging's coach (index 1)
-    if(!c || State.coaches[c.id]) return;
-    const ex=State.exercises.find(e=>e.id===c.target);
-    if(!ex||!ex.unlocked) return;
-    if(State.hp+1e-6>=c.price){ const L=[{who:'JAX', text:`Want to maximize gains? Open the Menu (your avatar) and Hire a coach.`}]; setLines(L); step={lines:L, onDone(){ hide(); }}; showSpot('#avatarBtn'); }
-  }
+  function onCoachAffordable(){ const c=Coaches.list[1]; if(!c||State.coaches[c.id]) return; const ex=State.exercises.find(e=>e.id===c.target); if(!ex||!ex.unlocked) return; if(State.hp+1e-6>=c.price){const L=[{who:'JAX',text:`Open the Menu (your avatar) and Hire a coach to auto-tap.`}]; setLines(L); step={lines:L,onDone(){hide();}}; showSpot('#avatarBtn');}}
   Bus.on('upgrade',({id})=>{const ex=State.exercises.find(e=>e.id===id); if(ex) onUpgrade(ex);});
   Bus.on('hp',()=>{const jog=State.exercises.find(e=>e.id==='jog'); if(jog && !jog.unlocked && State.hp+1e-6>=jog.unlockCost) onUnlockAffordable(jog); onCoachAffordable();});
   return {startIntro, hide};
 })();
 
-/* ========= START / SPLASH ========= */
-function showSplashThenStart(){const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{s.classList.remove('open'); $('#start').classList.add('open');}, 5000);}
+/* ========== START / SPLASH / TOPBAR / INIT ========== */
+function showSplashThenStart(){const s=$('#splash'); s.classList.add('open'); setTimeout(()=>{s.classList.remove('open'); $('#start').classList.add('open');},5000);}
 function wireStart(){
   const st=$('#start'); const hasSave=!!localStorage.getItem(App.Config.SAVE_KEY);
   if(hasSave) $('#btnContinue').style.display='inline-block';
   $('#btnStart').addEventListener('click',()=>{localStorage.removeItem(App.Config.SAVE_KEY); location.reload();});
-  $('#btnContinue').addEventListener('click',()=>{ AudioSys.play('ui.click'); st.classList.remove('open'); AudioSys.music.setVol(0.10); AudioSys.music.start(); Offline.check(); window.scrollTo({top:0,behavior:'instant'}); });
-  $$('.segBtn',$('#avatarSeg')).forEach(b=>b.addEventListener('click',()=>{ $$('.segBtn',$('#avatarSeg')).forEach(x=>x.classList.remove('active')); b.classList.add('active'); State.avatar=b.dataset.avatar; $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); save(); }));
+  $('#btnContinue').addEventListener('click',()=>{AudioSys.play('ui.click'); st.classList.remove('open'); AudioSys.music.setVol(0.10); AudioSys.music.start(); Offline.check(); window.scrollTo({top:0,behavior:'instant'});});
+  $$('.segBtn',$('#avatarSeg')).forEach(b=>b.addEventListener('click',()=>{$$('.segBtn',$('#avatarSeg')).forEach(x=>x.classList.remove('active')); b.classList.add('active'); State.avatar=b.dataset.avatar; $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale); save(); UI.build(); }));
 }
-
-/* ========= INPUT GUARDS ========= */
 (function mobileGuards(){let lastTouch=0; document.addEventListener('touchend',e=>{const n=Date.now(); if(n-lastTouch<300){e.preventDefault();} lastTouch=n;},{passive:false}); document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false}); document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});})();
-
-/* ========= TOPBAR WIRING ========= */
 function wireTopbar(){const g=$('#qtyGroup'); $$('.qtyBtn',g).forEach(btn=>{btn.addEventListener('click',()=>{$$('.qtyBtn',g).forEach(x=>x.classList.remove('active')); btn.classList.add('active'); State.qty=parseInt(btn.dataset.q,10)||1; save(); AudioSys.play('ui.click'); UI.refreshThrottled();});});}
 
-/* ========= INIT ========= */
-function boot(){
-  // ensure avatar image
+document.addEventListener('DOMContentLoaded',()=>{
   $('#avatarImg').src=(State.avatar==='female'?Assets.avatarFemale:Assets.avatarMale);
-  UI._hpShown=State.hp; UI.build(); UI.refreshThrottled(); Menu.wire(); wireTopbar(); wireStart(); showSplashThenStart();
+  UI._hpShown=State.hp;
+  UI.build(); UI.refreshThrottled();
+  Menu.wire(); wireTopbar(); wireStart(); showSplashThenStart();
 
-  // First-time intro (only when no save existed)
   if(!localStorage.getItem(App.Config.SAVE_KEY)){ setTimeout(()=>Tutorial.startIntro(), 600); }
 
-  // fresh counters
-  setInterval(()=>{ $('#hpMini').textContent=Util.fmtHP(State.hp); $('#fcMini').textContent=Util.fmtCoin(State.fitcoin); }, 400);
-
-  State.qty=State.qty||1; Engine.start(); setInterval(save, App.Config.SAVE_MS);
-
-  // make sure page starts at top
-  setTimeout(()=>window.scrollTo({top:0,behavior:'instant'}), 50);
-}
-
-document.addEventListener('DOMContentLoaded', boot);
+  setInterval(()=>{ $('#hpMini').textContent=Util.fmtHP(State.hp); $('#fcMini').textContent=Util.fmtCoin(State.fitcoin); },400);
+  State.qty=State.qty||1;
+  Engine.start();
+  setInterval(save,App.Config.SAVE_MS);
+  setTimeout(()=>window.scrollTo({top:0,behavior:'instant'}),50);
+});
 </script>
 </body>
 </html>
