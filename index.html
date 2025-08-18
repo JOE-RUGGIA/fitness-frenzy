@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fitness Frenzy — Minimal Single (VS1)</title>
+  <title>Fitness Frenzy — VS2 (Jogging + Tutorial)</title>
   <style>
     :root{
       --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
-      --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --danger:#ff3860;
+      --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --danger:#ff3860; --warn:#ffcc00;
       --rep:#27c93f;
     }
     *{box-sizing:border-box}
@@ -23,7 +23,8 @@
     .hp-pill{margin-top:8px; background:#182047; border:1px solid #2a2e5e; padding:8px 10px; border-radius:10px; font-variant-numeric: tabular-nums; display:flex; align-items:center; justify-content:space-between}
     .cards{display:grid; gap:12px}
     .card{display:grid; grid-template-columns:110px 1fr; gap:12px; padding:10px; background:var(--panel); border:1px solid #262a58; border-radius:12px}
-    .tile{background:var(--panel-2); border-radius:10px; position:relative; height:110px; display:grid; place-items:center; user-select:none}
+    .tile{background:var(--panel-2); border-radius:10px; position:relative; height:110px; display:grid; place-items:center; user-select:none; overflow:hidden}
+    .tile.locked{filter: grayscale(100%); opacity:.9}
     .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px}
     .tap-btn{appearance:none; border:0; background:var(--accent); color:#1b0d00; font-weight:800; padding:8px 10px; border-radius:8px; cursor:pointer}
     .tile.cooling .tap-btn{opacity:.5; cursor:not-allowed}
@@ -38,17 +39,31 @@
     .repband{position:absolute; left:6px; right:6px; bottom:6px; height:16px; border-radius:8px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden}
     .repfill{height:100%; width:0%; background:linear-gradient(90deg, #17b34c, #27c93f)}
     .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:#cfead6; text-shadow:0 1px 2px #000}
+    .pill{appearance:none; border:1px solid #2a2e5e; background:#1f254f; color:#e9edff; padding:8px 12px; border-radius:999px; cursor:pointer; font-variant-numeric: tabular-nums}
+    .pill.orange{background:var(--accent); color:#1b0d00; font-weight:800}
+    .pulse{animation:pulse 1.8s ease-in-out infinite}
+    @keyframes pulse{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.03) } }
     .menu{position:fixed; right:12px; bottom:12px; background:#14163a; border:1px solid #2a2e5e; border-radius:10px; padding:10px}
     .menu h4{margin:0 0 8px 0}
     .danger{color:#ff9aa5}
     .footer{margin-top:10px; color:var(--muted); font-size:12px}
+
+    /* Tutorial bubble */
+    .jax{position:fixed; inset:0; display:none; place-items:center; z-index:50; pointer-events:none}
+    .jax.show{display:grid}
+    .jax .panel{pointer-events:auto; max-width:min(560px, 92vw); background:#111333; border:1px solid #2a2e5e; border-radius:14px; padding:16px}
+    .jax .head{display:flex; align-items:center; gap:10px; margin-bottom:8px}
+    .jax .ava{width:40px; height:40px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:900}
+    .jax .body{line-height:1.45}
+    .jax .actions{margin-top:10px; display:flex; gap:10px; justify-content:flex-end}
+    .jax .actions .btn{min-width:auto}
   </style>
 </head>
 <body>
   <div class="topbar">
     <div class="wrap">
       <div class="row">
-        <div class="logo">Fitness Frenzy — VS1</div>
+        <div class="logo">Fitness Frenzy — VS2</div>
         <div class="bulk" id="bulk">
           <button data-q="1" class="active">×1</button>
           <button data-q="10">×10</button>
@@ -61,7 +76,7 @@
 
   <div class="wrap">
     <div id="cards" class="cards"></div>
-    <div class="footer">VS1 scope: Single exercise (Walking), Reps button, Rep progress band, Level-ups halve cooldown (min 100ms). Coach purchase below.</div>
+    <div class="footer">Scope: Walking + Jogging (locked → unlock pill). Tutorial bubbles (intro, Reps hint, Jogging unlock hint). Coach auto-tap + Reset in panel.</div>
   </div>
 
   <!-- Minimal “menu” pinned bottom-right for coach + reset -->
@@ -79,141 +94,210 @@
     <button id="reset" class="btn danger">Reset Save</button>
   </div>
 
+  <!-- JAX tutorial -->
+  <div id="jax" class="jax">
+    <div class="panel">
+      <div class="head">
+        <div class="ava">J</div>
+        <div style="font-weight:900">JAX</div>
+      </div>
+      <div id="jax-text" class="body"></div>
+      <div class="actions">
+        <button id="jax-skip" class="btn">Skip</button>
+        <button id="jax-next" class="btn">Next</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ----- One-time guard
-    if (!window.__FF_VS1__) {
-      window.__FF_VS1__ = true;
+    if (!window.__FF_VS2__) {
+      window.__FF_VS2__ = true;
 
-      // ----- Event bus
+      // ===== Bus
       const Bus = (()=>{ const m=new Map(); return { on:(e,cb)=>{ if(!m.has(e)) m.set(e,new Set()); m.get(e).add(cb); return ()=>m.get(e).delete(cb); }, emit:(e,p)=>{ const s=m.get(e); if(!s) return; s.forEach(cb=>{ try{cb(p)}catch(err){console.error(err)} }); } }; })();
 
-      // ----- Content & Math
-      const Exercise = { id:'walk', name:'Walking', baseCooldownMs:1000 };
+      // ===== Content & Math
+      const Exercises = [
+        { id:'walk', name:'Walking', baseCooldownMs:1000 },
+        { id:'jog',  name:'Jogging', baseCooldownMs:3000 },
+      ];
       const coachPrice = 1500;
       const log2 = x => Math.log(x)/Math.log(2);
-      const baseHP = 1; // Walking special case
-      const perTapHP = repHP => baseHP + repHP;
-      const repBaseCost = () => Math.max(4, Math.round(baseHP * 0.05)); // =4
-      const repGrowth = level => Math.max(1.07, Math.min(1.15, 1.07 + 0.01 * log2(Math.max(1, level))));
+      const baseHP = (idx, ms) => idx===0 ? 1 : Math.round(20 * Math.pow(ms/1000, 1.10));
+      const perTapHP = (b, repHP) => b + repHP;
+      const repBaseCost = (b) => Math.max(4, Math.round(b * 0.05));
+      const repGrowth = lvl => Math.max(1.07, Math.min(1.15, 1.07 + 0.01 * log2(Math.max(1, lvl))));
       const repCostSingle = (rb,g,rep) => rb * Math.pow(g, rep);
       const repCostBulk   = (rb,g,rep,n) => rb * Math.pow(g, rep) * ((Math.pow(g,n)-1)/(g-1));
       const nextCooldown = ms => Math.max(100, Math.floor(ms/2));
+      const unlockCost = (b, ms) => Math.round(b * Math.pow(ms/1000, 0.60) * 1.15);
       const fmt = n => { if(!isFinite(n)) return '0'; const a=Math.abs(n); if(a>=1e12) return (n/1e12).toFixed(2)+'T'; if(a>=1e9) return (n/1e9).toFixed(2)+'B'; if(a>=1e6) return (n/1e6).toFixed(2)+'M'; if(a>=1e3) return (n/1e3).toFixed(2)+'K'; return String(Math.floor(n)); };
 
-      // ----- Storage / State
-      const KEY='ff-vs1';
+      // ===== Storage / State
+      const KEY='ff-vs2';
       function defaults(){ return {
         hp:0, qty:1,
-        ex:{ id:'walk', unlocked:true, repHP:0, repTarget:10, level:1, cooldown:Exercise.baseCooldownMs, lastTapAt:0 },
-        coaches:{ c1:false }
+        exercises:[
+          { id:'walk', unlocked:true, repHP:0, repTarget:10, level:1, cooldown:Exercises[0].baseCooldownMs, lastTapAt:0 },
+          { id:'jog',  unlocked:false, repHP:0, repTarget:10, level:1, cooldown:Exercises[1].baseCooldownMs, lastTapAt:0 },
+        ],
+        coaches:{ c1:false },
+        tutorial:{ doneIntro:false, shown:{ repsHint:false, unlock:{ jog:false } } }
       };}
-      function load(){ try{ const raw=localStorage.getItem(KEY); if(!raw) return defaults(); const d=JSON.parse(raw)||{}; return { ...defaults(), ...d }; }catch{ return defaults(); } }
-      function save(s){ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch{} }
+      function load(){ try{ const raw=localStorage.getItem(KEY); if(!raw) return defaults(); const d=JSON.parse(raw)||{}; const base=defaults(); // shallow merge
+        // Keep arrays length/shape
+        if(!Array.isArray(d.exercises)) d.exercises = base.exercises;
+        if(!d.tutorial) d.tutorial = base.tutorial;
+        return Object.assign(base, d);
+      }catch{ return defaults(); } }
+      function save(s){
+        try{
+          const p = structuredClone(s);
+          p.exercises.forEach(e => e.lastTapAt = 0);
+          localStorage.setItem(KEY, JSON.stringify(p));
+        }catch{}
+      }
       let S = load();
+      S.exercises.forEach(e => e.lastTapAt = 0); // clamp on load
+      save(S);
       const get = () => S;
-      function patch(mut){ S = mut(structuredClone(S)); save(S); Bus.emit('state:changed', S); }
+      function patch(mut){ S = mut(structuredClone(S)); save(S); scheduleUpdate(); Bus.emit('state:changed', S); }
 
-      // ----- Topbar
+      // ===== UI refs & helpers
       const hpEl = document.getElementById('hp-readout');
       const bulk = document.getElementById('bulk');
-      bulk.addEventListener('click', (e) => {
-        const b = e.target.closest('button'); if(!b) return;
-        [...bulk.children].forEach(btn => btn.classList.toggle('active', btn === b));
-        const qty = parseInt(b.dataset.q,10);
-        patch(s => { s.qty = qty; return s; });
-      });
-      Bus.on('state:changed', () => { hpEl.textContent = fmt(get().hp); });
-      hpEl.textContent = fmt(get().hp);
+      const cardsRoot = document.getElementById('cards');
+      const hireBtn = document.getElementById('hire');
+      const hirePrice = document.getElementById('hire-price');
+      const jax = document.getElementById('jax');
+      const jaxText = document.getElementById('jax-text');
+      const jaxSkip = document.getElementById('jax-skip');
+      const jaxNext = document.getElementById('jax-next');
 
-      // ----- Cards
-      const root = document.getElementById('cards');
-      let refs = null;
-      function mount(){
-        root.innerHTML='';
-        const s = get();
-        const ex = s.ex;
+      // Stable DOM: keep card nodes; update fields only
+      const cardRefs = new Map(); // id -> refs
+
+      function createCard(idx){
+        const exMeta = Exercises[idx];
+        const exState = get().exercises[idx];
+
         const card = document.createElement('div'); card.className='card';
         const tile = document.createElement('div'); tile.className='tile';
-        const lvl  = document.createElement('div'); lvl.className='lvl'; lvl.textContent = 'Lvl ' + ex.level;
-        const tap  = document.createElement('button'); tap.className='tap-btn'; tap.textContent = '+ Tap';
+        if(!exState.unlocked) tile.classList.add('locked');
+        const lvl  = document.createElement('div'); lvl.className='lvl'; lvl.textContent = 'Lvl ' + exState.level;
+        const tap  = document.createElement('button'); tap.className='tap-btn'; tap.textContent = exState.unlocked ? '+ Tap' : 'Locked';
         const repband = document.createElement('div'); repband.className='repband';
         const repfill = document.createElement('div'); repfill.className='repfill';
-        const reptext = document.createElement('div'); reptext.className='reptext'; reptext.textContent = ex.repHP + ' / ' + ex.repTarget;
+        const reptext = document.createElement('div'); reptext.className='reptext';
         repband.append(repfill, reptext);
         tile.append(lvl, tap, repband);
 
         const right = document.createElement('div');
-        const title = document.createElement('div'); title.className='title'; title.textContent = Exercise.name;
+        const title = document.createElement('div'); title.className='title'; title.textContent = exMeta.name;
         const cd = document.createElement('div'); cd.className='cooldown';
         const bar = document.createElement('div'); bar.className='bar';
         const t = document.createElement('div'); t.className='t'; t.textContent='Ready';
         cd.append(bar, t);
         const meta = document.createElement('div'); meta.className='meta';
         const left = document.createElement('div'); left.className='muted';
-        const repBtn = document.createElement('button'); repBtn.className='btn';
-        meta.append(left, repBtn);
+        const rightBtn = document.createElement('button'); rightBtn.className='btn';
+        meta.append(left, rightBtn);
         right.append(title, cd, meta);
         card.append(tile, right);
-        root.append(card);
 
-        function updateMeta(){
-          const s = get(); const ex = s.ex;
-          left.textContent = perTapHP(ex.repHP) + ' HP / tap';
-          const rb = repBaseCost(); const g = repGrowth(ex.level); const qty = s.qty||1;
-          const price = Math.ceil(qty===1 ? repCostSingle(rb,g,ex.repHP) : repCostBulk(rb,g,ex.repHP,qty));
-          repBtn.textContent = 'Reps • ' + fmt(price) + ' HP';
-          repBtn.classList.toggle('glow', s.hp >= price);
-          reptext.textContent = ex.repHP + ' / ' + ex.repTarget;
-          const pct = Math.max(0, Math.min(100, 100 * (ex.repHP / ex.repTarget)));
-          repfill.style.width = pct + '%';
-        }
-        updateMeta();
-
-        repBtn.addEventListener('click', () => {
-          const s = get(); const ex = s.ex;
-          const rb = repBaseCost(); const g = repGrowth(ex.level); const qty = s.qty||1;
+        // Clicks
+        tap.addEventListener('click', () => {
+          const s = get(); const ex = s.exercises[idx]; if(!ex.unlocked) return;
+          const now = performance.now();
+          if (now < ex.lastTapAt + ex.cooldown) return;
+          const gain = perTapHP(baseHP(idx, exMeta.baseCooldownMs), ex.repHP);
+          patch(st => { st.hp += gain; st.exercises[idx].lastTapAt = now; return st; });
+        });
+        rightBtn.addEventListener('click', () => {
+          const s = get(); const ex = s.exercises[idx];
+          if(!ex.unlocked){
+            // Attempt unlock
+            const b = baseHP(idx, exMeta.baseCooldownMs);
+            const price = unlockCost(b, exMeta.baseCooldownMs);
+            if (s.hp < price) return;
+            patch(st => { st.hp -= price; st.exercises[idx].unlocked = true; return st; });
+            return;
+          }
+          // Buy reps
+          const b = baseHP(idx, exMeta.baseCooldownMs);
+          const rb = repBaseCost(b); const g = repGrowth(ex.level); const qty = s.qty||1;
           const price = Math.ceil(qty===1 ? repCostSingle(rb,g,ex.repHP) : repCostBulk(rb,g,ex.repHP,qty));
           if (s.hp < price) return;
           patch(st => {
             st.hp -= price;
-            st.ex.repHP += qty;
-            while(st.ex.repHP >= st.ex.repTarget){
-              st.ex.level += 1;
-              st.ex.cooldown = nextCooldown(st.ex.cooldown);
-              st.ex.repTarget *= 2;
+            st.exercises[idx].repHP += qty;
+            while(st.exercises[idx].repHP >= st.exercises[idx].repTarget){
+              st.exercises[idx].level += 1;
+              st.exercises[idx].cooldown = nextCooldown(st.exercises[idx].cooldown);
+              st.exercises[idx].repTarget *= 2;
             }
             return st;
           });
         });
 
-        tap.addEventListener('click', () => {
-          const s = get(); const ex = s.ex; const now = performance.now();
-          if (now < ex.lastTapAt + ex.cooldown) return;
-          const gain = perTapHP(ex.repHP);
-          patch(st => { st.hp += gain; st.ex.lastTapAt = now; return st; });
-        });
-
-        refs = { bar, t, tile, updateMeta };
+        // Insert
+        cardsRoot.append(card);
+        cardRefs.set(exMeta.id, { idx, card, tile, lvl, tap, repband, repfill, reptext, cd, bar, t, left, rightBtn, title });
+        updateCard(exMeta.id); // initial paint
       }
-      mount();
-      // Re-render on state change
-      Bus.on('state:changed', () => { mount(); });
 
-      // ----- Cooldown ticker
-      function tick(){
-        const s = get(); const ex = s.ex; const now = performance.now();
-        const dt = now - ex.lastTapAt; const r = Math.max(0, ex.cooldown - dt);
-        if (refs){
-          if (r<=0){ refs.bar.style.width='100%'; refs.t.textContent='Ready'; refs.tile.classList.remove('cooling'); }
-          else { const pct = 100 * (dt / ex.cooldown); refs.bar.style.width = Math.max(0,Math.min(100,pct))+'%'; refs.t.textContent=(r/1000).toFixed(2)+'s'; refs.tile.classList.add('cooling'); }
+      function updateCard(id){
+        const r = cardRefs.get(id); if(!r) return;
+        const exMeta = Exercises[r.idx];
+        const ex = get().exercises[r.idx];
+        r.lvl.textContent = 'Lvl ' + ex.level;
+        r.title.textContent = exMeta.name;
+
+        if(!ex.unlocked){
+          r.tile.classList.add('locked');
+          r.tap.textContent = 'Locked';
+          const b = baseHP(r.idx, exMeta.baseCooldownMs);
+          const price = unlockCost(b, exMeta.baseCooldownMs);
+          r.left.textContent = '—';
+          r.rightBtn.textContent = 'Unlock • ' + fmt(price) + ' HP';
+          const afford = get().hp >= price;
+          r.rightBtn.classList.toggle('glow', afford);
+          r.rightBtn.classList.toggle('pulse', afford);
+          r.reptext.textContent = '—';
+          r.repfill.style.width = '0%';
+        }else{
+          r.tile.classList.remove('locked');
+          r.tap.textContent = '+ Tap';
+          const b = baseHP(r.idx, exMeta.baseCooldownMs);
+          const hpTap = perTapHP(b, ex.repHP);
+          r.left.textContent = hpTap + ' HP / tap';
+          const rb = repBaseCost(b); const g = repGrowth(ex.level); const qty = get().qty||1;
+          const price = Math.ceil(qty===1 ? repCostSingle(rb,g,ex.repHP) : repCostBulk(rb,g,ex.repHP,qty));
+          r.rightBtn.textContent = 'Reps • ' + fmt(price) + ' HP';
+          r.rightBtn.classList.toggle('glow', get().hp >= price);
+          r.rightBtn.classList.remove('pulse');
+          r.reptext.textContent = ex.repHP + ' / ' + ex.repTarget;
+          const pct = Math.max(0, Math.min(100, 100 * (ex.repHP / ex.repTarget)));
+          r.repfill.style.width = pct + '%';
         }
-        requestAnimationFrame(tick);
       }
-      requestAnimationFrame(tick);
 
-      // ----- Coach + Reset
-      const hireBtn = document.getElementById('hire');
-      const hirePrice = document.getElementById('hire-price');
+      function buildCards(){
+        cardsRoot.innerHTML='';
+        cardRefs.clear();
+        for(let i=0;i<Exercises.length;i++){ createCard(i); }
+      }
+
+      // ===== Topbar handlers
+      bulk.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if(!b) return;
+        [...bulk.children].forEach(btn => btn.classList.toggle('active', btn === b));
+        const qty = parseInt(b.dataset.q,10);
+        patch(s => { s.qty = qty; return s; });
+      });
+
+      // ===== Coach + Reset
       hirePrice.textContent = fmt(coachPrice);
       function updateHire(){
         const s=get(); const hired=s.coaches.c1; const able=s.hp>=coachPrice;
@@ -225,12 +309,112 @@
         const s=get(); if(s.coaches.c1 || s.hp<coachPrice) return;
         patch(st => { st.hp -= coachPrice; st.coaches.c1 = true; return st; });
       });
-      Bus.on('state:changed', updateHire);
-      updateHire();
-
       document.getElementById('reset').addEventListener('click', ()=>{
-        if(confirm('Reset your save?')){ localStorage.removeItem(KEY); S = defaults(); save(S); Bus.emit('state:changed', S); }
+        if(confirm('Reset your save?')){
+          localStorage.removeItem(KEY);
+          S = defaults();
+          save(S);
+          scheduleUpdate();
+          Bus.emit('state:changed', S);
+        }
       });
+
+      // ===== rAF loop: cooldown UI + auto-tap when coached
+      function tick(){
+        const now = performance.now();
+        const s = get();
+        for(let i=0;i<Exercises.length;i++){
+          const ex = s.exercises[i];
+          const ready = now >= ex.lastTapAt + ex.cooldown;
+          // Auto-tap only for Walking when coached
+          if(i===0 && s.coaches.c1 && ready && ex.unlocked){
+            const gain = perTapHP(baseHP(i, Exercises[i].baseCooldownMs), ex.repHP);
+            patch(st => { st.hp += gain; st.exercises[i].lastTapAt = now; return st; });
+          }
+          // Cooldown bar UI
+          const r = cardRefs.get(Exercises[i].id); if(!r) continue;
+          const dt = Math.max(0, now - ex.lastTapAt);
+          const remain = Math.max(0, ex.cooldown - dt);
+          if (remain<=0){ r.bar.style.width='100%'; r.t.textContent='Ready'; r.tile.classList.remove('cooling'); }
+          else { const pct = 100 * (dt / ex.cooldown); r.bar.style.width = Math.max(0,Math.min(100,pct))+'%'; r.t.textContent=(remain/1000).toFixed(2)+'s'; r.tile.classList.add('cooling'); }
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      // ===== Throttled UI updates (no re-mount churn)
+      let uiDirty = true;
+      function scheduleUpdate(){ uiDirty = true; }
+      function flushUI(){
+        if(!uiDirty){ requestAnimationFrame(flushUI); return; }
+        uiDirty = false;
+        // HP
+        hpEl.textContent = fmt(get().hp);
+        // Cards
+        for(const id of cardRefs.keys()){ updateCard(id); }
+        updateHire();
+        requestAnimationFrame(flushUI);
+      }
+      requestAnimationFrame(flushUI);
+
+      // ===== Tutorial (JAX)
+      const Tutor = (() => {
+        let queue = [];
+        let active = false;
+        function show(lines){
+          queue = lines.slice();
+          active = true;
+          jax.classList.add('show');
+          step();
+        }
+        function step(){
+          if(queue.length===0){ hide(); return; }
+          const line = queue.shift();
+          jaxText.textContent = line;
+        }
+        function hide(){ active=false; jax.classList.remove('show'); }
+        jaxNext.addEventListener('click', step);
+        jaxSkip.addEventListener('click', hide);
+        return { show, hide, step, get active(){ return active; } };
+      })();
+
+      function tutorialCheck(){
+        const s = get();
+        // Intro (once, at fresh start)
+        if(!s.tutorial.doneIntro){
+          Tutor.show([
+            "You look a bit low on energy. Let’s fix that fast 💪",
+            "Tap Walking to earn HP. Then we’ll power up."
+          ]);
+          patch(st => { st.tutorial.doneIntro = true; return st; });
+          return;
+        }
+        // Reps hint: after ≥4 HP earned on Walking and no reps yet on Walking
+        if(!s.tutorial.shown.repsHint && s.exercises[0].repHP===0 && s.hp >= 4){
+          Tutor.show([
+            "Great start! Use Reps to hit harder each tap.",
+            "When the green bar fills, your cooldown halves."
+          ]);
+          patch(st => { st.tutorial.shown.repsHint = true; return st; });
+          return;
+        }
+        // Jogging unlock hint: when affordable and locked
+        const jIdx = 1; const j = s.exercises[jIdx];
+        const b = baseHP(jIdx, Exercises[jIdx].baseCooldownMs);
+        const price = unlockCost(b, Exercises[jIdx].baseCooldownMs);
+        if (!s.tutorial.shown.unlock.jog && !j.unlocked && s.hp >= price){
+          Tutor.show([ "Add to your routine! Unlock Jogging when the pill turns orange." ]);
+          patch(st => { st.tutorial.shown.unlock.jog = true; return st; });
+          return;
+        }
+      }
+
+      // Trigger tutorial checks periodically (lightweight)
+      setInterval(() => { if(!Tutor.active) tutorialCheck(); }, 600);
+
+      // ===== Build and start
+      buildCards();
+      scheduleUpdate(); // initial
     }
   </script>
 </body>
