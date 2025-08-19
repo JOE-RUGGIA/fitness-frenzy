@@ -1020,5 +1020,74 @@ try{
   const el=document.getElementById('err'); el.textContent='Init Error: '+(e.message||e); el.style.display='block';
 }
 </script>
+  <!-- ========== FF PATCH LOADER (add once) ========== -->
+<script id="ff-patch-loader">
+(function(){
+  if (window.__FF_PATCH_LOADER__) return;
+  window.__FF_PATCH_LOADER__ = true;
+  function runPatchBlocks(){
+    document.querySelectorAll('style[data-ff-patch]:not([data-ff-applied])').forEach(el=>{
+      el.setAttribute('data-ff-applied','1'); (document.head||document.documentElement).appendChild(el);
+    });
+    document.querySelectorAll('script[type="application/ff-patch"]:not([data-ff-applied])').forEach(el=>{
+      el.setAttribute('data-ff-applied','1'); try{ (new Function(el.textContent))(); }catch(e){ console.error('FF patch error:', e); }
+    });
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', runPatchBlocks, {once:true}); else runPatchBlocks();
+  new MutationObserver(runPatchBlocks).observe(document.documentElement, {childList:true, subtree:true});
+})();
+</script>
+
+<!-- ========== FF HOOKS BUS (can live as a patch) ========== -->
+<script type="application/ff-patch">
+(function(){
+  if (window.ffHooks) return;
+  const listeners=new Map();
+  function on(t,f){(listeners.get(t)||listeners.set(t,new Set()).get(t)).add(f)}
+  function off(t,f){const s=listeners.get(t); if(s) s.delete(f)}
+  function emit(t,d){const s=listeners.get(t); if(s) for(const f of [...s]){try{f(d)}catch(e){console.warn('ffHooks handler',e)}} try{document.dispatchEvent(new CustomEvent('ff:'+t,{detail:d}))}catch(_){}}
+  function once(t,f){const w=d=>{off(t,w);f(d)}; on(t,w)}
+  window.ffHooks={on,off,once,emit};
+
+  const menu=document.getElementById('menu');
+  if(menu){
+    let open=menu.classList.contains('show');
+    new MutationObserver(()=>{const now=menu.classList.contains('show'); if(now!==open){open=now; emit(now?'menu:open':'menu:close')}}).observe(menu,{attributes:true,attributeFilter:['class']});
+    menu.addEventListener('click',e=>{const b=e.target.closest('.tab'); if(b){const tab=b.dataset.tab||b.textContent.trim().toLowerCase(); emit('menu:tab',{tab}); if(tab==='settings') emit('settings:open')}})
+  }
+  document.addEventListener('click',e=>{const b=e.target.closest('.subtabs .tab'); if(b) emit('settings:subtab',{sub:(b.textContent||'').trim().toLowerCase()})});
+  const cards=document.getElementById('cards');
+  if(cards){
+    let seeded=false;
+    new MutationObserver(m=>{
+      if(!seeded && cards.children.length>0){seeded=true; emit('cards:built',{count:cards.children.length})}
+      for(const x of m){ if(x.type==='childList') emit('cards:update',{count:cards.children.length}) }
+    }).observe(cards,{childList:true})
+  }
+  const hpEl=document.getElementById('hp-readout');
+  if(hpEl){
+    let last=hpEl.textContent.trim();
+    new MutationObserver(()=>{const nxt=hpEl.textContent.trim(); if(nxt!==last){last=nxt; const num=parseFloat(nxt.replace(/[^0-9.]/g,''))||0; emit('hp:change',{readout:nxt,numeric:num})}}).observe(hpEl,{characterData:true,childList:true,subtree:true})
+  }
+  if(cards){
+    new MutationObserver(m=>{
+      for(const x of m){
+        if(x.type==='attributes' && x.attributeName==='class' && x.target.classList.contains('tile') && x.target.classList.contains('burst-on')){
+          const card=x.target.closest('.card'); const name=card?.querySelector('.title')?.textContent?.trim()||''; emit('exercise:tap',{name});
+        }
+      }
+    }).observe(cards,{attributes:true,attributeFilter:['class'],subtree:true})
+  }
+  let hpPrev=null, tPrev=performance.now();
+  setInterval(()=>{
+    const tNow=performance.now();
+    const hpText=document.getElementById('hp-readout')?.textContent||'0';
+    const hpNum=parseFloat(hpText.replace(/[^0-9.]/g,''))||0;
+    if(hpPrev!==null){ const dt=(tNow-tPrev)/60000; const dHP=Math.max(0,hpNum-hpPrev); emit('stats:tick',{hp:hpNum,hpPerMin: dt>0 ? (dHP/dt) : 0}); }
+    hpPrev=hpNum; tPrev=tNow;
+  },2000);
+})();
+</script>
+
 </body>
 </html>
