@@ -1098,6 +1098,83 @@ try{
 
 
 
+<style data-ff-patch>
+  /* --- Palette (safe to re-declare) --- */
+  :root{
+    --male-1:#2f6df3; --male-2:#41b0ff;
+    --pink-1:#ff76b5; --pink-2:#ffb3d5;
+  }
+
+  /* === Reps button: only tint if affordable (uses existing .glow) === */
+  /* Neutral base when NOT affordable */
+  .btn-reps{
+    background:#1b1f44 !important;
+    border-color:#2a2e5e !important;
+    color:#e9edff !important;
+    font-weight:900;
+  }
+  /* Affordable → male tint */
+  .btn-reps.glow{
+    background:linear-gradient(180deg,var(--male-1),var(--male-2)) !important;
+    border-color:var(--male-2) !important;
+    color:#071428 !important;
+    box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35) !important;
+  }
+  /* Affordable → female tint */
+  body.female .btn-reps.glow{
+    background:linear-gradient(180deg,var(--pink-1),var(--pink-2)) !important;
+    border-color:var(--pink-2) !important;
+    color:#2b0020 !important;
+    box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35) !important;
+  }
+
+  /* === Cooldown bars: gender gradient + diagonal white stripes === */
+  .bar{
+    /* stripes layer on top + underlying gender gradient */
+    background:
+      repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,.18) 0,
+        rgba(255,255,255,.18) 6px,
+        rgba(255,255,255,0)   6px,
+        rgba(255,255,255,0)   12px
+      ),
+      linear-gradient(90deg,var(--male-1),var(--male-2)) !important;
+  }
+  body.female .bar{
+    background:
+      repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,.18) 0,
+        rgba(255,255,255,.18) 6px,
+        rgba(255,255,255,0)   6px,
+        rgba(255,255,255,0)   12px
+      ),
+      linear-gradient(90deg,var(--pink-1),var(--pink-2)) !important;
+  }
+</style>
+
+<script type="application/ff-patch">
+/* Ensure only real "Reps" buttons carry .btn-reps, so unlock buttons stay neutral */
+(function(){
+  try{
+    const root=document.getElementById('cards');
+    const scan=()=>{
+      document.querySelectorAll('.card .meta .btn').forEach(btn=>{
+        const isReps = btn.textContent && btn.textContent.trim().startsWith('Reps');
+        btn.classList.toggle('btn-reps', !!isReps);
+      });
+    };
+    scan();
+    if(root){
+      new MutationObserver(scan).observe(root,{childList:true,subtree:true,characterData:true});
+    }
+  }catch(e){ console.warn('reps tint patch skipped', e); }
+})();
+</script>
+
+
+
 
 
 
@@ -1106,143 +1183,91 @@ try{
 
   
 
-<style>
-  /* Ensure tutorial always renders above sticky topbar */
-  .topbar{position:sticky; top:0; z-index:25 !important;}
-  .splash.show ~ .topbar,
-  .start.show  ~ .topbar{display:none !important;}
-  /* Just in case: keep the tutorial above other chrome */
-  #tip{z-index:90 !important}
+
+<style data-ff-patch>
+  /* Topbar: extra-sticky and high stacking */
+  .topbar{position:sticky !important; top:0; z-index:1000 !important}
+
+  /* Swap text logo for image (sits right of avatar) */
+  .topbar .logo{font-size:0 !important; line-height:0}
+  .topbar .top-logo{
+    height:84px; /* slightly taller than 72px avatar */
+    width:auto; display:block; object-fit:contain;
+    filter:drop-shadow(0 2px 0 rgba(0,0,0,.15));
+  }
+  @media (max-width:480px){
+    .topbar .top-logo{height:78px}
+  }
+
+  /* Pill row: HP + Fitcoins side-by-side */
+  .topbar .pill-row{
+    display:flex; gap:10px; margin-top:10px;
+  }
+  /* Make both pills equal size and bold */
+  .hp-pill, .coin-pill{
+    flex:1 1 0; min-width:0;
+    display:flex; align-items:center; justify-content:space-between;
+    background:#182047; border:1px solid #2a2e5e; border-radius:12px;
+    padding:10px 12px; font-weight:900; /* bold labels + values */
+  }
+
+  /* Fitcoins pill + placeholder coin icon */
+  .coin-pill{ position:relative; padding-left:40px }
+  .coin-pill::before{
+    content:''; position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    width:18px; height:18px; border-radius:50%;
+    background:
+      radial-gradient(circle at 30% 30%, #ffffff 0%, #ffeaa7 18%, #f5c451 42%, #b8870a 72%, #7a5a00 100%);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.15), 0 1px 3px rgba(0,0,0,.45);
+  }
 </style>
 
-<script>
-/* === Tutorial Force-Boot Patch (idempotent) === */
+<script type="application/ff-patch">
 (function(){
-  if (window.__FF_TUTORIAL_FALLBACK__) return;
-  window.__FF_TUTORIAL_FALLBACK__ = true;
-
-  const splash = document.getElementById('splash');
-  const start  = document.getElementById('start');
-  const tip    = document.getElementById('tip');
-  const bubble = document.getElementById('tip-bubble');
-  const headNm = document.getElementById('tip-head-name');
-  const headImg= document.getElementById('tip-head-img');
-  const textEl = document.getElementById('tip-text');
-  const nextBt = document.getElementById('tip-next');
-  const offline= document.getElementById('offline');
-  const offlineBtn = document.getElementById('offline-claim');
-
-  function uiReady(){
-    const splashHidden = !splash || !splash.classList.contains('show');
-    const startHidden  = !start  || !start.classList.contains('show');
-    return splashHidden && startHidden;
-  }
-  function tipVisible(){
-    return tip && tip.classList.contains('show');
-  }
-
-  // Use game’s own tutorial if available
-  function tryNativeTutorial(force=false){
-    try{
-      if (typeof window.checkTutorial === 'function'){
-        window.checkTutorial(!!force);
-        return true;
-      }
-    }catch(_){}
-    return false;
-  }
-
-  // Lightweight fallback tutorial using existing DOM
-  function showFallbackTutorial(){
-    if (!tip || !bubble || !textEl || !nextBt) return;
-    if (tipVisible()) return;
-
-    // Steps (JAX → You → JAX). No game state touched.
-    const steps = [
-      {who:'jax',    text:"You look a bit low on energy. Let’s fix that fast 💪"},
-      {who:'you',    text:"But where do I start?"},
-      {who:'jax',    text:"Tap Walking to earn <span class='jax-key'>HP</span>. When the unlock button <b>lights up</b>, add more to your routine. Fill the green bar <span class='mini-bar'></span> to speed up your cooldown."}
-    ];
-    let i = 0;
-
-    function render(){
-      // Speaker visuals
-      if (steps[i].who === 'you'){
-        headNm.textContent = 'You';
-        // Swap to selected avatar if present
-        headImg.src = (document.body.classList.contains('female') ? 'NEW FEMALE AVATAR.gif' : 'NEW MALE AVATAR.gif');
-      } else {
-        headNm.textContent = 'JAX';
-        headImg.src = 'fitness frenzy- coaches 128 x128 test.gif';
-      }
-      // Text (keep your highlight styles if present)
-      textEl.innerHTML = steps[i].text
-        .replace(/green bar/i, m => `${m} <span class="mini-bar"></span>`)
-        .replace(/\b(HP|Reps|cooldown|unlock|Unlock|exercise|Exercises)\b/g, '<span class="jax-key">$1</span>');
-
-      // Center by default; anchor near avatar if "you" speaking
-      bubble.classList.remove('anchored','center');
-      if (steps[i].who === 'you'){
-        const avatar = document.getElementById('avatar');
-        bubble.classList.add('anchored');
-        const rect = avatar?.getBoundingClientRect();
-        if (rect){
-          bubble.style.left = Math.max(10, rect.left) + 'px';
-          bubble.style.top  = Math.max(10, rect.bottom + 12) + 'px';
-        } else {
-          bubble.classList.add('center');
-          bubble.style.left = ''; bubble.style.top = '';
-        }
-      } else {
-        bubble.classList.add('center');
-        bubble.style.left = ''; bubble.style.top = '';
-      }
+  try{
+    /* 1) Replace title text with your logo image (right of avatar) */
+    const logoDiv = document.querySelector('.topbar .row .logo');
+    if (logoDiv && !logoDiv.querySelector('img.top-logo')) {
+      logoDiv.textContent = '';
+      const img = document.createElement('img');
+      img.className = 'top-logo';
+      img.alt = 'Fitness Frenzy';
+      img.src = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/COMPRESSED%20LOGO.png?raw=true';
+      logoDiv.appendChild(img);
     }
 
-    // Wiring
-    tip.classList.add('show');
-    bubble.style.visibility = 'visible';
-    render();
+    /* 2) Build pill row (HP + Fitcoins) under the first topbar row */
+    const wrap = document.querySelector('.topbar .wrap');
+    const firstRow = wrap?.querySelector('.row');
+    const hpPill = document.getElementById('hp-readout')?.closest('.hp-pill');
 
-    nextBt.onclick = function(){
-      if (++i >= steps.length){
-        tip.classList.remove('show');
-        return;
+    if (wrap && firstRow && hpPill) {
+      let row = wrap.querySelector('.pill-row');
+      if (!row) {
+        row = document.createElement('div');
+        row.className = 'pill-row';
+        firstRow.insertAdjacentElement('afterend', row);
       }
-      render();
-    };
-  }
+      // Move the existing HP pill into the new row
+      if (hpPill.parentElement !== row) row.appendChild(hpPill);
 
-  // Orchestrate: once UI is ready, wait a moment for native flow; then fallback.
-  function bootTutorialOnce(){
-    if (!uiReady()) return;
-    // 1) Give native tutorial a shot immediately
-    let nativeShown = tryNativeTutorial(true);
-    // 2) If still not visible after 900ms, use fallback
-    setTimeout(()=>{
-      if (!tipVisible()){
-        if (!nativeShown) nativeShown = tryNativeTutorial(true);
-        if (!tipVisible()) showFallbackTutorial();
+      // Add the Fitcoins pill if it doesn't exist yet
+      if (!row.querySelector('.coin-pill')) {
+        const coin = document.createElement('div');
+        coin.className = 'coin-pill';
+        const label = document.createElement('span'); label.textContent = 'Fitcoins';
+        const value = document.createElement('span'); value.id = 'coin-readout'; value.textContent = '0';
+        coin.append(label, value);
+        row.appendChild(coin);
       }
-    }, 900);
-  }
 
-  // Trigger when Splash/Start close
-  [splash, start].filter(Boolean).forEach(el=>{
-    new MutationObserver(bootTutorialOnce).observe(el,{attributes:true,attributeFilter:['class']});
-  });
-  // Also try once on load (covers direct Continue path)
-  setTimeout(bootTutorialOnce, 150);
-
-  // If Offline Gains appears first, show tutorial after user claims
-  if (offlineBtn){
-    offlineBtn.addEventListener('click', ()=>{
-      setTimeout(bootTutorialOnce, 300);
-    });
-  }
+      // If a previous HP/min line exists, keep it below the pill row
+      const hpRate = document.getElementById('hp-rate');
+      if (hpRate) row.insertAdjacentElement('afterend', hpRate);
+    }
+  }catch(e){ console.warn('Topbar/pills patch error', e); }
 })();
 </script>
-
 
 
 
