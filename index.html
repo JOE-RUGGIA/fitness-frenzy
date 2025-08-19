@@ -1604,5 +1604,124 @@ try{
 
 
 
+<style data-ff-patch>
+  /* Keep splash/starts on top; bar stays hidden while they’re visible */
+  .splash.show ~ .topbar,
+  .start.show  ~ .topbar{ display:none !important; }
+
+  /* Ensure Skip is always clickable and visible */
+  #splash-skip{ position:relative; z-index:200 }
+</style>
+
+<script type="application/ff-patch">
+/* ===== Reliability + Perf Patch (splash watchdog + lean observers) ===== */
+(function(){
+  /* ---------------- Splash → Start watchdog ---------------- */
+  const splash = document.getElementById('splash');
+  const start  = document.getElementById('start');
+  const btnNew = document.getElementById('btn-new');
+  const btnCont= document.getElementById('btn-continue');
+
+  function forceShowStart(){
+    if(!splash || !start) return;
+    // If Start already open, bail
+    if (start.classList.contains('show')) return;
+    // Hide splash, show start
+    splash.classList.remove('show');
+    start.classList.add('show');
+    // Make sure Continue button visibility is sane (best effort)
+    if (btnCont && !btnCont.style.display) btnCont.style.display = 'none';
+  }
+
+  // If splash is still up after a reasonable time, move on.
+  // - 5500ms covers asset hiccups on mobile; we also re-check at 8s just in case.
+  const safety1 = setTimeout(()=>{ if (splash?.classList.contains('show')) forceShowStart(); }, 5500);
+  const safety2 = setTimeout(()=>{ if (splash?.classList.contains('show')) forceShowStart(); }, 8000);
+
+  // If user taps Skip, immediately force handoff (belt + suspenders)
+  document.getElementById('splash-skip')?.addEventListener('click', ()=> {
+    try{ clearTimeout(safety1); clearTimeout(safety2); }catch(_){}
+    forceShowStart();
+  }, {capture:true});
+
+  // If Start is closed (user pressed New/Continue), don’t interfere
+  function markGameBegin(){ try{ clearTimeout(safety1); clearTimeout(safety2); }catch(_){} }
+  btnNew?.addEventListener('click', markGameBegin, {once:true});
+  btnCont?.addEventListener('click', markGameBegin, {once:true});
+
+  /* ---------------- Lean Reps button tagging (structure-only) ---------------- */
+  // Earlier we watched characterData on #cards, which fires a lot due to cooldown text updates.
+  // This version only runs when cards are added/removed OR a card locks/unlocks.
+  const cards = document.getElementById('cards');
+  if (cards){
+    const TAGGED = 'data-ff-reps-tagged';
+
+    const classifyCard = (card)=>{
+      try{
+        const btn = card.querySelector('.meta .btn');
+        if(!btn) return;
+        const label = (btn.textContent||'').trim();
+        // Only add .btn-reps when this is the Reps button. Unlock buttons remain neutral.
+        if (label.startsWith('Reps')) btn.classList.add('btn-reps'); else btn.classList.remove('btn-reps');
+      }catch(_){}
+    };
+
+    const scanNewCards = (root)=>{
+      root.querySelectorAll('.card').forEach(card=>{
+        if(!card.hasAttribute(TAGGED)){
+          // Watch this card for lock/unlock changes (class toggles)
+          new MutationObserver(muts=>{
+            for(const m of muts){
+              if(m.type==='attributes' && m.attributeName==='class'){
+                classifyCard(card);
+              }
+            }
+          }).observe(card,{attributes:true, attributeFilter:['class']});
+          classifyCard(card);
+          card.setAttribute(TAGGED,'1');
+        }else{
+          classifyCard(card);
+        }
+      });
+    };
+
+    // Initial pass
+    scanNewCards(cards);
+
+    // Only respond to child list changes (add/remove cards), not text changes
+    const mo = new MutationObserver((muts)=>{
+      let needsScan=false;
+      for(const m of muts){
+        if (m.type==='childList' && (m.addedNodes.length || m.removedNodes.length)){
+          needsScan=true; break;
+        }
+      }
+      if(!needsScan) return;
+      // Coalesce scans into a single RAF tick
+      if(!scanNewCards._queued){
+        scanNewCards._queued = true;
+        requestAnimationFrame(()=>{ scanNewCards._queued=false; scanNewCards(cards); });
+      }
+    });
+    mo.observe(cards,{childList:true, subtree:true});
+  }
+
+  /* ---------------- Minor: coalesce hp/min UI updates (if present) ---------------- */
+  // If our example HP/min patch is present, keep its updates smooth
+  (function(){
+    const rateLine = document.getElementById('hp-rate');
+    if(!rateLine || !window.ffHooks) return;
+    let pending=false, lastData=null;
+    const draw=()=>{ if(!pending) return; pending=false; if(lastData){ rateLine.textContent = 'HP/min: ' + (lastData.hpPerMin||0).toFixed(2); } };
+    ffHooks.off?.('stats:tick', window.__HP_RATE_HANDLER__);
+    window.__HP_RATE_HANDLER__ = (d)=>{ lastData=d; if(!pending){ pending=true; requestAnimationFrame(draw); } };
+    ffHooks.on('stats:tick', window.__HP_RATE_HANDLER__);
+  })();
+
+})();
+</script>
+
+
+
 </body>
 </html>
