@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fitness Frenzy — Achievements + Tile Pop + Locked States</title>
+<title>Fitness Frenzy — VS7v (flow fix + card hover)</title>
 <style>
   :root{
     --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
@@ -31,13 +31,17 @@
 
   /* Cards */
   .cards{display:grid; gap:12px}
-  .card{display:grid; grid-template-columns:120px 1fr; gap:14px; padding:12px; background:var(--panel); border:1px solid #262a58; border-radius:14px; will-change:transform}
+  .card{display:grid; grid-template-columns:120px 1fr; gap:14px; padding:12px; background:var(--panel); border:1px solid #262a58; border-radius:14px; will-change:transform; transition:transform .14s ease, box-shadow .14s ease, opacity .14s ease}
   .card.card-locked{transform:scale(.94); opacity:.86}
+  /* Entire-card afford animation + hover/focus wiggle */
+  .card.card-locked.afford{animation:affordPulseCard 1.35s ease-in-out infinite; box-shadow:0 0 0 0 rgba(255,180,80,0)}
+  @keyframes affordPulseCard{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,180,80,0); transform:scale(.95)}
+    50%{box-shadow:0 0 0 10px rgba(255,180,80,.12); transform:scale(.98)}
+  }
+  .card.card-locked.afford:hover, .card.card-locked.afford:focus-within{transform:scale(.99) translateY(-2px)}
   .tile{background:var(--panel-2); border-radius:12px; position:relative; height:120px; user-select:none; overflow:hidden; cursor:pointer; outline:none; transition:transform .12s ease, filter .12s ease, box-shadow .12s ease}
   .tile.locked{filter:grayscale(100%); opacity:.95; cursor:default}
-  .tile.locked.afford{animation:affordPulse 1.3s ease-in-out infinite; border:1px dashed rgba(255,180,80,.55)}
-  .tile.locked.afford:hover{transform:scale(.98) translateY(-1px); filter:grayscale(92%) brightness(1.05)}
-  @keyframes affordPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,180,80,0); transform:scale(.96)}50%{box-shadow:0 0 0 8px rgba(255,180,80,.16); transform:scale(1)}}
   .tile.tap-pop{animation:tapPop 220ms ease-out}
   @keyframes tapPop{0%{transform:scale(.98)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
   .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 7px; border-radius:8px; font-size:13px; z-index:2}
@@ -57,7 +61,7 @@
   .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:12px 16px; border-radius:12px; min-width:200px; cursor:pointer; font-variant-numeric:tabular-nums; font-size:15px}
   .btn.glow{box-shadow:0 0 0 2px rgba(255,192,120,.25) inset, 0 0 12px rgba(255,122,26,.35)}
 
-  /* Menu overlay (unchanged essentials) */
+  /* Menu overlay */
   .menu{position:fixed; inset:0; display:none; z-index:40}
   .menu.show{display:block}
   .menu-backdrop{position:absolute; inset:0; background:rgba(0,0,0,.55)}
@@ -76,8 +80,8 @@
   .coach-sub{font-size:14px; color:#a6adcf}
   .hired{color:var(--good); font-weight:800}
 
-  /* Splash + Start (kept minimal for context) */
-  .splash{position:fixed; inset:0; z-index:80; display:none; background:#ffffff;}
+  /* Splash */
+  .splash{position:fixed; inset:0; z-index:80; display:none; background:#ffffff}
   .splash.show{display:block}
   .splash .brand{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center}
   .splash .logo-img{width:min(480px,68vw); height:min(480px,68vw); background-image:var(--splash-logo); background-size:contain; background-repeat:no-repeat; background-position:center; margin:0 auto; animation:gb-pop .6s cubic-bezier(.2,.8,.2,1) both, gb-float 5.5s ease-in-out .6s infinite;}
@@ -85,13 +89,15 @@
   .splash .skip{position:absolute; bottom:24px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; color:#fff; padding:10px 14px; border-radius:12px; cursor:pointer; font-size:15px}
   @keyframes gb-pop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
   @keyframes gb-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+  /* Start */
   .start{position:fixed; inset:0; z-index:70; display:none}
   .start.show{display:block}
-  .start .bg{position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; filter:saturate(1.05); pointer-events:none; z-index:0;}
-  .start .scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,12,33,.10) 0%, rgba(10,12,33,.55) 45%, rgba(10,12,33,.85) 100%); pointer-events:none; z-index:1;}
-  .start .panel{position:absolute; left:50%; transform:translateX(-50%); bottom:6vh; width:min(820px,96vw); background:rgba(18,20,52,.70); border:1px solid rgba(42,46,94,.75); border-radius:18px; backdrop-filter: blur(6px); padding:18px; display:flex; flex-direction:column; align-items:center; gap:16px; z-index:2;}
+  .start .bg{position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; filter:saturate(1.05); pointer-events:none; z-index:0}
+  .start .scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,12,33,.10) 0%, rgba(10,12,33,.55) 45%, rgba(10,12,33,.85) 100%); pointer-events:none; z-index:1}
+  .start .panel{position:absolute; left:50%; transform:translateX(-50%); bottom:6vh; width:min(820px,96vw); background:rgba(18,20,52,.70); border:1px solid rgba(42,46,94,.75); border-radius:18px; backdrop-filter: blur(6px); padding:18px; display:flex; flex-direction:column; align-items:center; gap:16px; z-index:2}
   .start .avatars{display:flex; gap:12px; align-items:center; justify-content:center}
-  .start .ava{width:144px; height:144px; border-radius:14px; display:grid; place-items:end; font-weight:900; border:2px solid #2a2e5e; cursor:pointer; background:#121434; user-select:none; overflow:hidden; position:relative;}
+  .start .ava{width:144px; height:144px; border-radius:14px; display:grid; place-items:end; font-weight:900; border:2px solid #2a2e5e; cursor:pointer; background:#121434; user-select:none; overflow:hidden; position:relative}
   .start .ava span{background:rgba(0,0,0,.45); width:100%; text-align:center; font-size:13px; padding:3px 0; position:absolute; bottom:0; left:0}
   .start .ava img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none}
   .start .ava.f{ border-color:var(--female-accent) }
@@ -102,17 +108,20 @@
   .start .btn-continue{background:#1f254f; font-size:16px}
   .start .hint{color:#ccd2ff; opacity:.85; font-size:14px}
 
-  /* Tutorial shell (kept small) */
+  /* Tutorial Tip */
   .tip{position:fixed; inset:0; display:none; z-index:90}
   .tip.show{display:block}
   .tip .back{position:absolute; inset:0; background:rgba(0,0,0,.55)}
-  .tip .bubble{position:absolute; max-width:min(640px, 94vw); background:#0f1338; border:1px solid #2a2e5e; border-radius:14px; padding:16px 18px 16px 16px; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:18px;}
+  .tip .bubble{position:absolute; max-width:min(640px, 94vw); background:#0f1338; border:1px solid #2a2e5e; border-radius:14px; padding:16px 18px 16px 16px; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:18px}
   .tip .bubble.center{left:50%; top:50%; transform:translate(-50%,-50%)}
+  .tip .bubble.anchored{transform:none}
   .tip .head{display:flex; align-items:center; gap:12px; margin-bottom:8px}
   .tip .head .circle{width:64px; height:64px; border-radius:50%; overflow:hidden; border:2px solid #3b3f78; background:#1b1f44; display:grid; place-items:center}
   .tip .head .circle img{width:100%; height:100%; object-fit:cover}
+  .tip .text{min-height:58px}
   .tip .actions{display:flex; gap:10px; justify-content:flex-end; margin-top:10px}
   .tip .btn{min-width:120px; font-size:16px; padding:10px 14px}
+  .tip .arrow{position:absolute; width:24px; height:24px; background:#0f1338; border-left:1px solid #2a2e5e; border-top:1px solid #2a2e5e; transform:rotate(45deg)}
 
   /* Achievement banners + confetti */
   .ach{position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:120; pointer-events:none}
@@ -122,7 +131,6 @@
   .ach .title{font-weight:900}
   .ach .sub{font-size:12px; color:#c8d1ff; opacity:.9}
   .ach .reward{margin-left:8px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); padding:2px 8px; border-radius:999px; font-variant-numeric:tabular-nums}
-
   .conf{position:fixed; top:10px; left:50%; width:0; height:0; pointer-events:none; z-index:121}
   .confetti{position:absolute; width:8px; height:12px; opacity:0; transform:translate(-50%,0) rotate(0deg); animation:confPop 900ms ease-out forwards}
   @keyframes confPop{
@@ -138,23 +146,23 @@
 <body>
   <div id="err" class="err"></div>
 
-  <!-- Splash (stub to keep flow intact) -->
-  <div id="splash" class="splash" aria-hidden="true">
-    <div class="brand"><div class="logo-img" aria-label="GameBros logo"></div><div class="tag">loading…</div></div>
+  <!-- Splash -->
+  <div id="splash" class="splash show" aria-hidden="true">
+    <div class="brand"><div class="logo-img" aria-label="GameBros logo"></div><div class="tag">loading assets…</div></div>
     <button id="splash-skip" class="skip">Skip</button>
   </div>
 
-  <!-- Start (stub: uses your existing art) -->
+  <!-- Start -->
   <div id="start" class="start" role="dialog" aria-modal="true" aria-label="Start menu" data-bg-desktop="FF-desktop.png" data-bg-mobile="FF-mobile.png">
     <div id="start-bg" class="bg"></div>
     <div class="scrim"></div>
     <div class="panel">
       <div class="avatars" id="start-avatars">
         <div class="ava m active" data-sex="male">
-          <img src="NEW MALE AVATAR.gif" alt="Male" onerror="this.style.display='none'"><span>Male</span>
+          <img src="NEW MALE AVATAR.gif" alt="Male avatar" onerror="this.style.display='none'"><span>Male</span>
         </div>
         <div class="ava f" data-sex="female">
-          <img src="NEW FEMALE AVATAR.gif" alt="Female" onerror="this.style.display='none'"><span>Female</span>
+          <img src="NEW FEMALE AVATAR.gif" alt="Female avatar" onerror="this.style.display='none'"><span>Female</span>
         </div>
       </div>
       <div class="buttons">
@@ -203,8 +211,8 @@
     </div>
   </div>
 
-  <!-- Tutorial shell (centered only for JAX; player step anchored in your build) -->
-  <div id="tip" class="tip" role="dialog" aria-modal="true" aria-label="Tutorial" style="display:none">
+  <!-- Tutorial -->
+  <div id="tip" class="tip" role="dialog" aria-modal="true" aria-label="Tutorial">
     <div class="back"></div>
     <div id="tip-bubble" class="bubble center" style="visibility:hidden">
       <div class="head" id="tip-head">
@@ -212,18 +220,18 @@
         <div id="tip-head-name" style="font-weight:900">JAX</div>
       </div>
       <div class="text" id="tip-text"></div>
-      <div class="actions"><button id="tip-next" class="btn">Next</button></div>
+      <div class="actions"><!-- no Skip --><button id="tip-next" class="btn">Next</button></div>
     </div>
   </div>
 
-  <!-- Achievement banners -->
+  <!-- Achievements -->
   <div id="ach" class="ach"></div>
 
-  <!-- Toast (kept) -->
+  <!-- Toast -->
   <div id="toast" class="toast" style="display:none"><div class="box" id="toast-text"></div></div>
 
 <script>
-/* Basic error bar */
+/* Error bar */
 (function(){
   const errEl = document.getElementById('err');
   function showErr(msg){ errEl.textContent='Error: '+msg; errEl.style.display='block'; }
@@ -234,8 +242,8 @@
 
 <script>
 try{
-  if(!window.__FF_ACH_TILES__){
-    window.__FF_ACH_TILES__ = true;
+  if(!window.__FF_VS7V__){
+    window.__FF_VS7V__ = true;
 
     /* Utilities & prefs */
     const isMobile=()=>/Mobi|Android/i.test(navigator.userAgent)||(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches);
@@ -271,7 +279,7 @@ try{
     const start=document.getElementById('start');
     const startBg=document.getElementById('start-bg');
     const btnNew=document.getElementById('btn-new');
-    const btnContinue=document.getElementById('btn-continue');
+    theBtnContinue=document.getElementById('btn-continue'); /* note: declared without const to avoid redeclare issues if pasted twice */
     const startAvatars=document.getElementById('start-avatars');
     const achRoot=document.getElementById('ach');
 
@@ -395,7 +403,7 @@ try{
     let S=load(); document.body.classList.toggle('female', S.avatar==='female');
     const get=()=>S; function patch(mut){ S=ensureIntegrity(mut(deepClone(S))); save(S); markDirty(); }
 
-    /* UI plumbing */
+    /* UI */
     let dirty=false; function markDirty(){ dirty=true; }
     function flushUI(){
       if(!dirty){ requestAnimationFrame(flushUI); return; }
@@ -418,7 +426,7 @@ try{
       return { click(){beep(660,.03,.02,'square')}, ok(){beep(520,.05,.02,'square')}, tick(){beep(880,.015,.015,'sine')} };
     })();
 
-    /* Media resolver */
+    /* Media */
     function currentSex(){ return get().avatar==='female'?'female':'male'; }
     function mediaURL(exId, idx, unlocked){ const sex=currentSex(); if(unlocked && idx<4 && GIFS[sex] && GIFS[sex][exId]) return GIFS[sex][exId]; return (STILLS[sex] && STILLS[sex][exId]) || ''; }
 
@@ -436,19 +444,22 @@ try{
       const r=cardRefs.get(id); if(!r) return; const exMeta=Exercises[r.idx]; const ex=get().exercises[r.idx];
       r.title.textContent=exMeta?exMeta.name:(ex&&ex.id)||'Exercise';
       if(!ex){
-        r.card.classList.add('card-locked'); r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
+        r.card.classList.add('card-locked'); r.card.classList.remove('afford'); r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
       }
       r.lvl.textContent='Lvl '+(ex.level||1);
       if(!ex.unlocked){
-        r.card.classList.add('card-locked'); r.tile.classList.add('locked');
+        r.card.classList.add('card-locked');
+        r.tile.classList.add('locked');
         const b=baseHP(r.idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs);
         r.left.textContent='—'; r.rightBtn.textContent='Unlock • '+fmt(price)+' HP';
-        const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford);
-        r.tile.classList.toggle('afford', afford);
+        const afford=get().hp>=price;
+        r.rightBtn.classList.toggle('glow',afford);
+        r.card.classList.toggle('afford',afford); /* entire card pulses/wiggles */
         r.reptext.textContent='—'; r.repfill.style.width='0%';
         ensureMediaForCard(r.idx,false);
       } else {
-        r.card.classList.remove('card-locked'); r.tile.classList.remove('locked','afford');
+        r.card.classList.remove('card-locked','afford');
+        r.tile.classList.remove('locked');
         const b=baseHP(r.idx,exMeta.baseCooldownMs); const hpTap=perTapHP(b, ex.repHP||0);
         r.left.textContent=hpTap+' HP / tap';
         const rb=repBaseCost(b), g=repGrowth(ex.level||1), qty=get().qty||1;
@@ -466,8 +477,8 @@ try{
       const exMeta=Exercises[idx], exState=get().exercises[idx];
       if(!exMeta) return;
       if(!exState){ patch(st=>{ const def={id:exMeta.id,unlocked:idx===0,repHP:0,repTarget:10,level:1,cooldown:exMeta.baseCooldownMs,lastTapAt:0}; if(!Array.isArray(st.exercises)) st.exercises=[]; st.exercises[idx]=def; return st; }); }
-      const card=document.createElement('div'); card.className='card';
-      const tile=document.createElement('div'); tile.className='tile'; tile.tabIndex=0; if(!get().exercises[idx].unlocked) tile.classList.add('locked');
+      const card=document.createElement('div'); card.className='card'; card.tabIndex=0;
+      const tile=document.createElement('div'); tile.className='tile'; tile.tabIndex=-1; if(!get().exercises[idx].unlocked) tile.classList.add('locked');
       const lvl=document.createElement('div'); lvl.className='lvl'; lvl.textContent='Lvl '+(get().exercises[idx].level||1);
       const media=document.createElement('img'); media.className='media'; media.alt=exMeta.name; media.decoding='async'; media.loading='lazy';
       const burst=document.createElement('div'); burst.className='burst';
@@ -602,7 +613,7 @@ try{
       menuBody.innerHTML=''; menuBody.append(grid);
     }
 
-    /* Achievement banner + confetti */
+    /* Ach banners + confetti */
     function confettiBurst(){
       const root=document.createElement('div'); root.className='conf'; document.body.append(root);
       const colors=['#ff7a1a','#ffd54d','#3aa6ff','#8eff7a','#ff76b5'];
@@ -623,7 +634,6 @@ try{
       achRoot.append(b); confettiBurst();
       setTimeout(()=>{ b.style.transition='transform .3s ease, opacity .3s ease'; b.style.transform='translate(-50%,-12px) scale(.98)'; b.style.opacity='0'; setTimeout(()=>b.remove(),320); }, 2200);
     }
-
     function maybeAchieve(key){
       const data=ACH[key]; if(!data) return; const s=get(); if(s.achievements[key]) return;
       patch(st=>{ st.achievements[key]=true; st.hp+=data.reward; return st; });
@@ -655,16 +665,18 @@ try{
     }
     requestAnimationFrame(tick);
 
-    /* Splash → Start minimal (kept same behavior) */
+    /* Splash → Start */
+    function hasRealSave(d){ if(d.started) return true; if(d.hp>0) return true; if(Object.keys(d.coaches||{}).length>0) return true; if((d.exercises||[]).some((e,i)=>i>0 && e && e.unlocked)) return true; if((d.exercises||[]).some(e=>e && (e.repHP||0)>0)) return true; return false; }
     function applyStartBackground(){ const ds=start.getAttribute('data-bg-desktop')||'FF-desktop.png'; const ms=start.getAttribute('data-bg-mobile')||'FF-mobile.png'; const url=(window.innerWidth>=720?ds:ms); startBg.style.backgroundImage=`url('${url}')`; }
     window.addEventListener('resize', applyStartBackground); applyStartBackground();
-    function hasRealSave(d){ if(d.started) return true; if(d.hp>0) return true; if(Object.keys(d.coaches||{}).length>0) return true; if((d.exercises||[]).some((e,i)=>i>0 && e && e.unlocked)) return true; if((d.exercises||[]).some(e=>e && (e.repHP||0)>0)) return true; return false; }
-    function showStart(){ splash.classList.remove('show'); btnContinue.style.display=hasRealSave(get())?'inline-block':'none'; start.classList.add('show'); }
+
+    function showStart(){ splash.classList.remove('show'); theBtnContinue.style.display=hasRealSave(get())?'inline-block':'none'; start.classList.add('show'); }
     function hideStart(){ start.classList.remove('show'); splash.classList.remove('show'); document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false')); }
     let splashMinDone=false; setTimeout(()=>{ splashMinDone=true; }, 2000);
     let splashEnded=false; function finishSplash(){ if(splashEnded) return; if(!splashMinDone){ setTimeout(finishSplash, 250); return; } splashEnded=true; showStart(); }
     const splashTimer=setTimeout(finishSplash, 5000); splashSkip.addEventListener('click',()=>{ clearTimeout(splashTimer); finishSplash(); });
 
+    /* Start avatar + actions */
     function setStartActive(a){ [...startAvatars.children].forEach(x=>x.classList.toggle('active', x===a)); }
     startAvatars.addEventListener('click', e=>{ const a=e.target.closest('.ava'); if(!a) return; const sex=a.dataset.sex==='female'?'female':'male'; setStartActive(a); setAvatar(sex); });
 
@@ -678,12 +690,100 @@ try{
       }catch(e){ const err=document.getElementById('err'); err.textContent='Init Error: '+(e.message||e); err.style.display='block'; }
     }
     btnNew.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); begin(true); });
-    btnContinue.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); begin(false); });
+    theBtnContinue.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); begin(false); });
 
-    /* Tutorial trigger (uses your existing system; center for JAX, player anchored once in prior build) */
-    function checkTutorial(_force){ /* no-op here to keep snippet focused on achievements + tiles */ }
+    /* Tutorial system */
+    const tip=document.getElementById('tip');
+    const tipBubble=document.getElementById('tip-bubble');
+    const tipHead=document.getElementById('tip-head');
+    const tipHeadImg=document.getElementById('tip-head-img');
+    const tipHeadName=document.getElementById('tip-head-name');
+    const tipText=document.getElementById('tip-text');
+    const tipNext=document.getElementById('tip-next');
 
-    function blocked(){ return start.classList.contains('show') || splash.classList.contains('show'); }
+    const Tutor = (()=>{
+      let active=false, steps=[], iStep=0, typing=false, iChar=0, curText='', timer=null;
+      function typingSpeed(){ return isMobile() ? 34 : 22; }
+      function showSpeakers(){
+        const s=get();
+        if(steps[iStep]?.speaker==='player'){
+          tipHeadName.textContent='You';
+          tipHeadImg.src = s.avatar==='female' ? 'NEW FEMALE AVATAR.gif' : 'NEW MALE AVATAR.gif';
+        }else{
+          tipHeadName.textContent='JAX';
+          tipHeadImg.src = 'fitness frenzy- coaches 128 x128 test.gif';
+        }
+      }
+      function anchorBubble(){
+        const step=steps[iStep]||{}; const b=tipBubble;
+        b.classList.remove('anchored','center'); b.style.left=''; b.style.top=''; const old=b.querySelector('.arrow'); if(old) old.remove();
+        if(step.speaker!=='player'){ b.classList.add('center'); b.style.visibility='visible'; return; }
+        // Player anchored under top bar avatar with upward-left arrow
+        b.classList.add('anchored');
+        const rect=avatarBtn.getBoundingClientRect(); const pad=12;
+        b.style.left = Math.max(10, rect.left) + 'px';
+        b.style.top  = Math.max(10, rect.bottom + pad) + 'px';
+        b.style.visibility='visible';
+        const arrow=document.createElement('div'); arrow.className='arrow'; arrow.style.top='-12px'; arrow.style.left='16px'; b.appendChild(arrow);
+      }
+      function lockTextBoxSize(text){ tipText.textContent=text; const w=tipText.scrollWidth, h=tipText.scrollHeight; tipText.style.width=w+'px'; tipText.style.height=h+'px'; tipText.textContent=''; }
+      function typeNext(){ if(iChar>=curText.length){ typing=false; tipNext.textContent=(iStep===steps.length-1)?'Done':'Next'; return; } const ch=curText[iChar++]; tipText.textContent+=ch; if((iChar%3)===1) SFX.tick(); timer=setTimeout(typeNext, typingSpeed()); }
+      function renderStep(){ if(iStep>=steps.length){ hide(); return; } showSpeakers(); anchorBubble(); const text=String(steps[iStep].text||''); lockTextBoxSize(text); tipNext.textContent='Next'; iChar=0; curText=text; typing=true; typeNext(); }
+      function show(newSteps){ steps=Array.isArray(newSteps)?newSteps.slice():[]; iStep=0; active=true; tip.classList.add('show'); setTimeout(renderStep,10); }
+      function next(){ if(typing){ clearTimeout(timer); typing=false; tipText.textContent=curText; tipNext.textContent=(iStep===steps.length-1)?'Done':'Next'; return; } iStep++; if(iStep>=steps.length){ hide(); } else { renderStep(); } }
+      function hide(){ active=false; tip.classList.remove('show'); tipText.style.width=''; tipText.style.height=''; }
+      tipNext.addEventListener('click', next);
+      return { show, hide, get active(){return active;} };
+    })();
+
+    function checkTutorial(forceIntro=false){
+      if(start.classList.contains('show') || splash.classList.contains('show')) return;
+      const s=get();
+      // Intro once: JAX center → Player anchored → JAX center
+      if((forceIntro || !s.tutorial.doneIntro) && !Tutor.active){
+        patch(st=>{ st.tutorial.doneIntro=true; return st; });
+        Tutor.show([
+          { speaker:'jax',    text:"You look a bit low on energy. Let’s fix that fast 💪" },
+          { speaker:'player', text:"But where do I start?" },
+          { speaker:'jax',    text:"Tap Walking to earn 1 HP. Then we’ll power up." }
+        ]);
+        return;
+      }
+      // Reps hint once (JAX centered)
+      if(!s.tutorial.shown.repsHint && s.hp>=4 && (s.exercises[0]?.repHP||0)===0 && !Tutor.active){
+        patch(st=>{ st.tutorial.shown.repsHint=true; return st; });
+        Tutor.show([ {speaker:'jax', text:"Great start! Use Reps to hit harder each tap."},
+                     {speaker:'jax', text:"When the green bar fills, your cooldown halves."} ]);
+        return;
+      }
+      // Jogging unlock hint once (JAX centered)
+      const jIdx=1; const b=baseHP(jIdx,Exercises[jIdx].baseCooldownMs); const price=unlockCost(b,Exercises[jIdx].baseCooldownMs);
+      if(!s.tutorial.shown.unlock.jog && !s.exercises[jIdx].unlocked && s.hp>=price && !Tutor.active){
+        patch(st=>{ st.tutorial.shown.unlock.jog=true; return st; });
+        Tutor.show([ {speaker:'jax', text:"Add to your routine! Unlock Jogging when the pill turns orange."} ]);
+        return;
+      }
+      // First coach hint once (JAX centered)
+      if(!s.tutorial.shown.coachFirst && !Tutor.active){
+        for(let i=0;i<Exercises.length;i++){
+          const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue;
+          const cId='c'+(i+1); if(s.coaches[cId]) continue;
+          const priceC = coachPrice(i);
+          if(s.hp >= priceC){
+            patch(st=>{ st.tutorial.shown.coachFirst=true; return st; });
+            Tutor.show([ {speaker:'jax', text:"Ready to scale? Open the Menu (your avatar) and hire a coach."} ]);
+            return;
+          }
+        }
+      }
+    }
+
+    /* Block during overlays/tutorial */
+    function blocked(){ return start.classList.contains('show') || splash.classList.contains('show') || Tutor.active; }
+
+    /* Loopers */
+    function tickReady(){ checkTutorial(false); requestAnimationFrame(tickReady); }
+    requestAnimationFrame(tickReady);
 
   }
 }catch(e){
