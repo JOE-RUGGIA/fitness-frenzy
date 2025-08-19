@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fitness Frenzy — VS7v (flow fix + card hover)</title>
+<!-- Prevent double-tap zoom and pinch-to-zoom on gameplay surfaces -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Fitness Frenzy — VS7w (coach dot + mobile polish + coach badge)</title>
 <style>
   :root{
     --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
@@ -12,7 +13,8 @@
   }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0; background:var(--bg); color:var(--text); font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  body{margin:0; background:var(--bg); color:var(--text); font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+       -webkit-text-size-adjust:100%;}
 
   /* Top bar */
   .topbar{position:sticky; top:0; z-index:30; background:linear-gradient(180deg,#151734,#10122a); border-bottom:1px solid #22254b; padding:12px 14px}
@@ -20,12 +22,12 @@
   .row{display:flex; align-items:center; gap:14px; justify-content:space-between}
   .logo{font-weight:900; letter-spacing:.9px}
   .bulk{display:inline-flex; background:#20244a; border:1px solid #2a2e5e; border-radius:10px; overflow:hidden}
-  .bulk button{background:transparent; color:#fff; border:0; padding:8px 12px; cursor:pointer; min-width:52px; font-size:15px}
+  .bulk button{background:transparent; color:#fff; border:0; padding:8px 12px; cursor:pointer; min-width:52px; font-size:15px; touch-action:manipulation}
   .bulk button.active{background:var(--accent-2); color:#061222; font-weight:800}
   .hp-pill{margin-top:10px; background:#182047; border:1px solid #2a2e5e; padding:10px 12px; border-radius:12px; font-variant-numeric:tabular-nums; display:flex; align-items:center; justify-content:space-between; font-size:16px}
-  .avatar{width:72px; height:72px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:900; border:2px solid #3b3f78; position:relative; cursor:pointer; overflow:hidden}
-  .avatar-img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none}
-  .avatar .dot{position:absolute; top:-4px; right:-4px; width:18px; height:18px; background:var(--good); border-radius:50%; border:2px solid #0f1020; display:none}
+  .avatar{width:72px; height:72px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:900; border:2px solid #3b3f78; position:relative; cursor:pointer; overflow:visible; /* allow dot outside */ touch-action:manipulation}
+  .avatar-img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; border-radius:50%}
+  .avatar .dot{position:absolute; top:-6px; right:-6px; width:22px; height:22px; background:var(--good); border-radius:50%; border:3px solid #0f1020; display:none; box-shadow:0 4px 10px rgba(0,0,0,.35)}
   body.female .bulk button.active{background:var(--female-accent); color:#2b0020}
   body.female .btn.glow{box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)}
 
@@ -33,18 +35,18 @@
   .cards{display:grid; gap:12px}
   .card{display:grid; grid-template-columns:120px 1fr; gap:14px; padding:12px; background:var(--panel); border:1px solid #262a58; border-radius:14px; will-change:transform; transition:transform .14s ease, box-shadow .14s ease, opacity .14s ease}
   .card.card-locked{transform:scale(.94); opacity:.86}
-  /* Entire-card afford animation + hover/focus wiggle */
   .card.card-locked.afford{animation:affordPulseCard 1.35s ease-in-out infinite; box-shadow:0 0 0 0 rgba(255,180,80,0)}
   @keyframes affordPulseCard{
     0%,100%{box-shadow:0 0 0 0 rgba(255,180,80,0); transform:scale(.95)}
     50%{box-shadow:0 0 0 10px rgba(255,180,80,.12); transform:scale(.98)}
   }
   .card.card-locked.afford:hover, .card.card-locked.afford:focus-within{transform:scale(.99) translateY(-2px)}
-  .tile{background:var(--panel-2); border-radius:12px; position:relative; height:120px; user-select:none; overflow:hidden; cursor:pointer; outline:none; transition:transform .12s ease, filter .12s ease, box-shadow .12s ease}
+  .tile{background:var(--panel-2); border-radius:12px; position:relative; height:120px; user-select:none; overflow:hidden; cursor:pointer; outline:none; transition:transform .12s ease, filter .12s ease, box-shadow .12s ease; touch-action:manipulation}
   .tile.locked{filter:grayscale(100%); opacity:.95; cursor:default}
   .tile.tap-pop{animation:tapPop 220ms ease-out}
   @keyframes tapPop{0%{transform:scale(.98)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
   .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 7px; border-radius:8px; font-size:13px; z-index:2}
+  .coach-badge{position:absolute; top:6px; right:6px; width:24px; height:24px; border-radius:50%; display:none; place-items:center; font-size:14px; background:linear-gradient(180deg,#35d06a,#14a84d); color:#021; border:1px solid rgba(0,0,0,.2); box-shadow:0 4px 10px rgba(0,0,0,.35); z-index:2}
   .media{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:0}
   .burst{position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at center, rgba(255,255,255,.16), transparent 40%); opacity:0; transform:scale(.6)}
   .burst-on .burst{animation:burst .3s ease-out}
@@ -56,9 +58,9 @@
   .cooldown{margin-top:8px; height:22px; background:#141739; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden; position:relative}
   .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#2f6df3,#41b0ff)}
   .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric:tabular-nums; color:#a6b0d8; font-size:14px}
-  .meta{display:flex; align-items:center; justify-content:space-between; margin-top:10px}
+  .meta{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px; flex-wrap:wrap}
   .muted{color:#aab1d6; font-size:15px}
-  .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:12px 16px; border-radius:12px; min-width:200px; cursor:pointer; font-variant-numeric:tabular-nums; font-size:15px}
+  .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:12px 16px; border-radius:12px; min-width:200px; cursor:pointer; font-variant-numeric:tabular-nums; font-size:15px; touch-action:manipulation}
   .btn.glow{box-shadow:0 0 0 2px rgba(255,192,120,.25) inset, 0 0 12px rgba(255,122,26,.35)}
 
   /* Menu overlay */
@@ -69,9 +71,9 @@
   .menu.show .menu-panel{transform:translateX(0%); opacity:1}
   .menu-top{display:flex; align-items:center; justify-content:space-between; padding:14px; border-bottom:1px solid #2a2e5e}
   .menu-title{font-weight:900; font-size:18px}
-  .menu-close{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer}
+  .menu-close{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer; touch-action:manipulation}
   .menu-tabs{display:flex; gap:10px; padding:10px 14px; border-bottom:1px solid #2a2e5e; overflow:auto}
-  .tab{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer; white-space:nowrap; font-size:15px}
+  .tab{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer; white-space:nowrap; font-size:15px; touch-action:manipulation}
   .tab.active{background:#202767; outline:2px solid var(--accent-2)}
   .menu-body{flex:1; overflow:auto; padding:14px}
   .coach-row{display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; background:#171a3a; border:1px solid #2a2e5e; padding:12px; border-radius:12px; margin-bottom:10px}
@@ -86,7 +88,7 @@
   .splash .brand{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center}
   .splash .logo-img{width:min(480px,68vw); height:min(480px,68vw); background-image:var(--splash-logo); background-size:contain; background-repeat:no-repeat; background-position:center; margin:0 auto; animation:gb-pop .6s cubic-bezier(.2,.8,.2,1) both, gb-float 5.5s ease-in-out .6s infinite;}
   .splash .tag{margin-top:12px; color:#333}
-  .splash .skip{position:absolute; bottom:24px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; color:#fff; padding:10px 14px; border-radius:12px; cursor:pointer; font-size:15px}
+  .splash .skip{position:absolute; bottom:24px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; color:#fff; padding:10px 14px; border-radius:12px; cursor:pointer; font-size:15px; touch-action:manipulation}
   @keyframes gb-pop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
   @keyframes gb-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 
@@ -97,7 +99,7 @@
   .start .scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,12,33,.10) 0%, rgba(10,12,33,.55) 45%, rgba(10,12,33,.85) 100%); pointer-events:none; z-index:1}
   .start .panel{position:absolute; left:50%; transform:translateX(-50%); bottom:6vh; width:min(820px,96vw); background:rgba(18,20,52,.70); border:1px solid rgba(42,46,94,.75); border-radius:18px; backdrop-filter: blur(6px); padding:18px; display:flex; flex-direction:column; align-items:center; gap:16px; z-index:2}
   .start .avatars{display:flex; gap:12px; align-items:center; justify-content:center}
-  .start .ava{width:144px; height:144px; border-radius:14px; display:grid; place-items:end; font-weight:900; border:2px solid #2a2e5e; cursor:pointer; background:#121434; user-select:none; overflow:hidden; position:relative}
+  .start .ava{width:144px; height:144px; border-radius:14px; display:grid; place-items:end; font-weight:900; border:2px solid #2a2e5e; cursor:pointer; background:#121434; user-select:none; overflow:hidden; position:relative; touch-action:manipulation}
   .start .ava span{background:rgba(0,0,0,.45); width:100%; text-align:center; font-size:13px; padding:3px 0; position:absolute; bottom:0; left:0}
   .start .ava img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none}
   .start .ava.f{ border-color:var(--female-accent) }
@@ -108,7 +110,7 @@
   .start .btn-continue{background:#1f254f; font-size:16px}
   .start .hint{color:#ccd2ff; opacity:.85; font-size:14px}
 
-  /* Tutorial Tip */
+  /* Tutorial */
   .tip{position:fixed; inset:0; display:none; z-index:90}
   .tip.show{display:block}
   .tip .back{position:absolute; inset:0; background:rgba(0,0,0,.55)}
@@ -121,9 +123,8 @@
   .tip .text{min-height:58px}
   .tip .actions{display:flex; gap:10px; justify-content:flex-end; margin-top:10px}
   .tip .btn{min-width:120px; font-size:16px; padding:10px 14px}
-  .tip .arrow{position:absolute; width:24px; height:24px; background:#0f1338; border-left:1px solid #2a2e5e; border-top:1px solid #2a2e5e; transform:rotate(45deg)}
 
-  /* Achievement banners + confetti */
+  /* Achievements + confetti (as before) */
   .ach{position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:120; pointer-events:none}
   .ach .banner{position:relative; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#2a2e6b,#1e2255); border:1px solid #3b40a8; color:#fff; padding:12px 16px; border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.4), 0 0 0 2px rgba(255,255,255,.05) inset; animation:dropIn .6s cubic-bezier(.2,.8,.2,1) both}
   @keyframes dropIn{0%{transform:translate(-50%,-18px) scale(.96); opacity:0}100%{transform:translate(-50%,0) scale(1); opacity:1}}
@@ -133,14 +134,21 @@
   .ach .reward{margin-left:8px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); padding:2px 8px; border-radius:999px; font-variant-numeric:tabular-nums}
   .conf{position:fixed; top:10px; left:50%; width:0; height:0; pointer-events:none; z-index:121}
   .confetti{position:absolute; width:8px; height:12px; opacity:0; transform:translate(-50%,0) rotate(0deg); animation:confPop 900ms ease-out forwards}
-  @keyframes confPop{
-    0%{opacity:0; transform:translate(0,0) rotate(0)}
-    10%{opacity:1}
-    100%{opacity:0; transform:translate(var(--dx), var(--dy)) rotate(var(--rot))}
-  }
+  @keyframes confPop{0%{opacity:0; transform:translate(0,0) rotate(0)}10%{opacity:1}100%{opacity:0; transform:translate(var(--dx), var(--dy)) rotate(var(--rot))}}
 
-  /* Minimal error bar */
+  /* Error bar */
   .err{display:none; background:#8b1111; color:#fff; padding:8px 12px; font-weight:700}
+
+  /* ===== Mobile tweaks ===== */
+  @media (max-width: 480px){
+    .wrap{padding:10px}
+    .card{grid-template-columns:96px 1fr; padding:10px}
+    .tile{height:96px}
+    .title{font-size:15px}
+    .t{font-size:13px}
+    .btn{min-width:132px; padding:10px 12px; font-size:14px}
+    .meta{gap:8px}
+  }
 </style>
 </head>
 <body>
@@ -220,7 +228,7 @@
         <div id="tip-head-name" style="font-weight:900">JAX</div>
       </div>
       <div class="text" id="tip-text"></div>
-      <div class="actions"><!-- no Skip --><button id="tip-next" class="btn">Next</button></div>
+      <div class="actions"><button id="tip-next" class="btn">Next</button></div>
     </div>
   </div>
 
@@ -242,8 +250,8 @@
 
 <script>
 try{
-  if(!window.__FF_VS7V__){
-    window.__FF_VS7V__ = true;
+  if(!window.__FF_VS7W__){
+    window.__FF_VS7W__ = true;
 
     /* Utilities & prefs */
     const isMobile=()=>/Mobi|Android/i.test(navigator.userAgent)||(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches);
@@ -279,11 +287,23 @@ try{
     const start=document.getElementById('start');
     const startBg=document.getElementById('start-bg');
     const btnNew=document.getElementById('btn-new');
-    theBtnContinue=document.getElementById('btn-continue'); /* note: declared without const to avoid redeclare issues if pasted twice */
+    theBtnContinue=document.getElementById('btn-continue'); /* no const to avoid redeclare on paste */
     const startAvatars=document.getElementById('start-avatars');
     const achRoot=document.getElementById('ach');
 
-    /* Assets */
+    /* Prevent double-tap zoom on interactive elements */
+    (function(){
+      let lastTouch=0;
+      document.addEventListener('touchend', function(e){
+        const target = e.target.closest('.tile, .btn, .ava, .tab, .menu-close, .bulk button, #avatar');
+        if(!target) return;
+        const now=Date.now();
+        if(now - lastTouch < 300){ e.preventDefault(); }
+        lastTouch = now;
+      }, {passive:false});
+    })();
+
+    /* Assets (stills + first 4 GIFs) */
     const STILLS={ male:{
       walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.png?raw=true",
       jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.png?raw=true",
@@ -443,18 +463,23 @@ try{
     function updateCard(id){
       const r=cardRefs.get(id); if(!r) return; const exMeta=Exercises[r.idx]; const ex=get().exercises[r.idx];
       r.title.textContent=exMeta?exMeta.name:(ex&&ex.id)||'Exercise';
+
+      /* Coach badge on/off */
+      const hired = !!get().coaches['c'+(r.idx+1)];
+      r.badge.style.display = hired ? 'grid' : 'none';
+
       if(!ex){
-        r.card.classList.add('card-locked'); r.card.classList.remove('afford'); r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
+        r.card.classList.add('card-locked'); r.card.classList.remove('afford');
+        r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
       }
       r.lvl.textContent='Lvl '+(ex.level||1);
       if(!ex.unlocked){
-        r.card.classList.add('card-locked');
-        r.tile.classList.add('locked');
+        r.card.classList.add('card-locked'); r.card.classList.remove('afford'); r.tile.classList.add('locked');
         const b=baseHP(r.idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs);
         r.left.textContent='—'; r.rightBtn.textContent='Unlock • '+fmt(price)+' HP';
         const afford=get().hp>=price;
         r.rightBtn.classList.toggle('glow',afford);
-        r.card.classList.toggle('afford',afford); /* entire card pulses/wiggles */
+        r.card.classList.toggle('afford',afford);
         r.reptext.textContent='—'; r.repfill.style.width='0%';
         ensureMediaForCard(r.idx,false);
       } else {
@@ -480,9 +505,12 @@ try{
       const card=document.createElement('div'); card.className='card'; card.tabIndex=0;
       const tile=document.createElement('div'); tile.className='tile'; tile.tabIndex=-1; if(!get().exercises[idx].unlocked) tile.classList.add('locked');
       const lvl=document.createElement('div'); lvl.className='lvl'; lvl.textContent='Lvl '+(get().exercises[idx].level||1);
+      const badge=document.createElement('div'); badge.className='coach-badge'; badge.title='Coach active'; badge.textContent='★';
       const media=document.createElement('img'); media.className='media'; media.alt=exMeta.name; media.decoding='async'; media.loading='lazy';
       const burst=document.createElement('div'); burst.className='burst';
-      const repband=document.createElement('div'); repband.className='repband'; const repfill=document.createElement('div'); repfill.className='repfill'; const reptext=document.createElement('div'); reptext.className='reptext'; repband.append(repfill,reptext); tile.append(lvl,media,burst,repband);
+      const repband=document.createElement('div'); repband.className='repband'; const repfill=document.createElement('div'); repfill.className='repfill'; const reptext=document.createElement('div'); reptext.className='reptext'; repband.append(repfill,reptext);
+      tile.append(lvl,badge,media,burst,repband);
+
       const right=document.createElement('div'); const title=document.createElement('div'); title.className='title'; title.textContent=exMeta.name;
       const cd=document.createElement('div'); cd.className='cooldown'; const bar=document.createElement('div'); bar.className='bar'; const t=document.createElement('div'); t.className='t'; t.textContent='Ready'; cd.append(bar,t);
       const meta=document.createElement('div'); meta.className='meta'; const left=document.createElement('div'); left.className='muted'; const rightBtn=document.createElement('button'); rightBtn.className='btn'; meta.append(left,rightBtn); right.append(title,cd,meta); card.append(tile,right);
@@ -534,7 +562,7 @@ try{
       });
 
       cardsRoot.append(card);
-      cardRefs.set(exMeta.id,{ idx, card, tile, lvl, repband, repfill, reptext, cd, bar, t, left, rightBtn, title, media });
+      cardRefs.set(exMeta.id,{ idx, card, tile, lvl, repband, repfill, reptext, cd, bar, t, left, rightBtn, title, media, badge });
       ensureMediaForCard(idx, get().exercises[idx].unlocked);
       updateCard(exMeta.id);
     }
@@ -692,7 +720,7 @@ try{
     btnNew.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); begin(true); });
     theBtnContinue.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); begin(false); });
 
-    /* Tutorial system */
+    /* Tutorial (unchanged from your last good state) */
     const tip=document.getElementById('tip');
     const tipBubble=document.getElementById('tip-bubble');
     const tipHead=document.getElementById('tip-head');
@@ -718,7 +746,6 @@ try{
         const step=steps[iStep]||{}; const b=tipBubble;
         b.classList.remove('anchored','center'); b.style.left=''; b.style.top=''; const old=b.querySelector('.arrow'); if(old) old.remove();
         if(step.speaker!=='player'){ b.classList.add('center'); b.style.visibility='visible'; return; }
-        // Player anchored under top bar avatar with upward-left arrow
         b.classList.add('anchored');
         const rect=avatarBtn.getBoundingClientRect(); const pad=12;
         b.style.left = Math.max(10, rect.left) + 'px';
@@ -739,7 +766,6 @@ try{
     function checkTutorial(forceIntro=false){
       if(start.classList.contains('show') || splash.classList.contains('show')) return;
       const s=get();
-      // Intro once: JAX center → Player anchored → JAX center
       if((forceIntro || !s.tutorial.doneIntro) && !Tutor.active){
         patch(st=>{ st.tutorial.doneIntro=true; return st; });
         Tutor.show([
@@ -749,21 +775,18 @@ try{
         ]);
         return;
       }
-      // Reps hint once (JAX centered)
       if(!s.tutorial.shown.repsHint && s.hp>=4 && (s.exercises[0]?.repHP||0)===0 && !Tutor.active){
         patch(st=>{ st.tutorial.shown.repsHint=true; return st; });
         Tutor.show([ {speaker:'jax', text:"Great start! Use Reps to hit harder each tap."},
                      {speaker:'jax', text:"When the green bar fills, your cooldown halves."} ]);
         return;
       }
-      // Jogging unlock hint once (JAX centered)
       const jIdx=1; const b=baseHP(jIdx,Exercises[jIdx].baseCooldownMs); const price=unlockCost(b,Exercises[jIdx].baseCooldownMs);
       if(!s.tutorial.shown.unlock.jog && !s.exercises[jIdx].unlocked && s.hp>=price && !Tutor.active){
         patch(st=>{ st.tutorial.shown.unlock.jog=true; return st; });
         Tutor.show([ {speaker:'jax', text:"Add to your routine! Unlock Jogging when the pill turns orange."} ]);
         return;
       }
-      // First coach hint once (JAX centered)
       if(!s.tutorial.shown.coachFirst && !Tutor.active){
         for(let i=0;i<Exercises.length;i++){
           const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue;
@@ -778,7 +801,6 @@ try{
       }
     }
 
-    /* Block during overlays/tutorial */
     function blocked(){ return start.classList.contains('show') || splash.classList.contains('show') || Tutor.active; }
 
     /* Loopers */
