@@ -1169,6 +1169,300 @@ try{
 })();
 </script>
 
+<style data-ff-patch>
+  :root{
+    --male-1:#2f6df3; --male-2:#41b0ff;
+    --pink-1:#ff76b5; --pink-2:#ffb3d5;
+    --card-bg:#112036;
+    --pill-bg:#112036; --pill-border:#2a3e5e;
+    --stripe-w:12px;
+  }
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{ position:sticky !important; top:0; z-index:1000 !important; }
+  .topbar .row{ gap:12px !important; }
+  /* Replace text logo with image (JS injects the <img>, this styles it) */
+  .logo{display:inline-flex; align-items:center; line-height:0}
+  .logo img.ff-logo{height:80px; width:auto; display:block} /* slightly taller than 72px avatar */
+
+  /* Pills row: 2 equal pills side-by-side (HP + Fitcoins) */
+  .pill-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+  .hp-pill, .fit-pill{
+    background:var(--pill-bg) !important; border:1px solid var(--pill-border) !important;
+    border-radius:12px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;
+    font-variant-numeric:tabular-nums; font-size:16px; font-weight:800;
+  }
+  .fit-pill .l, .hp-pill .l{display:flex; align-items:center; gap:8px}
+  .fit-pill .ico{filter:drop-shadow(0 1px 0 rgba(0,0,0,.3))}
+  .fit-pill .r, .hp-pill .r{min-width:60px; text-align:right}
+
+  /* Bulk buy smaller (esp. mobile) */
+  .bulk{transform:scale(.94); border-radius:10px}
+  .bulk button{padding:6px 10px; font-size:14px}
+  @media (max-width:480px){
+    .bulk{transform:scale(.90)}
+    .bulk button{min-width:46px; padding:5px 8px; font-size:13px}
+  }
+
+  /* ---------- CARDS ---------- */
+  /* New color & pop */
+  .card{background:var(--card-bg) !important; border:1px solid #1b2e4b !important}
+  .tile{background:#0f1b32 !important}
+  /* Locked cards: shorter, hide cooldown & rep band */
+  .tile.locked{height:76px !important; filter:grayscale(100%) saturate(80%) opacity(.95)}
+  .card.card-locked .cooldown{display:none !important}
+  .tile.locked .repband{display:none !important}
+  /* Stronger pop + starburst on tap */
+  .tile.tap-pop{animation:tapPop 220ms ease-out}
+  @keyframes tapPop{0%{transform:scale(.98)}60%{transform:scale(1.10) translateY(-1px) drop-shadow(0 10px 20px rgba(0,0,0,.35))}100%{transform:scale(1)}}
+  .tile.burst-on::after{
+    content:""; position:absolute; inset:-20%; pointer-events:none; opacity:.8;
+    background:
+      radial-gradient(circle at center, rgba(255,255,255,.22), rgba(255,255,255,0) 40%),
+      conic-gradient(from 0deg, rgba(255,255,255,.55) 0 5deg, transparent 5deg 10deg) ;
+    -webkit-mask: radial-gradient(circle at center, #000 0 55%, transparent 55%);
+            mask: radial-gradient(circle at center, #000 0 55%, transparent 55%);
+    animation:burstSpin .38s ease-out;
+  }
+  @keyframes burstSpin{0%{transform:scale(.6) rotate(0deg); opacity:.85}100%{transform:scale(1.2) rotate(120deg); opacity:0}}
+
+  /* Cooldown bars: diagonal white stripes on gender gradient */
+  .bar{
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0, rgba(255,255,255,.18) 6px, rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px),
+      linear-gradient(90deg,var(--male-1),var(--male-2)) !important;
+  }
+  body.female .bar{
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0, rgba(255,255,255,.18) 6px, rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px),
+      linear-gradient(90deg,var(--pink-1),var(--pink-2)) !important;
+  }
+
+  /* Reps button: neutral unless affordable (uses existing .glow) */
+  .btn-reps{background:#1b1f44 !important; border-color:#2a2e5e !important; color:#e9edff !important; font-weight:900}
+  .btn-reps.glow{background:linear-gradient(180deg,var(--male-1),var(--male-2)) !important; border-color:var(--male-2)!important; color:#071428 !important;
+    box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35)!important}
+  body.female .btn-reps.glow{background:linear-gradient(180deg,var(--pink-1),var(--pink-2)) !important; border-color:var(--pink-2)!important; color:#2b0020!important;
+    box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)!important}
+
+  /* ---------- OFFLINE & ACHIEVEMENTS POP/ICON ---------- */
+  /* Replace both icons with a medal placeholder */
+  .ach .icon{font-size:0}
+  .ach .icon::before{content:"🏅"; font-size:20px}
+  #offline .head .circle{font-size:0}
+  #offline .head .circle::before{content:"🏅"; font-size:28px}
+  /* Pop-in animation for offline bubble and ach banners */
+  .pop-in{animation:popIn .28s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes popIn{0%{transform:scale(.92); opacity:0}100%{transform:scale(1); opacity:1}}
+
+  /* ---------- START SCREEN ---------- */
+  .start .ava{width:112px; height:112px}
+  @media(max-width:480px){ .start .ava{width:92px; height:92px} }
+  .start .ava span{display:none !important}
+  .start .panel{background:rgba(18,20,52,.50) !important}
+  .start .hint{display:none !important}
+
+  /* ---------- TUTORIAL HIGHLIGHTS ---------- */
+  .jax-key{font-weight:900}
+  body:not(.female) .jax-key{color:var(--male-2)}
+  body.female .jax-key{color:var(--pink-1)}
+  .mini-bar{display:inline-block; width:24px; height:8px; background:linear-gradient(90deg,#17b34c,#27c93f); border-radius:4px; vertical-align:middle; margin:0 4px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.25) inset}
+</style>
+
+<script type="application/ff-patch">
+(function(){
+  /* ---------- UTIL: safe select ---------- */
+  const $ = s=>document.querySelector(s);
+
+  /* ---------- TOPBAR: swap text for logo, add Fitcoins pill, rebuild pills row ---------- */
+  (function initTopbar(){
+    const logoEl = document.querySelector('.topbar .logo');
+    if(logoEl && !logoEl.querySelector('img.ff-logo')){
+      logoEl.textContent='';
+      const img = new Image(); img.className='ff-logo';
+      img.src='https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/COMPRESSED%20LOGO.png?raw=true';
+      img.alt='Fitness Frenzy';
+      logoEl.appendChild(img);
+    }
+
+    const wrap = document.querySelector('.topbar .wrap');
+    const hp = document.getElementById('hp-readout')?.closest('.hp-pill');
+    if(wrap && hp && !document.querySelector('.pill-row')){
+      const row = document.createElement('div'); row.className='pill-row';
+      hp.replaceWith(row); row.appendChild(hp);
+
+      const coin = document.createElement('div'); coin.className='fit-pill';
+      coin.innerHTML = `<span class="l"><span class="ico">🪙</span><b>Fitcoins</b></span><span id="fitcoin-readout" class="r">0</span>`;
+      row.appendChild(coin);
+    }
+  })();
+
+  /* ---------- CARDS: ensure Reps buttons have the class; trim locked; starburst already styled ---------- */
+  (function tagRepsButtons(){
+    const root=document.getElementById('cards');
+    const scan=()=>{
+      document.querySelectorAll('.card .meta .btn').forEach(btn=>{
+        const isReps = btn.textContent && btn.textContent.trim().startsWith('Reps');
+        btn.classList.toggle('btn-reps', !!isReps);
+      });
+    };
+    scan();
+    if(root) new MutationObserver(scan).observe(root,{childList:true,subtree:true,characterData:true});
+  })();
+
+  /* ---------- SFX: silence general click/tap beeps, keep our own pop SFX ---------- */
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let myAC = null;
+  try{ if(AC) myAC = new AC(); }catch(_){}
+  try{
+    if(AC && AC.prototype && !AC.prototype.__ff_muted__){
+      const origGain = AC.prototype.createGain;
+      AC.prototype.createGain = function(){ const g = origGain.call(this); try{ g.gain.value = 0; }catch(_){ } return g; };
+      AC.prototype.__ff_muted__ = true;
+    }
+  }catch(_){}
+
+  function popSFX(){
+    try{
+      if(!myAC) return;
+      const ctx=myAC;
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sine'; o.frequency.value=740;
+      g.gain.value=0.002; o.connect(g).connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime+0.08);
+    }catch(_){}
+  }
+
+  /* ---------- OFFLINE: add pop animation, confetti, and SFX ---------- */
+  (function offlineEffects(){
+    const off = document.getElementById('offline');
+    if(!off) return;
+    const bub = off.querySelector('.bubble');
+    const mo = new MutationObserver(()=>{
+      if(off.classList.contains('show')){
+        if(bub) bub.classList.add('pop-in');
+        confettiBurstLite(off);
+        popSFX();
+      }
+    });
+    mo.observe(off,{attributes:true,attributeFilter:['class']});
+  })();
+
+  /* ---------- ACHIEVEMENTS: add pop & SFX when banner appears ---------- */
+  (function achEffects(){
+    const root = document.getElementById('ach');
+    if(!root) return;
+    new MutationObserver(muts=>{
+      for(const m of muts){
+        m.addedNodes.forEach(n=>{
+          if(n.nodeType===1 && n.classList.contains('banner')){
+            n.classList.add('pop-in');
+            popSFX();
+          }
+        });
+      }
+    }).observe(root,{childList:true});
+  })();
+
+  /* ---------- Confetti (lite) for offline ---------- */
+  function confettiBurstLite(scope){
+    const box=document.createElement('div'); box.style.position='fixed'; box.style.top='12px'; box.style.left='50%'; box.style.width='0'; box.style.height='0'; box.style.pointerEvents='none'; box.style.zIndex='121';
+    (scope||document.body).appendChild(box);
+    const colors=['#ff7a1a','#ffd54d','#3aa6ff','#8eff7a','#ff76b5'];
+    for(let i=0;i<18;i++){
+      const s=document.createElement('span');
+      s.style.position='absolute'; s.style.width='8px'; s.style.height='12px'; s.style.background=colors[i%colors.length];
+      s.style.opacity='0'; s.style.transformOrigin='center';
+      const dx=(Math.random()*2-1)*220+'px';
+      const dy=(Math.random()*-1)*300-80+'px';
+      const rot=(Math.random()*360-180)+'deg';
+      s.animate([
+        {opacity:0, transform:`translate(0,0) rotate(0)`},
+        {opacity:1, offset:.1},
+        {opacity:0, transform:`translate(${dx},${dy}) rotate(${rot})`}
+      ], {duration:900, easing:'ease-out', fill:'forwards'});
+      box.appendChild(s);
+    }
+    setTimeout(()=>box.remove(), 950);
+  }
+
+  /* ---------- START SCREEN tweaks ---------- */
+  (function startTweaks(){
+    const spans = document.querySelectorAll('.start .ava span'); spans.forEach(s=>s.remove());
+  })();
+
+  /* ---------- TUTORIAL: wording + keyword highlights + mini progress bar ---------- */
+  (function tutorPatcher(){
+    const tip = document.getElementById('tip');
+    const textEl = document.getElementById('tip-text');
+
+    // Live rewrite when content changes
+    if(textEl){
+      new MutationObserver(()=>{
+        let html = textEl.textContent || '';
+
+        // Replace any "turns orange" style wording with "lights up"
+        html = html.replace(/turns?\s+\w+/gi,'lights up');
+
+        // Insert a tiny green progress bar after "green bar"
+        html = html.replace(/green bar/i, match => `${match} <span class="mini-bar"></span>`);
+
+        // Highlight keywords in gender color
+        const keys = ['HP','Reps','cooldown','unlock','Unlock','exercise','Exercises'];
+        keys.forEach(k=>{
+          const re = new RegExp(`\\b${k}\\b`,'g');
+          html = html.replace(re, `<span class="jax-key">${k}</span>`);
+        });
+
+        textEl.innerHTML = html;
+      }).observe(textEl,{characterData:true, childList:true, subtree:true});
+    }
+  })();
+
+  /* ---------- SETTINGS: fix subtab flicker ("coming soon" on first open) ---------- */
+  (function fixSettingsFlicker(){
+    const menu = document.getElementById('menu');
+    if(!menu) return;
+
+    // Remember last subtab
+    document.addEventListener('click', e=>{
+      const b = e.target.closest('.subtabs .tab');
+      if(b){ localStorage.setItem('ff:last_settings_subtab', (b.textContent||'').trim().toLowerCase()); }
+    });
+
+    // On opening Settings, force-render the correct subtab immediately
+    document.addEventListener('ff:menu:tab', ev=>{
+      if(ev?.detail?.tab!=='settings') return;
+      const want = localStorage.getItem('ff:last_settings_subtab') || 'general';
+      const tryClick = ()=>{
+        const tabs = document.querySelectorAll('.menu-body .subtabs .tab');
+        if(!tabs || !tabs.length){ setTimeout(tryClick, 30); return; }
+        const btn = Array.from(tabs).find(t=> (t.textContent||'').trim().toLowerCase()===want);
+        if(btn) btn.click();
+      };
+      setTimeout(tryClick, 30);
+    });
+  })();
+
+  /* ---------- OPTIONAL: naive placeholder Fitcoins (derived from total HP) ---------- */
+  (function fitcoinsPlaceholder(){
+    // Shows floor(totalEarned / 100) as temp Fitcoins; replace with real logic later
+    let last=0;
+    const hpEl=document.getElementById('hp-readout');
+    const out=()=>document.getElementById('fitcoin-readout');
+    const getNum=el=>{ const t=(el?.textContent||'0').replace(/[^0-9.]/g,''); return parseFloat(t)||0; };
+    const update=()=>{
+      const hp=getNum(hpEl);
+      const coins = Math.floor(hp/100); // placeholder formula
+      if(coins!==last && out()){ out().textContent = coins.toString(); last=coins; }
+    };
+    update();
+    setInterval(update, 500);
+    document.addEventListener('ff:hp:change', update);
+  })();
+})();
+</script>
 
 
 </body>
