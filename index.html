@@ -1333,105 +1333,47 @@ try{
 
 
 <style data-ff-patch>
-  /* Ensure full-page sticky and robust layering//////////////////////////////////////////////////////////// */
+  /* Full-page sticky top bar, always at the top while scrolling///////////////////////////////STICK TOP BAR FIX*/
   .topbar{
-    position: -webkit-sticky !important; /* iOS */
     position: sticky !important;
-    top: env(safe-area-inset-top, 0px) !important;
-    z-index: 60 !important; /* above content, below overlays */
-  }
-  /* Shadow when page is scrolled a bit */
-  .topbar.stuck-shadow{
-    box-shadow: 0 6px 16px rgba(0,0,0,.28);
+    top: 0 !important;
+    z-index: 35 !important; /* lower than .menu (40), higher than content */
+    will-change: transform; /* smoother on mobile */
+    backface-visibility: hidden;
   }
 
-  /* Fixed fallback class (auto-applied by JS on platforms where sticky isn't honored) */
-  .topbar.is-fixed{
-    position: fixed !important;
-    left: 0; right: 0;
-    top: env(safe-area-inset-top, 0px) !important;
+  /* When the menu is open, make sure topbar never sits "over" it */
+  body.menu-open .topbar{
+    pointer-events: none;       /* don't block menu clicks */
+    z-index: 20 !important;     /* safely beneath the menu overlay/panel */
   }
-
-  /* Spacer element used only during fixed fallback to prevent layout jump */
-  #ff-topbar-spacer{ height:0 }
 </style>
 
 <script type="application/ff-patch">
-/* Full-scroll sticky with fixed fallback + shadow-on-scroll */
+/* Toggle a body flag while the menu is open so CSS can neutralize the topbar */
 (function(){
-  try{
-    const bar = document.querySelector('.topbar');
-    if(!bar) return;
+  const body = document.body;
+  const menu = document.getElementById('menu');
 
-    // Insert a spacer right after the topbar (used only if we switch to fixed fallback)
-    let spacer = document.getElementById('ff-topbar-spacer');
-    if(!spacer){
-      spacer = document.createElement('div');
-      spacer.id = 'ff-topbar-spacer';
-      bar.insertAdjacentElement('afterend', spacer);
-    }
+  function setOpen(open){
+    body.classList.toggle('menu-open', !!open);
+  }
 
-    const supportsSticky = (()=>{
-      try{
-        return (CSS && CSS.supports && (CSS.supports('position','sticky') || CSS.supports('position','-webkit-sticky')));
-      }catch(_){ return false; }
-    })();
+  // Prefer ffHooks if installed
+  if (window.ffHooks){
+    ffHooks.on('menu:open', ()=>setOpen(true));
+    ffHooks.on('menu:close', ()=>setOpen(false));
+  }
 
-    let lastH = 0;
-    const getBarH = ()=> Math.ceil(bar.getBoundingClientRect().height);
-
-    function setSpacer(h){
-      spacer.style.height = (h && h>0) ? (h + 'px') : '0px';
-    }
-
-    function onScroll(){
-      const y = window.scrollY || document.documentElement.scrollTop || 0;
-
-      // Nice shadow as soon as we begin to scroll
-      bar.classList.toggle('stuck-shadow', y > 2);
-
-      if (supportsSticky){
-        // Native sticky handles it; ensure we aren't in fallback mode
-        if (bar.classList.contains('is-fixed')){
-          bar.classList.remove('is-fixed');
-          setSpacer(0);
-        }
-        return;
-      }
-
-      // Fallback for browsers/contexts where sticky fails:
-      const h = getBarH();
-      if (y > 0){
-        if (!bar.classList.contains('is-fixed')){
-          bar.classList.add('is-fixed');
-          setSpacer(h);
-        } else if (h !== lastH){
-          setSpacer(h);
-        }
-      } else {
-        bar.classList.remove('is-fixed');
-        setSpacer(0);
-      }
-      lastH = h;
-    }
-
-    // Keep spacer height correct on layout changes
-    function onResize(){
-      if (bar.classList.contains('is-fixed')){
-        setSpacer(getBarH());
-      }
-      onScroll();
-    }
-
-    window.addEventListener('scroll', onScroll, {passive:true});
-    window.addEventListener('resize', onResize);
-    // Initial run
-    onResize();
-  }catch(e){
-    console.warn('Sticky topbar patch error:', e);
+  // Fallback: watch the #menu "show" class directly
+  if (menu){
+    const apply = ()=> setOpen(menu.classList.contains('show'));
+    apply();
+    new MutationObserver(apply).observe(menu, {attributes:true, attributeFilter:['class']});
   }
 })();
 </script>
+
 
   
 
