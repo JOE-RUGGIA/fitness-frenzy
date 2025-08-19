@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fitness Frenzy — VS6c (Dup Decls Fixed)</title>
+  <title>Fitness Frenzy — VS6e (Cooldown Gate Fixed)</title>
   <style>
     :root{
       --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
@@ -12,7 +12,7 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0; background:var(--bg); color:var(--text); font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+    body{margin:0; background:var(--bg); color:#f5f7ff; font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
     .topbar{position:sticky; top:0; z-index:20; background:linear-gradient(180deg, #151734, #10122a); border-bottom:1px solid #22254b; padding:10px 12px}
     .wrap{max-width:880px; margin:0 auto; padding:12px}
     .row{display:flex; align-items:center; gap:12px; justify-content:space-between}
@@ -92,7 +92,7 @@
       <div class="row">
         <div class="row" style="gap:12px; align-items:center">
           <button id="avatar" class="avatar" title="Menu"><span>FF</span><span id="avatar-dot" class="dot"></span></button>
-          <div class="logo">Fitness Frenzy — VS6c</div>
+          <div class="logo">Fitness Frenzy — VS6e</div>
         </div>
         <div class="bulk" id="bulk">
           <button data-q="1" class="active">×1</button>
@@ -164,10 +164,10 @@
 
   <script>
     try{
-      if(!window.__FF_VS6C__){
-        window.__FF_VS6C__ = true;
+      if(!window.__FF_VS6E__){
+        window.__FF_VS6E__ = true;
 
-        // ---- UI refs (single source of truth)
+        // ---- UI refs
         const hpEl = document.getElementById('hp-readout');
         const bulk = document.getElementById('bulk');
         const cardsRoot = document.getElementById('cards');
@@ -178,7 +178,6 @@
         const toast = document.getElementById('toast');
         const toastText = document.getElementById('toast-text');
 
-        // ---- Initialize "dirty" BEFORE any markDirty() use
         let dirty = false;
         function markDirty(){ dirty = true; }
         function flushUI(){
@@ -191,11 +190,10 @@
         }
 
         const OFFLINE_CAP_HOURS = 72;
-        const OFFLINE_MIN_MS = 20000; // 20s threshold (dev)
+        const OFFLINE_MIN_MS = 20000;
         const KEY_MAIN = 'ff-v1';
         const KEY_PREFS = 'ff-v1:prefs';
 
-        // --- Full exercise content per GDD
         const Exercises = [
           { id:'walk',    name:'Walking',            baseCooldownMs: 1000 },
           { id:'jog',     name:'Jogging',            baseCooldownMs: 3000 },
@@ -219,7 +217,6 @@
           { id:'vcross',  name:'Victorian Cross',    baseCooldownMs: 786432000 },
         ];
 
-        // --- Math helpers (per GDD)
         const coachPrice = (idx) => idx === 0 ? 1500 : Math.round(1500 * Math.pow(1.8, idx));
         const log2 = x => Math.log(x)/Math.log(2);
         const baseHP = (idx, ms) => idx===0 ? 1 : Math.round(20 * Math.pow(ms/1000, 1.10));
@@ -239,7 +236,6 @@
           speed_demon:   { title:'Speed Demon',     desc:'Any cooldown ≤ 0.30s', reward:180 },
         };
 
-        // --- Storage (schema + integrity)
         function defaultExercises(){
           return Exercises.map((ex, idx) => ({
             id: ex.id, unlocked: idx===0, repHP:0, repTarget:10, level:1, cooldown:ex.baseCooldownMs, lastTapAt:0
@@ -260,7 +256,6 @@
         function ensureIntegrity(data){
           const base = defaults();
           const byId = new Map((data.exercises||[]).map(e => [e.id, e]));
-          // rebuild exercises exactly matching master list order & count
           data.exercises = Exercises.map((ex, idx) => {
             const prev = byId.get(ex.id);
             const d = {
@@ -278,6 +273,7 @@
               d.repTarget = prev.repTarget ? prev.repTarget|0 : 10;
               d.level = prev.level ? prev.level|0 : 1;
               d.cooldown = prev.cooldown ? prev.cooldown|0 : ex.baseCooldownMs;
+              d.lastTapAt = prev.lastTapAt ? prev.lastTapAt|0 : 0;  // <-- preserve lastTapAt in-memory
             }
             return d;
           });
@@ -302,25 +298,18 @@
         }
 
         function load(){
-          // Prefer current schema
           const cur = localStorage.getItem(KEY_MAIN);
           if(cur){
-            try{
-              const d = ensureIntegrity(JSON.parse(cur));
-              return d;
-            }catch{ /* fallthrough */ }
+            try{ return ensureIntegrity(JSON.parse(cur)); }catch{}
           }
-          // Try migrating from VS5d or VS5c
           const mig = migrateFromLegacy('ff-vs5d') || migrateFromLegacy('ff-vs5c');
-          if(mig){
-            localStorage.setItem(KEY_MAIN, JSON.stringify(mig));
-            return mig;
-          }
+          if(mig){ localStorage.setItem(KEY_MAIN, JSON.stringify(mig)); return mig; }
           return defaults();
         }
         function save(s){
           try{
             const p = ensureIntegrity(structuredClone(s));
+            // strip timers only in the persisted copy
             p.exercises.forEach(e => e.lastTapAt = 0);
             localStorage.setItem(KEY_MAIN, JSON.stringify(p));
           }catch{}
@@ -338,9 +327,6 @@
 
         let S = load();
         let Prefs = loadPrefs();
-        // strip transient timers
-        S.exercises.forEach(e => e.lastTapAt = 0);
-        save(S);
         const get = () => S;
         function patch(mut){ S = ensureIntegrity(mut(structuredClone(S))); save(S); markDirty(); }
 
@@ -368,7 +354,7 @@
         function createCard(idx){
           const exMeta = Exercises[idx];
           const exState = get().exercises[idx];
-          if(!exMeta) return; // safety
+          if(!exMeta) return;
           if(!exState){
             patch(st => {
               const def = { id: exMeta.id, unlocked: idx===0, repHP:0, repTarget:10, level:1, cooldown:exMeta.baseCooldownMs, lastTapAt:0 };
@@ -406,7 +392,7 @@
             if(Tutor.active || off.classList.contains('show')) return;
             const s = get(); const ex = s.exercises[idx]; if(!ex || !ex.unlocked) return;
             const now = performance.now();
-            if (now < ex.lastTapAt + ex.cooldown) return;
+            if (ex.lastTapAt>0 && now < ex.lastTapAt + ex.cooldown) return;
             const gain = perTapHP(baseHP(idx, exMeta.baseCooldownMs), ex.repHP);
             patch(st => { st.hp += gain; st.stats.manual++; st.stats.totalEarned+=gain; st.exercises[idx].lastTapAt = now; return st; });
           });
@@ -695,13 +681,10 @@
         function build(){ buildCards(); markDirty(); }
         build();
 
-        // Start UI loop AFTER build
         requestAnimationFrame(flushUI);
 
-        // Periodic stamp
         setInterval(()=>{ if(!Tutor.active && !off.classList.contains('show')) stampNow(); }, 15000);
 
-        // On load, if away show offline modal; else just stamp
         (function checkReturn(){
           try{
             const s = computeOffline();
@@ -714,18 +697,32 @@
           const s = get();
           for(let i=0;i<Exercises.length;i++){
             const ex = s.exercises[i];
-            const ready = ex ? now >= (ex.lastTapAt||0) + (ex.cooldown||0) : false;
+            const r = cardRefs.get(Exercises[i].id); if(!r) continue;
+
+            if(!ex || !ex.unlocked){
+              r.bar.style.width='0%';
+              r.t.textContent='—';
+              r.tile.classList.remove('cooling');
+              continue;
+            }
+
+            if(!ex.lastTapAt || ex.lastTapAt === 0){
+              r.bar.style.width='100%';
+              r.t.textContent='Ready';
+              r.tile.classList.remove('cooling');
+            }else{
+              const dt = Math.max(0, now - (ex.lastTapAt||0));
+              const remain = Math.max(0, (ex.cooldown||0) - dt);
+              if (remain<=0){ r.bar.style.width='100%'; r.t.textContent='Ready'; r.tile.classList.remove('cooling'); }
+              else { const pct = 100 * (dt / (ex.cooldown||1)); r.bar.style.width = Math.max(0,Math.min(100,pct))+'%'; r.t.textContent=(remain/1000).toFixed(2)+'s'; r.tile.classList.add('cooling'); }
+            }
+
+            const ready = !ex.lastTapAt || now >= (ex.lastTapAt||0) + (ex.cooldown||0);
             const cId = 'c'+(i+1);
-            if(!Tutor.active && !off.classList.contains('show') && ex && s.coaches[cId] && ready && ex.unlocked){
+            if(!Tutor.active && !off.classList.contains('show') && s.coaches[cId] && ready){
               const gain = perTapHP(baseHP(i, Exercises[i].baseCooldownMs), ex.repHP||0);
               patch(st => { st.hp += gain; st.stats.auto++; st.stats.totalEarned+=gain; st.exercises[i].lastTapAt = now; return st; });
             }
-            const r = cardRefs.get(Exercises[i].id); if(!r) continue;
-            if(!ex){ r.bar.style.width='0%'; r.t.textContent='—'; r.tile.classList.add('cooling'); continue; }
-            const dt = Math.max(0, now - (ex.lastTapAt||0));
-            const remain = Math.max(0, (ex.cooldown||0) - dt);
-            if (remain<=0){ r.bar.style.width='100%'; r.t.textContent='Ready'; r.tile.classList.remove('cooling'); }
-            else { const pct = 100 * (dt / (ex.cooldown||1)); r.bar.style.width = Math.max(0,Math.min(100,pct))+'%'; r.t.textContent=(remain/1000).toFixed(2)+'s'; r.tile.classList.add('cooling'); }
           }
           requestAnimationFrame(tick);
         }
