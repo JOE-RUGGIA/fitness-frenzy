@@ -1,155 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fitness Frenzy — VS7q (female fix + no flicker)</title>
-  <style>
-    :root{
-      --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
-      --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f;
-      --female-accent:#ff76b5;
-      --splash-logo:url('GameBros Logo.png');
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0; background:var(--bg); color:var(--text); font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fitness Frenzy — Achievements + Tile Pop + Locked States</title>
+<style>
+  :root{
+    --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
+    --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --female-accent:#ff76b5;
+    --splash-logo:url('GameBros Logo.png');
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0; background:var(--bg); color:var(--text); font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
 
-    .topbar{position:sticky; top:0; z-index:20; background:linear-gradient(180deg, #151734, #10122a); border-bottom:1px solid #22254b; padding:10px 12px}
-    .wrap{max-width:880px; margin:0 auto; padding:12px}
-    .row{display:flex; align-items:center; gap:12px; justify-content:space-between}
-    .logo{font-weight:900; letter-spacing:0.8px}
-    .bulk{display:inline-flex; background:#20244a; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden}
-    .bulk button{background:transparent; color:#fff; border:0; padding:6px 10px; cursor:pointer; min-width:44px}
-    .bulk button.active{background:var(--accent-2); color:#061222; font-weight:700}
-    .hp-pill{margin-top:8px; background:#182047; border:1px solid #2a2e5e; padding:8px 10px; border-radius:10px; font-variant-numeric: tabular-nums; display:flex; align-items:center; justify-content:space-between}
-    .avatar{width:56px; height:56px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:900; border:2px solid #3b3f78; position:relative; cursor:pointer}
-    .avatar .dot{position:absolute; top:-4px; right:-4px; width:16px; height:16px; background:var(--good); border-radius:50%; border:2px solid #0f1020; display:none}
-    body.female .bulk button.active{background:var(--female-accent); color:#2b0020}
-    body.female .btn.glow{box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)}
+  /* Top bar */
+  .topbar{position:sticky; top:0; z-index:30; background:linear-gradient(180deg,#151734,#10122a); border-bottom:1px solid #22254b; padding:12px 14px}
+  .wrap{max-width:920px; margin:0 auto; padding:14px}
+  .row{display:flex; align-items:center; gap:14px; justify-content:space-between}
+  .logo{font-weight:900; letter-spacing:.9px}
+  .bulk{display:inline-flex; background:#20244a; border:1px solid #2a2e5e; border-radius:10px; overflow:hidden}
+  .bulk button{background:transparent; color:#fff; border:0; padding:8px 12px; cursor:pointer; min-width:52px; font-size:15px}
+  .bulk button.active{background:var(--accent-2); color:#061222; font-weight:800}
+  .hp-pill{margin-top:10px; background:#182047; border:1px solid #2a2e5e; padding:10px 12px; border-radius:12px; font-variant-numeric:tabular-nums; display:flex; align-items:center; justify-content:space-between; font-size:16px}
+  .avatar{width:72px; height:72px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:900; border:2px solid #3b3f78; position:relative; cursor:pointer; overflow:hidden}
+  .avatar-img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none}
+  .avatar .dot{position:absolute; top:-4px; right:-4px; width:18px; height:18px; background:var(--good); border-radius:50%; border:2px solid #0f1020; display:none}
+  body.female .bulk button.active{background:var(--female-accent); color:#2b0020}
+  body.female .btn.glow{box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)}
 
-    .cards{display:grid; gap:12px}
-    .card{display:grid; grid-template-columns:110px 1fr; gap:12px; padding:10px; background:var(--panel); border:1px solid #262a58; border-radius:12px}
-    .tile{background:var(--panel-2); border-radius:10px; position:relative; height:110px; user-select:none; overflow:hidden; cursor:pointer; outline:none}
-    .tile.locked{filter: grayscale(100%); opacity:.9; cursor:default}
-    .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px; z-index:2}
-    .media{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:0}
-    .repband{position:absolute; left:6px; right:6px; bottom:6px; height:16px; border-radius:8px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden; z-index:2}
-    .repfill{height:100%; width:0%; background:linear-gradient(90deg, #17b34c, #27c93f)}
-    .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:#cfead6; text-shadow:0 1px 2px #000}
-    .title{font-weight:700; margin-top:2px}
-    .cooldown{margin-top:6px; height:20px; background:#141739; border:1px solid #2a2e5e; border-radius:6px; overflow:hidden; position:relative}
-    .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg, #2f6df3, #41b0ff)}
-    .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric: tabular-nums; color:#a6b0d8}
-    .meta{display:flex; align-items:center; justify-content:space-between; margin-top:8px}
-    .muted{color:#aab1d6}
-    .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:10px 14px; border-radius:10px; min-width:180px; cursor:pointer; font-variant-numeric: tabular-nums}
-    .btn.glow{box-shadow:0 0 0 2px rgba(255, 192, 120, .25) inset, 0 0 12px rgba(255, 122, 26, .35)}
+  /* Cards */
+  .cards{display:grid; gap:12px}
+  .card{display:grid; grid-template-columns:120px 1fr; gap:14px; padding:12px; background:var(--panel); border:1px solid #262a58; border-radius:14px; will-change:transform}
+  .card.card-locked{transform:scale(.94); opacity:.86}
+  .tile{background:var(--panel-2); border-radius:12px; position:relative; height:120px; user-select:none; overflow:hidden; cursor:pointer; outline:none; transition:transform .12s ease, filter .12s ease, box-shadow .12s ease}
+  .tile.locked{filter:grayscale(100%); opacity:.95; cursor:default}
+  .tile.locked.afford{animation:affordPulse 1.3s ease-in-out infinite; border:1px dashed rgba(255,180,80,.55)}
+  .tile.locked.afford:hover{transform:scale(.98) translateY(-1px); filter:grayscale(92%) brightness(1.05)}
+  @keyframes affordPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,180,80,0); transform:scale(.96)}50%{box-shadow:0 0 0 8px rgba(255,180,80,.16); transform:scale(1)}}
+  .tile.tap-pop{animation:tapPop 220ms ease-out}
+  @keyframes tapPop{0%{transform:scale(.98)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 7px; border-radius:8px; font-size:13px; z-index:2}
+  .media{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:0}
+  .burst{position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at center, rgba(255,255,255,.16), transparent 40%); opacity:0; transform:scale(.6)}
+  .burst-on .burst{animation:burst .3s ease-out}
+  @keyframes burst{0%{opacity:.9; transform:scale(.5)}100%{opacity:0; transform:scale(1.4)}}
+  .repband{position:absolute; left:6px; right:6px; bottom:6px; height:18px; border-radius:9px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden; z-index:2}
+  .repfill{height:100%; width:0%; background:linear-gradient(90deg,#17b34c,#27c93f)}
+  .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:13px; color:#cfead6; text-shadow:0 1px 2px #000}
+  .title{font-weight:800; margin-top:2px; font-size:16px}
+  .cooldown{margin-top:8px; height:22px; background:#141739; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden; position:relative}
+  .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#2f6df3,#41b0ff)}
+  .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric:tabular-nums; color:#a6b0d8; font-size:14px}
+  .meta{display:flex; align-items:center; justify-content:space-between; margin-top:10px}
+  .muted{color:#aab1d6; font-size:15px}
+  .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:12px 16px; border-radius:12px; min-width:200px; cursor:pointer; font-variant-numeric:tabular-nums; font-size:15px}
+  .btn.glow{box-shadow:0 0 0 2px rgba(255,192,120,.25) inset, 0 0 12px rgba(255,122,26,.35)}
 
-    /* Menu overlay */
-    .menu{position:fixed; inset:0; display:none; z-index:40}
-    .menu.show{display:block}
-    .menu-backdrop{position:absolute; inset:0; background:rgba(0,0,0,.55)}
-    .menu-panel{position:absolute; right:0; top:0; bottom:0; width:min(520px, 92vw); background:#14163a; border-left:1px solid #2a2e5e; display:flex; flex-direction:column; transform:translateX(6%); opacity:0; transition:transform .14s ease, opacity .14s ease}
-    .menu.show .menu-panel{transform:translateX(0%); opacity:1}
-    .menu-top{display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #2a2e5e}
-    .menu-title{font-weight:900}
-    .menu-close{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:6px 10px; border-radius:8px; cursor:pointer}
-    .menu-tabs{display:flex; gap:8px; padding:8px 12px; border-bottom:1px solid #2a2e5e; overflow:auto}
-    .tab{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:6px 10px; border-radius:8px; cursor:pointer; white-space:nowrap}
-    .tab.active{background:#202767; outline:2px solid var(--accent-2)}
-    .menu-body{flex:1; overflow:auto; padding:12px}
-    .coach-row{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; background:#171a3a; border:1px solid #2a2e5e; padding:10px; border-radius:10px; margin-bottom:8px}
-    .coach-ava{width:44px; height:44px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:800}
-    .coach-title{font-weight:700}
-    .coach-sub{font-size:12px; color:#a6adcf}
-    .hired{color:var(--good); font-weight:700}
+  /* Menu overlay (unchanged essentials) */
+  .menu{position:fixed; inset:0; display:none; z-index:40}
+  .menu.show{display:block}
+  .menu-backdrop{position:absolute; inset:0; background:rgba(0,0,0,.55)}
+  .menu-panel{position:absolute; right:0; top:0; bottom:0; width:min(560px, 92vw); background:#14163a; border-left:1px solid #2a2e5e; display:flex; flex-direction:column; transform:translateX(6%); opacity:0; transition:transform .14s ease, opacity .14s ease}
+  .menu.show .menu-panel{transform:translateX(0%); opacity:1}
+  .menu-top{display:flex; align-items:center; justify-content:space-between; padding:14px; border-bottom:1px solid #2a2e5e}
+  .menu-title{font-weight:900; font-size:18px}
+  .menu-close{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer}
+  .menu-tabs{display:flex; gap:10px; padding:10px 14px; border-bottom:1px solid #2a2e5e; overflow:auto}
+  .tab{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer; white-space:nowrap; font-size:15px}
+  .tab.active{background:#202767; outline:2px solid var(--accent-2)}
+  .menu-body{flex:1; overflow:auto; padding:14px}
+  .coach-row{display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; background:#171a3a; border:1px solid #2a2e5e; padding:12px; border-radius:12px; margin-bottom:10px}
+  .coach-ava{width:52px; height:52px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:800}
+  .coach-title{font-weight:800}
+  .coach-sub{font-size:14px; color:#a6adcf}
+  .hired{color:var(--good); font-weight:800}
 
-    /* Tutorial + Offline modal */
-    .jax,.off{position:fixed; inset:0; display:none; place-items:center; z-index:55}
-    .jax.show,.off.show{display:grid}
-    .jax::before,.off::before{content:""; position:absolute; inset:0; background:rgba(0,0,0,.55)}
-    .jax .panel,.off .panel{position:relative; z-index:1; max-width:min(640px, 92vw); background:#111333; border:1px solid #2a2e5e; border-radius:14px; padding:16px}
+  /* Splash + Start (kept minimal for context) */
+  .splash{position:fixed; inset:0; z-index:80; display:none; background:#ffffff;}
+  .splash.show{display:block}
+  .splash .brand{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center}
+  .splash .logo-img{width:min(480px,68vw); height:min(480px,68vw); background-image:var(--splash-logo); background-size:contain; background-repeat:no-repeat; background-position:center; margin:0 auto; animation:gb-pop .6s cubic-bezier(.2,.8,.2,1) both, gb-float 5.5s ease-in-out .6s infinite;}
+  .splash .tag{margin-top:12px; color:#333}
+  .splash .skip{position:absolute; bottom:24px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; color:#fff; padding:10px 14px; border-radius:12px; cursor:pointer; font-size:15px}
+  @keyframes gb-pop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
+  @keyframes gb-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .start{position:fixed; inset:0; z-index:70; display:none}
+  .start.show{display:block}
+  .start .bg{position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; filter:saturate(1.05); pointer-events:none; z-index:0;}
+  .start .scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,12,33,.10) 0%, rgba(10,12,33,.55) 45%, rgba(10,12,33,.85) 100%); pointer-events:none; z-index:1;}
+  .start .panel{position:absolute; left:50%; transform:translateX(-50%); bottom:6vh; width:min(820px,96vw); background:rgba(18,20,52,.70); border:1px solid rgba(42,46,94,.75); border-radius:18px; backdrop-filter: blur(6px); padding:18px; display:flex; flex-direction:column; align-items:center; gap:16px; z-index:2;}
+  .start .avatars{display:flex; gap:12px; align-items:center; justify-content:center}
+  .start .ava{width:144px; height:144px; border-radius:14px; display:grid; place-items:end; font-weight:900; border:2px solid #2a2e5e; cursor:pointer; background:#121434; user-select:none; overflow:hidden; position:relative;}
+  .start .ava span{background:rgba(0,0,0,.45); width:100%; text-align:center; font-size:13px; padding:3px 0; position:absolute; bottom:0; left:0}
+  .start .ava img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none}
+  .start .ava.f{ border-color:var(--female-accent) }
+  .start .ava.active{outline:3px solid var(--accent-2)}
+  .start .buttons{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+  .start .btn-start{background:var(--accent); color:#1b0d00; font-weight:900; font-size:16px}
+  body.female .start .btn-start{background:var(--female-accent); color:#2b0020}
+  .start .btn-continue{background:#1f254f; font-size:16px}
+  .start .hint{color:#ccd2ff; opacity:.85; font-size:14px}
 
-    /* Splash (white background + animated logo) */
-    .splash{position:fixed; inset:0; z-index:80; display:none; background:#ffffff;}
-    .splash.show{display:block}
-    .splash .brand{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center}
-    .splash .logo-img{width:min(420px, 60vw); height:min(420px,60vw); background-image:var(--splash-logo); background-size:contain; background-repeat:no-repeat; background-position:center; margin:0 auto;
-      animation: gb-pop .6s cubic-bezier(.2,.8,.2,1) both, gb-float 5.5s ease-in-out .6s infinite;}
-    .splash .tag{margin-top:10px; color:#333}
-    .splash .skip{position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer}
-    @keyframes gb-pop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
-    @keyframes gb-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  /* Tutorial shell (kept small) */
+  .tip{position:fixed; inset:0; display:none; z-index:90}
+  .tip.show{display:block}
+  .tip .back{position:absolute; inset:0; background:rgba(0,0,0,.55)}
+  .tip .bubble{position:absolute; max-width:min(640px, 94vw); background:#0f1338; border:1px solid #2a2e5e; border-radius:14px; padding:16px 18px 16px 16px; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:18px;}
+  .tip .bubble.center{left:50%; top:50%; transform:translate(-50%,-50%)}
+  .tip .head{display:flex; align-items:center; gap:12px; margin-bottom:8px}
+  .tip .head .circle{width:64px; height:64px; border-radius:50%; overflow:hidden; border:2px solid #3b3f78; background:#1b1f44; display:grid; place-items:center}
+  .tip .head .circle img{width:100%; height:100%; object-fit:cover}
+  .tip .actions{display:flex; gap:10px; justify-content:flex-end; margin-top:10px}
+  .tip .btn{min-width:120px; font-size:16px; padding:10px 14px}
 
-    /* Start screen */
-    .start{position:fixed; inset:0; z-index:70; display:none}
-    .start.show{display:block}
-    .start .bg{position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; filter: saturate(1.05); pointer-events:none; z-index:0;}
-    .start .scrim{position:absolute; inset:0; background: linear-gradient(180deg, rgba(10,12,33,.10) 0%, rgba(10,12,33,.55) 45%, rgba(10,12,33,.85) 100%); pointer-events:none; z-index:1;}
-    .start .panel{
-      position:absolute; left:50%; transform:translateX(-50%);
-      bottom:6vh; width:min(760px, 94vw);
-      background:rgba(18,20,52,.70); border:1px solid rgba(42,46,94,.75); border-radius:16px;
-      backdrop-filter: blur(6px);
-      padding:16px;
-      display:flex; flex-direction:column; align-items:center; gap:14px;
-      z-index:2;
-    }
-    .start .avatars{display:flex; gap:10px; align-items:center; justify-content:center}
-    .start .ava{
-      width:110px; height:110px; border-radius:12px; display:grid; place-items:end; font-weight:900;
-      border:2px solid #2a2e5e; cursor:pointer; background:#121434; user-select:none; overflow:hidden;
-      position:relative;
-    }
-    .start .ava span{background:rgba(0,0,0,.45); width:100%; text-align:center; font-size:12px; padding:2px 0; position:absolute; bottom:0; left:0}
-    .start .ava img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none}
-    .start .ava.f{ border-color:var(--female-accent) }
-    .start .ava.active{outline:3px solid var(--accent-2)}
-    .start .buttons{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
-    .start .btn-start{background:var(--accent); color:#1b0d00; font-weight:900}
-    body.female .start .btn-start{background:var(--female-accent); color:#2b0020}
-    .start .btn-continue{background:#1f254f}
-    .start .hint{color:#ccd2ff; opacity:.85; font-size:13px}
+  /* Achievement banners + confetti */
+  .ach{position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:120; pointer-events:none}
+  .ach .banner{position:relative; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#2a2e6b,#1e2255); border:1px solid #3b40a8; color:#fff; padding:12px 16px; border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.4), 0 0 0 2px rgba(255,255,255,.05) inset; animation:dropIn .6s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes dropIn{0%{transform:translate(-50%,-18px) scale(.96); opacity:0}100%{transform:translate(-50%,0) scale(1); opacity:1}}
+  .ach .icon{width:36px; height:36px; background:radial-gradient(#ffd54d,#ff9f1a); border-radius:50%; display:grid; place-items:center; box-shadow:0 0 16px rgba(255,159,26,.45); font-weight:900; color:#2d1c00}
+  .ach .title{font-weight:900}
+  .ach .sub{font-size:12px; color:#c8d1ff; opacity:.9}
+  .ach .reward{margin-left:8px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); padding:2px 8px; border-radius:999px; font-variant-numeric:tabular-nums}
 
-    /* Toast + Error bar */
-    .toast{position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:100; display:none}
-    .toast.show{display:block}
-    .toast .box{background:#0f1333; border:1px solid #32407a; color:#e9edff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 30px rgba(0,0,0,.35)}
-    .err{position:fixed; top:0; left:0; right:0; background:#8b1111; color:#fff; z-index:120; padding:8px 12px; font-weight:700; display:none}
-    .err.show{display:block}
+  .conf{position:fixed; top:10px; left:50%; width:0; height:0; pointer-events:none; z-index:121}
+  .confetti{position:absolute; width:8px; height:12px; opacity:0; transform:translate(-50%,0) rotate(0deg); animation:confPop 900ms ease-out forwards}
+  @keyframes confPop{
+    0%{opacity:0; transform:translate(0,0) rotate(0)}
+    10%{opacity:1}
+    100%{opacity:0; transform:translate(var(--dx), var(--dy)) rotate(var(--rot))}
+  }
 
-    @media (max-width:560px){
-      .start .ava{width:96px; height:96px}
-      .start .panel{bottom:4vh}
-    }
-  </style>
+  /* Minimal error bar */
+  .err{display:none; background:#8b1111; color:#fff; padding:8px 12px; font-weight:700}
+</style>
 </head>
 <body>
   <div id="err" class="err"></div>
 
-  <!-- Splash -->
-  <div id="splash" class="splash show" aria-hidden="true">
-    <div class="brand">
-      <div class="logo-img" aria-label="GameBros logo"></div>
-      <div class="tag">loading assets…</div>
-    </div>
+  <!-- Splash (stub to keep flow intact) -->
+  <div id="splash" class="splash" aria-hidden="true">
+    <div class="brand"><div class="logo-img" aria-label="GameBros logo"></div><div class="tag">loading…</div></div>
     <button id="splash-skip" class="skip">Skip</button>
   </div>
 
-  <!-- Start -->
+  <!-- Start (stub: uses your existing art) -->
   <div id="start" class="start" role="dialog" aria-modal="true" aria-label="Start menu" data-bg-desktop="FF-desktop.png" data-bg-mobile="FF-mobile.png">
     <div id="start-bg" class="bg"></div>
     <div class="scrim"></div>
     <div class="panel">
       <div class="avatars" id="start-avatars">
         <div class="ava m active" data-sex="male">
-          <img src="NEW MALE AVATAR.gif" alt="Male avatar" onerror="this.style.display='none'">
-          <span>Male</span>
+          <img src="NEW MALE AVATAR.gif" alt="Male" onerror="this.style.display='none'"><span>Male</span>
         </div>
         <div class="ava f" data-sex="female">
-          <img src="NEW FEMALE AVATAR.gif" alt="Female avatar" onerror="this.style.display='none'">
-          <span>Female</span>
+          <img src="NEW FEMALE AVATAR.gif" alt="Female" onerror="this.style.display='none'"><span>Female</span>
         </div>
       </div>
       <div class="buttons">
@@ -160,12 +165,15 @@
     </div>
   </div>
 
+  <!-- Top Bar -->
   <div class="topbar" aria-hidden="true">
     <div class="wrap">
       <div class="row">
-        <div class="row" style="gap:12px; align-items:center">
-          <button id="avatar" class="avatar" title="Menu"><span>FF</span><span id="avatar-dot" class="dot"></span></button>
-          <div class="logo">Fitness Frenzy — VS7q</div>
+        <div class="row" style="gap:14px; align-items:center">
+          <button id="avatar" class="avatar" title="Menu">
+            <img id="avatar-img" class="avatar-img" alt="Player avatar"><span id="avatar-fallback">FF</span><span id="avatar-dot" class="dot"></span>
+          </button>
+          <div class="logo">Fitness Frenzy</div>
         </div>
         <div class="bulk" id="bulk">
           <button data-q="1" class="active">×1</button>
@@ -177,18 +185,13 @@
     </div>
   </div>
 
-  <div class="wrap" aria-hidden="true">
-    <div id="cards" class="cards"></div>
-  </div>
+  <div class="wrap" aria-hidden="true"><div id="cards" class="cards"></div></div>
 
   <!-- Menu -->
   <div id="menu" class="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
     <div class="menu-backdrop" data-close="1"></div>
     <div class="menu-panel">
-      <div class="menu-top">
-        <div id="menu-title" class="menu-title">Menu</div>
-        <button class="menu-close" data-close="1" aria-label="Close">✕</button>
-      </div>
+      <div class="menu-top"><div id="menu-title" class="menu-title">Menu</div><button class="menu-close" data-close="1" aria-label="Close">✕</button></div>
       <div class="menu-tabs">
         <button class="tab active" data-tab="coaches">Coaches</button>
         <button class="tab" data-tab="upgrades">Upgrades</button>
@@ -200,427 +203,492 @@
     </div>
   </div>
 
-  <div id="toast" class="toast"><div class="box" id="toast-text"></div></div>
+  <!-- Tutorial shell (centered only for JAX; player step anchored in your build) -->
+  <div id="tip" class="tip" role="dialog" aria-modal="true" aria-label="Tutorial" style="display:none">
+    <div class="back"></div>
+    <div id="tip-bubble" class="bubble center" style="visibility:hidden">
+      <div class="head" id="tip-head">
+        <div class="circle"><img id="tip-head-img" src="fitness frenzy- coaches 128 x128 test.gif" alt="Speaker" onerror="this.style.display='none'"></div>
+        <div id="tip-head-name" style="font-weight:900">JAX</div>
+      </div>
+      <div class="text" id="tip-text"></div>
+      <div class="actions"><button id="tip-next" class="btn">Next</button></div>
+    </div>
+  </div>
 
-  <script>
-    (function(){
-      const errEl = document.getElementById('err');
-      function showErr(msg){ errEl.textContent = 'Error: ' + msg; errEl.classList.add('show'); }
-      window.addEventListener('error', e => { showErr(e.message || 'Script error'); });
-      window.addEventListener('unhandledrejection', e => { showErr((e.reason && e.reason.message) || 'Unhandled promise rejection'); });
+  <!-- Achievement banners -->
+  <div id="ach" class="ach"></div>
+
+  <!-- Toast (kept) -->
+  <div id="toast" class="toast" style="display:none"><div class="box" id="toast-text"></div></div>
+
+<script>
+/* Basic error bar */
+(function(){
+  const errEl = document.getElementById('err');
+  function showErr(msg){ errEl.textContent='Error: '+msg; errEl.style.display='block'; }
+  window.addEventListener('error', e=> showErr(e.message||'Script error'));
+  window.addEventListener('unhandledrejection', e=> showErr((e.reason&&e.reason.message)||'Unhandled promise rejection'));
+})();
+</script>
+
+<script>
+try{
+  if(!window.__FF_ACH_TILES__){
+    window.__FF_ACH_TILES__ = true;
+
+    /* Utilities & prefs */
+    const isMobile=()=>/Mobi|Android/i.test(navigator.userAgent)||(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches);
+    function deepClone(x){ try{return structuredClone(x);}catch(_){ try{return JSON.parse(JSON.stringify(x));}catch(__){return x;} } }
+    const KEY_MAIN='ff-v1', KEY_PREFS='ff-v1:prefs';
+    function sanitizeVol(v){const def=isMobile()?0.03:0.12; const n=Number(v); if(!Number.isFinite(n)) return def; return Math.max(0,Math.min(1,n));}
+    function loadPrefs(){ try{ const raw=localStorage.getItem(KEY_PREFS); let p=raw?JSON.parse(raw):{}; const out={musicOn: typeof p.musicOn==='boolean'?p.musicOn:true, musicVol: sanitizeVol(p.musicVol ?? (isMobile()?0.03:0.12))}; localStorage.setItem(KEY_PREFS, JSON.stringify(out)); return out;}catch(_){ const out={musicOn:true, musicVol:isMobile()?0.03:0.12}; try{localStorage.setItem(KEY_PREFS,JSON.stringify(out));}catch(__){} return out; } }
+    function savePrefs(p){ try{ localStorage.setItem(KEY_PREFS, JSON.stringify({musicOn:!!p.musicOn, musicVol:sanitizeVol(p.musicVol)})); }catch(_){} }
+
+    const Music=(()=>{ let el=null; function ensure(){ if(el) return el; const url=isMobile()?'FF-fighting music (soft).mp3':'FF-fighting music.mp3'; el=new Audio(url); el.loop=true; try{ el.volume=loadPrefs().musicVol; }catch(_){ } return el; }
+      return {
+        startPlay(){ const p=loadPrefs(); if(!p.musicOn) return; const a=ensure(); try{ a.volume=sanitizeVol(p.musicVol);}catch(_){ } a.play().catch(()=>{}); },
+        setVol(v){ const p=loadPrefs(); p.musicVol=sanitizeVol(v); savePrefs(p); if(el){ try{ el.volume=p.musicVol;}catch(_){ } } },
+        setOn(b){ const p=loadPrefs(); p.musicOn=!!b; savePrefs(p); if(!p.musicOn){ if(el){ el.pause(); try{ el.currentTime=0;}catch(_){ } } } else { this.startPlay(); } },
+        get vol(){return loadPrefs().musicVol}, get on(){return loadPrefs().musicOn}
+      };
     })();
-  </script>
 
-  <script>
-    try{
-      if(!window.__FF_VS7Q__){
-        window.__FF_VS7Q__ = true;
+    /* Refs */
+    const hpEl=document.getElementById('hp-readout');
+    const bulk=document.getElementById('bulk');
+    const cardsRoot=document.getElementById('cards');
+    const avatarBtn=document.getElementById('avatar');
+    const avatarImg=document.getElementById('avatar-img');
+    const avatarFallback=document.getElementById('avatar-fallback');
+    const avatarDot=document.getElementById('avatar-dot');
+    const menu=document.getElementById('menu');
+    const menuBody=document.getElementById('menu-body');
+    const toast=document.getElementById('toast');
+    const toastText=document.getElementById('toast-text');
+    const splash=document.getElementById('splash');
+    const splashSkip=document.getElementById('splash-skip');
+    const start=document.getElementById('start');
+    const startBg=document.getElementById('start-bg');
+    const btnNew=document.getElementById('btn-new');
+    const btnContinue=document.getElementById('btn-continue');
+    const startAvatars=document.getElementById('start-avatars');
+    const achRoot=document.getElementById('ach');
 
-        function deepClone(x){ try{ return structuredClone(x); }catch(_){ try{ return JSON.parse(JSON.stringify(x)); }catch(__){ return x; } } }
-        const isMobile = () => /Mobi|Android/i.test(navigator.userAgent) || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+    /* Assets */
+    const STILLS={ male:{
+      walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.png?raw=true",
+      jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.png?raw=true",
+      sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.png?raw=true",
+      push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.png?raw=true",
+      jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jumping%20jacks.png?raw=true",
+      pull:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pull%20ups.png?raw=true",
+      rope:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jump%20rope.png?raw=true",
+      plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20planks.png?raw=true",
+      mtclimb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20mountain%20climbers.png?raw=true",
+      kb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20kettlebells.png?raw=true",
+      burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20burpees.png?raw=true",
+      bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20bench%20press.png?raw=true",
+      backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20back%20squat.png?raw=true",
+      dead:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20deadlifts.png?raw=true",
+      hand:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstands.png?raw=true",
+      hspu:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstand%20push%20ups.png?raw=true",
+      muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20muscle%20ups.png?raw=true",
+      lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20front%20lever.png?raw=true",
+      icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20iron%20cross.png?raw=true",
+      vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20victorian%20cross.png?raw=true"
+    }, female:{
+      walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.png?raw=true",
+      jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.png?raw=true",
+      sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.png?raw=true",
+      push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.png?raw=true",
+      jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jumping%20jacks.png?raw=true",
+      pull:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pull%20up.png?raw=true",
+      rope:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jump%20rope.png?raw=true",
+      plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20plank.png?raw=true",
+      mtclimb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20mountain%20climbers.png?raw=true",
+      kb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20kettlebell.png?raw=true",
+      burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20burpees.png?raw=true",
+      bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20bench%20press.png?raw=true",
+      backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20back%20squat.png?raw=true",
+      dead:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20deadlift.png?raw=true",
+      hand:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand.png?raw=true",
+      hspu:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand%20push%20ups.png?raw=true",
+      muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20muscle%20up.png?raw=true",
+      lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20front%20lever.png?raw=true",
+      icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20iron%20cross.png?raw=true",
+      vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20victorian%20cross.png?raw=true"
+    }};
+    const GIFS={ male:{
+      walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.gif?raw=true",
+      jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.gif?raw=true",
+      sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.gif?raw=true",
+      push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.gif?raw=true"
+    }, female:{
+      walk:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.gif?raw=true",
+      jog:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.gif?raw=true",
+      sit:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.gif?raw=true",
+      push:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.gif?raw=true"
+    }};
 
-        // UI refs
-        const hpEl = document.getElementById('hp-readout');
-        const bulk = document.getElementById('bulk');
-        const cardsRoot = document.getElementById('cards');
-        const avatarBtn = document.getElementById('avatar');
-        const avatarDot = document.getElementById('avatar-dot');
-        const menu = document.getElementById('menu');
-        const menuBody = document.getElementById('menu-body');
-        const toast = document.getElementById('toast');
-        const toastText = document.getElementById('toast-text');
+    /* Math + content */
+    const Exercises=[
+      { id:'walk', name:'Walking', baseCooldownMs:1000 },
+      { id:'jog', name:'Jogging', baseCooldownMs:3000 },
+      { id:'sit', name:'Sit-ups', baseCooldownMs:6000 },
+      { id:'push', name:'Push-ups', baseCooldownMs:12000 },
+      { id:'jacks', name:'Jumping Jacks', baseCooldownMs:24000 },
+      { id:'pull', name:'Pull-ups', baseCooldownMs:48000 },
+      { id:'rope', name:'Jump Rope', baseCooldownMs:96000 },
+      { id:'plank', name:'Plank', baseCooldownMs:192000 },
+      { id:'mtclimb', name:'Mountain Climbers', baseCooldownMs:384000 },
+      { id:'kb', name:'Kettlebell', baseCooldownMs:768000 },
+      { id:'burpee', name:'Burpees', baseCooldownMs:1536000 },
+      { id:'bench', name:'Bench Press', baseCooldownMs:3072000 },
+      { id:'backsq', name:'Back Squat', baseCooldownMs:6144000 },
+      { id:'dead', name:'Deadlift', baseCooldownMs:12288000 },
+      { id:'hand', name:'Handstands', baseCooldownMs:24576000 },
+      { id:'hspu', name:'Handstand Push-ups', baseCooldownMs:49152000 },
+      { id:'muscle', name:'Muscle-ups', baseCooldownMs:98304000 },
+      { id:'lever', name:'Front Lever', baseCooldownMs:196608000 },
+      { id:'icross', name:'Iron Cross', baseCooldownMs:393216000 },
+      { id:'vcross', name:'Victorian Cross', baseCooldownMs:786432000 },
+    ];
+    const coachPrice=i=>i===0?1500:Math.round(1500*Math.pow(1.8,i));
+    const log2=x=>Math.log(x)/Math.log(2);
+    const baseHP=(idx,ms)=>idx===0?1:Math.round(20*Math.pow(ms/1000,1.10));
+    const perTapHP=(b,rep)=>b+rep;
+    const repBaseCost=b=>Math.max(4,Math.round(b*.05));
+    const repGrowth=lvl=>Math.max(1.07,Math.min(1.15,1.07+.01*log2(Math.max(1,lvl))));
+    const repCostSingle=(rb,g,rep)=>rb*Math.pow(g,rep);
+    const repCostBulk=(rb,g,rep,n)=>rb*Math.pow(g,rep)*((Math.pow(g,n)-1)/(g-1));
+    const nextCooldown=ms=>Math.max(100,Math.floor(ms/2));
+    const unlockCost=(b,ms)=>Math.round(b*Math.pow(ms/1000,.60)*1.15);
+    const fmt=n=>{ if(!isFinite(n))return'0'; const a=Math.abs(n); if(a>=1e12)return(n/1e12).toFixed(2)+'T'; if(a>=1e9)return(n/1e9).toFixed(2)+'B'; if(a>=1e6)return(n/1e6).toFixed(2)+'M'; if(a>=1e3)return(n/1e3).toFixed(2)+'K'; return String(Math.floor(n)); };
 
-        // Splash/Start
-        const splash = document.getElementById('splash');
-        const splashSkip = document.getElementById('splash-skip');
-        const start = document.getElementById('start');
-        const startBg = document.getElementById('start-bg');
-        const btnNew = document.getElementById('btn-new');
-        const btnContinue = document.getElementById('btn-continue');
-        const startAvatars = document.getElementById('start-avatars');
+    /* Achievements */
+    const ACH={
+      first_steps:{title:'First Steps', desc:'Walking reaches Lvl 2', reward:50},
+      add_routine:{title:'Add to Routine', desc:'Unlock Jogging', reward:100},
+      coach_duty:{title:'Coach On Duty', desc:'Hire your first coach', reward:150},
+      speed_demon:{title:'Speed Demon', desc:'Any cooldown ≤ 0.30s', reward:180},
+    };
 
-        const KEY_MAIN = 'ff-v1';
-        const KEY_PREFS = 'ff-v1:prefs';
-
-        // --- Assets map (stills + GIFs first-4) ---
-        const STILLS = {
-          male: {
-            walk: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.png?raw=true",
-            jog:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.png?raw=true",
-            sit:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.png?raw=true",
-            push: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.png?raw=true",
-            jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jumping%20jacks.png?raw=true",
-            pull: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pull%20ups.png?raw=true",
-            rope: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jump%20rope.png?raw=true",
-            plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20planks.png?raw=true",
-            mtclimb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20mountain%20climbers.png?raw=true",
-            kb:   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20kettlebells.png?raw=true",
-            burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20burpees.png?raw=true",
-            bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20bench%20press.png?raw=true",
-            backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20back%20squat.png?raw=true",
-            dead: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20deadlifts.png?raw=true",
-            hand: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstands.png?raw=true",
-            hspu: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstand%20push%20ups.png?raw=true",
-            muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20muscle%20ups.png?raw=true",
-            lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20front%20lever.png?raw=true",
-            icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20iron%20cross.png?raw=true",
-            vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20victorian%20cross.png?raw=true"
-          },
-          female: {
-            walk: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.png?raw=true",
-            jog:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.png?raw=true",
-            sit:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.png?raw=true",
-            push: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.png?raw=true",
-            jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jumping%20jacks.png?raw=true",
-            pull: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pull%20up.png?raw=true",
-            rope: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jump%20rope.png?raw=true",
-            plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20plank.png?raw=true",
-            mtclimb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20mountain%20climbers.png?raw=true",
-            kb:   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20kettlebell.png?raw=true",
-            burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20burpees.png?raw=true",
-            bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20bench%20press.png?raw=true",
-            backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20back%20squat.png?raw=true",
-            dead: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20deadlift.png?raw=true",
-            hand: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand.png?raw=true",
-            hspu: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand%20push%20ups.png?raw=true",
-            muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20muscle%20up.png?raw=true",
-            lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20front%20lever.png?raw=true",
-            icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20iron%20cross.png?raw=true",
-            vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20victorian%20cross.png?raw=true"
-          }
-        };
-        const GIFS = {
-          male: {
-            walk: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.gif?raw=true",
-            jog:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.gif?raw=true",
-            sit:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.gif?raw=true",
-            push: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.gif?raw=true"
-          },
-          female: {
-            walk: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.gif?raw=true",
-            jog:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.gif?raw=true",
-            sit:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.gif?raw=true",
-            push: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.gif?raw=true"
-          }
-        };
-
-        function canonical(u){ if(!u) return ''; const i=u.indexOf('?'); return i>=0?u.slice(0,i):u; }
-        function bust(u){ if(!u) return ''; return u + (u.includes('?')?'&':'?') + 't=' + Date.now(); }
-
-        function loadPrefs(){
-          try{ const raw = localStorage.getItem(KEY_PREFS); return raw? JSON.parse(raw): {}; }catch(_){ return {}; }
-        }
-        function savePrefs(p){ try{ localStorage.setItem(KEY_PREFS, JSON.stringify(p)); }catch(_){} }
-        const prefs = Object.assign({ musicOn:true, musicVol: isMobile()? 0.03 : 0.12 }, loadPrefs());
-
-        const Music = (()=>{
-          let el = null;
-          function ensure(){ if(el) return el; const url = isMobile() ? 'FF-fighting music (soft).mp3' : 'FF-fighting music.mp3'; el = new Audio(url); el.loop=true; el.volume=prefs.musicVol; return el; }
-          function startPlay(){ if(!prefs.musicOn) return; const a=ensure(); a.volume=prefs.musicVol; a.play().catch(()=>{}); }
-          function stop(){ if(!el) return; el.pause(); try{ el.currentTime=0; }catch(_){} }
-          function setVol(v){ prefs.musicVol=v; savePrefs(prefs); if(el) el.volume=v; }
-          function setOn(b){ prefs.musicOn=b; savePrefs(prefs); if(!b) stop(); else startPlay(); }
-          return { startPlay, stop, setVol, setOn, get vol(){return prefs.musicVol;}, get on(){return prefs.musicOn;} };
-        })();
-
-        let dirty=false; function markDirty(){ dirty=true; }
-        function flushUI(){
-          if(!dirty){ requestAnimationFrame(flushUI); return; }
-          dirty=false;
-          hpEl.textContent = fmt(get().hp);
-          for(const id of cardRefs.keys()) updateCard(id);
-          avatarDot.style.display = anyCoachAffordable() ? 'block' : 'none';
-          document.body.classList.toggle('female', get().avatar === 'female');
-          requestAnimationFrame(flushUI);
-        }
-
-        const OFFLINE_CAP_HOURS=72, OFFLINE_MIN_MS=20000;
-
-        const Exercises=[
-          { id:'walk', name:'Walking', baseCooldownMs:1000 },
-          { id:'jog', name:'Jogging', baseCooldownMs:3000 },
-          { id:'sit', name:'Sit-ups', baseCooldownMs:6000 },
-          { id:'push', name:'Push-ups', baseCooldownMs:12000 },
-          { id:'jacks', name:'Jumping Jacks', baseCooldownMs:24000 },
-          { id:'pull', name:'Pull-ups', baseCooldownMs:48000 },
-          { id:'rope', name:'Jump Rope', baseCooldownMs:96000 },
-          { id:'plank', name:'Plank', baseCooldownMs:192000 },
-          { id:'mtclimb', name:'Mountain Climbers', baseCooldownMs:384000 },
-          { id:'kb', name:'Kettlebell', baseCooldownMs:768000 },
-          { id:'burpee', name:'Burpees', baseCooldownMs:1536000 },
-          { id:'bench', name:'Bench Press', baseCooldownMs:3072000 },
-          { id:'backsq', name:'Back Squat', baseCooldownMs:6144000 },
-          { id:'dead', name:'Deadlift', baseCooldownMs:12288000 },
-          { id:'hand', name:'Handstands', baseCooldownMs:24576000 },
-          { id:'hspu', name:'Handstand Push-ups', baseCooldownMs:49152000 },
-          { id:'muscle', name:'Muscle-ups', baseCooldownMs:98304000 },
-          { id:'lever', name:'Front Lever', baseCooldownMs:196608000 },
-          { id:'icross', name:'Iron Cross', baseCooldownMs:393216000 },
-          { id:'vcross', name:'Victorian Cross', baseCooldownMs:786432000 },
-        ];
-
-        const coachPrice = i => i===0?1500:Math.round(1500*Math.pow(1.8,i));
-        const log2 = x => Math.log(x)/Math.log(2);
-        const baseHP = (idx,ms)=> idx===0?1:Math.round(20*Math.pow(ms/1000,1.10));
-        const perTapHP=(b,rep)=>b+rep;
-        const repBaseCost=b=>Math.max(4,Math.round(b*.05));
-        const repGrowth=lvl=>Math.max(1.07,Math.min(1.15,1.07+.01*log2(Math.max(1,lvl))));
-        const repCostSingle=(rb,g,rep)=>rb*Math.pow(g,rep);
-        const repCostBulk=(rb,g,rep,n)=>rb*Math.pow(g,rep)*((Math.pow(g,n)-1)/(g-1));
-        const nextCooldown=ms=>Math.max(100,Math.floor(ms/2));
-        const unlockCost=(b,ms)=>Math.round(b*Math.pow(ms/1000,.60)*1.15);
-        const fmt=n=>{ if(!isFinite(n))return'0'; const a=Math.abs(n); if(a>=1e12)return(n/1e12).toFixed(2)+'T'; if(a>=1e9)return(n/1e9).toFixed(2)+'B'; if(a>=1e6)return(n/1e6).toFixed(2)+'M'; if(a>=1e3)return(n/1e3).toFixed(2)+'K'; return String(Math.floor(n)); };
-
-        const ACH={ first_steps:{title:'First Steps',desc:'Walking reaches Lvl 2',reward:50},
-                    add_routine:{title:'Add to Routine',desc:'Unlock Jogging',reward:100},
-                    coach_duty:{title:'Coach On Duty',desc:'Hire your first coach',reward:150},
-                    speed_demon:{title:'Speed Demon',desc:'Any cooldown ≤ 0.30s',reward:180} };
-
-        function defaultExercises(){ return Exercises.map((ex,idx)=>({ id:ex.id, unlocked:idx===0, repHP:0, repTarget:10, level:1, cooldown:ex.baseCooldownMs, lastTapAt:0 })); }
-        function defaults(){ return { schema:20, started:false, hp:0, qty:1, avatar:'male',
-          exercises:defaultExercises(), coaches:{}, tutorial:{doneIntro:false, shown:{repsHint:false, unlock:{jog:false}}},
-          achievements:{first_steps:false, add_routine:false, coach_duty:false, speed_demon:false},
-          offline:{ lastSeenAt: Date.now() }, stats:{manual:0,auto:0,totalEarned:0} }; }
-        function ensureIntegrity(d){
-          const byId=new Map((d.exercises||[]).map(e=>[e.id,e]));
-          d.exercises=Exercises.map((ex,idx)=>{
-            const prev=byId.get(ex.id);
-            const base={ id:ex.id, unlocked:idx===0, repHP:0, repTarget:10, level:1, cooldown:ex.baseCooldownMs, lastTapAt:0 };
-            if(prev){ base.unlocked=!!prev.unlocked; base.repHP=prev.repHP|0; base.repTarget=prev.repTarget?prev.repTarget|0:10; base.level=prev.level?prev.level|0:1; base.cooldown=prev.cooldown?prev.cooldown|0:ex.baseCooldownMs; base.lastTapAt=prev.lastTapAt?prev.lastTapAt|0:0; }
-            return base;
-          });
-          d.coaches=d.coaches||{};
-          d.tutorial=d.tutorial||{doneIntro:false, shown:{repsHint:false, unlock:{jog:false}}};
-          if(!d.tutorial.shown) d.tutorial.shown={repsHint:false, unlock:{jog:false}};
-          if(!d.tutorial.shown.unlock) d.tutorial.shown.unlock={jog:false};
-          d.achievements=d.achievements||{first_steps:false, add_routine:false, coach_duty:false, speed_demon:false};
-          d.offline=d.offline||{ lastSeenAt: Date.now() };
-          d.stats=d.stats||{manual:0,auto:0,totalEarned:0};
-          d.avatar=d.avatar==='female'?'female':'male';
-          d.started=!!d.started; d.schema=20;
-          return d;
-        }
-        function load(){ const cur=localStorage.getItem(KEY_MAIN); if(cur){ try{return ensureIntegrity(JSON.parse(cur));}catch{} } return defaults(); }
-        function save(s){ try{ const p=ensureIntegrity(deepClone(s)); p.exercises.forEach(e=>e.lastTapAt=0); localStorage.setItem(KEY_MAIN, JSON.stringify(p)); }catch(_){} }
-
-        let S=load(); document.body.classList.toggle('female', S.avatar==='female');
-        const get=()=>S;
-        function patch(mut){ S=ensureIntegrity(mut(deepClone(S))); save(S); markDirty(); }
-
-        function showToast(msg){ toastText.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1600); }
-
-        // SFX (positive only)
-        const SFX=(()=>{ let ctx=null; function ensure(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } return ctx; }
-          function beep(freq=440,dur=.05){ const c=ensure(); if(!c) return; const o=c.createOscillator(), g=c.createGain(); o.frequency.value=freq; o.type='square'; g.gain.value=.02; o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+dur); }
-          return { click(){beep(660,.03)}, ok(){beep(520,.05)} };
-        })();
-
-        // --- Media resolver: stills for all, GIFs for first-4 when unlocked; no flicker ---
-        function currentSex(){ return get().avatar==='female'?'female':'male'; }
-        function mediaURL(exId, idx, unlocked){
-          const sex=currentSex();
-          if(unlocked && idx<4 && GIFS[sex] && GIFS[sex][exId]) return GIFS[sex][exId];
-          return (STILLS[sex] && STILLS[sex][exId]) || '';
-        }
-
-        const cardRefs=new Map();
-        async function ensureMediaForCard(idx, unlocked){
-          const r=cardRefs.get(Exercises[idx].id); if(!r) return;
-          const url=mediaURL(Exercises[idx].id, idx, unlocked);
-          if(!url){
-            r.media.removeAttribute('src'); r.media.style.display='none'; return;
-          }
-          const cur=canonical(r.media.src);
-          const target=canonical(url);
-          if(cur!==target){
-            // only update when truly changing (gender or lock state change)
-            r.media.src = url; // no clear step to avoid blink
-            r.media.style.display='';
-          }
-        }
-
-        function updateCard(id){
-          const r=cardRefs.get(id); if(!r) return; const exMeta=Exercises[r.idx]; const ex=get().exercises[r.idx];
-          r.title.textContent = exMeta ? exMeta.name : (ex && ex.id) || 'Exercise';
-          if(!ex){
-            r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
-          }
-          r.lvl.textContent='Lvl '+(ex.level||1);
-          if(!ex.unlocked){
-            r.tile.classList.add('locked');
-            const b=baseHP(r.idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs);
-            r.left.textContent='—'; r.rightBtn.textContent='Unlock • '+fmt(price)+' HP';
-            const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford);
-            r.reptext.textContent='—'; r.repfill.style.width='0%';
-            ensureMediaForCard(r.idx,false);
-          } else {
-            r.tile.classList.remove('locked');
-            const b=baseHP(r.idx,exMeta.baseCooldownMs); const hpTap=perTapHP(b, ex.repHP||0);
-            r.left.textContent=hpTap+' HP / tap';
-            const rb=repBaseCost(b); const g=repGrowth(ex.level||1); const qty=get().qty||1;
-            const price=Math.ceil(qty===1?repCostSingle(rb,g,ex.repHP||0):repCostBulk(rb,g,ex.repHP||0,qty));
-            r.rightBtn.textContent='Reps • '+fmt(price)+' HP';
-            const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford);
-            r.reptext.textContent=(ex.repHP||0)+' / '+(ex.repTarget||10);
-            const pct=Math.max(0,Math.min(100,100*((ex.repHP||0)/(ex.repTarget||10))));
-            r.repfill.style.width=pct+'%';
-            ensureMediaForCard(r.idx,true);
-          }
-        }
-
-        function createCard(idx){
-          const exMeta=Exercises[idx], exState=get().exercises[idx];
-          if(!exMeta) return;
-          if(!exState){ patch(st=>{ const def={id:exMeta.id,unlocked:idx===0,repHP:0,repTarget:10,level:1,cooldown:exMeta.baseCooldownMs,lastTapAt:0}; if(!Array.isArray(st.exercises)) st.exercises=[]; st.exercises[idx]=def; return st; }); }
-          const card=document.createElement('div'); card.className='card';
-          const tile=document.createElement('div'); tile.className='tile'; tile.tabIndex=0; if(!get().exercises[idx].unlocked) tile.classList.add('locked');
-          const lvl=document.createElement('div'); lvl.className='lvl'; lvl.textContent='Lvl '+(get().exercises[idx].level||1);
-          const media=document.createElement('img'); media.className='media'; media.alt=exMeta.name; media.decoding='async'; media.loading='lazy';
-          const repband=document.createElement('div'); repband.className='repband'; const repfill=document.createElement('div'); repfill.className='repfill'; const reptext=document.createElement('div'); reptext.className='reptext'; repband.append(repfill,reptext); tile.append(lvl,media,repband);
-          const right=document.createElement('div'); const title=document.createElement('div'); title.className='title'; title.textContent=exMeta.name;
-          const cd=document.createElement('div'); cd.className='cooldown'; const bar=document.createElement('div'); bar.className='bar'; const t=document.createElement('div'); t.className='t'; t.textContent='Ready'; cd.append(bar,t);
-          const meta=document.createElement('div'); meta.className='meta'; const left=document.createElement('div'); left.className='muted'; const rightBtn=document.createElement('button'); rightBtn.className='btn'; meta.append(left,rightBtn); right.append(title,cd,meta); card.append(tile,right);
-
-          const handleTap = () => {
-            if(blocked()) return;
-            const s=get(); const ex=s.exercises[idx]; if(!ex||!ex.unlocked) return;
-            const now=performance.now();
-            if(ex.lastTapAt>0 && now < ex.lastTapAt+ex.cooldown) return;
-            const gain=perTapHP(baseHP(idx,exMeta.baseCooldownMs), ex.repHP);
-            patch(st=>{ st.hp+=gain; st.stats.manual++; st.stats.totalEarned+=gain; st.exercises[idx].lastTapAt=now; return st; });
-            SFX.ok();
-          };
-          tile.addEventListener('click', handleTap);
-          tile.addEventListener('keydown', (e)=>{ if(e.code==='Space' || e.code==='Enter'){ e.preventDefault(); handleTap(); } });
-
-          rightBtn.addEventListener('click',()=>{
-            if(blocked()) return; const s=get(); const ex=s.exercises[idx]; if(!ex) return;
-            if(!ex.unlocked){
-              const b=baseHP(idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs); if(s.hp<price) return;
-              patch(st=>{ st.hp-=price; st.exercises[idx].unlocked=true; return st; });
-              ensureMediaForCard(idx,true);
-              if(idx===1) maybeAchieve('add_routine'); SFX.ok(); return;
-            }
-            const b=baseHP(idx,exMeta.baseCooldownMs); const rb=repBaseCost(b); const g=repGrowth(ex.level||1); const qty=s.qty||1;
-            const price=Math.ceil(qty===1?repCostSingle(rb,g,ex.repHP||0):repCostBulk(rb,g,ex.repHP||0,qty)); if(s.hp<price) return;
-            patch(st=>{
-              st.hp-=price; st.exercises[idx].repHP=(st.exercises[idx].repHP||0)+qty;
-              while(st.exercises[idx].repHP >= (st.exercises[idx].repTarget||10)){
-                st.exercises[idx].level=(st.exercises[idx].level||1)+1;
-                st.exercises[idx].cooldown=nextCooldown(st.exercises[idx].cooldown||exMeta.baseCooldownMs);
-                st.exercises[idx].repTarget=(st.exercises[idx].repTarget||10)*2;
-              }
-              return st;
-            });
-            if(idx===0 && (get().exercises[0].level||1) >= 2) maybeAchieve('first_steps');
-            if(get().exercises.some(e=>e && e.unlocked && (e.cooldown||0)<=300)) maybeAchieve('speed_demon');
-            SFX.ok();
-          });
-
-          cardsRoot.append(card);
-          cardRefs.set(exMeta.id,{ idx, card, tile, lvl, repband, repfill, reptext, cd, bar, t, left, rightBtn, title, media });
-          ensureMediaForCard(idx, get().exercises[idx].unlocked);
-          updateCard(exMeta.id);
-        }
-        function buildCards(){ cardsRoot.innerHTML=''; cardRefs.clear(); for(let i=0;i<Exercises.length;i++) createCard(i); }
-
-        bulk.addEventListener('click', e=>{ if(blocked()) return; const b=e.target.closest('button'); if(!b) return; [...bulk.children].forEach(btn=>btn.classList.toggle('active', btn===b)); const qty=parseInt(b.dataset.q,10); patch(s=>{ s.qty=qty; return s; }); SFX.click(); });
-
-        function anyCoachAffordable(){ const s=get(); for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue; const cId='c'+(i+1); if(s.coaches[cId]) continue; const price=coachPrice(i); if(s.hp>=price) return true; } return false; }
-        function openMenu(tab='coaches'){ if(blocked()) return; renderMenu(tab); menu.classList.add('show'); }
-        function closeMenu(){ menu.classList.remove('show'); }
-        const menuBackdropHandler = (e)=>{ const close=e.target.closest('[data-close]'); if(close) return closeMenu(); const tabBtn=e.target.closest('.tab'); if(tabBtn){ [...menu.querySelectorAll('.tab')].forEach(b=>b.classList.toggle('active', b===tabBtn)); renderMenu(tabBtn.dataset.tab); } };
-        document.getElementById('menu').addEventListener('click', menuBackdropHandler);
-        avatarBtn.addEventListener('click', ()=>{ if(!blocked()) openMenu('coaches'); });
-
-        function renderMenu(tab){
-          if(tab==='coaches') return renderCoaches();
-          if(tab==='settings') return renderSettings();
-          if(tab==='achievements') return renderAchievements();
-          menuBody.innerHTML='<div class="muted">Coming soon.</div>';
-        }
-        function renderCoaches(){ const s=get(); const frag=document.createDocumentFragment(); let any=false; for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue; any=true; const row=document.createElement('div'); row.className='coach-row'; const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent=i%2===0?'F':'M'; const mid=document.createElement('div'); const title=document.createElement('div'); title.className='coach-title'; title.textContent='Coach '+(i+1); const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent='Works on: '+Exercises[i].name; mid.append(title,sub); const action=document.createElement('div'); const cId='c'+(i+1); const hired=!!s.coaches[cId]; const price=coachPrice(i); if(hired){ const span=document.createElement('span'); span.className='hired'; span.textContent='Hired'; action.append(span); }else{ const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Hire • '+fmt(price)+' HP'; if(s.hp>=price) btn.classList.add('glow'); btn.addEventListener('click',()=>{ const cur=get(); if(cur.hp<price || cur.coaches[cId]) return; patch(st=>{ st.hp-=price; st.coaches[cId]=true; return st; }); maybeAchieve('coach_duty'); renderCoaches(); SFX.ok(); }); action.append(btn); } row.append(ava,mid,action); frag.append(row); } menuBody.innerHTML=''; if(!any){ menuBody.innerHTML='<div class="muted">Unlock an exercise to hire its coach.</div>'; } else menuBody.append(frag); }
-        function setAvatar(sex){
-          const s = (sex==='female') ? 'female' : 'male';
-          patch(st=>{ st.avatar=s; return st; });
-          document.body.classList.toggle('female', s==='female');
-          // Refresh media only on gender switch
-          for(let i=0;i<Exercises.length;i++){ const ex=get().exercises[i]; if(!ex) continue; ensureMediaForCard(i, !!ex.unlocked); }
-          markDirty();
-        }
-        function renderSettings(){
-          const s=get();
-          const div=document.createElement('div');
-          div.innerHTML=`
-            <div class="muted">Avatar</div>
-            <div style="display:flex; gap:12px; margin:8px 0 16px 0">
-              <label><input type="radio" name="av" value="male" ${s.avatar==='male'?'checked':''}> Male</label>
-              <label><input type="radio" name="av" value="female" ${s.avatar==='female'?'checked':''}> Female</label>
-            </div>
-            <div class="muted">Debug / Save</div>
-            <div style="height:6px"></div>
-            <button id="reset" class="btn">Reset Save</button>`;
-          menuBody.innerHTML=''; menuBody.append(div);
-          div.querySelector('#reset').addEventListener('click',()=>{ if(confirm('Reset your save and return to splash?')){ try{ localStorage.removeItem(KEY_MAIN);}catch(_){ } location.reload(); } });
-          div.querySelectorAll('input[name="av"]').forEach(r => r.addEventListener('change', (e)=> setAvatar(e.target.value)));
-        }
-        function renderAchievements(){ const s=get(); const grid=document.createElement('div'); const makeRow=(key,data)=>{ const row=document.createElement('div'); row.className='coach-row'; const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent='★'; const mid=document.createElement('div'); const title=document.createElement('div'); title.className='coach-title'; title.textContent=data.title; const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent=data.desc+' — Reward: '+data.reward+' HP'; mid.append(title,sub); const action=document.createElement('div'); if(s.achievements[key]){ const span=document.createElement('span'); span.className='hired'; span.textContent='Completed'; action.append(span); } else { const span=document.createElement('span'); span.className='coach-sub'; span.textContent='Locked'; action.append(span); } row.append(ava,mid,action); return row; }; grid.append(makeRow('first_steps',ACH.first_steps), makeRow('add_routine',ACH.add_routine), makeRow('coach_duty',ACH.coach_duty), makeRow('speed_demon',ACH.speed_demon)); menuBody.innerHTML=''; menuBody.append(grid); }
-
-        function maybeAchieve(key){ const data=ACH[key]; if(!data) return; const s=get(); if(s.achievements[key]) return; patch(st=>{ st.achievements[key]=true; st.hp+=data.reward; return st; }); showToast(`Achievement: ${data.title}  +${data.reward} HP`); }
-
-        function stampNow(){ patch(st=>{ st.offline.lastSeenAt=Date.now(); return st; }); }
-
-        function build(){ buildCards(); markDirty(); }
-        build();
-        requestAnimationFrame(flushUI);
-
-        function tick(){ const now=performance.now(); const s=get(); for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; const r=cardRefs.get(Exercises[i].id); if(!r) continue;
-          if(!ex||!ex.unlocked){ r.bar.style.width='0%'; r.t.textContent='—'; r.tile.classList.remove('cooling'); continue; }
-          if(!ex.lastTapAt||ex.lastTapAt===0){ r.bar.style.width='100%'; r.t.textContent='Ready'; r.tile.classList.remove('cooling'); }
-          else{ const dt=Math.max(0, now-(ex.lastTapAt||0)); const remain=Math.max(0,(ex.cooldown||0)-dt); if(remain<=0){ r.bar.style.width='100%'; r.t.textContent='Ready'; r.tile.classList.remove('cooling'); } else { const pct=100*(dt/(ex.cooldown||1)); r.bar.style.width=Math.max(0,Math.min(100,pct))+'%'; r.t.textContent=(remain/1000).toFixed(2)+'s'; r.tile.classList.add('cooling'); } }
-          const ready=!ex.lastTapAt || now >= (ex.lastTapAt||0)+(ex.cooldown||0); const cId='c'+(i+1);
-          if(!blocked() && s.coaches[cId] && ready){ const gain=perTapHP(baseHP(i,Exercises[i].baseCooldownMs), ex.repHP||0); patch(st=>{ st.hp+=gain; st.stats.auto++; st.stats.totalEarned+=gain; st.exercises[i].lastTapAt=now; return st; }); }
-        } requestAnimationFrame(tick); }
-        requestAnimationFrame(tick);
-
-        // Splash → Start
-        function hasRealSave(d){ if(d.started) return true; if(d.hp>0) return true; if(Object.keys(d.coaches||{}).length>0) return true; if((d.exercises||[]).some((e,i)=>i>0 && e && e.unlocked)) return true; if((d.exercises||[]).some(e=>e && (e.repHP||0)>0)) return true; return false; }
-        function applyStartBackground(){ const ds=start.getAttribute('data-bg-desktop')||'FF-desktop.png'; const ms=start.getAttribute('data-bg-mobile')||'FF-mobile.png'; const url=(window.innerWidth>=720?ds:ms); startBg.style.backgroundImage=`url('${url}')`; }
-        window.addEventListener('resize', applyStartBackground); applyStartBackground();
-        function showStart(){ splash.classList.remove('show'); btnContinue.style.display=hasRealSave(get())?'inline-block':'none'; start.classList.add('show'); }
-        function hideStart(){ start.classList.remove('show'); splash.classList.remove('show'); document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false')); }
-        function blocked(){ return start.classList.contains('show') || splash.classList.contains('show'); }
-
-        let splashMinDone=false; setTimeout(()=>{ splashMinDone=true; }, 2000);
-        let splashEnded=false; function finishSplash(){ if(splashEnded) return; if(!splashMinDone){ setTimeout(finishSplash, 250); return; } splashEnded=true; showStart(); }
-        const splashTimer=setTimeout(finishSplash, 5000); splashSkip.addEventListener('click',()=>{ clearTimeout(splashTimer); finishSplash(); });
-
-        // Avatar (start screen)
-        function setStartActive(a){ [...startAvatars.children].forEach(x=>x.classList.toggle('active', x===a)); }
-        startAvatars.addEventListener('click', e=>{
-          const a=e.target.closest('.ava'); if(!a) return;
-          const sex=a.dataset.sex==='female'?'female':'male';
-          setStartActive(a);
-          setAvatar(sex);
-        });
-
-        // Start actions (fix: preserve chosen avatar)
-        function begin(isNew){
-          try{
-            const chosen = get().avatar; // capture before reset
-            if(isNew){ S=defaults(); S.avatar=chosen; S.started=true; save(S); markDirty(); }
-            else { patch(st=>{ st.started=true; return st; }); }
-            hideStart();
-            setTimeout(()=> showToast(isNew?'New Game started':'Continue'), 30);
-          }catch(e){ const err=document.getElementById('err'); err.textContent='Init Error: '+(e.message||e); err.classList.add('show'); }
-        }
-        btnNew.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); begin(true); });
-        btnContinue.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); begin(false); });
-
-      }
-    }catch(e){
-      const el=document.getElementById('err'); el.textContent='Init Error: '+(e.message||e); el.classList.add('show');
+    /* State */
+    function defaultExercises(){ return Exercises.map((ex,idx)=>({id:ex.id, unlocked:idx===0, repHP:0, repTarget:10, level:1, cooldown:ex.baseCooldownMs, lastTapAt:0})); }
+    function defaults(){ return { schema:20, started:false, hp:0, qty:1, avatar:'male', exercises:defaultExercises(), coaches:{}, tutorial:{doneIntro:false, shown:{repsHint:false, unlock:{jog:false}, coachFirst:false}}, achievements:{first_steps:false, add_routine:false, coach_duty:false, speed_demon:false}, offline:{lastSeenAt:Date.now()}, stats:{manual:0,auto:0,totalEarned:0} }; }
+    function ensureIntegrity(d){
+      const byId=new Map((d.exercises||[]).map(e=>[e.id,e]));
+      d.exercises=Exercises.map((ex,idx)=>{ const prev=byId.get(ex.id), base={id:ex.id,unlocked:idx===0,repHP:0,repTarget:10,level:1,cooldown:ex.baseCooldownMs,lastTapAt:0}; if(prev){ base.unlocked=!!prev.unlocked; base.repHP=prev.repHP|0; base.repTarget=prev.repTarget?prev.repTarget|0:10; base.level=prev.level?prev.level|0:1; base.cooldown=prev.cooldown?prev.cooldown|0:ex.baseCooldownMs; base.lastTapAt=prev.lastTapAt?prev.lastTapAt|0:0; } return base; });
+      d.coaches=d.coaches||{};
+      d.tutorial=d.tutorial||{doneIntro:false, shown:{repsHint:false, unlock:{jog:false}, coachFirst:false}};
+      if(!d.tutorial.shown) d.tutorial.shown={repsHint:false, unlock:{jog:false}, coachFirst:false};
+      if(!d.tutorial.shown.unlock) d.tutorial.shown.unlock={jog:false};
+      d.achievements=d.achievements||{first_steps:false, add_routine:false, coach_duty:false, speed_demon:false};
+      d.offline=d.offline||{lastSeenAt:Date.now()};
+      d.stats=d.stats||{manual:0,auto:0,totalEarned:0};
+      d.avatar=d.avatar==='female'?'female':'male';
+      d.started=!!d.started; d.schema=20; return d;
     }
-  </script>
+    function load(){ const cur=localStorage.getItem(KEY_MAIN); if(cur){ try{return ensureIntegrity(JSON.parse(cur));}catch{} } return defaults(); }
+    function save(s){ try{ const p=ensureIntegrity(deepClone(s)); p.exercises.forEach(e=>e.lastTapAt=0); localStorage.setItem(KEY_MAIN, JSON.stringify(p)); }catch(_){} }
+    let S=load(); document.body.classList.toggle('female', S.avatar==='female');
+    const get=()=>S; function patch(mut){ S=ensureIntegrity(mut(deepClone(S))); save(S); markDirty(); }
+
+    /* UI plumbing */
+    let dirty=false; function markDirty(){ dirty=true; }
+    function flushUI(){
+      if(!dirty){ requestAnimationFrame(flushUI); return; }
+      dirty=false;
+      const s=get(); hpEl.textContent=fmt(s.hp);
+      for(const id of cardRefs.keys()) updateCard(id);
+      avatarDot.style.display=anyCoachAffordable()?'block':'none';
+      document.body.classList.toggle('female', s.avatar==='female');
+      const aurl=s.avatar==='female'?'NEW FEMALE AVATAR.gif':'NEW MALE AVATAR.gif';
+      avatarImg.src=aurl; avatarImg.style.display='block'; avatarFallback.style.display='none';
+      requestAnimationFrame(flushUI);
+    }
+
+    /* Toast */
+    function showToast(msg){ toastText.textContent=msg; toast.style.display='block'; setTimeout(()=>toast.style.display='none', 1600); }
+
+    /* SFX */
+    const SFX=(()=>{ let ctx=null; function ensure(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } return ctx; }
+      function beep(freq=440,dur=.05,vol=.02,type='square'){ const c=ensure(); if(!c) return; const o=c.createOscillator(), g=c.createGain(); o.frequency.value=freq; o.type=type; g.gain.value=vol; o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+dur); }
+      return { click(){beep(660,.03,.02,'square')}, ok(){beep(520,.05,.02,'square')}, tick(){beep(880,.015,.015,'sine')} };
+    })();
+
+    /* Media resolver */
+    function currentSex(){ return get().avatar==='female'?'female':'male'; }
+    function mediaURL(exId, idx, unlocked){ const sex=currentSex(); if(unlocked && idx<4 && GIFS[sex] && GIFS[sex][exId]) return GIFS[sex][exId]; return (STILLS[sex] && STILLS[sex][exId]) || ''; }
+
+    /* Cards */
+    const cardRefs=new Map();
+    function ensureMediaForCard(idx, unlocked){
+      const r=cardRefs.get(Exercises[idx].id); if(!r) return;
+      const url=mediaURL(Exercises[idx].id, idx, unlocked);
+      if(!url){ r.media.removeAttribute('src'); r.media.style.display='none'; return; }
+      const cur=r.media.getAttribute('data-src')||'';
+      if(cur!==url){ r.media.setAttribute('data-src',url); r.media.src=url; r.media.style.display=''; }
+    }
+
+    function updateCard(id){
+      const r=cardRefs.get(id); if(!r) return; const exMeta=Exercises[r.idx]; const ex=get().exercises[r.idx];
+      r.title.textContent=exMeta?exMeta.name:(ex&&ex.id)||'Exercise';
+      if(!ex){
+        r.card.classList.add('card-locked'); r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
+      }
+      r.lvl.textContent='Lvl '+(ex.level||1);
+      if(!ex.unlocked){
+        r.card.classList.add('card-locked'); r.tile.classList.add('locked');
+        const b=baseHP(r.idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs);
+        r.left.textContent='—'; r.rightBtn.textContent='Unlock • '+fmt(price)+' HP';
+        const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford);
+        r.tile.classList.toggle('afford', afford);
+        r.reptext.textContent='—'; r.repfill.style.width='0%';
+        ensureMediaForCard(r.idx,false);
+      } else {
+        r.card.classList.remove('card-locked'); r.tile.classList.remove('locked','afford');
+        const b=baseHP(r.idx,exMeta.baseCooldownMs); const hpTap=perTapHP(b, ex.repHP||0);
+        r.left.textContent=hpTap+' HP / tap';
+        const rb=repBaseCost(b), g=repGrowth(ex.level||1), qty=get().qty||1;
+        const price=Math.ceil(qty===1?repCostSingle(rb,g,ex.repHP||0):repCostBulk(rb,g,ex.repHP||0,qty));
+        r.rightBtn.textContent='Reps • '+fmt(price)+' HP';
+        const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford);
+        r.reptext.textContent=(ex.repHP||0)+' / '+(ex.repTarget||10);
+        const pct=Math.max(0,Math.min(100,100*((ex.repHP||0)/(ex.repTarget||10))));
+        r.repfill.style.width=pct+'%';
+        ensureMediaForCard(r.idx,true);
+      }
+    }
+
+    function createCard(idx){
+      const exMeta=Exercises[idx], exState=get().exercises[idx];
+      if(!exMeta) return;
+      if(!exState){ patch(st=>{ const def={id:exMeta.id,unlocked:idx===0,repHP:0,repTarget:10,level:1,cooldown:exMeta.baseCooldownMs,lastTapAt:0}; if(!Array.isArray(st.exercises)) st.exercises=[]; st.exercises[idx]=def; return st; }); }
+      const card=document.createElement('div'); card.className='card';
+      const tile=document.createElement('div'); tile.className='tile'; tile.tabIndex=0; if(!get().exercises[idx].unlocked) tile.classList.add('locked');
+      const lvl=document.createElement('div'); lvl.className='lvl'; lvl.textContent='Lvl '+(get().exercises[idx].level||1);
+      const media=document.createElement('img'); media.className='media'; media.alt=exMeta.name; media.decoding='async'; media.loading='lazy';
+      const burst=document.createElement('div'); burst.className='burst';
+      const repband=document.createElement('div'); repband.className='repband'; const repfill=document.createElement('div'); repfill.className='repfill'; const reptext=document.createElement('div'); reptext.className='reptext'; repband.append(repfill,reptext); tile.append(lvl,media,burst,repband);
+      const right=document.createElement('div'); const title=document.createElement('div'); title.className='title'; title.textContent=exMeta.name;
+      const cd=document.createElement('div'); cd.className='cooldown'; const bar=document.createElement('div'); bar.className='bar'; const t=document.createElement('div'); t.className='t'; t.textContent='Ready'; cd.append(bar,t);
+      const meta=document.createElement('div'); meta.className='meta'; const left=document.createElement('div'); left.className='muted'; const rightBtn=document.createElement('button'); rightBtn.className='btn'; meta.append(left,rightBtn); right.append(title,cd,meta); card.append(tile,right);
+
+      const popOnce=()=>{
+        tile.classList.add('tap-pop','burst-on');
+        const clear=()=>{ tile.classList.remove('tap-pop'); tile.removeEventListener('animationend', clear); };
+        tile.addEventListener('animationend', clear);
+        setTimeout(()=> tile.classList.remove('burst-on'), 280);
+      };
+
+      const handleTap=()=>{
+        if(blocked()) return;
+        const s=get(); const ex=s.exercises[idx]; if(!ex||!ex.unlocked) return;
+        const now=performance.now();
+        if(ex.lastTapAt>0 && now < ex.lastTapAt+ex.cooldown) return;
+        const gain=perTapHP(baseHP(idx,exMeta.baseCooldownMs), ex.repHP);
+        patch(st=>{ st.hp+=gain; st.stats.manual++; st.stats.totalEarned+=gain; st.exercises[idx].lastTapAt=now; return st; });
+        SFX.ok(); popOnce(); checkTutorial();
+      };
+      tile.addEventListener('click', handleTap);
+      tile.addEventListener('keydown', e=>{ if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); handleTap(); } });
+
+      rightBtn.addEventListener('click',()=>{
+        if(blocked()) return; const s=get(); const ex=s.exercises[idx]; if(!ex) return;
+        if(!ex.unlocked){
+          const b=baseHP(idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs); if(s.hp<price) return;
+          patch(st=>{ st.hp-=price; st.exercises[idx].unlocked=true; return st; });
+          ensureMediaForCard(idx,true);
+          if(idx===1) maybeAchieve('add_routine');
+          SFX.ok(); checkTutorial(); return;
+        }
+        const b=baseHP(idx,exMeta.baseCooldownMs), rb=repBaseCost(b), g=repGrowth(ex.level||1), qty=s.qty||1;
+        const price=Math.ceil(qty===1?repCostSingle(rb,g,ex.repHP||0):repCostBulk(rb,g,ex.repHP||0,qty)); if(s.hp<price) return;
+        let leveled=false;
+        patch(st=>{
+          st.hp-=price; st.exercises[idx].repHP=(st.exercises[idx].repHP||0)+qty;
+          while(st.exercises[idx].repHP >= (st.exercises[idx].repTarget||10)){
+            st.exercises[idx].level=(st.exercises[idx].level||1)+1; leveled=true;
+            st.exercises[idx].cooldown=nextCooldown(st.exercises[idx].cooldown||exMeta.baseCooldownMs);
+            st.exercises[idx].repTarget=(st.exercises[idx].repTarget||10)*2;
+          }
+          return st;
+        });
+        if(idx===0 && (get().exercises[0].level||1)>=2) maybeAchieve('first_steps');
+        if(get().exercises.some(e=>e && e.unlocked && (e.cooldown||0)<=300)) maybeAchieve('speed_demon');
+        if(leveled) popOnce();
+        SFX.ok(); checkTutorial();
+      });
+
+      cardsRoot.append(card);
+      cardRefs.set(exMeta.id,{ idx, card, tile, lvl, repband, repfill, reptext, cd, bar, t, left, rightBtn, title, media });
+      ensureMediaForCard(idx, get().exercises[idx].unlocked);
+      updateCard(exMeta.id);
+    }
+    function buildCards(){ cardsRoot.innerHTML=''; cardRefs.clear(); for(let i=0;i<Exercises.length;i++) createCard(i); }
+
+    /* Bulk */
+    bulk.addEventListener('click', e=>{ if(blocked()) return; const b=e.target.closest('button'); if(!b) return; [...bulk.children].forEach(btn=>btn.classList.toggle('active', btn===b)); const qty=parseInt(b.dataset.q,10); patch(s=>{ s.qty=qty; return s; }); SFX.click(); });
+
+    /* Menu + tabs */
+    function anyCoachAffordable(){ const s=get(); for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue; const cId='c'+(i+1); if(s.coaches[cId]) continue; const price=coachPrice(i); if(s.hp>=price) return true; } return false; }
+    function openMenu(tab='coaches'){ if(blocked()) return; renderMenu(tab); menu.classList.add('show'); }
+    function closeMenu(){ menu.classList.remove('show'); }
+    document.getElementById('menu').addEventListener('click', e=>{ const close=e.target.closest('[data-close]'); if(close) return closeMenu(); const tabBtn=e.target.closest('.tab'); if(tabBtn){ [...menu.querySelectorAll('.tab')].forEach(b=>b.classList.toggle('active', b===tabBtn)); renderMenu(tabBtn.dataset.tab); } });
+    avatarBtn.addEventListener('click', ()=>{ if(!blocked()) openMenu('coaches'); });
+
+    function renderMenu(tab){
+      if(tab==='coaches') return renderCoaches();
+      if(tab==='settings') return renderSettings();
+      if(tab==='achievements') return renderAchievements();
+      menuBody.innerHTML='<div class="muted">Coming soon.</div>';
+    }
+    function renderCoaches(){ const s=get(); const frag=document.createDocumentFragment(); let any=false;
+      for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; if(!ex||!ex.unlocked) continue; any=true;
+        const row=document.createElement('div'); row.className='coach-row';
+        const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent=i%2===0?'F':'M';
+        const mid=document.createElement('div'); const title=document.createElement('div'); title.className='coach-title'; title.textContent='Coach '+(i+1);
+        const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent='Works on: '+Exercises[i].name; mid.append(title,sub);
+        const action=document.createElement('div'); const cId='c'+(i+1); const hired=!!s.coaches[cId]; const price=coachPrice(i);
+        if(hired){ const span=document.createElement('span'); span.className='hired'; span.textContent='Hired'; action.append(span); }
+        else{ const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Hire • '+fmt(price)+' HP'; if(s.hp>=price) btn.classList.add('glow');
+          btn.addEventListener('click',()=>{ const cur=get(); if(cur.hp<price||cur.coaches[cId]) return; patch(st=>{ st.hp-=price; st.coaches[cId]=true; return st; }); maybeAchieve('coach_duty'); renderCoaches(); SFX.ok(); checkTutorial(); }); action.append(btn); }
+        row.append(ava,mid,action); frag.append(row);
+      }
+      menuBody.innerHTML=''; if(!any) menuBody.innerHTML='<div class="muted">Unlock an exercise to hire its coach.</div>'; else menuBody.append(frag);
+    }
+    function setAvatar(sex){
+      const s=(sex==='female')?'female':'male';
+      patch(st=>{ st.avatar=s; return st; });
+      document.body.classList.toggle('female', s==='female');
+      for(let i=0;i<Exercises.length;i++){ const ex=get().exercises[i]; if(!ex) continue; ensureMediaForCard(i, !!ex.unlocked); }
+      markDirty();
+    }
+    function renderSettings(){
+      const s=get(), p=loadPrefs();
+      const div=document.createElement('div');
+      div.innerHTML=`
+        <div class="muted">Avatar</div>
+        <div style="display:flex; gap:14px; margin:8px 0 16px 0; font-size:16px">
+          <label><input type="radio" name="av" value="male" ${s.avatar==='male'?'checked':''}> Male</label>
+          <label><input type="radio" name="av" value="female" ${s.avatar==='female'?'checked':''}> Female</label>
+        </div>
+        <div class="muted">Audio</div>
+        <div style="display:flex; align-items:center; gap:12px; margin:8px 0 16px 0">
+          <label><input id="music-on" type="checkbox" ${p.musicOn?'checked':''}> Music on</label>
+          <label>Volume <input id="music-vol" type="range" min="0" max="1" step="0.01" value="${p.musicVol}"></label>
+        </div>
+        <div class="muted">Save</div>
+        <div style="height:6px"></div>
+        <button id="reset" class="btn">Reset Save</button>`;
+      menuBody.innerHTML=''; menuBody.append(div);
+      div.querySelector('#reset').addEventListener('click',()=>{ if(confirm('Reset your save and return to splash?')){ try{ localStorage.removeItem(KEY_MAIN);}catch(_){ } location.reload(); } });
+      div.querySelectorAll('input[name="av"]').forEach(r=> r.addEventListener('change', e=> setAvatar(e.target.value)));
+      const chk=div.querySelector('#music-on'); const rng=div.querySelector('#music-vol');
+      chk.addEventListener('change',()=>Music.setOn(chk.checked));
+      rng.addEventListener('input',()=>Music.setVol(parseFloat(rng.value)));
+    }
+    function renderAchievements(){
+      const s=get(); const grid=document.createElement('div');
+      const makeRow=(key,data)=>{ const row=document.createElement('div'); row.className='coach-row';
+        const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent='★';
+        const mid=document.createElement('div'); const title=document.createElement('div'); title.className='coach-title'; title.textContent=data.title;
+        const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent=data.desc+' — Reward: '+data.reward+' HP'; mid.append(title,sub);
+        const action=document.createElement('div'); if(s.achievements[key]){ const span=document.createElement('span'); span.className='hired'; span.textContent='Completed'; action.append(span); } else { const span=document.createElement('span'); span.className='coach-sub'; span.textContent='Locked'; action.append(span); }
+        row.append(ava,mid,action); return row; };
+      grid.append(makeRow('first_steps',ACH.first_steps), makeRow('add_routine',ACH.add_routine), makeRow('coach_duty',ACH.coach_duty), makeRow('speed_demon',ACH.speed_demon));
+      menuBody.innerHTML=''; menuBody.append(grid);
+    }
+
+    /* Achievement banner + confetti */
+    function confettiBurst(){
+      const root=document.createElement('div'); root.className='conf'; document.body.append(root);
+      const colors=['#ff7a1a','#ffd54d','#3aa6ff','#8eff7a','#ff76b5'];
+      for(let i=0;i<28;i++){
+        const s=document.createElement('span'); s.className='confetti';
+        const dx=(Math.random()*2-1)*220+'px';
+        const dy=(Math.random()*-1)*320-80+'px';
+        const rot=(Math.random()*360-180)+'deg';
+        s.style.setProperty('--dx',dx); s.style.setProperty('--dy',dy); s.style.setProperty('--rot',rot);
+        s.style.left='50%'; s.style.top='24px'; s.style.background=colors[i%colors.length];
+        root.append(s);
+      }
+      setTimeout(()=>root.remove(), 1000);
+    }
+    function showAchBanner(title,reward){
+      const b=document.createElement('div'); b.className='banner';
+      b.innerHTML=`<div class="icon">★</div><div><div class="title">${title}</div><div class="sub">Achievement unlocked</div></div><div class="reward">+${fmt(reward)} HP</div>`;
+      achRoot.append(b); confettiBurst();
+      setTimeout(()=>{ b.style.transition='transform .3s ease, opacity .3s ease'; b.style.transform='translate(-50%,-12px) scale(.98)'; b.style.opacity='0'; setTimeout(()=>b.remove(),320); }, 2200);
+    }
+
+    function maybeAchieve(key){
+      const data=ACH[key]; if(!data) return; const s=get(); if(s.achievements[key]) return;
+      patch(st=>{ st.achievements[key]=true; st.hp+=data.reward; return st; });
+      showAchBanner(data.title, data.reward);
+    }
+
+    /* Build + engine */
+    function build(){ buildCards(); markDirty(); }
+    build(); requestAnimationFrame(flushUI);
+
+    function tick(){
+      const now=performance.now(); const s=get();
+      for(let i=0;i<Exercises.length;i++){
+        const ex=s.exercises[i]; const r=cardRefs.get(Exercises[i].id); if(!r) continue;
+        if(!ex||!ex.unlocked){ r.bar.style.width='0%'; r.t.textContent='—'; continue; }
+        if(!ex.lastTapAt||ex.lastTapAt===0){ r.bar.style.width='100%'; r.t.textContent='Ready'; }
+        else{
+          const dt=Math.max(0, now-(ex.lastTapAt||0)); const remain=Math.max(0,(ex.cooldown||0)-dt);
+          if(remain<=0){ r.bar.style.width='100%'; r.t.textContent='Ready'; }
+          else { const pct=100*(dt/(ex.cooldown||1)); r.bar.style.width=Math.max(0,Math.min(100,pct))+'%'; r.t.textContent=(remain/1000).toFixed(2)+'s'; }
+        }
+        const ready=!ex.lastTapAt || now >= (ex.lastTapAt||0)+(ex.cooldown||0); const cId='c'+(i+1);
+        if(!blocked() && s.coaches[cId] && ready){
+          const gain=perTapHP(baseHP(i,Exercises[i].baseCooldownMs), ex.repHP||0);
+          patch(st=>{ st.hp+=gain; st.stats.auto++; st.stats.totalEarned+=gain; st.exercises[i].lastTapAt=now; return st; });
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    /* Splash → Start minimal (kept same behavior) */
+    function applyStartBackground(){ const ds=start.getAttribute('data-bg-desktop')||'FF-desktop.png'; const ms=start.getAttribute('data-bg-mobile')||'FF-mobile.png'; const url=(window.innerWidth>=720?ds:ms); startBg.style.backgroundImage=`url('${url}')`; }
+    window.addEventListener('resize', applyStartBackground); applyStartBackground();
+    function hasRealSave(d){ if(d.started) return true; if(d.hp>0) return true; if(Object.keys(d.coaches||{}).length>0) return true; if((d.exercises||[]).some((e,i)=>i>0 && e && e.unlocked)) return true; if((d.exercises||[]).some(e=>e && (e.repHP||0)>0)) return true; return false; }
+    function showStart(){ splash.classList.remove('show'); btnContinue.style.display=hasRealSave(get())?'inline-block':'none'; start.classList.add('show'); }
+    function hideStart(){ start.classList.remove('show'); splash.classList.remove('show'); document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false')); }
+    let splashMinDone=false; setTimeout(()=>{ splashMinDone=true; }, 2000);
+    let splashEnded=false; function finishSplash(){ if(splashEnded) return; if(!splashMinDone){ setTimeout(finishSplash, 250); return; } splashEnded=true; showStart(); }
+    const splashTimer=setTimeout(finishSplash, 5000); splashSkip.addEventListener('click',()=>{ clearTimeout(splashTimer); finishSplash(); });
+
+    function setStartActive(a){ [...startAvatars.children].forEach(x=>x.classList.toggle('active', x===a)); }
+    startAvatars.addEventListener('click', e=>{ const a=e.target.closest('.ava'); if(!a) return; const sex=a.dataset.sex==='female'?'female':'male'; setStartActive(a); setAvatar(sex); });
+
+    function begin(isNew){
+      try{
+        const chosen=get().avatar;
+        if(isNew){ S=defaults(); S.avatar=chosen; S.started=true; save(S); markDirty(); }
+        else { patch(st=>{ st.started=true; return st; }); }
+        hideStart(); Music.startPlay(); setTimeout(()=> checkTutorial(true), 80);
+        showToast(isNew?'New Game started':'Continue');
+      }catch(e){ const err=document.getElementById('err'); err.textContent='Init Error: '+(e.message||e); err.style.display='block'; }
+    }
+    btnNew.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); begin(true); });
+    btnContinue.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); begin(false); });
+
+    /* Tutorial trigger (uses your existing system; center for JAX, player anchored once in prior build) */
+    function checkTutorial(_force){ /* no-op here to keep snippet focused on achievements + tiles */ }
+
+    function blocked(){ return start.classList.contains('show') || splash.classList.contains('show'); }
+
+  }
+}catch(e){
+  const el=document.getElementById('err'); el.textContent='Init Error: '+(e.message||e); el.style.display='block';
+}
+</script>
 </body>
 </html>
