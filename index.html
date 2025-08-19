@@ -1487,5 +1487,122 @@ try{
 
 
 
+<style data-ff-patch>
+  /* Make sure tutorial can sit above the app chrome but below achievements */
+  .tip{ z-index:115 !important; }
+  /* Hide topbar while splash/start are visible (prevents intercepting touches) */
+  .splash.show ~ .topbar,
+  .start.show  ~ .topbar{ display:none !important; }
+</style>
+
+<script type="application/ff-patch">
+/* FF Tutorial Unstick + Fallback */
+(function(){
+  if (window.__FF_TUTOR_FIX__) return;
+  window.__FF_TUTOR_FIX__ = true;
+
+  const splash = document.getElementById('splash');
+  const start  = document.getElementById('start');
+  const offline= document.getElementById('offline');
+  const tip    = document.getElementById('tip');
+  const bubble = document.getElementById('tip-bubble');
+  const textEl = document.getElementById('tip-text');
+  const headImg= document.getElementById('tip-head-img');
+  const headNm = document.getElementById('tip-head-name');
+  const nextBtn= document.getElementById('tip-next');
+
+  const isShown = el => !!(el && el.classList.contains('show'));
+  const tutorialVisible = () => !!(tip && tip.classList.contains('show') && bubble.style.visibility!=='hidden');
+
+  // Try to give the built-in tutorial a clean shot after overlays close
+  function nudgeBuiltIn(){
+    // If offline gains is showing, wait; the core intentionally defers the tutorial
+    if (isShown(offline)) return;
+    // If tutorial already visible, nothing to do
+    if (tutorialVisible()) return;
+    // Give core loop a moment; if still not visible, run fallback
+    setTimeout(()=>{ if (!tutorialVisible()) fallbackIntro(); }, 800);
+  }
+
+  // Fallback mini-tutorial that uses your existing tip UI but does NOT depend on internal Tutor object
+  function fallbackIntro(){
+    try{
+      if (!tip || !bubble || !textEl || !nextBtn) return;
+      if (tutorialVisible()) return; // core finally showed it—do nothing
+
+      // Prep UI
+      tip.classList.add('show');
+      bubble.classList.add('center');
+      bubble.style.visibility = 'visible';
+      if (headNm) headNm.textContent = 'JAX';
+      if (headImg) headImg.src = 'fitness frenzy- coaches 128 x128 test.gif';
+
+      const steps = [
+        { speaker:'jax',    text:"You look a bit low on energy. Let’s fix that fast 💪" },
+        { speaker:'player', text:"But where do I start?" },
+        { speaker:'jax',    text:"Tap Walking to earn 1 HP. Then we’ll power up. When a button lights up, you can use it." }
+      ];
+      let i = 0;
+
+      // We’ll override the original Next handler for this session
+      const onNext = (e)=>{
+        if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+        if (i >= steps.length){
+          tip.classList.remove('show');
+          bubble.style.visibility = 'hidden';
+          nextBtn.removeEventListener('click', onNext, true);
+          return;
+        }
+        // Basic speaker switch (keep it centered for simplicity)
+        const s = steps[i++];
+        if (s.speaker === 'player'){
+          if (headNm) headNm.textContent = 'You';
+          if (headImg) headImg.src = (document.body.classList.contains('female') ? 'NEW FEMALE AVATAR.gif' : 'NEW MALE AVATAR.gif');
+        }else{
+          if (headNm) headNm.textContent = 'JAX';
+          if (headImg) headImg.src = 'fitness frenzy- coaches 128 x128 test.gif';
+        }
+        textEl.textContent = s.text; // our earlier highlight patch will enhance this
+        // Set button label
+        nextBtn.textContent = (i >= steps.length) ? 'Done' : 'Next';
+      };
+
+      // Start and bind (capture=true to outrank the original listener)
+      i = 0;
+      onNext();
+      nextBtn.addEventListener('click', onNext, true);
+    }catch(e){
+      console.warn('FF fallback tutorial failed:', e);
+    }
+  }
+
+  // Watch for Splash/Start visibility changes and nudge tutorial when both are gone
+  const watch = new MutationObserver(()=>{
+    if (!isShown(splash) && !isShown(start)) {
+      // Defer slightly to let core initialize menus/cards
+      setTimeout(nudgeBuiltIn, 250);
+    }
+  });
+
+  // Begin observing overlay state
+  [splash, start, offline, tip].forEach(el=>{
+    if (el) watch.observe(el, {attributes:true, attributeFilter:['class']});
+  });
+
+  // Also hook buttons in case users click very fast
+  document.getElementById('btn-new')?.addEventListener('click', ()=> setTimeout(nudgeBuiltIn, 500));
+  document.getElementById('btn-continue')?.addEventListener('click', ()=> setTimeout(nudgeBuiltIn, 1000));
+
+  // Last resort: if nothing happens a couple seconds after DOM ready, try once
+  if (document.readyState === 'complete'){
+    setTimeout(nudgeBuiltIn, 1800);
+  } else {
+    window.addEventListener('load', ()=> setTimeout(nudgeBuiltIn, 1800), {once:true});
+  }
+})();
+</script>
+
+
+
 </body>
 </html>
