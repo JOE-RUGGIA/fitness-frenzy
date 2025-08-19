@@ -1503,8 +1503,8 @@ try{
 
 
 
-  <style data-ff-patch>
-  /* ---------- Bounce on tap ----------//////////////////////////////////////EXTRA BOUNCE AND STARBURST PLUS BUTTON RESPONSIVENESS */
+<style data-ff-patch>
+  /* ===== Bounce on tap =====/////////////////////////////////////////LIGHT STARBURST EFFECT */
   @keyframes ff-bounce {
     0%   { transform: scale(0.98); }
     40%  { transform: scale(1.07); }
@@ -1515,69 +1515,73 @@ try{
     animation: ff-bounce 420ms cubic-bezier(.2,.8,.2,1);
   }
 
-  /* ---------- Starburst overlay (above media & repband) ---------- */
-  :root{
-    --burst-tint: rgba(58,166,255,.45);   /* male default */
-  }
-  body.female{ --burst-tint: rgba(255,118,181,.55); }
-
+  /* ===== LIGHT starburst overlay (sits above the tile) ===== */
   .ff-starburst{
-    position:absolute;
-    inset:-18%;
-    z-index:4; /* higher than .repband (z:2) and .coach-badge (z:2) */
-    pointer-events:none;
-    border-radius:50%;
-    mix-blend-mode:screen;
-    opacity:0;
+    position: fixed;
+    left: 0; top: 0;                 /* we position with left/top in JS */
+    width: 120px; height: 120px;     /* JS will resize per tile */
+    transform: translate(-50%, -50%) scale(.6) rotate(0deg);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 36;                     /* above content/topbar (30), below menu (40+) */
+    opacity: 0;
+    /* Soft, light rays + gentle center glow */
     background:
-      radial-gradient(circle at center,
-        rgba(255,255,255,.35) 0 20%,
-        rgba(255,255,255,0) 45%),
+      radial-gradient(closest-side, rgba(255,255,255,.28), rgba(255,255,255,0) 70%),
       repeating-conic-gradient(
-        from 0deg,
-        var(--burst-tint) 0deg 7deg,
-        rgba(255,255,255,0) 7deg 18deg
+        rgba(255,255,255,.18) 0 8deg,
+        rgba(255,255,255,0)   8deg 16deg
       );
-    transform: scale(.6);
-    animation: ff-star 520ms ease-out forwards;
+    filter: blur(0.3px);
+    mix-blend-mode: screen;          /* keep it “light”; safe to drop if unwanted */
+    animation: ff-starburst-pop 520ms ease-out forwards;
+    will-change: transform, opacity;
   }
-
-  @keyframes ff-star{
-    0%   { opacity:0; transform:scale(.6) rotate(0deg); }
-    15%  { opacity:1; }
-    60%  { opacity:1; transform:scale(1.1) rotate(12deg); }
-    100% { opacity:0; transform:scale(1.25) rotate(20deg); }
+  @keyframes ff-starburst-pop{
+    0%   { transform: translate(-50%, -50%) scale(.60) rotate(0deg);   opacity: .0; }
+    20%  { transform: translate(-50%, -50%) scale(.95) rotate(8deg);   opacity: .85; }
+    60%  { transform: translate(-50%, -50%) scale(1.12) rotate(18deg); opacity: .55; }
+    100% { transform: translate(-50%, -50%) scale(1.22) rotate(24deg); opacity: .0; }
   }
-
-  /* ---------- Tap comfort polish ---------- */
-  /* Reduce tap highlight and make buttons feel snappier on mobile */
-  .btn, .tile { -webkit-tap-highlight-color: transparent; }
 </style>
 
 <script type="application/ff-patch">
-/* Starburst + bounce on tile tap, and faster "Reps" button response */
+/* Bounce + starburst overlay on tile tap (uses your .burst-on tap marker) */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
-    /* ---------- Visual FX on tap (watch your existing .burst-on toggle) ---------- */
-    function addStarburst(tile){
-      const s = document.createElement('div');
-      s.className = 'ff-starburst';
-      tile.appendChild(s);
-      const cleanup = ()=> s.remove();
-      s.addEventListener('animationend', cleanup, {once:true});
-      setTimeout(cleanup, 700);
-    }
     function bounce(tile){
-      tile.classList.remove('ff-bounce'); // re-trigger safely
-      void tile.offsetWidth;              // force reflow
+      tile.classList.remove('ff-bounce'); // reset to allow retrigger
+      // force reflow
+      // eslint-disable-next-line no-unused-expressions
+      tile.offsetHeight;
       tile.classList.add('ff-bounce');
       tile.addEventListener('animationend', ()=> tile.classList.remove('ff-bounce'), {once:true});
     }
 
-    const FLAG='data-ff-starburst-ts';
+    function starburstOver(tile){
+      const r = tile.getBoundingClientRect();
+      const size = Math.max(80, Math.min(r.width, r.height) * 1.15); // proportional & subtle
+      const x = r.left + r.width/2;
+      const y = r.top + r.height/2;
+
+      const el = document.createElement('div');
+      el.className = 'ff-starburst';
+      el.style.left = x + 'px';
+      el.style.top  = y + 'px';
+      el.style.width  = size + 'px';
+      el.style.height = size + 'px';
+
+      document.body.appendChild(el);
+      const cleanup = ()=> el.remove();
+      el.addEventListener('animationend', cleanup, {once:true});
+      setTimeout(cleanup, 800);
+    }
+
+    // Debounce so each tap yields exactly one FX packet
+    const FLAG='data-ff-burstfx';
     new MutationObserver(muts=>{
       for(const m of muts){
         if(m.type!=='attributes') continue;
@@ -1587,58 +1591,19 @@ try{
 
         const now = performance.now();
         const last = Number(tile.getAttribute(FLAG) || 0);
-        if(now - last < 80) continue; // debounce duplicate fires
+        if(now - last < 80) continue; // ignore duplicate toggles from same tap
         tile.setAttribute(FLAG, String(now));
 
-        addStarburst(tile);
         bounce(tile);
+        starburstOver(tile);
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
-
-    /* ---------- Ultra-responsive "Reps" button ---------- */
-    // We dispatch the action on pointerdown, and then block the delayed native click.
-    const MARK = 'data-ff-accel';
-    function wireAccel(btn){
-      if(!btn || btn.getAttribute(MARK)) return;
-      btn.setAttribute(MARK,'1');
-
-      // Fire immediately on pointerdown (primary pointer only)
-      btn.addEventListener('pointerdown', (ev)=>{
-        if(ev.button !== 0) return; // left / primary only
-        // Tag to block the upcoming native click
-        btn.dataset.ffBlockClickUntil = String(performance.now() + 500);
-        // Synthesize a click so the core handler runs now
-        try{
-          const fast = new MouseEvent('click', {bubbles:true, cancelable:true});
-          btn.dispatchEvent(fast);
-        }catch(_){}
-      });
-
-      // Prevent the follow-up native click from double-triggering
-      // (capture phase so we can stop the original handler)
-      btn.addEventListener('click', (ev)=>{
-        const until = Number(btn.dataset.ffBlockClickUntil || 0);
-        if(performance.now() <= until){
-          ev.stopImmediatePropagation();
-          ev.preventDefault();
-        }
-      }, true); // capture
-    }
-
-    // Initial scan + observe dynamic card rebuilds
-    function scan(){
-      document.querySelectorAll('.card .meta .btn').forEach(b=>{
-        // Only accelerate true "Reps" buttons
-        if(/^\s*Reps\b/i.test(b.textContent || '')) wireAccel(b);
-      });
-    }
-    scan();
-    new MutationObserver(scan).observe(cards, {childList:true, subtree:true, characterData:true});
   }catch(e){
-    console.warn('FX/Accel patch error:', e);
+    console.warn('Bounce+Starburst patch error:', e);
   }
 })();
 </script>
+
 
 
 </body>
