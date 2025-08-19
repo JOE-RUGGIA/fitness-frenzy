@@ -1180,6 +1180,57 @@ try{
 
 
 
+<style data-ff-patch>
+  /* Brand logo next to avatar, slightly taller than 72px avatar */
+  .topbar .logo{
+    display:flex !important;
+    align-items:center;
+    font-size:0;          /* hide any leftover text spacing */
+    line-height:0;
+  }
+  .topbar .logo .brand-logo{
+    display:block;
+    height:84px;          /* slightly taller than avatar */
+    width:auto;
+    object-fit:contain;
+    pointer-events:none;  /* avoid accidental clicks/drag */
+  }
+
+  /* Keep it tidy on very small screens */
+  @media (max-width: 480px){
+    .topbar .logo .brand-logo{ height:80px; }
+  }
+</style>
+
+<script type="application/ff-patch">
+/* Replace title with provided logo, placed to the right of the avatar */
+(function(){
+  try{
+    const LOGO_URL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/COMPRESSED%20LOGO.png?raw=true";
+    const holder = document.querySelector('.topbar .logo');
+    if(!holder) return;
+
+    // If we already injected the logo, just ensure the src is correct
+    let img = holder.querySelector('img.brand-logo');
+    if(img){
+      if(img.src !== LOGO_URL) img.src = LOGO_URL;
+      return;
+    }
+
+    // Clear any existing title text and insert the logo image
+    holder.textContent = '';
+    img = document.createElement('img');
+    img.className = 'brand-logo';
+    img.src = LOGO_URL;
+    img.alt = 'Fitness Frenzy logo';
+    img.decoding = 'async';
+    img.loading = 'eager';
+    holder.appendChild(img);
+  }catch(e){
+    console.warn('Logo patch error:', e);
+  }
+})();
+</script>
 
  
 
