@@ -1181,7 +1181,7 @@ try{
 
 
 <style data-ff-patch>
-  /* Brand logo next to avatar, slightly taller than 72px avatar */
+  /* Brand logo next to avatar, slightly taller than 72px avatar/////////////////////////////////////////////////////////// */
   .topbar .logo{
     display:flex !important;
     align-items:center;
@@ -1235,6 +1235,96 @@ try{
  
 
 
+
+
+
+
+
+<style data-ff-patch>
+  /* Container for the two pills /////////////////////////////////////////////////////////////////////*/
+  .top-pills{
+    display:grid;
+    grid-template-columns:1fr 1fr; /* equal widths */
+    gap:10px;
+    margin-top:10px; /* matches original hp-pill spacing */
+  }
+  /* When hp-pill sits inside the grid, drop its own top margin */
+  .top-pills .hp-pill{ margin-top:0 !important; width:100% }
+  /* New Fitcoins pill styled to match hp-pill 1:1 */
+  .fit-pill{
+    background:#182047;
+    border:1px solid #2a2e5e;
+    padding:10px 12px;
+    border-radius:12px;
+    font-variant-numeric:tabular-nums;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-size:16px;
+    width:100%;
+  }
+
+  /* Keep layout tidy on very small screens */
+  @media (max-width: 420px){
+    .top-pills{ gap:8px }
+  }
+</style>
+
+<script type="application/ff-patch">
+/* Build a two-column pill row: [ HP | Fitcoins ] */
+(function(){
+  try{
+    const wrap = document.querySelector('.topbar .wrap');
+    if(!wrap) return;
+
+    const hp = wrap.querySelector('.hp-pill');
+    if(!hp) return;
+
+    // Create/ensure the holder row
+    let holder = wrap.querySelector('.top-pills');
+    if(!holder){
+      holder = document.createElement('div');
+      holder.className = 'top-pills';
+      // Place holder where the hp-pill currently is
+      hp.parentNode.insertBefore(holder, hp);
+    }
+    // Move HP pill into the holder (first column)
+    if(!holder.contains(hp)) holder.appendChild(hp);
+
+    // Create Fitcoins pill (second column) if missing
+    let fit = holder.querySelector('.fit-pill');
+    if(!fit){
+      fit = document.createElement('div');
+      fit.className = 'fit-pill';
+      fit.innerHTML = '<span>Fitcoins</span><span id="fc-readout">0</span>';
+      holder.appendChild(fit);
+    }
+
+    // If you installed the optional HP/min patch, keep it below the two-pill row
+    const rate = document.getElementById('hp-rate');
+    if(rate && holder.nextSibling !== rate){
+      holder.insertAdjacentElement('afterend', rate);
+    }
+
+    // Optional helper for future patches to update Fitcoins programmatically
+    window.setFitcoins = function(n){
+      const el = document.getElementById('fc-readout');
+      if(!el) return;
+      const v = Number(n);
+      if(Number.isFinite(v)){
+        // simple formatter (no K/M abbreviations to avoid touching core fmt)
+        el.textContent = Math.max(0, Math.floor(v)).toLocaleString();
+      }else{
+        el.textContent = '0';
+      }
+    };
+  }catch(e){
+    console.warn('Fitcoins pill patch error:', e);
+  }
+})();
+</script>
+
+  
 
 
 </body>
