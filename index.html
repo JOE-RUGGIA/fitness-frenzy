@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Fitness Frenzy — VS7x (offline fix + coach avatars + settings stats)</title>
+<title>Fitness Frenzy — VS7x (stats + gender-tinted bars & Reps)</title>
 <style>
   :root{
     --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
     --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --female-accent:#ff76b5;
+    --male-1:#2f6df3; --male-2:#41b0ff;
+    --pink-1:#ff76b5; --pink-2:#ffb3d5;
     --splash-logo:url('GameBros Logo.png');
   }
   *{box-sizing:border-box}
@@ -52,12 +54,21 @@
   .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:13px; color:#cfead6; text-shadow:0 1px 2px #000}
   .title{font-weight:800; margin-top:2px; font-size:16px}
   .cooldown{margin-top:8px; height:22px; background:#141739; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden; position:relative}
-  .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#2f6df3,#41b0ff)}
+  /* DEFAULT (male) cooldown fill */
+  .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg,var(--male-1),var(--male-2))}
+  /* Female cooldown fill override */
+  body.female .bar{background:linear-gradient(90deg,var(--pink-1),var(--pink-2))}
   .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric:tabular-nums; color:#a6b0d8; font-size:14px}
   .meta{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px; flex-wrap:wrap}
   .muted{color:#aab1d6; font-size:15px}
   .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:12px 16px; border-radius:12px; min-width:200px; cursor:pointer; font-variant-numeric:tabular-nums; font-size:15px; touch-action:manipulation}
   .btn.glow{box-shadow:0 0 0 2px rgba(255,192,120,.25) inset, 0 0 12px rgba(255,122,26,.35)}
+  /* Reps button theming (male default) */
+  .btn-reps{background:linear-gradient(180deg,var(--male-1),var(--male-2)); border-color:var(--male-2); color:#071428; font-weight:900}
+  .btn-reps.glow{box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35)}
+  /* Female override for Reps buttons */
+  body.female .btn-reps{background:linear-gradient(180deg,var(--pink-1),var(--pink-2)); border-color:var(--pink-2); color:#2b0020; font-weight:900}
+  body.female .btn-reps.glow{box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)}
 
   /* Menu overlay */
   .menu{position:fixed; inset:0; display:none; z-index:40}
@@ -132,7 +143,7 @@
   .tip .btn{min-width:120px; font-size:16px; padding:10px 14px}
   .offline-list{margin-top:8px; font-size:14px; color:#cdd3ff}
 
-  /* Achievements / confetti (unchanged) */
+  /* Achievements / confetti */
   .ach{position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:120; pointer-events:none}
   .ach .banner{position:relative; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#2a2e6b,#1e2255); border:1px solid #3b40a8; color:#fff; padding:12px 16px; border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.4), 0 0 0 2px rgba(255,255,255,.05) inset; animation:dropIn .6s cubic-bezier(.2,.8,.2,1) both}
   @keyframes dropIn{0%{transform:translate(-50%,-18px) scale(.96); opacity:0}100%{transform:translate(-50%,0) scale(1); opacity:1}}
@@ -521,13 +532,14 @@ try{
 
       if(!ex){
         r.card.classList.add('card-locked'); r.card.classList.remove('afford');
-        r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
+        r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.rightBtn.classList.remove('btn-reps'); r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
       }
       r.lvl.textContent='Lvl '+(ex.level||1);
       if(!ex.unlocked){
         r.card.classList.add('card-locked'); r.card.classList.remove('afford'); r.tile.classList.add('locked');
         const b=baseHP(r.idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs);
         r.left.textContent='—'; r.rightBtn.textContent='Unlock • '+fmt(price)+' HP';
+        r.rightBtn.classList.remove('btn-reps'); /* keep unlock button neutral */
         const afford=get().hp>=price;
         r.rightBtn.classList.toggle('glow',afford);
         r.card.classList.toggle('afford',afford);
@@ -541,6 +553,7 @@ try{
         const rb=repBaseCost(b), g=repGrowth(ex.level||1), qty=get().qty||1;
         const price=Math.ceil(qty===1?repCostSingle(rb,g,ex.repHP||0):repCostBulk(rb,g,ex.repHP||0,qty));
         r.rightBtn.textContent='Reps • '+fmt(price)+' HP';
+        r.rightBtn.classList.add('btn-reps'); /* theme this button */
         const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford);
         r.reptext.textContent=(ex.repHP||0)+' / '+(ex.repTarget||10);
         const pct=Math.max(0,Math.min(100,100*((ex.repHP||0)/(ex.repTarget||10))));
@@ -863,7 +876,7 @@ try{
       offlineList.innerHTML = lines.length ? `<div>${lines.join('<br>')}</div>` : '';
       offlineText.textContent = `Your coaches kept training for ${(ms/1000).toFixed(0)}s and earned +${fmt(total)} HP.`;
       offlineModal.classList.add('show');
-      skipTutorialOnce=true; // never show tutorial after an offline-claim screen in this session
+      skipTutorialOnce=true;
       offlineClaim.onclick = ()=>{
         patch(st=>{ st.hp += total; st.offline.lastSeenAt = Date.now(); return st; });
         offlineModal.classList.remove('show');
@@ -875,7 +888,6 @@ try{
     window.__FF_SESSION_START__ = Date.now();
     function stampPlaytime(){
       const now=Date.now();
-      // Only count when the game is active (not splash/start)
       const active = !(start.classList.contains('show') || splash.classList.contains('show'));
       if(!active) { window.__FF_SESSION_START__ = now; return; }
       const delta = now - (window.__FF_SESSION_START__||now);
@@ -895,12 +907,10 @@ try{
           hideStart(); Music.startPlay(); window.__FF_SESSION_START__ = Date.now(); setTimeout(()=> checkTutorial(true), 80);
           showToast('New Game started');
         }else{
-          // Continue: compute offline FIRST. Do not force intro.
           const off=computeOffline();
           hideStart(); Music.startPlay(); window.__FF_SESSION_START__ = Date.now();
           if(off.total>0){ showOffline(off.total, off.lines, off.ms); }
           else { setTimeout(()=> checkTutorial(false), 80); }
-          // Always stamp new lastSeen after resume
           patch(st=>{ st.started=true; st.offline.lastSeenAt=Date.now(); if(!st.stats.firstStartedAt) st.stats.firstStartedAt=Date.now(); return st; });
           showToast('Continue');
         }
@@ -935,7 +945,6 @@ try{
         const step=steps[iStep]||{}; const b=tipBubble;
         b.classList.remove('anchored','center'); b.style.left=''; b.style.top=''; const old=b.querySelector('.arrow'); if(old) old.remove();
         if(step.speaker!=='player'){ b.classList.add('center'); b.style.visibility='visible'; return; }
-        // Anchor near avatar
         b.classList.add('anchored');
         const rect=avatarBtn.getBoundingClientRect(); const pad=12;
         b.style.left = Math.max(10, rect.left) + 'px';
