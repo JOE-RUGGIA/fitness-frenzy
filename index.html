@@ -1330,50 +1330,58 @@ try{
 
 
 
-
-
 <style data-ff-patch>
-  /* Full-page sticky top bar, always at the top while scrolling///////////////////////////////STICK TOP BAR FIX*/
+  /* Force the top bar to always stick///////////////////////////NEW STICKY BAR//////////////////////////////////// */
   .topbar{
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 35 !important; /* lower than .menu (40), higher than content */
-    will-change: transform; /* smoother on mobile */
-    backface-visibility: hidden;
+    position: fixed !important;
+    top: 0; left: 0; right: 0;
+    z-index: 30; /* Menu is 40+, so it'll sit above this */
   }
-
-  /* When the menu is open, make sure topbar never sits "over" it */
-  body.menu-open .topbar{
-    pointer-events: none;       /* don't block menu clicks */
-    z-index: 20 !important;     /* safely beneath the menu overlay/panel */
+  /* Spacer right under the top bar to preserve layout flow */
+  #ff-topbar-spacer{
+    display:block;
+    height: var(--ff-topbar-h, 0px);
   }
 </style>
 
 <script type="application/ff-patch">
-/* Toggle a body flag while the menu is open so CSS can neutralize the topbar */
+/* Fixed top bar + auto spacer sizing (resizes on content changes) */
 (function(){
-  const body = document.body;
-  const menu = document.getElementById('menu');
+  try{
+    const bar = document.querySelector('.topbar');
+    if(!bar) return;
 
-  function setOpen(open){
-    body.classList.toggle('menu-open', !!open);
-  }
+    // Create spacer after the topbar if missing
+    let spacer = document.getElementById('ff-topbar-spacer');
+    if(!spacer){
+      spacer = document.createElement('div');
+      spacer.id = 'ff-topbar-spacer';
+      bar.insertAdjacentElement('afterend', spacer);
+    }
 
-  // Prefer ffHooks if installed
-  if (window.ffHooks){
-    ffHooks.on('menu:open', ()=>setOpen(true));
-    ffHooks.on('menu:close', ()=>setOpen(false));
-  }
+    const sync = ()=>{
+      const h = Math.ceil(bar.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--ff-topbar-h', h + 'px');
+    };
 
-  // Fallback: watch the #menu "show" class directly
-  if (menu){
-    const apply = ()=> setOpen(menu.classList.contains('show'));
-    apply();
-    new MutationObserver(apply).observe(menu, {attributes:true, attributeFilter:['class']});
+    // Keep height in sync on load, resize, and dynamic UI changes (e.g., pills, rate line)
+    new ResizeObserver(sync).observe(bar);
+    window.addEventListener('load', sync);
+    window.addEventListener('resize', sync);
+
+    const wrap = bar.querySelector('.wrap');
+    if(wrap){
+      new MutationObserver(()=> requestAnimationFrame(sync))
+        .observe(wrap, {childList:true, subtree:true, characterData:true});
+    }
+
+    // First pass
+    sync();
+  }catch(e){
+    console.warn('Topbar fix patch failed:', e);
   }
 })();
 </script>
-
 
   
 
