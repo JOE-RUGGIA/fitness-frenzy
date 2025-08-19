@@ -1465,5 +1465,27 @@ try{
 </script>
 
 
+
+<style data-ff-patch>
+  /* Keep sticky, but below modal layers */
+  .topbar{
+    position:sticky !important;
+    top:0;
+    z-index:60 !important; /* Splash=80, Start=70, Tip=110 (below) */
+  }
+
+  /* Hide topbar while splash/start are showing */
+  .splash.show ~ .topbar,
+  .start.show  ~ .topbar{
+    display:none !important;
+  }
+
+  /* Make sure the tutorial (tip) sits above the topbar */
+  .tip{ z-index:110 !important; }        /* Ach=120; this stays under achievements */
+  .offline.tip{ z-index:120 !important;} /* keep offline gains at the same top layer as before */
+</style>
+
+
+
 </body>
 </html>
