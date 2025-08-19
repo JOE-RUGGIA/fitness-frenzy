@@ -1504,7 +1504,7 @@ try{
 
 
 <style data-ff-patch>
-  /* ===== Bounce on tap =====/////////////////////////////////////////LIGHT STARBURST EFFECT */
+  /* --- Bounce on tap --- */
   @keyframes ff-bounce {
     0%   { transform: scale(0.98); }
     40%  { transform: scale(1.07); }
@@ -1515,45 +1515,42 @@ try{
     animation: ff-bounce 420ms cubic-bezier(.2,.8,.2,1);
   }
 
-  /* ===== LIGHT starburst overlay (sits above the tile) ===== */
-  .ff-starburst{
-    position: fixed;
-    left: 0; top: 0;                 /* we position with left/top in JS */
-    width: 120px; height: 120px;     /* JS will resize per tile */
-    transform: translate(-50%, -50%) scale(.6) rotate(0deg);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 36;                     /* above content/topbar (30), below menu (40+) */
-    opacity: 0;
-    /* Soft, light rays + gentle center glow */
-    background:
-      radial-gradient(closest-side, rgba(255,255,255,.28), rgba(255,255,255,0) 70%),
-      repeating-conic-gradient(
-        rgba(255,255,255,.18) 0 8deg,
-        rgba(255,255,255,0)   8deg 16deg
-      );
-    filter: blur(0.3px);
-    mix-blend-mode: screen;          /* keep it “light”; safe to drop if unwanted */
-    animation: ff-starburst-pop 520ms ease-out forwards;
-    will-change: transform, opacity;
+  /* --- Tiny line burst (rays) --- */
+  .ff-rays{
+    position:absolute;
+    left:50%; top:50%;
+    width:0; height:0;
+    pointer-events:none;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,.55));
+    z-index: 3; /* above media but inside tile (tile is overflow:hidden) */
   }
-  @keyframes ff-starburst-pop{
-    0%   { transform: translate(-50%, -50%) scale(.60) rotate(0deg);   opacity: .0; }
-    20%  { transform: translate(-50%, -50%) scale(.95) rotate(8deg);   opacity: .85; }
-    60%  { transform: translate(-50%, -50%) scale(1.12) rotate(18deg); opacity: .55; }
-    100% { transform: translate(-50%, -50%) scale(1.22) rotate(24deg); opacity: .0; }
+  .ff-ray{
+    position:absolute;
+    left:-1px; top:-8px;          /* center anchor */
+    width:2px; height:14px;       /* small rays */
+    background:rgba(255,255,255,.95);
+    border-radius:2px;
+    opacity:0;
+    transform-origin: 1px 8px;
+    animation: ff-ray 380ms ease-out forwards;
+  }
+  @keyframes ff-ray{
+    0%   { transform: rotate(var(--deg)) translateY(0) scale(0.85); opacity:0; }
+    20%  { opacity:1; }
+    100% { transform: rotate(var(--deg)) translateY(-18px) scale(1.0); opacity:0; }
   }
 </style>
 
 <script type="application/ff-patch">
-/* Bounce + starburst overlay on tile tap (uses your .burst-on tap marker) */
+/* Add bounce + small line burst on exercise tap (listens for your .burst-on) */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
+    // Bounce helper
     function bounce(tile){
-      tile.classList.remove('ff-bounce'); // reset to allow retrigger
+      tile.classList.remove('ff-bounce'); // allow retrigger
       // force reflow
       // eslint-disable-next-line no-unused-expressions
       tile.offsetHeight;
@@ -1561,27 +1558,30 @@ try{
       tile.addEventListener('animationend', ()=> tile.classList.remove('ff-bounce'), {once:true});
     }
 
-    function starburstOver(tile){
-      const r = tile.getBoundingClientRect();
-      const size = Math.max(80, Math.min(r.width, r.height) * 1.15); // proportional & subtle
-      const x = r.left + r.width/2;
-      const y = r.top + r.height/2;
+    // Ray burst helper
+    function rays(tile){
+      // container inside tile so it's clipped by tile border radius
+      const wrap = document.createElement('div');
+      wrap.className = 'ff-rays';
+      tile.appendChild(wrap);
 
-      const el = document.createElement('div');
-      el.className = 'ff-starburst';
-      el.style.left = x + 'px';
-      el.style.top  = y + 'px';
-      el.style.width  = size + 'px';
-      el.style.height = size + 'px';
+      const N = 10;                 // number of rays
+      const jitter = ()=> (Math.random()*6 - 3); // slight angular jitter
 
-      document.body.appendChild(el);
-      const cleanup = ()=> el.remove();
-      el.addEventListener('animationend', cleanup, {once:true});
-      setTimeout(cleanup, 800);
+      for(let i=0;i<N;i++){
+        const ray = document.createElement('i');
+        ray.className = 'ff-ray';
+        const deg = (360/N)*i + jitter();
+        ray.style.setProperty('--deg', deg+'deg');
+        wrap.appendChild(ray);
+      }
+      const cleanup = ()=> wrap.remove();
+      // remove after the last ray finishes
+      setTimeout(cleanup, 420);
     }
 
-    // Debounce so each tap yields exactly one FX packet
-    const FLAG='data-ff-burstfx';
+    // Debounce attribute per tile to avoid duplicates in the same frame
+    const FLAG='data-ff-lastfx';
     new MutationObserver(muts=>{
       for(const m of muts){
         if(m.type!=='attributes') continue;
@@ -1591,18 +1591,19 @@ try{
 
         const now = performance.now();
         const last = Number(tile.getAttribute(FLAG) || 0);
-        if(now - last < 80) continue; // ignore duplicate toggles from same tap
+        if(now - last < 60) continue; // ignore rapid duplicate fires
         tile.setAttribute(FLAG, String(now));
 
         bounce(tile);
-        starburstOver(tile);
+        rays(tile);
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
   }catch(e){
-    console.warn('Bounce+Starburst patch error:', e);
+    console.warn('tile fx patch error:', e);
   }
 })();
 </script>
+
 
 
 
