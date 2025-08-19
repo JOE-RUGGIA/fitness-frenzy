@@ -3,19 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fitness Frenzy — VS7d (Splash+Start full-screen & start-btn fix)</title>
+  <title>Fitness Frenzy — VS7g (Music + Start gating + Reset→Splash)</title>
   <style>
     :root{
       --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
-      --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --danger:#ff3860;
+      --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f;
       --female-accent:#ff76b5;
-      /* Replace these with your repo paths if different */
       --start-hero-desktop:url('FF-desktop.png');
       --start-hero-mobile:url('FF-mobile.png');
+      --splash-logo:url('GameBros Logo.png');
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0; background:var(--bg); color:#f5f7ff; font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+
     .topbar{position:sticky; top:0; z-index:20; background:linear-gradient(180deg, #151734, #10122a); border-bottom:1px solid #22254b; padding:10px 12px}
     .wrap{max-width:880px; margin:0 auto; padding:12px}
     .row{display:flex; align-items:center; gap:12px; justify-content:space-between}
@@ -43,7 +44,7 @@
     .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric: tabular-nums; color:#a6b0d8}
     .meta{display:flex; align-items:center; justify-content:space-between; margin-top:8px}
     .muted{color:#aab1d6}
-    .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 10px; border-radius:10px; min-width:160px; cursor:pointer; font-variant-numeric: tabular-nums}
+    .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:10px 14px; border-radius:10px; min-width:180px; cursor:pointer; font-variant-numeric: tabular-nums}
     .btn.glow{box-shadow:0 0 0 2px rgba(255, 192, 120, .25) inset, 0 0 12px rgba(255, 122, 26, .35)}
     .repband{position:absolute; left:6px; right:6px; bottom:6px; height:16px; border-radius:8px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden}
     .repfill{height:100%; width:0%; background:linear-gradient(90deg, #17b34c, #27c93f)}
@@ -79,39 +80,36 @@
     .jax::before,.off::before{content:""; position:absolute; inset:0; background:rgba(0,0,0,.55)}
     .jax .panel,.off .panel{position:relative; z-index:1; max-width:min(640px, 92vw); background:#111333; border:1px solid #2a2e5e; border-radius:14px; padding:16px}
 
-    /* Splash (always shows first for ≥2s) */
-    .splash{position:fixed; inset:0; z-index:80; display:none; background: radial-gradient(1200px 1200px at 50% 30%, #1b1f47 0%, #0c0d1e 62%, #070812 100%);}
+    /* Splash (white background + centered logo) */
+    .splash{position:fixed; inset:0; z-index:80; display:none; background:#ffffff;}
     .splash.show{display:block}
     .splash .brand{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center}
-    .splash .logo{font-size:42px; font-weight:900; letter-spacing:1.2px}
-    .rays{position:absolute; top:50%; left:50%; width:280px; height:280px; margin:-140px 0 0 -140px; border-radius:50%; background:
-      conic-gradient(from 0deg, rgba(255,255,255,.12), rgba(255,255,255,0) 10%, rgba(255,255,255,.12) 20%, rgba(255,255,255,0) 30%);
-      animation:spin 6s linear infinite; filter: blur(3px); opacity:.35;
-    }
-    @keyframes spin{ to{ transform:translate(-50%,-50%) rotate(360deg) } }
-    .splash .tag{margin-top:10px; color:#aab1d6}
-    .splash .skip{position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:#1b1f44; border:1px solid #2a2e5e; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer}
+    .splash .logo-img{width:min(420px, 60vw); height:min(420px,60vw); background-image:var(--splash-logo); background-size:contain; background-repeat:no-repeat; background-position:center; margin:0 auto}
+    .splash .tag{margin-top:10px; color:#333}
+    .splash .skip{position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer}
 
-    /* Start (full-bleed background image) */
+    /* Start (full-bleed background image with lower-centered panel) */
     .start{position:fixed; inset:0; z-index:70; display:none}
     .start.show{display:block}
     .start .bg{position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; filter: saturate(1.05);}
-    .start .scrim{position:absolute; inset:0; background: radial-gradient(800px 500px at 10% 5%, rgba(18,20,52,.9) 0%, rgba(18,20,52,.6) 40%, rgba(18,20,52,.35) 65%, rgba(18,20,52,.15) 90%), linear-gradient(180deg, rgba(10,12,33,.82), rgba(10,12,33,.55) 40%, rgba(10,12,33,.82));}
-    .start .panel{position:absolute; left:50%; transform:translateX(-50%); top:8vh; width:min(980px, 94vw); border-radius:16px; border:1px solid rgba(42,46,94,.8); background:rgba(12,14,35,.66); backdrop-filter: blur(6px); padding:16px}
-    .start .title{font-weight:900; font-size:26px; letter-spacing:.6px; display:flex; align-items:center; gap:10px}
-    .start .tagline{color:#aab1d6; margin-top:4px}
-    .start .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; margin-top:18px}
-    .start .avatars{display:flex; gap:8px; align-items:center}
-    .start .ava{width:90px; height:90px; border-radius:10px; display:grid; place-items:center; font-weight:900; border:2px solid #2a2e5e; cursor:pointer; background:#121434}
+    .start .scrim{position:absolute; inset:0; background: linear-gradient(180deg, rgba(10,12,33,.10) 0%, rgba(10,12,33,.55) 45%, rgba(10,12,33,.85) 100%);}
+    .start .panel{
+      position:absolute; left:50%; transform:translateX(-50%);
+      bottom:6vh; width:min(760px, 94vw);
+      background:rgba(18,20,52,.70); border:1px solid rgba(42,46,94,.75); border-radius:16px;
+      backdrop-filter: blur(6px);
+      padding:16px;
+      display:flex; flex-direction:column; align-items:center; gap:14px;
+    }
+    .start .avatars{display:flex; gap:10px; align-items:center; justify-content:center}
+    .start .ava{width:110px; height:110px; border-radius:12px; display:grid; place-items:center; font-weight:900; border:2px solid #2a2e5e; cursor:pointer; background:#121434; user-select:none}
     .start .ava.active{outline:3px solid var(--accent-2)}
     .start .ava.f{border-color:var(--female-accent)}
-    .start .buttons{display:flex; gap:8px; justify-content:flex-start; flex-wrap:wrap}
+    .start .buttons{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
     .start .btn-start{background:var(--accent); color:#1b0d00; font-weight:900}
     body.female .start .btn-start{background:var(--female-accent); color:#2b0020}
     .start .btn-continue{background:#1f254f}
-    .start .footer{display:flex; align-items:center; justify-content:space-between; margin-top:12px; color:#aab1d6; gap:10px; flex-wrap:wrap}
-    .start .vol{display:flex; align-items:center; gap:8px}
-    .start input[type=range]{width:220px}
+    .start .hint{color:#ccd2ff; opacity:.85; font-size:13px}
 
     /* Toast + Error bar */
     .toast{position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:100; display:none}
@@ -119,6 +117,11 @@
     .toast .box{background:#0f1333; border:1px solid #32407a; color:#e9edff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 30px rgba(0,0,0,.35)}
     .err{position:fixed; top:0; left:0; right:0; background:#8b1111; color:#fff; z-index:120; padding:8px 12px; font-weight:700; display:none}
     .err.show{display:block}
+
+    @media (max-width:560px){
+      .start .ava{width:96px; height:96px}
+      .start .panel{bottom:4vh}
+    }
   </style>
 </head>
 <body>
@@ -126,9 +129,8 @@
 
   <!-- Splash -->
   <div id="splash" class="splash show" aria-hidden="true">
-    <div class="rays"></div>
     <div class="brand">
-      <div class="logo">GameBros</div>
+      <div class="logo-img" aria-label="GameBros logo"></div>
       <div class="tag">loading assets…</div>
     </div>
     <button id="splash-skip" class="skip">Skip</button>
@@ -139,34 +141,15 @@
     <div id="start-bg" class="bg"></div>
     <div class="scrim"></div>
     <div class="panel">
-      <div>
-        <div class="title">Fitness Frenzy</div>
-        <div class="tagline">Tap • Train • Level Up</div>
+      <div class="avatars" id="start-avatars">
+        <div class="ava m active" data-sex="male">Male</div>
+        <div class="ava f" data-sex="female">Female</div>
       </div>
-      <div class="grid">
-        <div>
-          <div class="muted">Choose your avatar</div>
-          <div class="avatars" id="start-avatars">
-            <div class="ava m active" data-sex="male">Male</div>
-            <div class="ava f" data-sex="female">Female</div>
-          </div>
-        </div>
-        <div>
-          <div class="muted">Actions</div>
-          <div class="buttons">
-            <button id="btn-new" class="btn btn-start">New Game</button>
-            <button id="btn-continue" class="btn btn-continue" style="display:none">Continue</button>
-          </div>
-        </div>
+      <div class="buttons">
+        <button id="btn-new" class="btn btn-start">New Game</button>
+        <button id="btn-continue" class="btn btn-continue" style="display:none">Continue</button>
       </div>
-      <div class="footer">
-        <div class="muted">Music starts after you click.</div>
-        <div class="vol">
-          <span class="muted">Music</span>
-          <input id="music-range" type="range" min="0" max="1" step="0.01" />
-          <span id="vol-read" class="muted">0.12</span>
-        </div>
-      </div>
+      <div class="hint">Music starts after you click.</div>
     </div>
   </div>
 
@@ -175,7 +158,7 @@
       <div class="row">
         <div class="row" style="gap:12px; align-items:center">
           <button id="avatar" class="avatar" title="Menu"><span>FF</span><span id="avatar-dot" class="dot"></span></button>
-          <div class="logo">Fitness Frenzy — VS7d</div>
+          <div class="logo">Fitness Frenzy — VS7g</div>
         </div>
         <div class="bulk" id="bulk">
           <button data-q="1" class="active">×1</button>
@@ -247,8 +230,8 @@
 
   <script>
     try{
-      if(!window.__FF_VS7D__){
-        window.__FF_VS7D__ = true;
+      if(!window.__FF_VS7G__){
+        window.__FF_VS7G__ = true;
 
         // ---- Helpers
         function deepClone(x){ try{ return structuredClone(x); }catch(_){ try{ return JSON.parse(JSON.stringify(x)); }catch(__){ return x; } } }
@@ -273,8 +256,56 @@
         const btnNew = document.getElementById('btn-new');
         const btnContinue = document.getElementById('btn-continue');
         const startAvatars = document.getElementById('start-avatars');
-        const musicRange = document.getElementById('music-range');
-        const volRead = document.getElementById('vol-read');
+
+        // ---- Prefs (music) ----
+        const KEY_MAIN = 'ff-v1';
+        const KEY_PREFS = 'ff-v1:prefs';
+        function loadPrefs(){
+          try{
+            const raw = localStorage.getItem(KEY_PREFS);
+            if(!raw) return {};
+            return JSON.parse(raw) || {};
+          }catch(_){ return {}; }
+        }
+        function savePrefs(p){ try{ localStorage.setItem(KEY_PREFS, JSON.stringify(p)); }catch(_){} }
+        const prefs = Object.assign({ musicOn:true, musicVol: isMobile()? 0.03 : 0.12 }, loadPrefs());
+
+        // ---- Music
+        const Music = (()=>{
+          let el = null;
+          let started = false;
+          function ensure(){
+            if(el) return el;
+            const url = isMobile() ? 'FF-fighting music (soft).mp3' : 'FF-fighting music.mp3';
+            el = new Audio(url);
+            el.loop = true;
+            el.volume = prefs.musicVol;
+            return el;
+          }
+          function startPlay(){
+            if(!prefs.musicOn) return;
+            const a = ensure();
+            a.volume = prefs.musicVol;
+            a.play().then(()=>{ started=true; }).catch(()=>{ /* ignore user-gesture gate until next click */ });
+          }
+          function stop(){
+            if(!el) return;
+            el.pause();
+            try{ el.currentTime = 0; }catch(_){}
+            started=false;
+          }
+          function setVol(v){
+            prefs.musicVol = v;
+            savePrefs(prefs);
+            if(el) el.volume = v;
+          }
+          function setOn(b){
+            prefs.musicOn = b;
+            savePrefs(prefs);
+            if(!b) stop(); else startPlay();
+          }
+          return { startPlay, stop, setVol, setOn, get vol(){return prefs.musicVol;}, get on(){return prefs.musicOn;} };
+        })();
 
         let dirty = false;
         function markDirty(){ dirty = true; }
@@ -290,8 +321,6 @@
 
         const OFFLINE_CAP_HOURS = 72;
         const OFFLINE_MIN_MS = 20000;
-        const KEY_MAIN = 'ff-v1';
-        const KEY_PREFS = 'ff-v1:prefs';
 
         const Exercises = [
           { id:'walk',    name:'Walking',            baseCooldownMs: 1000 },
@@ -351,61 +380,32 @@
           offline:{ lastSeenAt: Date.now() },
           stats:{ manual:0, auto:0, totalEarned:0 }
         };}
-        function defaultPrefs(){ return { floats:true, musicVolDesktop:0.12, musicVolMobile:0.03 }; }
-
         function ensureIntegrity(data){
-          const base = defaults();
           const byId = new Map((data.exercises||[]).map(e => [e.id, e]));
           data.exercises = Exercises.map((ex, idx) => {
             const prev = byId.get(ex.id);
             const d = {
-              id: ex.id,
-              unlocked: idx===0,
-              repHP: 0,
-              repTarget: 10,
-              level: 1,
-              cooldown: ex.baseCooldownMs,
-              lastTapAt: 0
+              id: ex.id, unlocked: idx===0, repHP:0, repTarget:10, level:1, cooldown:ex.baseCooldownMs, lastTapAt:0
             };
-            if(prev){
-              d.unlocked = !!prev.unlocked;
-              d.repHP = prev.repHP|0;
-              d.repTarget = prev.repTarget ? prev.repTarget|0 : 10;
-              d.level = prev.level ? prev.level|0 : 1;
-              d.cooldown = prev.cooldown ? prev.cooldown|0 : ex.baseCooldownMs;
-              d.lastTapAt = prev.lastTapAt ? prev.lastTapAt|0 : 0;
-            }
+            if(prev){ d.unlocked=!!prev.unlocked; d.repHP=prev.repHP|0; d.repTarget=prev.repTarget?prev.repTarget|0:10; d.level=prev.level?prev.level|0:1; d.cooldown=prev.cooldown?prev.cooldown|0:ex.baseCooldownMs; d.lastTapAt=prev.lastTapAt?prev.lastTapAt|0:0; }
             return d;
           });
           data.coaches = data.coaches || {};
-          data.tutorial = data.tutorial || base.tutorial;
+          data.tutorial = data.tutorial || { doneIntro:false, shown:{ repsHint:false, unlock:{ jog:false } } };
           if(!data.tutorial.shown) data.tutorial.shown = { repsHint:false, unlock:{ jog:false } };
           if(!data.tutorial.shown.unlock) data.tutorial.shown.unlock = { jog:false };
-          data.achievements = data.achievements || base.achievements;
-          data.offline = data.offline || base.offline;
-          data.stats = data.stats || base.stats;
+          data.achievements = data.achievements || { first_steps:false, add_routine:false, coach_duty:false, speed_demon:false };
+          data.offline = data.offline || { lastSeenAt: Date.now() };
+          data.stats = data.stats || { manual:0, auto:0, totalEarned:0 };
           data.avatar = data.avatar==='female' ? 'female' : 'male';
           data.started = !!data.started;
           data.schema = 20;
           return data;
         }
 
-        function migrateFromLegacy(rawKey){
-          try{
-            const raw = localStorage.getItem(rawKey);
-            if(!raw) return null;
-            const d = JSON.parse(raw);
-            return ensureIntegrity(Object.assign(defaults(), d));
-          }catch{ return null; }
-        }
-
         function load(){
           const cur = localStorage.getItem(KEY_MAIN);
-          if(cur){
-            try{ return ensureIntegrity(JSON.parse(cur)); }catch{}
-          }
-          const mig = migrateFromLegacy('ff-vs5d') || migrateFromLegacy('ff-vs5c');
-          if(mig){ localStorage.setItem(KEY_MAIN, JSON.stringify(mig)); return mig; }
+          if(cur){ try{ return ensureIntegrity(JSON.parse(cur)); }catch{} }
           return defaults();
         }
         function save(s){
@@ -415,26 +415,15 @@
             localStorage.setItem(KEY_MAIN, JSON.stringify(p));
           }catch(e){ /* no-op */ }
         }
-        function loadPrefs(){
-          try{
-            const raw = localStorage.getItem(KEY_PREFS);
-            if(!raw) return defaultPrefs();
-            return Object.assign(defaultPrefs(), JSON.parse(raw)||{});
-          }catch{ return defaultPrefs(); }
-        }
-        function savePrefs(p){
-          try{ localStorage.setItem(KEY_PREFS, JSON.stringify(p)); }catch{}
-        }
 
         let S = load();
-        let Prefs = loadPrefs();
         document.body.classList.toggle('female', S.avatar==='female');
         const get = () => S;
         function patch(mut){ S = ensureIntegrity(mut(deepClone(S))); save(S); markDirty(); }
 
         function showToast(msg){ toastText.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1800); }
 
-        // Minimal SFX beeps
+        // Minimal SFX beeps (placeholder for now)
         const SFX = (()=>{
           let ctx = null;
           function ensure(){ if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch{} } return ctx; }
@@ -449,33 +438,7 @@
           return { click(){beep(660,0.03)}, ok(){beep(520,0.05)}, deny(){beep(180,0.08)} };
         })();
 
-        // Music
-        const Music = (()=>{
-          let audio = null;
-          let inited = false;
-          function desiredVol(){ return isMobile() ? (Prefs.musicVolMobile ?? 0.03) : (Prefs.musicVolDesktop ?? 0.12); }
-          function setVolume(v){
-            if(isMobile()) Prefs.musicVolMobile = v; else Prefs.musicVolDesktop = v;
-            savePrefs(Prefs);
-            if(audio) audio.volume = v;
-            if(volRead) volRead.textContent = Number(v).toFixed(2);
-            if(musicRange) musicRange.value = String(v);
-          }
-          function init(){
-            if(inited) return;
-            inited = true;
-            audio = new Audio();
-            audio.loop = true;
-            audio.src = isMobile() ? 'FF-fighting music (soft).mp3' : 'FF-fighting music.mp3';
-            audio.volume = desiredVol();
-            audio.addEventListener('error', ()=>{});
-          }
-          async function play(){ if(!inited) init(); try{ await audio.play(); }catch{} }
-          function stop(){ if(audio){ audio.pause(); } }
-          return { init, play, stop, setVolume, desiredVol };
-        })();
-
-        // Tutorial + Offline
+        // Tutorial + Offline (same behavior)
         const jax = document.getElementById('jax'), jaxText=document.getElementById('jax-text'), jaxSkip=document.getElementById('jax-skip'), jaxNext=document.getElementById('jax-next');
         const Tutor = (() => {
           let queue = []; let active=false;
@@ -699,31 +662,31 @@
           else menuBody.append(frag);
         }
         function renderSettings(){
-          const v = Music.desiredVol();
           const div=document.createElement('div');
-          div.innerHTML = '<div class="muted">Settings</div>' +
-            '<div style="height:8px"></div>' +
-            `<div class="muted">Offline cap: ${OFFLINE_CAP_HOURS}h; Modal threshold: ${(OFFLINE_MIN_MS/1000).toFixed(0)}s (dev)</div>` +
-            '<div style="height:10px"></div>' +
-            '<div class="muted">Music volume</div>' +
-            `<input id="set-vol" type="range" min="0" max="1" step="0.01" value="${v}"> <span class="muted" id="set-vol-read">${Number(v).toFixed(2)}</span>` +
-            '<div style="height:10px"></div>' +
-            '<div class="muted">Debug tools (local only)</div>' +
+          div.innerHTML =
+            '<div class="muted">Audio</div>' +
+            '<div style="display:flex; align-items:center; gap:10px; margin:8px 0 16px 0">' +
+              '<label><input id="music-on" type="checkbox"> Music on</label>' +
+              '<label>Volume <input id="music-vol" type="range" min="0" max="1" step="0.01" style="vertical-align:middle"></label>' +
+            '</div>' +
+            '<div class="muted">Debug / Save</div>' +
             '<div style="height:6px"></div>' +
             '<button id="dbg5" class="btn">Simulate 5m offline</button> ' +
-            '<button id="dbgShow" class="btn">Show Offline Modal Now</button>' +
-            '<div style="height:10px"></div>' +
+            '<button id="dbgShow" class="btn">Show Offline Modal Now</button> ' +
             '<button id="reset" class="btn">Reset Save</button>';
+          menuBody.innerHTML=''; menuBody.append(div);
+
+          const chk = div.querySelector('#music-on');
+          const rng = div.querySelector('#music-vol');
+          chk.checked = Music.on;
+          rng.value = String(Music.vol);
+          chk.addEventListener('change', ()=> Music.setOn(chk.checked));
+          rng.addEventListener('input', ()=> Music.setVol(parseFloat(rng.value)));
+
           div.querySelector('#reset').addEventListener('click', ()=>{
-            if(confirm('Reset your save?')){
-              localStorage.removeItem(KEY_MAIN);
-              localStorage.removeItem(KEY_PREFS);
-              S = defaults();
-              Prefs = defaultPrefs();
-              save(S); savePrefs(Prefs);
-              markDirty();
-              showToast('Save reset.');
-              buildCards();
+            if(confirm('Reset your save and return to splash?')){
+              try{ localStorage.removeItem(KEY_MAIN); }catch(_){}
+              location.reload(); // hard return to splash
             }
           });
           div.querySelector('#dbg5').addEventListener('click', ()=>{
@@ -735,12 +698,6 @@
             const sum = computeOffline();
             showOfflineModal(sum);
           });
-          div.querySelector('#set-vol').addEventListener('input', (e)=>{
-            const val = parseFloat(e.target.value||'0');
-            Music.setVolume(val);
-            div.querySelector('#set-vol-read').textContent = val.toFixed(2);
-          });
-          menuBody.innerHTML=''; menuBody.append(div);
         }
         function renderAchievements(){
           const s=get();
@@ -897,14 +854,9 @@
 
         function showStart(){
           splash.classList.remove('show');
-          if(get().started){
-            // Already started: don't force Start panel, just enable gameplay
-            document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false'));
-            // kick music on first gesture
-            window.addEventListener('pointerdown', function once(){ Music.init(); Music.play(); window.removeEventListener('pointerdown', once); }, { once:true });
-          }else{
-            start.classList.add('show');
-          }
+          // Always show Start after Splash; reveal Continue if save exists
+          btnContinue.style.display = hasRealSave(get()) ? 'inline-block' : 'none';
+          start.classList.add('show');
         }
         function hideStart(){
           start.classList.remove('show');
@@ -913,15 +865,13 @@
         }
         function blocked(){ return start.classList.contains('show') || splash.classList.contains('show') || Tutor.active || off.classList.contains('show'); }
 
-        // Splash timing (force ≥2s display even if skipped instantly)
-        let splashMinDone = false;
-        setTimeout(()=>{ splashMinDone = true; }, 2000);
+        // Splash timing (≥2s min, 5s auto)
+        let splashMinDone = false; setTimeout(()=>{ splashMinDone = true; }, 2000);
         let splashEnded = false;
         function finishSplash(){
           if(splashEnded) return;
           if(!splashMinDone){ setTimeout(finishSplash, 250); return; }
-          splashEnded = true;
-          showStart();
+          splashEnded = true; showStart();
         }
         const splashTimer = setTimeout(finishSplash, 5000);
         splashSkip.addEventListener('click', ()=>{ clearTimeout(splashTimer); finishSplash(); SFX.click(); });
@@ -936,7 +886,7 @@
           SFX.click();
         });
 
-        // Start buttons — hardened
+        // Start buttons
         function begin(isNew){
           try{
             if(isNew){
@@ -948,10 +898,8 @@
               patch(st => { st.started = true; return st; });
             }
             hideStart();
-            Music.init();
-            Music.play();
-            if(isNew){
-              suppressTutorialThisSession = false;
+            Music.startPlay(); // start background music on user gesture
+            if(!Tutor.active){
               setTimeout(()=>{
                 Tutor.show([ "You look a bit low on energy. Let’s fix that fast 💪", "Tap Walking to earn HP. Then we’ll power up." ]);
                 patch(st => { st.tutorial.doneIntro = true; return st; });
@@ -965,19 +913,8 @@
         btnNew.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); begin(true); });
         btnContinue.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); begin(false); });
 
-        // Init Start menu state
-        (function initStart(){
-          btnContinue.style.display = hasRealSave(get()) ? 'inline-block' : 'none';
-          const v = Music.desiredVol();
-          if(musicRange){ musicRange.value = String(v); musicRange.addEventListener('input', e=> Music.setVolume(parseFloat(e.target.value||'0'))); }
-          if(volRead){ volRead.textContent = Number(v).toFixed(2); }
-        })();
-
-        // If already started, ensure gameplay visible beneath splash; Start won't show after splash
-        if(get().started){
-          start.classList.remove('show');
-          document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false'));
-        }
+        // If user clicks anywhere on Start panel, try to prime music too
+        start.addEventListener('click', ()=>{ Music.startPlay(); }, { once:true });
 
         // Tutorial checks
         function tutorialCheck(){
@@ -991,7 +928,7 @@
           }
           if(!s.tutorial.shown?.repsHint && (s.exercises[0]?.repHP||0)===0 && s.hp >= 4){
             Tutor.show([ "Great start! Use Reps to hit harder each tap.", "When the green bar fills, your cooldown halves." ]);
-            patch(st => { st.tutorial.shown.repsHint = true; return st; });
+            patch(st => { s.tutorial.shown.repsHint = true; return s; });
             return;
           }
           const jIdx = 1; const j = s.exercises[jIdx];
@@ -1005,10 +942,10 @@
         }
         setInterval(()=>{ if(!Tutor.active) tutorialCheck(); }, 600);
 
-        // Offline modal on return (only after Start is bypassed)
+        // Offline modal on return (only after gameplay actually started)
         (function checkReturn(){
           try{
-            if(!get().started) return;
+            if(!get().started) return; // don't show while at Start
             const s = computeOffline();
             if(s.clamped >= OFFLINE_MIN_MS){ showOfflineModal(s); } else { stampNow(); }
           }catch(e){ stampNow(); }
