@@ -1505,11 +1505,10 @@ try{
 
 
 
-<style data-ff-patch>
-  /* --- Low-latency polish --- /////////////////////////BUTTON EFFECTS//////BURSTS/////RAPID FIRE/////CD BAR REMOVAL ON LOCKED*/
-  .tile, .btn, .btn-reps{ will-change: transform; }
 
-  /* Hide cooldown bar for locked cards */
+
+<style data-ff-patch>
+  /* Hide cooldown bar for locked (gray) exercises//////////////////BUTTON EFFECTS////NO SFX TILE TAP/////RAPID FIRE???????////COOLDOWN BAR REMOVED FROM LOCKED CARDS */
   .card.card-locked .cooldown{ display:none !important; }
 
   /* --- Bounce (generic; used by tiles & buttons) --- */
@@ -1521,20 +1520,21 @@ try{
   }
   .ff-bounce{
     animation: ff-bounce 420ms cubic-bezier(.2,.8,.2,1);
+    will-change: transform;
   }
 
-  /* --- Tiny line burst (rays) inside the tile --- */
+  /* --- Short line burst (tiny rays) inside the tile --- */
   .ff-rays{
     position:absolute; left:50%; top:50%;
     width:0; height:0; pointer-events:none;
     filter: drop-shadow(0 0 4px rgba(255,255,255,.55));
-    z-index:3; /* above media, clipped by tile */
+    z-index:3; /* above media, clipped by tile's border radius */
   }
   .ff-ray{
     position:absolute; left:-1px; top:-8px;
     width:2px; height:14px; background:rgba(255,255,255,.95);
     border-radius:2px; opacity:0; transform-origin: 1px 8px;
-    animation: ff-ray 360ms ease-out forwards;
+    animation: ff-ray 340ms ease-out forwards;
   }
   @keyframes ff-ray{
     0%   { transform: rotate(var(--deg)) translateY(0)  scale(.85); opacity:0; }
@@ -1544,94 +1544,44 @@ try{
 </style>
 
 <script type="application/ff-patch">
-/* Fast-click + tile FX + Reps bounce, with SFX muted for tile taps and cooldown hidden on locked cards */
+/* Tile bounce + rays (no SFX) and Reps bounce+SFX only on successful purchase */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
-    /* ---------------- SFX mute ONLY for tile taps ----------------
-       We shim AudioContext.createOscillator while a tile click is in-flight. */
-    (function patchAudioForTileMute(){
+    /* ----------------------- NO SFX for TILE TAPS -----------------------
+       We mute oscillator creation just for the current event turn when a tile
+       click/keypress enters your handler. Other SFX (e.g., Reps purchase) stay on. */
+    (function shimAudioContext(){
       const AC = window.AudioContext || window.webkitAudioContext;
       if(!AC || AC.prototype.__ff_patched_createOsc) return;
       const orig = AC.prototype.createOscillator;
       AC.prototype.createOscillator = function(...args){
         if (window.__FF_MUTE_TILE_SFX__) {
-          // Minimal stub oscillator to swallow beeps during tile tap
-          const fake = {
-            connect(){ return this; },
-            start(){},
-            stop(){},
-          };
-          return fake;
+          // Swallow beep with a minimal stub oscillator
+          return { connect(){return this;}, start(){}, stop(){} };
         }
         return orig.apply(this, args);
       };
       AC.prototype.__ff_patched_createOsc = true;
     })();
 
-    function withTileMute(cb){
+    function muteTileSfxForThisTurn(){
       window.__FF_MUTE_TILE_SFX__ = true;
-      try{ cb && cb(); } finally { setTimeout(()=>{ window.__FF_MUTE_TILE_SFX__ = false; }, 0); }
+      // Clear on next macrotask so other clicks (e.g., Reps) beep as normal
+      setTimeout(()=>{ window.__FF_MUTE_TILE_SFX__ = false; }, 0);
     }
 
-    /* ---------------- Fast-click accelerator (touch/pen) ---------------- */
-    (function fastClick(){
-      const SELECTOR = '.tile, .btn, .ava, .tab, .menu-close, .bulk button, #avatar';
+    // Capture tile mouse clicks and keyboard taps to mute SFX before your handler runs
+    document.addEventListener('click', (e)=>{
+      if(e.target.closest('.tile')) muteTileSfxForThisTurn();
+    }, true);
+    document.addEventListener('keydown', (e)=>{
+      if((e.code==='Space'||e.code==='Enter') && e.target.closest('.tile')) muteTileSfxForThisTurn();
+    }, true);
 
-      function triggerFastClick(target){
-        const stamp = Date.now();
-        target.setAttribute('data-ff-fast-stamp', stamp);
-
-        // If it's a tile, temporarily mute SFX for this event turn
-        const isTile = target.classList && target.classList.contains('tile');
-        if(isTile){
-          withTileMute(()=>{
-            const ev = new MouseEvent('click', {bubbles:true, cancelable:true, view:window});
-            target.dispatchEvent(ev);
-          });
-        }else{
-          const ev = new MouseEvent('click', {bubbles:true, cancelable:true, view:window});
-          target.dispatchEvent(ev);
-        }
-
-        // Swallow the delayed native click to avoid double-fires
-        const swallow = (e)=>{
-          const recent = (Date.now() - stamp) < 280;
-          if(recent && e.isTrusted && (e.target===target || target.contains(e.target))){
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            document.removeEventListener('click', swallow, true);
-          }
-        };
-        document.addEventListener('click', swallow, true);
-      }
-
-      // Pointer Events path (touch/pen)
-      window.addEventListener('pointerdown', (e)=>{
-        if(e.pointerType==='mouse') return; // mouse is already snappy
-        const t = e.target.closest(SELECTOR);
-        if(!t) return;
-        triggerFastClick(t);
-      }, {passive:true, capture:true});
-
-      // Touch fallback (older iOS)
-      window.addEventListener('touchstart', (e)=>{
-        const t = e.target.closest(SELECTOR);
-        if(!t) return;
-        triggerFastClick(t);
-      }, {passive:true, capture:true});
-
-      // Also mute SFX for real mouse clicks on tiles (no synthetic dispatch)
-      window.addEventListener('click', (e)=>{
-        const t = e.target.closest('.tile');
-        if(!t) return;
-        withTileMute(); // wrap this event turn
-      }, true); // capture so it runs before core handler
-    })();
-
-    /* ---------------- Helpers ---------------- */
+    /* ----------------------- VISUAL HELPERS ----------------------- */
     function bounce(el){
       if(!el) return;
       el.classList.remove('ff-bounce');
@@ -1653,11 +1603,11 @@ try{
         ray.style.setProperty('--deg', ((360/N)*i + jitter())+'deg');
         wrap.appendChild(ray);
       }
-      setTimeout(()=> wrap.remove(), 420);
+      setTimeout(()=> wrap.remove(), 380);
     }
 
-    /* ---------------- 1) Tile effects on tap ----------------
-       Listen for your existing .burst-on class to know a tap occurred. */
+    /* ------------------ 1) TILE EFFECTS (bounce + rays) ------------------
+       Listen for your existing ".burst-on" tap marker so we only animate on real taps. */
     const TILE_FLAG='data-ff-lastfx';
     new MutationObserver(muts=>{
       for(const m of muts){
@@ -1668,7 +1618,7 @@ try{
 
         const now = performance.now();
         const last = Number(tile.getAttribute(TILE_FLAG) || 0);
-        if(now - last < 60) continue; // ignore duplicates in same frame
+        if(now - last < 60) continue; // ignore duplicate fires in same frame
         tile.setAttribute(TILE_FLAG, String(now));
 
         bounce(tile);
@@ -1676,7 +1626,9 @@ try{
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
 
-    /* ---------------- 2) Reps button: bounce ONLY when a purchase actually completes ---------------- */
+    /* ----------- 2) REPS BUTTON: bounce + SFX only on confirmed purchase -----------
+       We detect success by watching the rep counter text increase after the click.
+       Base code already plays SFX.ok() on successful purchase; we don't add extra beeps. */
     document.addEventListener('click', (e)=>{
       const btn = e.target.closest('.card .meta .btn');
       if(!btn) return;
@@ -1687,29 +1639,32 @@ try{
       const repEl = card?.querySelector('.repband .reptext');
       if(!repEl) return;
 
+      // Only care if it looked affordable at click time (lit/glowing)
+      const wasLit = btn.classList.contains('glow');
+
       const parseRep = (s)=> parseInt(String(s||'0').split('/')[0].replace(/\D/g,''), 10) || 0;
       const before = parseRep(repEl.textContent);
 
-      let bounced = false;
+      let done=false;
       const obs = new MutationObserver(()=>{
+        if(done) return;
         const after = parseRep(repEl.textContent);
-        if(!bounced && after > before){
-          bounced = true;
+        if(after > before && wasLit){
+          done=true;
           obs.disconnect();
-          bounce(btn);
+          bounce(btn);        // visual confirmation
+          // SFX is handled by your core SFX.ok() on success; we don't double-play.
         }
       });
       obs.observe(repEl, {characterData:true, childList:true, subtree:true});
-      // fail-safe to stop observing if nothing changes
-      setTimeout(()=> obs.disconnect(), 600);
-    }, true); // capture so we set observer BEFORE the core handler runs
+      setTimeout(()=>{ if(!done) obs.disconnect(); }, 600); // safety
+    }, true); // capture so our observer is in place before the core handler runs
 
   }catch(e){
-    console.warn('fast-click + tile mute + reps bounce patch error:', e);
+    console.warn('effects patch error:', e);
   }
 })();
 </script>
-
 
 
 
