@@ -1089,10 +1089,86 @@ try{
 })();
 </script>
 
+
+
+
+
+
 <style data-ff-patch>
-  /* TEMP TEST — confirms the loader is active */
-  .hp-pill{ outline:1px dashed rgba(255,255,255,.25) !important; }
+  /* --- Palette (safe to re-declare) --- */
+  :root{
+    --male-1:#2f6df3; --male-2:#41b0ff;
+    --pink-1:#ff76b5; --pink-2:#ffb3d5;
+  }
+
+  /* === Reps button: only tint if affordable (uses existing .glow) === */
+  /* Neutral base when NOT affordable */
+  .btn-reps{
+    background:#1b1f44 !important;
+    border-color:#2a2e5e !important;
+    color:#e9edff !important;
+    font-weight:900;
+  }
+  /* Affordable → male tint */
+  .btn-reps.glow{
+    background:linear-gradient(180deg,var(--male-1),var(--male-2)) !important;
+    border-color:var(--male-2) !important;
+    color:#071428 !important;
+    box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35) !important;
+  }
+  /* Affordable → female tint */
+  body.female .btn-reps.glow{
+    background:linear-gradient(180deg,var(--pink-1),var(--pink-2)) !important;
+    border-color:var(--pink-2) !important;
+    color:#2b0020 !important;
+    box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35) !important;
+  }
+
+  /* === Cooldown bars: gender gradient + diagonal white stripes === */
+  .bar{
+    /* stripes layer on top + underlying gender gradient */
+    background:
+      repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,.18) 0,
+        rgba(255,255,255,.18) 6px,
+        rgba(255,255,255,0)   6px,
+        rgba(255,255,255,0)   12px
+      ),
+      linear-gradient(90deg,var(--male-1),var(--male-2)) !important;
+  }
+  body.female .bar{
+    background:
+      repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,.18) 0,
+        rgba(255,255,255,.18) 6px,
+        rgba(255,255,255,0)   6px,
+        rgba(255,255,255,0)   12px
+      ),
+      linear-gradient(90deg,var(--pink-1),var(--pink-2)) !important;
+  }
 </style>
+
+<script type="application/ff-patch">
+/* Ensure only real "Reps" buttons carry .btn-reps, so unlock buttons stay neutral */
+(function(){
+  try{
+    const root=document.getElementById('cards');
+    const scan=()=>{
+      document.querySelectorAll('.card .meta .btn').forEach(btn=>{
+        const isReps = btn.textContent && btn.textContent.trim().startsWith('Reps');
+        btn.classList.toggle('btn-reps', !!isReps);
+      });
+    };
+    scan();
+    if(root){
+      new MutationObserver(scan).observe(root,{childList:true,subtree:true,characterData:true});
+    }
+  }catch(e){ console.warn('reps tint patch skipped', e); }
+})();
+</script>
+
 
 
 </body>
