@@ -1094,132 +1094,279 @@ try{
 
 
 
-<style data-ff-patch>
-  /* --- Palette (safe to re-declare) --- */
+
+
+  <!-- ===== FF MONO PATCH (drop-in, replaces previous patches) ===== -->
+<style>
   :root{
     --male-1:#2f6df3; --male-2:#41b0ff;
     --pink-1:#ff76b5; --pink-2:#ffb3d5;
+    --card-bg:#112036;
+    --pill-bg:#112036; --pill-border:#2a3e5e;
   }
 
-  /* === Reps button: only tint if affordable (uses existing .glow) === */
-  /* Neutral base when NOT affordable */
-  .btn-reps{
-    background:#1b1f44 !important;
-    border-color:#2a2e5e !important;
-    color:#e9edff !important;
-    font-weight:900;
-  }
-  /* Affordable → male tint */
-  .btn-reps.glow{
-    background:linear-gradient(180deg,var(--male-1),var(--male-2)) !important;
-    border-color:var(--male-2) !important;
-    color:#071428 !important;
-    box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35) !important;
-  }
-  /* Affordable → female tint */
-  body.female .btn-reps.glow{
-    background:linear-gradient(180deg,var(--pink-1),var(--pink-2)) !important;
-    border-color:var(--pink-2) !important;
-    color:#2b0020 !important;
-    box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35) !important;
+  /* ---------- TOPBAR (sticky; hidden during splash/start; tutorial sits above) ---------- */
+  .topbar{position:sticky !important; top:0; z-index:25 !important;}
+  .splash.show ~ .topbar, .start.show ~ .topbar{display:none !important;}
+
+  /* Replace text with logo image via CSS (works even if JS fails) */
+  .topbar .logo{
+    font-size:0; line-height:0; display:inline-block;
+    width:min(280px, 40vw); height:80px;           /* slightly taller than 72px avatar */
+    background:url('https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/COMPRESSED%20LOGO.png?raw=true') center/contain no-repeat;
   }
 
-  /* === Cooldown bars: gender gradient + diagonal white stripes === */
-  .bar{
-    /* stripes layer on top + underlying gender gradient */
+  /* Pills row (HP + Fitcoins) */
+  .pill-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+  .hp-pill, .fit-pill{
+    background:var(--pill-bg) !important; border:1px solid var(--pill-border) !important;
+    border-radius:12px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;
+    font-variant-numeric:tabular-nums; font-size:16px; font-weight:800;
+  }
+  .hp-pill .l, .fit-pill .l{display:flex; align-items:center; gap:8px}
+  .hp-pill .r, .fit-pill .r{min-width:60px; text-align:right}
+
+  /* Bulk buy smaller (esp. mobile) */
+  .bulk{transform:scale(.94); border-radius:10px}
+  .bulk button{padding:6px 10px; font-size:14px}
+  @media (max-width:480px){
+    .bulk{transform:scale(.90)}
+    .bulk button{min-width:46px; padding:5px 8px; font-size:13px}
+  }
+
+  /* ---------- CARDS ---------- */
+  .card{background:var(--card-bg) !important; border:1px solid #1b2e4b !important}
+  .tile{background:#0f1b32 !important}
+  /* Locked: shorter, hide cooldown & rep band for faster scroll */
+  .tile.locked{height:76px !important; filter:grayscale(100%) saturate(80%) opacity(.95)}
+  .card.card-locked .cooldown{display:none !important}
+  .tile.locked .repband{display:none !important}
+
+  /* Tap pop + starburst */
+  .tile.tap-pop{animation:tapPop 220ms ease-out}
+  @keyframes tapPop{0%{transform:scale(.98)}60%{transform:scale(1.10) translateY(-1px)}100%{transform:scale(1)}}
+  .tile.burst-on::after{
+    content:""; position:absolute; inset:-20%; pointer-events:none; opacity:.8;
     background:
-      repeating-linear-gradient(
-        45deg,
-        rgba(255,255,255,.18) 0,
-        rgba(255,255,255,.18) 6px,
-        rgba(255,255,255,0)   6px,
-        rgba(255,255,255,0)   12px
-      ),
+      radial-gradient(circle at center, rgba(255,255,255,.22), rgba(255,255,255,0) 40%),
+      conic-gradient(from 0deg, rgba(255,255,255,.55) 0 5deg, transparent 5deg 10deg);
+    -webkit-mask: radial-gradient(circle at center, #000 0 55%, transparent 55%);
+            mask: radial-gradient(circle at center, #000 0 55%, transparent 55%);
+    animation:burstSpin .38s ease-out;
+  }
+  @keyframes burstSpin{0%{transform:scale(.6) rotate(0deg); opacity:.85}100%{transform:scale(1.2) rotate(120deg); opacity:0}}
+
+  /* Cooldown bars: diagonal white stripes on gender gradient */
+  .bar{
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0, rgba(255,255,255,.18) 6px, rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px),
       linear-gradient(90deg,var(--male-1),var(--male-2)) !important;
   }
   body.female .bar{
     background:
-      repeating-linear-gradient(
-        45deg,
-        rgba(255,255,255,.18) 0,
-        rgba(255,255,255,.18) 6px,
-        rgba(255,255,255,0)   6px,
-        rgba(255,255,255,0)   12px
-      ),
+      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0, rgba(255,255,255,.18) 6px, rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px),
       linear-gradient(90deg,var(--pink-1),var(--pink-2)) !important;
   }
+
+  /* Reps button: neutral unless affordable (.glow already set by game) */
+  .btn-reps{background:#1b1f44 !important; border-color:#2a2e5e !important; color:#e9edff !important; font-weight:900}
+  .btn-reps.glow{background:linear-gradient(180deg,var(--male-1),var(--male-2)) !important; border-color:var(--male-2)!important; color:#071428 !important;
+    box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35)!important}
+  body.female .btn-reps.glow{background:linear-gradient(180deg,var(--pink-1),var(--pink-2)) !important; border-color:var(--pink-2)!important; color:#2b0020!important;
+    box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)!important}
+
+  /* ---------- OFFLINE & ACHIEVEMENTS ---------- */
+  .ach .icon{font-size:0}
+  .ach .icon::before{content:"🏅"; font-size:20px}
+  #offline .head .circle{font-size:0}
+  #offline .head .circle::before{content:"🏅"; font-size:28px}
+  .pop-in{animation:popIn .28s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes popIn{0%{transform:scale(.92); opacity:0}100%{transform:scale(1); opacity:1}}
+
+  /* ---------- START SCREEN ---------- */
+  .start .ava{width:112px; height:112px}
+  @media(max-width:480px){ .start .ava{width:92px; height:92px} }
+  .start .ava span{display:none !important}
+  .start .panel{background:rgba(18,20,52,.50) !important}
+  .start .hint{display:none !important}
+
+  /* ---------- TUTORIAL HIGHLIGHTS ---------- */
+  .jax-key{font-weight:900}
+  body:not(.female) .jax-key{color:var(--male-2)}
+  body.female .jax-key{color:var(--pink-1)}
+  .mini-bar{display:inline-block; width:24px; height:8px; background:linear-gradient(90deg,#17b34c,#27c93f); border-radius:4px; vertical-align:middle; margin:0 4px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.25) inset}
 </style>
 
-<script type="application/ff-patch">
-/* Ensure only real "Reps" buttons carry .btn-reps, so unlock buttons stay neutral */
+<script>
+/* ===== MONO JS PATCH (idempotent) ===== */
 (function(){
-  try{
+  if (window.__FF_MONO_PATCH__) return; window.__FF_MONO_PATCH__ = true;
+
+  /* ---------- Helpers ---------- */
+  const $ = s=>document.querySelector(s);
+
+  /* ---------- Build HP + Fitcoins pill row (idempotent) ---------- */
+  (function(){
+    const wrap = document.querySelector('.topbar .wrap');
+    const hpPill = document.getElementById('hp-readout')?.closest('.hp-pill');
+    if (!wrap || !hpPill) return;
+
+    if (!document.querySelector('.pill-row')){
+      const row = document.createElement('div'); row.className='pill-row';
+      hpPill.replaceWith(row);
+
+      // Rebuild HP pill content to ensure bold label group
+      const hp = hpPill;
+      const spans = hp.querySelectorAll('span');
+      const val = document.getElementById('hp-readout');
+      hp.innerHTML = `<span class="l"><b>HP</b></span><span class="r" id="hp-readout"></span>`;
+      const newVal = hp.querySelector('#hp-readout');
+      if (val) newVal.textContent = val.textContent || '0';
+
+      row.appendChild(hp);
+
+      const coin = document.createElement('div'); coin.className='fit-pill';
+      coin.innerHTML = `<span class="l"><span class="ico">🪙</span><b>Fitcoins</b></span><span id="fitcoin-readout" class="r">0</span>`;
+      row.appendChild(coin);
+    }
+  })();
+
+  /* ---------- Tag Reps buttons so the tint rules apply ---------- */
+  (function(){
     const root=document.getElementById('cards');
     const scan=()=>{
       document.querySelectorAll('.card .meta .btn').forEach(btn=>{
-        const isReps = btn.textContent && btn.textContent.trim().startsWith('Reps');
+        const txt=(btn.textContent||'').trim();
+        const isReps = txt.startsWith('Reps');     // avoid Unlock buttons
         btn.classList.toggle('btn-reps', !!isReps);
       });
     };
     scan();
-    if(root){
-      new MutationObserver(scan).observe(root,{childList:true,subtree:true,characterData:true});
+    if(root) new MutationObserver(scan).observe(root,{childList:true,subtree:true,characterData:true});
+  })();
+
+  /* ---------- Silence tap SFX only (the tiny beeps) ---------- */
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC && AC.prototype && !AC.prototype.__ff_muted__){
+      const origOsc = AC.prototype.createOscillator;
+      AC.prototype.createOscillator = function(){
+        const osc = origOsc.call(this);
+        try{ osc.connect = function(){ return this; }; osc.start = function(){}; osc.stop=function(){}; }catch(_){}
+        return osc;
+      };
+      AC.prototype.__ff_muted__ = true;
     }
-  }catch(e){ console.warn('reps tint patch skipped', e); }
-})();
-</script>
+  }catch(_){}
 
+  /* ---------- Offline modal: pop + confetti ---------- */
+  (function(){
+    const off = document.getElementById('offline'); if(!off) return;
+    const bub = off.querySelector('.bubble');
+    new MutationObserver(()=>{
+      if(off.classList.contains('show')){
+        if(bub) bub.classList.add('pop-in');
+        confettiBurstLite(off);
+      }
+    }).observe(off,{attributes:true,attributeFilter:['class']});
+  })();
 
+  /* ---------- Achievement banner: pop ---------- */
+  (function(){
+    const root = document.getElementById('ach'); if(!root) return;
+    new MutationObserver(muts=>{
+      for(const m of muts){
+        m.addedNodes.forEach(n=>{
+          if(n.nodeType===1 && n.classList.contains('banner')){
+            n.classList.add('pop-in');
+          }
+        });
+      }
+    }).observe(root,{childList:true});
+  })();
 
-
-
-
-<style data-ff-patch>
-  /* Keep sticky, but below overlays & tutorial */
-  .topbar{
-    position:sticky !important;
-    top:0;
-    z-index:25 !important; /* tip=90, offline=90, splash=80, start=70 */
+  function confettiBurstLite(scope){
+    const box=document.createElement('div'); box.style.position='fixed'; box.style.top='12px'; box.style.left='50%'; box.style.width='0'; box.style.height='0'; box.style.pointerEvents='none'; box.style.zIndex='121';
+    (scope||document.body).appendChild(box);
+    const colors=['#ff7a1a','#ffd54d','#3aa6ff','#8eff7a','#ff76b5'];
+    for(let i=0;i<18;i++){
+      const s=document.createElement('span');
+      s.style.position='absolute'; s.style.width='8px'; s.style.height='12px'; s.style.background=colors[i%colors.length];
+      s.animate(
+        [{opacity:0, transform:`translate(0,0) rotate(0)`},
+         {opacity:1, offset:.1},
+         {opacity:0, transform:`translate(${(Math.random()*2-1)*220}px,${(Math.random()*-1)*300-80}px) rotate(${(Math.random()*360-180)}deg)`}],
+        {duration:900, easing:'ease-out', fill:'forwards'}
+      );
+      box.appendChild(s);
+    }
+    setTimeout(()=>box.remove(), 950);
   }
 
-  /* Hide topbar entirely while splash or start is showing */
-  .splash.show ~ .topbar,
-  .start.show ~ .topbar{
-    display:none !important;
-  }
-</style>
+  /* ---------- Start screen: drop labels/hint (if still present) ---------- */
+  (function(){
+    document.querySelectorAll('.start .ava span').forEach(s=>s.remove());
+    const hint=$('.start .hint'); if(hint) hint.remove();
+  })();
 
-<script type="application/ff-patch">
-(function(){
-  /* Safety: if Splash/Start close, ensure tutorial can appear unobstructed */
-  const splash = document.getElementById('splash');
-  const start  = document.getElementById('start');
+  /* ---------- Tutorial text: “lights up”, highlight keywords, mini progress bar ---------- */
+  (function(){
+    const el = document.getElementById('tip-text'); if(!el) return;
+    new MutationObserver(()=>{
+      let html = el.textContent || '';
+      html = html.replace(/turns?\s+\w+/gi,'lights up');
+      html = html.replace(/green bar/i, m => `${m} <span class="mini-bar"></span>`);
+      ['HP','Reps','cooldown','unlock','Unlock','exercise','Exercises'].forEach(k=>{
+        const re=new RegExp(`\\b${k}\\b`,'g'); html = html.replace(re, `<span class="jax-key">${k}</span>`);
+      });
+      el.innerHTML = html;
+    }).observe(el,{characterData:true, childList:true, subtree:true});
+  })();
 
-  function tryKickTutorial(){
-    try{
-      // If both Splash and Start are hidden, nudge the tutorial once.
+  /* ---------- Settings: subtab flicker fix ---------- */
+  (function(){
+    document.addEventListener('click', e=>{
+      const b = e.target.closest('.subtabs .tab');
+      if(b) localStorage.setItem('ff:last_settings_subtab',(b.textContent||'').trim().toLowerCase());
+    });
+    const menu = document.getElementById('menu'); if(!menu) return;
+    new MutationObserver(()=>{
+      if(!menu.classList.contains('show')) return;
+      const want = localStorage.getItem('ff:last_settings_subtab') || 'general';
+      const run=()=>{
+        const tabs = document.querySelectorAll('.menu-body .subtabs .tab'); if(!tabs.length){ setTimeout(run,30); return; }
+        const btn = Array.from(tabs).find(t=> (t.textContent||'').trim().toLowerCase()===want);
+        if(btn) btn.click();
+      };
+      run();
+    }).observe(menu,{attributes:true,attributeFilter:['class']});
+  })();
+
+  /* ---------- Placeholder Fitcoins (tie to real logic later) ---------- */
+  (function(){
+    const hpEl=document.getElementById('hp-readout'); const getNum=el=>parseFloat((el?.textContent||'0').replace(/[^0-9.]/g,''))||0;
+    const out=()=>document.getElementById('fitcoin-readout'); let last=-1;
+    const update=()=>{ const n=getNum(hpEl); const coins=Math.floor(n/100); if(out() && coins!==last){ out().textContent=String(coins); last=coins; } };
+    update(); setInterval(update, 500);
+  })();
+
+  /* ---------- Safety nudge: if splash/start hidden, kick tutorial once ---------- */
+  (function(){
+    const splash = document.getElementById('splash');
+    const start  = document.getElementById('start');
+    function maybeKick(){
       const splashHidden = !splash || !splash.classList.contains('show');
       const startHidden  = !start  || !start.classList.contains('show');
-      if (splashHidden && startHidden) {
-        // Your game already calls checkTutorial(); this is just a gentle poke in case
-        // the earlier z-index issue suppressed the first one.
-        if (typeof window.checkTutorial === 'function') {
-          window.checkTutorial(true);
-        } else {
-          // If not globally exposed, trigger a DOM event some builds listen for.
-          try{ document.dispatchEvent(new CustomEvent('ff:boot:ready')); }catch(_){}
-        }
+      if (splashHidden && startHidden && typeof window.checkTutorial === 'function'){
+        window.checkTutorial(true);
       }
-    }catch(_){}
-  }
-
-  // Observe splash/start visibility flips and nudge tutorial once they hide
-  [splash,start].filter(Boolean).forEach(el=>{
-    new MutationObserver(tryKickTutorial).observe(el,{attributes:true, attributeFilter:['class']});
-  });
-
-  // Also run once on next tick (covers direct "Continue" path)
-  setTimeout(tryKickTutorial, 120);
+    }
+    [splash,start].filter(Boolean).forEach(el=>{
+      new MutationObserver(maybeKick).observe(el,{attributes:true, attributeFilter:['class']});
+    });
+    setTimeout(maybeKick, 150);
+  })();
 })();
 </script>
 
