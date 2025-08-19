@@ -1390,29 +1390,32 @@ try{
 
   
 
- <style data-ff-patch>
+<style data-ff-patch>
+  /* --- Exercise card & tile color update ---//////////////////////////////NEW HP FLOATING FOR OVER TILE AND TILE COLOR CHANGE */
+  .card{
+    background:#112036 !important;
+    border-color:#0c1a2b !important;
+  }
+  .tile{
+    background:#112036 !important;
+    border-color:#0c1a2b !important;
+  }
+
+  /* --- Floating +HP overlay (above tiles, below menu) --- */
   :root{
     --float-male:#41b0ff;
     --float-female:#ff76b5;
   }
 
-  /* --- Bounce animation on tap ---//////////////////////////HP FLOAT and TAP EFFECTS */
-  @keyframes ff-bounce {
-    0%   { transform: scale(0.98); }
-    40%  { transform: scale(1.07); }
-    70%  { transform: scale(0.995); }
-    100% { transform: scale(1); }
-  }
-  .tile.ff-bounce{
-    animation: ff-bounce 420ms cubic-bezier(.2,.8,.2,1);
-  }
+  /* Hide any older in-tile float variants */
+  .tile > .ff-floathp{ display:none !important; }
 
-  /* --- Floating +HP text --- */
+  /* Global overlay version */
   .ff-floathp{
-    position:absolute;
-    left:50%;
+    position:fixed !important;   /* attach to viewport */
+    left:0; top:0;               /* exact px set inline */
     transform:translate(-50%, 0);
-    top:10px;                /* inside tile */
+    z-index:35;                  /* > topbar (30), < menu (40) */
     font-weight:900;
     font-size:18px;
     color:var(--float-male);
@@ -1428,55 +1431,51 @@ try{
   body.female .ff-floathp{ color:var(--float-female); }
 
   @keyframes ff-floatHP{
-    0%   { transform:translate(-50%, 6px) scale(.92); opacity:0; }
+    0%   { transform:translate(-50%, 6px)  scale(.92); opacity:0; }
     15%  { opacity:1; }
     60%  { transform:translate(-50%, -16px) scale(1.0); opacity:1; }
-    100% { transform:translate(-50%, -28px) scale(1.02); opacity:0; }
+    100% { transform:translate(-50%, -32px) scale(1.02); opacity:0; }
   }
 </style>
 
 <script type="application/ff-patch">
-/* Bounce + floating "+HP" when a tile is tapped */
+/* Global floating +HP (overlay above tile). Replacement patch. */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
-    // Helper: parse "123 HP / tap" from the left meta cell
+    // Read tap gain from "123 HP / tap"
     function getTapHP(card){
       try{
         const left = card.querySelector('.meta .muted');
         if(!left) return null;
         const m = (left.textContent||'').match(/([\d,.]+)\s*HP\s*\/\s*tap/i);
         if(!m) return null;
-        const raw = m[1].replace(/[,]/g,'');
-        const n = Math.floor(Number(raw));
+        const n = Math.floor(Number(m[1].replace(/,/g,'')));
         return Number.isFinite(n) ? n : null;
       }catch(_){ return null; }
     }
 
-    function addFloatHP(tile, amount){
+    function addFloatHPOver(tile, amount){
+      const rect = tile.getBoundingClientRect();
+      const x = rect.left + rect.width/2;
+      const y = rect.top + 10; // start near tile top
+
       const el = document.createElement('div');
       el.className = 'ff-floathp';
       el.textContent = '+' + (amount ?? 1);
-      tile.appendChild(el);
+      el.style.left = x + 'px';
+      el.style.top  = y + 'px';
+      document.body.appendChild(el);
+
       const cleanup = ()=> el.remove();
       el.addEventListener('animationend', cleanup, {once:true});
-      // safety cleanup
       setTimeout(cleanup, 1200);
     }
 
-    function bounce(tile){
-      tile.classList.remove('ff-bounce'); // allow re-trigger
-      // force reflow to restart animation
-      // eslint-disable-next-line no-unused-expressions
-      tile.offsetHeight;
-      tile.classList.add('ff-bounce');
-      tile.addEventListener('animationend', ()=> tile.classList.remove('ff-bounce'), {once:true});
-    }
-
-    // Observe when a tile gains the temporary "burst-on" class (your tap marker)
-    const SEEN_ATTR = 'data-ff-lastfx';
+    // Emit exactly one overlay float per tap (watch for your "burst-on" tap marker)
+    const FLAG='data-ff-float-global';
     new MutationObserver(muts=>{
       for(const m of muts){
         if(m.type!=='attributes') continue;
@@ -1484,25 +1483,22 @@ try{
         if(!tile.classList || !tile.classList.contains('tile')) continue;
         if(!tile.classList.contains('burst-on')) continue;
 
-        // Debounce per tile
         const now = performance.now();
-        const last = Number(tile.getAttribute(SEEN_ATTR) || 0);
-        if(now - last < 80) continue; // ignore rapid duplicate fires
-        tile.setAttribute(SEEN_ATTR, String(now));
+        const last = Number(tile.getAttribute(FLAG) || 0);
+        if(now - last < 80) continue; // skip rapid duplicate fires
+        tile.setAttribute(FLAG, String(now));
 
         const card = tile.closest('.card');
         const hpAmt = getTapHP(card) ?? 1;
-
-        bounce(tile);
-        addFloatHP(tile, hpAmt);
+        addFloatHPOver(tile, hpAmt);
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
   }catch(e){
-    console.warn('Bounce/+HP patch error:', e);
+    console.warn('Global +HP overlay replacement patch error:', e);
   }
 })();
 </script>
- 
+
   
 
 
