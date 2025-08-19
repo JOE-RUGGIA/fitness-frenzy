@@ -7,7 +7,648 @@
   <style>
     :root{
       --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
+      --text:#f5f7ff; --muted:#aab<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fitness Frenzy — VS5d (Dup Decl Fix)</title>
+  <style>
+    :root{
+      --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
       --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --danger:#ff3860; --warn:#ffcc00;
+      --rep:#27c93f;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; background:var(--bg); color:var(--text); font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+    .topbar{position:sticky; top:0; z-index:20; background:linear-gradient(180deg, #151734, #10122a); border-bottom:1px solid #22254b; padding:10px 12px}
+    .wrap{max-width:880px; margin:0 auto; padding:12px}
+    .row{display:flex; align-items:center; gap:12px; justify-content:space-between}
+    .logo{font-weight:900; letter-spacing:0.8px}
+    .bulk{display:inline-flex; background:#20244a; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden}
+    .bulk button{background:transparent; color:#fff; border:0; padding:6px 10px; cursor:pointer; min-width:44px}
+    .bulk button.active{background:var(--accent-2); color:#061222; font-weight:700}
+    .hp-pill{margin-top:8px; background:#182047; border:1px solid #2a2e5e; padding:8px 10px; border-radius:10px; font-variant-numeric: tabular-nums; display:flex; align-items:center; justify-content:space-between}
+    .avatar{width:56px; height:56px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:900; border:2px solid #3b3f78; position:relative; cursor:pointer}
+    .avatar .dot{position:absolute; top:-4px; right:-4px; width:16px; height:16px; background:var(--good); border-radius:50%; border:2px solid #0f1020; display:none}
+
+    .cards{display:grid; gap:12px}
+    .card{display:grid; grid-template-columns:110px 1fr; gap:12px; padding:10px; background:var(--panel); border:1px solid #262a58; border-radius:12px}
+    .tile{background:var(--panel-2); border-radius:10px; position:relative; height:110px; display:grid; place-items:center; user-select:none; overflow:hidden}
+    .tile.locked{filter: grayscale(100%); opacity:.9}
+    .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px}
+    .tap-btn{appearance:none; border:0; background:var(--accent); color:#1b0d00; font-weight:800; padding:8px 10px; border-radius:8px; cursor:pointer}
+    .tile.cooling .tap-btn{opacity:.5; cursor:not-allowed}
+    .title{font-weight:700; margin-top:2px}
+    .cooldown{margin-top:6px; height:20px; background:#141739; border:1px solid #2a2e5e; border-radius:6px; overflow:hidden; position:relative}
+    .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg, #2f6df3, #41b0ff)}
+    .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric: tabular-nums; color:var(--muted)}
+    .meta{display:flex; align-items:center; justify-content:space-between; margin-top:8px}
+    .muted{color:var(--muted)}
+    .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:8px 10px; border-radius:10px; min-width:160px; cursor:pointer; font-variant-numeric: tabular-nums}
+    .btn.glow{box-shadow:0 0 0 2px rgba(255, 192, 120, .25) inset, 0 0 12px rgba(255, 122, 26, .35)}
+    .repband{position:absolute; left:6px; right:6px; bottom:6px; height:16px; border-radius:8px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden}
+    .repfill{height:100%; width:0%; background:linear-gradient(90deg, #17b34c, #27c93f)}
+    .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:#cfead6; text-shadow:0 1px 2px #000}
+    .pill{appearance:none; border:1px solid #2a2e5e; background:#1f254f; color:#e9edff; padding:8px 12px; border-radius:999px; cursor:pointer; font-variant-numeric: tabular-nums}
+    .pill.orange{background:var(--accent); color:#1b0d00; font-weight:800}
+    .pulse{animation:pulse 1.8s ease-in-out infinite}
+    @keyframes pulse{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.03) } }
+
+    /* Menu overlay */
+    .menu{position:fixed; inset:0; display:none; z-index:40}
+    .menu.show{display:block}
+    .menu-backdrop{position:absolute; inset:0; background:rgba(0,0,0,.55)}
+    .menu-panel{position:absolute; right:0; top:0; bottom:0; width:min(520px, 92vw); background:#14163a; border-left:1px solid #2a2e5e; display:flex; flex-direction:column; transform:translateX(6%); opacity:0; transition:transform .14s ease, opacity .14s ease}
+    .menu.show .menu-panel{transform:translateX(0%); opacity:1}
+    .menu-top{display:flex; align-items:center; justify-content:space-between; padding:12px; border-bottom:1px solid #2a2e5e}
+    .menu-title{font-weight:900}
+    .menu-close{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:6px 10px; border-radius:8px; cursor:pointer}
+    .menu-tabs{display:flex; gap:8px; padding:8px 12px; border-bottom:1px solid #2a2e5e; overflow:auto}
+    .tab{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:6px 10px; border-radius:8px; cursor:pointer; white-space:nowrap}
+    .tab.active{background:#202767; outline:2px solid var(--accent-2)}
+    .menu-body{flex:1; overflow:auto; padding:12px}
+    .coach-row{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; background:#171a3a; border:1px solid #2a2e5e; padding:10px; border-radius:10px; margin-bottom:8px}
+    .coach-ava{width:44px; height:44px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:800}
+    .coach-title{font-weight:700}
+    .coach-sub{font-size:12px; color:#a6adcf}
+    .hired{color:var(--good); font-weight:700}
+
+    /* Tutorial + Offline modal */
+    .jax,.off{position:fixed; inset:0; display:none; place-items:center; z-index:55; pointer-events:auto}
+    .jax.show,.off.show{display:grid}
+    .jax::before,.off::before{content:""; position:absolute; inset:0; background:rgba(0,0,0,.55)}
+    .jax .panel,.off .panel{position:relative; z-index:1; pointer-events:auto; max-width:min(640px, 92vw); background:#111333; border:1px solid #2a2e5e; border-radius:14px; padding:16px}
+    .off .list{margin-top:6px; display:grid; gap:6px}
+    .off .row{display:flex; justify-content:space-between; background:#141a3f; border:1px solid #2a2e5e; border-radius:10px; padding:8px 10px}
+    .off .total{margin-top:8px; display:flex; justify-content:space-between; font-weight:900}
+    .off .actions{margin-top:12px; display:flex; justify-content:flex-end; gap:8px}
+
+    /* Toast + Error bar */
+    .toast{position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:60; display:none}
+    .toast.show{display:block}
+    .toast .box{background:#0f1333; border:1px solid #32407a; color:#e9edff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 30px rgba(0,0,0,.35)}
+    .err{position:fixed; top:0; left:0; right:0; background:#8b1111; color:#fff; z-index:100; padding:8px 12px; font-weight:700; display:none}
+    .err.show{display:block}
+  </style>
+</head>
+<body>
+  <div id="err" class="err"></div>
+
+  <div class="topbar">
+    <div class="wrap">
+      <div class="row">
+        <div class="row" style="gap:12px; align-items:center">
+          <button id="avatar" class="avatar" title="Menu"><span>FF</span><span id="avatar-dot" class="dot"></span></button>
+          <div class="logo">Fitness Frenzy — VS5d</div>
+        </div>
+        <div class="bulk" id="bulk">
+          <button data-q="1" class="active">×1</button>
+          <button data-q="10">×10</button>
+          <button data-q="100">×100</button>
+        </div>
+      </div>
+      <div class="hp-pill"><span>HP</span><span id="hp-readout">0</span></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="cards" class="cards"></div>
+  </div>
+
+  <!-- Menu overlay -->
+  <div id="menu" class="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+    <div class="menu-backdrop" data-close="1"></div>
+    <div class="menu-panel">
+      <div class="menu-top">
+        <div id="menu-title" class="menu-title">Menu</div>
+        <button class="menu-close" data-close="1" aria-label="Close">✕</button>
+      </div>
+      <div class="menu-tabs">
+        <button class="tab active" data-tab="coaches">Coaches</button>
+        <button class="tab" data-tab="upgrades">Upgrades</button>
+        <button class="tab" data-tab="quests">Side Quests</button>
+        <button class="tab" data-tab="achievements">Achievements</button>
+        <button class="tab" data-tab="settings">Settings</button>
+      </div>
+      <div class="menu-body" id="menu-body"></div>
+    </div>
+  </div>
+
+  <!-- JAX tutorial -->
+  <div id="jax" class="jax" role="dialog" aria-modal="true" aria-label="Tutorial">
+    <div class="panel">
+      <div class="head"><div class="ava">J</div><div style="font-weight:900">JAX</div></div>
+      <div id="jax-text" class="body"></div>
+      <div class="actions"><button id="jax-skip" class="btn">Skip</button><button id="jax-next" class="btn">Next</button></div>
+    </div>
+  </div>
+
+  <!-- Offline modal -->
+  <div id="off" class="off" role="dialog" aria-modal="true" aria-label="Offline gains">
+    <div class="panel">
+      <h3>Welcome back! 🎒</h3>
+      <div class="muted" id="off-sub"></div>
+      <div id="off-list" class="list"></div>
+      <div class="total"><div>Total</div><div id="off-total">0</div></div>
+      <div class="actions">
+        <button id="off-dismiss" class="btn">Dismiss</button>
+        <button id="off-claim" class="btn">Claim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"><div class="box" id="toast-text"></div></div>
+
+  <script>
+    (function(){
+      const errEl = document.getElementById('err');
+      function showErr(msg){ errEl.textContent = 'Error: ' + msg; errEl.classList.add('show'); }
+      window.addEventListener('error', e => { showErr(e.message || 'Script error'); });
+      window.addEventListener('unhandledrejection', e => { showErr((e.reason && e.reason.message) || 'Unhandled promise rejection'); });
+    })();
+  </script>
+
+  <script>
+    try{
+      if(!window.__FF_VS5D__){
+        window.__FF_VS5D__ = true;
+
+        // ---- Initialize "dirty" BEFORE any markDirty() use
+        let dirty = false;
+        function markDirty(){ dirty = true; }
+        function flushUI(){
+          if(!dirty){ requestAnimationFrame(flushUI); return; }
+          dirty = false;
+          hpEl.textContent = fmt(get().hp);
+          for(const id of cardRefs.keys()) updateCard(id);
+          avatarDot.style.display = anyCoachAffordable() ? 'block' : 'none';
+          requestAnimationFrame(flushUI);
+        }
+
+        const OFFLINE_CAP_HOURS = 72;
+        const Bus = (()=>{ const m=new Map(); return { on:(e,cb)=>{ if(!m.has(e)) m.set(e,new Set()); m.get(e).add(cb); return ()=>m.get(e).delete(cb); }, emit:(e,p)=>{ const s=m.get(e); if(!s) return; s.forEach(cb=>{ try{cb(p)}catch(err){console.error(err)} }); } }; })();
+
+        const Exercises = [
+          { id:'walk', name:'Walking', baseCooldownMs:1000 },
+          { id:'jog',  name:'Jogging', baseCooldownMs:3000 },
+        ];
+        const coachPrice = (idx) => idx === 0 ? 1500 : Math.round(1500 * Math.pow(1.8, idx));
+        const log2 = x => Math.log(x)/Math.log(2);
+        const baseHP = (idx, ms) => idx===0 ? 1 : Math.round(20 * Math.pow(ms/1000, 1.10));
+        const perTapHP = (b, repHP) => b + repHP;
+        const repBaseCost = (b) => Math.max(4, Math.round(b * 0.05));
+        const repGrowth = lvl => Math.max(1.07, Math.min(1.15, 1.07 + 0.01 * log2(Math.max(1, lvl))));
+        const repCostSingle = (rb,g,rep) => rb * Math.pow(g, rep);
+        const repCostBulk   = (rb,g,rep,n) => rb * Math.pow(g, rep) * ((Math.pow(g,n)-1)/(g-1));
+        const nextCooldown = ms => Math.max(100, Math.floor(ms/2));
+        const unlockCost = (b, ms) => Math.round(b * Math.pow(ms/1000, 0.60) * 1.15);
+        const fmt = n => { if(!isFinite(n)) return '0'; const a=Math.abs(n); if(a>=1e12) return (n/1e12).toFixed(2)+'T'; if(a>=1e9) return (n/1e9).toFixed(2)+'B'; if(a>=1e6) return (n/1e6).toFixed(2)+'M'; if(a>=1e3) return (n/1e3).toFixed(2)+'K'; return String(Math.floor(n)); };
+
+        const ACH = {
+          first_steps:   { title:'First Steps',     desc:'Walking reaches Lvl 2', reward:50 },
+          add_routine:   { title:'Add to Routine',  desc:'Unlock Jogging',        reward:100 },
+          coach_duty:    { title:'Coach On Duty',   desc:'Hire your first coach', reward:150 },
+          speed_demon:   { title:'Speed Demon',     desc:'Any cooldown ≤ 0.30s', reward:180 },
+        };
+
+        const KEY='ff-vs5d';
+        function defaults(){ return {
+          hp:0, qty:1,
+          exercises:[
+            { id:'walk', unlocked:true,  repHP:0, repTarget:10, level:1, cooldown:Exercises[0].baseCooldownMs, lastTapAt:0 },
+            { id:'jog',  unlocked:false, repHP:0, repTarget:10, level:1, cooldown:Exercises[1].baseCooldownMs, lastTapAt:0 },
+          ],
+          coaches:{},
+          tutorial:{ doneIntro:false, shown:{ repsHint:false, unlock:{ jog:false } } },
+          achievements:{ first_steps:false, add_routine:false, coach_duty:false, speed_demon:false },
+          offline:{ lastSeenAt: Date.now() },
+          stats:{ manual:0, auto:0, totalEarned:0 }
+        };}
+        function deepEnsureTutorial(tut){
+          const base = { doneIntro:false, shown:{ repsHint:false, unlock:{ jog:false } } };
+          tut = tut || {};
+          tut.doneIntro = !!tut.doneIntro;
+          tut.shown = tut.shown || {};
+          if(typeof tut.shown.repsHint !== 'boolean') tut.shown.repsHint = false;
+          tut.shown.unlock = tut.shown.unlock || { jog:false };
+          if(typeof tut.shown.unlock.jog !== 'boolean') tut.shown.unlock.jog = false;
+          return tut;
+        }
+        function load(){
+          try{
+            const raw=localStorage.getItem(KEY); if(!raw) return defaults();
+            const d=JSON.parse(raw)||{}; const base=defaults();
+            if(!Array.isArray(d.exercises)) d.exercises = base.exercises;
+            d.tutorial = deepEnsureTutorial(d.tutorial);
+            d.coaches = d.coaches || {};
+            d.achievements = d.achievements || base.achievements;
+            d.offline = d.offline || base.offline;
+            d.stats = d.stats || base.stats;
+            return Object.assign(base, d);
+          }catch{ return defaults(); }
+        }
+        function save(s){
+          try{
+            const p = structuredClone(s);
+            p.exercises.forEach(e => e.lastTapAt = 0);
+            localStorage.setItem(KEY, JSON.stringify(p));
+          }catch{}
+        }
+        let S = load();
+        S.exercises.forEach(e => e.lastTapAt = 0);
+        save(S);
+        const get = () => S;
+        function patch(mut){ S = mut(structuredClone(S)); save(S); markDirty(); Bus.emit('state:changed', S); }
+
+        const hpEl = document.getElementById('hp-readout');
+        const bulk = document.getElementById('bulk');
+        const cardsRoot = document.getElementById('cards');
+        const avatarBtn = document.getElementById('avatar');
+        const avatarDot = document.getElementById('avatar-dot');
+        const menu = document.getElementById('menu');
+        const menuBody = document.getElementById('menu-body');
+        const toast = document.getElementById('toast');
+        const toastText = document.getElementById('toast-text');
+        function showToast(msg){ toastText.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1800); }
+
+        const jax = document.getElementById('jax'), jaxText=document.getElementById('jax-text'), jaxSkip=document.getElementById('jax-skip'), jaxNext=document.getElementById('jax-next');
+        const Tutor = (() => {
+          let queue = []; let active=false;
+          function show(lines){ queue=lines.slice(); active=true; jax.classList.add('show'); step(); }
+          function step(){ if(queue.length===0){ hide(); return; } jaxText.textContent = queue.shift(); }
+          function hide(){ active=false; jax.classList.remove('show'); }
+          jaxNext.addEventListener('click', step); jaxSkip.addEventListener('click', hide);
+          return { show, hide, get active(){ return active; } };
+        })();
+
+        const off = document.getElementById('off');
+        const offSub = document.getElementById('off-sub');
+        const offList = document.getElementById('off-list');
+        const offTotal = document.getElementById('off-total');
+        const offClaim = document.getElementById('off-claim');
+        const offDismiss = document.getElementById('off-dismiss');
+        let suppressTutorialThisSession = false;
+
+        const cardRefs = new Map();
+        function createCard(idx){
+          const exMeta = Exercises[idx];
+          const exState = get().exercises[idx];
+
+          const card = document.createElement('div'); card.className='card';
+          const tile = document.createElement('div'); tile.className='tile';
+          if(!exState.unlocked) tile.classList.add('locked');
+          const lvl  = document.createElement('div'); lvl.className='lvl'; lvl.textContent = 'Lvl ' + exState.level;
+          const tap  = document.createElement('button'); tap.className='tap-btn'; tap.textContent = exState.unlocked ? '+ Tap' : 'Locked';
+          const repband = document.createElement('div'); repband.className='repband';
+          const repfill = document.createElement('div'); repfill.className='repfill';
+          const reptext = document.createElement('div'); reptext.className='reptext';
+          repband.append(repfill, reptext);
+          tile.append(lvl, tap, repband);
+
+          const right = document.createElement('div');
+          const title = document.createElement('div'); title.className='title'; title.textContent = exMeta.name;
+          const cd = document.createElement('div'); cd.className='cooldown';
+          const bar = document.createElement('div'); bar.className='bar';
+          const t = document.createElement('div'); t.className='t'; t.textContent='Ready';
+          cd.append(bar, t);
+          const meta = document.createElement('div'); meta.className='meta';
+          const left = document.createElement('div'); left.className='muted';
+          const rightBtn = document.createElement('button'); rightBtn.className='btn';
+          meta.append(left, rightBtn);
+          right.append(title, cd, meta);
+          card.append(tile, right);
+
+          tap.addEventListener('click', () => {
+            if(Tutor.active || off.classList.contains('show')) return;
+            const s = get(); const ex = s.exercises[idx]; if(!ex.unlocked) return;
+            const now = performance.now();
+            if (now < ex.lastTapAt + ex.cooldown) return;
+            const gain = perTapHP(baseHP(idx, exMeta.baseCooldownMs), ex.repHP);
+            patch(st => { st.hp += gain; st.stats.manual++; st.stats.totalEarned+=gain; st.exercises[idx].lastTapAt = now; return st; });
+          });
+          rightBtn.addEventListener('click', () => {
+            if(Tutor.active || off.classList.contains('show')) return;
+            const s = get(); const ex = s.exercises[idx];
+            if(!ex.unlocked){
+              const b = baseHP(idx, exMeta.baseCooldownMs);
+              const price = unlockCost(b, exMeta.baseCooldownMs);
+              if (s.hp < price) return;
+              patch(st => { st.hp -= price; st.exercises[idx].unlocked = true; return st; });
+              maybeAchieve('add_routine');
+              return;
+            }
+            const b = baseHP(idx, exMeta.baseCooldownMs);
+            const rb = repBaseCost(b); const g = repGrowth(ex.level); const qty = s.qty||1;
+            const price = Math.ceil(qty===1 ? repCostSingle(rb,g,ex.repHP) : repCostBulk(rb,g,ex.repHP,qty));
+            if (s.hp < price) return;
+            patch(st => {
+              st.hp -= price;
+              st.exercises[idx].repHP += qty;
+              while(st.exercises[idx].repHP >= st.exercises[idx].repTarget){
+                st.exercises[idx].level += 1;
+                st.exercises[idx].cooldown = nextCooldown(st.exercises[idx].cooldown);
+                st.exercises[idx].repTarget *= 2;
+              }
+              return st;
+            });
+            if(idx===0 && get().exercises[0].level >= 2) maybeAchieve('first_steps');
+            if(get().exercises.some(e => e.unlocked && e.cooldown <= 300)) maybeAchieve('speed_demon');
+          });
+
+          cardsRoot.append(card);
+          cardRefs.set(exMeta.id, { idx, card, tile, lvl, tap, repband, repfill, reptext, cd, bar, t, left, rightBtn, title });
+          updateCard(exMeta.id);
+        }
+        function updateCard(id){
+          const r = cardRefs.get(id); if(!r) return;
+          const exMeta = Exercises[r.idx];
+          const ex = get().exercises[r.idx];
+          r.lvl.textContent = 'Lvl ' + ex.level;
+          r.title.textContent = exMeta.name;
+
+          if(!ex.unlocked){
+            r.tile.classList.add('locked');
+            r.tap.textContent = 'Locked';
+            const b = baseHP(r.idx, exMeta.baseCooldownMs);
+            const price = unlockCost(b, exMeta.baseCooldownMs);
+            r.left.textContent = '—';
+            r.rightBtn.textContent = 'Unlock • ' + fmt(price) + ' HP';
+            const afford = get().hp >= price;
+            r.rightBtn.classList.toggle('glow', afford);
+            r.rightBtn.classList.toggle('pulse', afford);
+            r.reptext.textContent = '—';
+            r.repfill.style.width = '0%';
+          }else{
+            r.tile.classList.remove('locked');
+            r.tap.textContent = '+ Tap';
+            const b = baseHP(r.idx, exMeta.baseCooldownMs);
+            const hpTap = perTapHP(b, ex.repHP);
+            r.left.textContent = hpTap + ' HP / tap';
+            const rb = repBaseCost(b); const g = repGrowth(ex.level); const qty = get().qty||1;
+            const price = Math.ceil(qty===1 ? repCostSingle(rb,g,ex.repHP) : repCostBulk(rb,g,ex.repHP,qty));
+            r.rightBtn.textContent = 'Reps • ' + fmt(price) + ' HP';
+            r.rightBtn.classList.toggle('glow', get().hp >= price);
+            r.rightBtn.classList.remove('pulse');
+            r.reptext.textContent = ex.repHP + ' / ' + ex.repTarget;
+            const pct = Math.max(0, Math.min(100, 100 * (ex.repHP / ex.repTarget)));
+            r.repfill.style.width = pct + '%';
+          }
+        }
+        function buildCards(){ cardsRoot.innerHTML=''; cardRefs.clear(); for(let i=0;i<Exercises.length;i++){ createCard(i); } }
+
+        bulk.addEventListener('click', (e) => {
+          if(Tutor.active || off.classList.contains('show')) return;
+          const b = e.target.closest('button'); if(!b) return;
+          [...bulk.children].forEach(btn => btn.classList.toggle('active', btn === b));
+          const qty = parseInt(b.dataset.q,10);
+          patch(s => { s.qty = qty; return s; });
+        });
+
+        function anyCoachAffordable(){
+          const s = get();
+          for(let i=0;i<Exercises.length;i++){
+            const ex = s.exercises[i];
+            if(!ex.unlocked) continue;
+            const cId = 'c'+(i+1);
+            if(s.coaches[cId]) continue;
+            const price = coachPrice(i);
+            if(s.hp >= price) return true;
+          }
+          return false;
+        }
+        function openMenu(tab='coaches'){ renderMenu(tab); menu.classList.add('show'); }
+        function closeMenu(){ menu.classList.remove('show'); }
+        avatarBtn.addEventListener('click', () => { if(!Tutor.active && !off.classList.contains('show')) openMenu('coaches'); });
+        menu.addEventListener('click', (e)=>{
+          const close=e.target.closest('[data-close]'); if(close) return closeMenu();
+          const tabBtn=e.target.closest('.tab');
+          if(tabBtn){ [...menu.querySelectorAll('.tab')].forEach(b=>b.classList.toggle('active', b===tabBtn)); renderMenu(tabBtn.dataset.tab); }
+        });
+
+        function renderMenu(tab){
+          if(tab==='coaches') return renderCoaches();
+          if(tab==='settings') return renderSettings();
+          if(tab==='achievements') return renderAchievements();
+          menuBody.innerHTML = '<div class="muted">Coming soon.</div>';
+        }
+        function renderCoaches(){
+          const s=get();
+          const frag=document.createDocumentFragment();
+          let any=false;
+          for(let i=0;i<Exercises.length;i++){
+            const ex = s.exercises[i];
+            if(!ex.unlocked) continue;
+            any=true;
+            const row=document.createElement('div'); row.className='coach-row';
+            const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent = i%2===0?'F':'M';
+            const mid=document.createElement('div');
+            const title=document.createElement('div'); title.className='coach-title'; title.textContent='Coach '+(i+1);
+            const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent='Works on: '+Exercises[i].name;
+            mid.append(title, sub);
+            const action=document.createElement('div');
+            const cId = 'c'+(i+1);
+            const hired = !!s.coaches[cId];
+            const price = coachPrice(i);
+            if(hired){
+              const span=document.createElement('span'); span.className='hired'; span.textContent='Hired'; action.append(span);
+            }else{
+              const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Hire • '+fmt(price)+' HP';
+              if(s.hp>=price) btn.classList.add('glow');
+              btn.addEventListener('click', ()=>{
+                const cur=get(); if(cur.hp<price || cur.coaches[cId]) return;
+                patch(st => { st.hp -= price; st.coaches[cId] = true; return st; });
+                maybeAchieve('coach_duty');
+                renderCoaches();
+              });
+              action.append(btn);
+            }
+            row.append(ava, mid, action); frag.append(row);
+          }
+          menuBody.innerHTML='';
+          if(!any){ menuBody.innerHTML='<div class="muted">Unlock an exercise to hire its coach.</div>'; }
+          else menuBody.append(frag);
+        }
+        function renderSettings(){
+          const div=document.createElement('div');
+          div.innerHTML = '<div class="muted">Settings</div>' +
+            '<div style="height:8px"></div>' +
+            `<div class="muted">Offline cap: ${OFFLINE_CAP_HOURS}h (fixed in this build)</div>` +
+            '<div style="height:8px"></div>' +
+            '<button id="reset" class="btn">Reset Save</button>';
+          div.querySelector('#reset').addEventListener('click', ()=>{
+            if(confirm('Reset your save?')){
+              localStorage.removeItem(KEY);
+              S = defaults();
+              save(S);
+              markDirty();
+            }
+          });
+          menuBody.innerHTML=''; menuBody.append(div);
+        }
+        function renderAchievements(){
+          const s=get();
+          const grid=document.createElement('div');
+          const makeRow=(key, data)=>{
+            const row=document.createElement('div'); row.className='coach-row';
+            const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent='★';
+            const mid=document.createElement('div');
+            const title=document.createElement('div'); title.className='coach-title'; title.textContent=data.title;
+            const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent=data.desc + ' — Reward: '+data.reward+' HP';
+            mid.append(title, sub);
+            const action=document.createElement('div');
+            if(s.achievements[key]){ const span=document.createElement('span'); span.className='hired'; span.textContent='Completed'; action.append(span); }
+            else { const span=document.createElement('span'); span.className='coach-sub'; span.textContent='Locked'; action.append(span); }
+            row.append(ava, mid, action);
+            return row;
+          };
+          grid.append(
+            makeRow('first_steps', ACH.first_steps),
+            makeRow('add_routine', ACH.add_routine),
+            makeRow('coach_duty',  ACH.coach_duty),
+            makeRow('speed_demon', ACH.speed_demon),
+          );
+          menuBody.innerHTML=''; menuBody.append(grid);
+        }
+
+        function maybeAchieve(key){
+          const data = ACH[key]; if(!data) return;
+          const s = get(); if(s.achievements[key]) return;
+          patch(st => { st.achievements[key] = true; st.hp += data.reward; return st; });
+          showToast(`Achievement: ${data.title}  +${data.reward} HP`);
+        }
+
+        function stampNow(){ patch(st => { st.offline.lastSeenAt = Date.now(); return st; }); }
+        function computeOffline(){
+          const s = get();
+          const now = Date.now();
+          const last = s.offline?.lastSeenAt || now;
+          let ms = Math.max(0, now - last);
+          const capMs = OFFLINE_CAP_HOURS * 3600 * 1000;
+          const clamped = Math.min(ms, capMs);
+          const list = [];
+          let total = 0, totalTaps = 0;
+          for(let i=0;i<Exercises.length;i++){
+            const ex = s.exercises[i];
+            const cId = 'c'+(i+1);
+            if(!ex.unlocked) continue;
+            if(!s.coaches[cId]) continue;
+            if(ex.cooldown <= 0) continue;
+            const taps = Math.floor(clamped / ex.cooldown);
+            if(taps<=0) continue;
+            const gainPerTap = perTapHP(baseHP(i, Exercises[i].baseCooldownMs), ex.repHP);
+            const gain = gainPerTap * taps;
+            list.push({ name: Exercises[i].name, taps, gain });
+            total += gain;
+            totalTaps += taps;
+          }
+          return { ms, clamped, list, total, totalTaps };
+        }
+        function showOfflineModal(summary){
+          offSub.textContent = `You were away for ${(summary.clamped/3600000).toFixed(2)} hours (capped at ${OFFLINE_CAP_HOURS}h).`;
+          offList.innerHTML = '';
+          if(summary.list.length===0){
+            const row=document.createElement('div'); row.className='row'; row.innerHTML='<div class="muted">No coached exercises tapped while you were away.</div>';
+            offList.append(row);
+          }else{
+            summary.list.forEach(it => {
+              const row=document.createElement('div'); row.className='row';
+              row.innerHTML = `<div>${it.name} — ${it.taps} taps</div><div>+ ${fmt(it.gain)} HP</div>`;
+              offList.append(row);
+            });
+          }
+          offTotal.textContent = '+'+fmt(summary.total)+' HP';
+          off.classList.add('show');
+          suppressTutorialThisSession = true;
+        }
+        offClaim.addEventListener('click', ()=>{
+          const s = computeOffline();
+          if(s.total>0){
+            patch(st => { st.hp += s.total; st.stats.auto += s.totalTaps; st.stats.totalEarned += s.total; return st; });
+            showToast(`Claimed +${fmt(s.total)} HP from offline`);
+          }
+          stampNow();
+          off.classList.remove('show');
+        });
+        offDismiss.addEventListener('click', ()=>{
+          stampNow();
+          off.classList.remove('show');
+        });
+
+        window.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') stampNow(); });
+        window.addEventListener('pagehide', stampNow);
+
+        function build(){ buildCards(); markDirty(); }
+        build();
+
+        // Start UI loop AFTER build
+        requestAnimationFrame(flushUI);
+
+        // Periodic stamp
+        setInterval(()=>{ if(!Tutor.active && !off.classList.contains('show')) stampNow(); }, 15000);
+
+        // On load, if away show offline modal; else just stamp
+        (function checkReturn(){
+          try{
+            const s = computeOffline();
+            if(s.clamped >= 60*1000){ showOfflineModal(s); } else { stampNow(); }
+          }catch(e){ stampNow(); }
+        })();
+
+        function tick(){
+          const now = performance.now();
+          const s = get();
+          for(let i=0;i<Exercises.length;i++){
+            const ex = s.exercises[i];
+            const ready = now >= ex.lastTapAt + ex.cooldown;
+            const cId = 'c'+(i+1);
+            if(!Tutor.active && !off.classList.contains('show') && s.coaches[cId] && ready && ex.unlocked){
+              const gain = perTapHP(baseHP(i, Exercises[i].baseCooldownMs), ex.repHP);
+              patch(st => { st.hp += gain; st.stats.auto++; st.stats.totalEarned+=gain; st.exercises[i].lastTapAt = now; return st; });
+            }
+            const r = cardRefs.get(Exercises[i].id); if(!r) continue;
+            const dt = Math.max(0, now - ex.lastTapAt);
+            const remain = Math.max(0, ex.cooldown - dt);
+            if (remain<=0){ r.bar.style.width='100%'; r.t.textContent='Ready'; r.tile.classList.remove('cooling'); }
+            else { const pct = 100 * (dt / ex.cooldown); r.bar.style.width = Math.max(0,Math.min(100,pct))+'%'; r.t.textContent=(remain/1000).toFixed(2)+'s'; r.tile.classList.add('cooling'); }
+          }
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+
+        function tutorialCheck(){
+          if(suppressTutorialThisSession) return;
+          const s = get();
+          if(!s.tutorial.doneIntro){
+            Tutor.show([ "You look a bit low on energy. Let’s fix that fast 💪", "Tap Walking to earn HP. Then we’ll power up." ]);
+            patch(st => { st.tutorial.doneIntro = true; return st; });
+            return;
+          }
+          if(!s.tutorial.shown?.repsHint && s.exercises[0].repHP===0 && s.hp >= 4){
+            Tutor.show([ "Great start! Use Reps to hit harder each tap.", "When the green bar fills, your cooldown halves." ]);
+            patch(st => { st.tutorial.shown.repsHint = true; return st; });
+            return;
+          }
+          const jIdx = 1; const j = s.exercises[jIdx];
+          const b = baseHP(jIdx, Exercises[jIdx].baseCooldownMs);
+          const price = unlockCost(b, Exercises[jIdx].baseCooldownMs);
+          if(!s.tutorial.shown?.unlock?.jog && !j.unlocked && s.hp >= price){
+            Tutor.show([ "Add to your routine! Unlock Jogging when the pill turns orange." ]);
+            patch(st => { st.tutorial.shown.unlock.jog = true; return st; });
+            return;
+          }
+        }
+        setInterval(()=>{ if(!Tutor.active) tutorialCheck(); }, 600);
+      }
+    }catch(e){
+      const el = document.getElementById('err'); el.textContent = 'Init Error: ' + (e.message || e); el.classList.add('show');
+    }
+  </script>
+</body>
+</html>
+1d6; --good:#27c93f; --danger:#ff3860; --warn:#ffcc00;
       --rep:#27c93f;
     }
     *{box-sizing:border-box}
