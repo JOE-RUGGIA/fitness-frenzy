@@ -1506,12 +1506,10 @@ try{
 
 
 <style data-ff-patch>
-  :root{
-    --ff-pink:#ff76b5;
-  }
+  /* --- Low-latency polish ---//////////////////////////////////////////BUTTON EFFECTS/////BURST////RAPIDFIRE */
+  .tile, .btn, .btn-reps{ will-change: transform; }
 
-<style data-ff-patch>
-  /* --- Bounce (generic; works for tiles and buttons) ---/////////////////////////////////////////BOUNCE and BURST and REPS BUTTON */
+  /* --- Bounce (generic; used by tiles & buttons) --- */
   @keyframes ff-bounce {
     0% { transform: scale(0.98); }
     40%{ transform: scale(1.07); }
@@ -1533,7 +1531,7 @@ try{
     position:absolute; left:-1px; top:-8px;
     width:2px; height:14px; background:rgba(255,255,255,.95);
     border-radius:2px; opacity:0; transform-origin: 1px 8px;
-    animation: ff-ray 380ms ease-out forwards;
+    animation: ff-ray 360ms ease-out forwards;
   }
   @keyframes ff-ray{
     0%   { transform: rotate(var(--deg)) translateY(0)  scale(.85); opacity:0; }
@@ -1543,13 +1541,56 @@ try{
 </style>
 
 <script type="application/ff-patch">
-/* Tile bounce + rays on tap, AND Reps button bounce only when a purchase succeeds */
+/* Fast-click accelerator + tile FX + Reps bounce on confirmed purchase */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
-    // ---- helpers
+    /* ---------------- Fast-click accelerator (touch/pen) ----------------
+       Dispatch a synthetic click immediately on pointerdown/touchstart,
+       then swallow the delayed native click to avoid double-fires.
+       This bypasses double-tap preventDefault logic and removes latency. */
+    (function fastClick(){
+      const SELECTOR = '.tile, .btn, .ava, .tab, .menu-close, .bulk button, #avatar';
+
+      function triggerFastClick(target){
+        const stamp = Date.now();
+        target.setAttribute('data-ff-fast-stamp', stamp);
+
+        // Fire synthetic click immediately
+        const ev = new MouseEvent('click', {bubbles:true, cancelable:true, view:window});
+        target.dispatchEvent(ev);
+
+        // Swallow the next trusted/native click within a short window
+        const swallow = (e)=>{
+          const recent = (Date.now() - stamp) < 280;
+          if(recent && e.isTrusted && (e.target===target || target.contains(e.target))){
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            document.removeEventListener('click', swallow, true);
+          }
+        };
+        document.addEventListener('click', swallow, true);
+      }
+
+      // Pointer Events path
+      window.addEventListener('pointerdown', (e)=>{
+        if(e.pointerType==='mouse') return;                 // mouse is already instant
+        const t = e.target.closest(SELECTOR);
+        if(!t) return;
+        triggerFastClick(t);
+      }, {passive:true, capture:true});
+
+      // Touch fallback (older iOS)
+      window.addEventListener('touchstart', (e)=>{
+        const t = e.target.closest(SELECTOR);
+        if(!t) return;
+        triggerFastClick(t);
+      }, {passive:true, capture:true});
+    })();
+
+    /* ---------------- Helpers ---------------- */
     function bounce(el){
       if(!el) return;
       el.classList.remove('ff-bounce');
@@ -1574,7 +1615,8 @@ try{
       setTimeout(()=> wrap.remove(), 420);
     }
 
-    // ---- 1) Tile effects: listen for your existing .burst-on tap marker
+    /* ---------------- 1) Tile effects on tap ----------------
+       Listen for your existing .burst-on class to know a tap occurred. */
     const TILE_FLAG='data-ff-lastfx';
     new MutationObserver(muts=>{
       for(const m of muts){
@@ -1593,9 +1635,8 @@ try{
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
 
-    // ---- 2) Reps button: bounce ONLY when a purchase actually completes
-    // Strategy: capture the click, read current "rep" value, then re-read shortly after.
-    // If it increased, we know the purchase went through -> bounce the button.
+    /* ---------------- 2) Reps button: bounce ONLY when a purchase actually completes ----------------
+       Use a one-off MutationObserver on the Rep text to detect confirmed increment (no delays). */
     document.addEventListener('click', (e)=>{
       const btn = e.target.closest('.card .meta .btn');
       if(!btn) return;
@@ -1606,22 +1647,29 @@ try{
       const repEl = card?.querySelector('.repband .reptext');
       if(!repEl) return;
 
-      const before = parseInt((repEl.textContent||'0').split('/')[0].replace(/\D/g,''), 10) || 0;
+      const parseRep = (s)=> parseInt(String(s||'0').split('/')[0].replace(/\D/g,''), 10) || 0;
+      const before = parseRep(repEl.textContent);
 
-      // After core logic runs and DOM updates
-      setTimeout(()=>{
-        const after = parseInt((repEl.textContent||'0').split('/')[0].replace(/\D/g,''), 10) || 0;
-        if(after > before){                         // purchase confirmed
+      let bounced = false;
+      const obs = new MutationObserver(()=>{
+        const after = parseRep(repEl.textContent);
+        if(!bounced && after > before){
+          bounced = true;
+          obs.disconnect();
           bounce(btn);
         }
-      }, 110); // small delay to allow your patch() + UI update to land
-    }, true); // capture phase catches clicks even if stopped downstream
+      });
+      obs.observe(repEl, {characterData:true, childList:true, subtree:true});
+      // fail-safe to stop observing if nothing changes
+      setTimeout(()=> obs.disconnect(), 600);
+    }, true); // capture so we set observer BEFORE the core handler runs
 
   }catch(e){
-    console.warn('tile & reps bounce patch error:', e);
+    console.warn('fast-click + tile & reps bounce patch error:', e);
   }
 })();
 </script>
+
 
 
 
