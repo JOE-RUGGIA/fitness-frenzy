@@ -1181,62 +1181,7 @@ try{
 
 
 
-  <style data-ff-patch>
-  /* Hide the text title only in the topbar */
-  .topbar .logo{ display:none !important; }
-
-  /* Brand logo next to avatar */
-  .brand-logo{
-    display:block;
-    height:84px;           /* slightly taller than 72px avatar */
-    width:auto;
-    object-fit:contain;
-    user-select:none;
-    pointer-events:none;   /* not clickable; change to auto if you want it clickable */
-  }
-
-  /* If you ever want it smaller on tiny screens, uncomment:
-  @media (max-width:480px){ .brand-logo{ height:80px; } }
-  */
-</style>
-
-<script type="application/ff-patch">
-(function(){
-  try{
-    const src = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/COMPRESSED%20LOGO.png?raw=true";
-
-    // Find the inner row that has [avatar][logo-text]
-    const bar = document.querySelector('.topbar .row > .row');
-    if(!bar) return;
-
-    // Avoid duplicates
-    if(document.getElementById('brandLogo')) return;
-
-    // Insert the logo right after the avatar
-    const avatar = bar.querySelector('#avatar');
-    if(!avatar) return;
-
-    const img = new Image();
-    img.id = 'brandLogo';
-    img.className = 'brand-logo';
-    img.src = src;
-    img.alt = "Fitness Frenzy logo";
-    img.decoding = 'async';
-    img.loading = 'eager';
-
-    // Fallback: if image fails, re-show text title
-    img.onerror = function(){
-      const textLogo = bar.querySelector('.logo');
-      if(textLogo) textLogo.style.display = '';
-      this.remove();
-    };
-
-    avatar.insertAdjacentElement('afterend', img);
-  }catch(e){
-    console.warn('brand logo patch error:', e);
-  }
-})();
-</script>
+ 
 
 
 
