@@ -1169,557 +1169,61 @@ try{
 })();
 </script>
 
-<style data-ff-patch>
-  :root{
-    --male-1:#2f6df3; --male-2:#41b0ff;
-    --pink-1:#ff76b5; --pink-2:#ffb3d5;
-    --card-bg:#112036;
-    --pill-bg:#112036; --pill-border:#2a3e5e;
-    --stripe-w:12px;
-  }
 
-  /* ---------- TOPBAR ---------- */
-  .topbar{ position:sticky !important; top:0; z-index:1000 !important; }
-  .topbar .row{ gap:12px !important; }
-  /* Replace text logo with image (JS injects the <img>, this styles it) */
-  .logo{display:inline-flex; align-items:center; line-height:0}
-  .logo img.ff-logo{height:80px; width:auto; display:block} /* slightly taller than 72px avatar */
 
-  /* Pills row: 2 equal pills side-by-side (HP + Fitcoins) */
-  .pill-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
-  .hp-pill, .fit-pill{
-    background:var(--pill-bg) !important; border:1px solid var(--pill-border) !important;
-    border-radius:12px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;
-    font-variant-numeric:tabular-nums; font-size:16px; font-weight:800;
-  }
-  .fit-pill .l, .hp-pill .l{display:flex; align-items:center; gap:8px}
-  .fit-pill .ico{filter:drop-shadow(0 1px 0 rgba(0,0,0,.3))}
-  .fit-pill .r, .hp-pill .r{min-width:60px; text-align:right}
-
-  /* Bulk buy smaller (esp. mobile) */
-  .bulk{transform:scale(.94); border-radius:10px}
-  .bulk button{padding:6px 10px; font-size:14px}
-  @media (max-width:480px){
-    .bulk{transform:scale(.90)}
-    .bulk button{min-width:46px; padding:5px 8px; font-size:13px}
-  }
-
-  /* ---------- CARDS ---------- */
-  /* New color & pop */
-  .card{background:var(--card-bg) !important; border:1px solid #1b2e4b !important}
-  .tile{background:#0f1b32 !important}
-  /* Locked cards: shorter, hide cooldown & rep band */
-  .tile.locked{height:76px !important; filter:grayscale(100%) saturate(80%) opacity(.95)}
-  .card.card-locked .cooldown{display:none !important}
-  .tile.locked .repband{display:none !important}
-  /* Stronger pop + starburst on tap */
-  .tile.tap-pop{animation:tapPop 220ms ease-out}
-  @keyframes tapPop{0%{transform:scale(.98)}60%{transform:scale(1.10) translateY(-1px) drop-shadow(0 10px 20px rgba(0,0,0,.35))}100%{transform:scale(1)}}
-  .tile.burst-on::after{
-    content:""; position:absolute; inset:-20%; pointer-events:none; opacity:.8;
-    background:
-      radial-gradient(circle at center, rgba(255,255,255,.22), rgba(255,255,255,0) 40%),
-      conic-gradient(from 0deg, rgba(255,255,255,.55) 0 5deg, transparent 5deg 10deg) ;
-    -webkit-mask: radial-gradient(circle at center, #000 0 55%, transparent 55%);
-            mask: radial-gradient(circle at center, #000 0 55%, transparent 55%);
-    animation:burstSpin .38s ease-out;
-  }
-  @keyframes burstSpin{0%{transform:scale(.6) rotate(0deg); opacity:.85}100%{transform:scale(1.2) rotate(120deg); opacity:0}}
-
-  /* Cooldown bars: diagonal white stripes on gender gradient */
-  .bar{
-    background:
-      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0, rgba(255,255,255,.18) 6px, rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px),
-      linear-gradient(90deg,var(--male-1),var(--male-2)) !important;
-  }
-  body.female .bar{
-    background:
-      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0, rgba(255,255,255,.18) 6px, rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px),
-      linear-gradient(90deg,var(--pink-1),var(--pink-2)) !important;
-  }
-
-  /* Reps button: neutral unless affordable (uses existing .glow) */
-  .btn-reps{background:#1b1f44 !important; border-color:#2a2e5e !important; color:#e9edff !important; font-weight:900}
-  .btn-reps.glow{background:linear-gradient(180deg,var(--male-1),var(--male-2)) !important; border-color:var(--male-2)!important; color:#071428 !important;
-    box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35)!important}
-  body.female .btn-reps.glow{background:linear-gradient(180deg,var(--pink-1),var(--pink-2)) !important; border-color:var(--pink-2)!important; color:#2b0020!important;
-    box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)!important}
-
-  /* ---------- OFFLINE & ACHIEVEMENTS POP/ICON ---------- */
-  /* Replace both icons with a medal placeholder */
-  .ach .icon{font-size:0}
-  .ach .icon::before{content:"🏅"; font-size:20px}
-  #offline .head .circle{font-size:0}
-  #offline .head .circle::before{content:"🏅"; font-size:28px}
-  /* Pop-in animation for offline bubble and ach banners */
-  .pop-in{animation:popIn .28s cubic-bezier(.2,.8,.2,1) both}
-  @keyframes popIn{0%{transform:scale(.92); opacity:0}100%{transform:scale(1); opacity:1}}
-
-  /* ---------- START SCREEN ---------- */
-  .start .ava{width:112px; height:112px}
-  @media(max-width:480px){ .start .ava{width:92px; height:92px} }
-  .start .ava span{display:none !important}
-  .start .panel{background:rgba(18,20,52,.50) !important}
-  .start .hint{display:none !important}
-
-  /* ---------- TUTORIAL HIGHLIGHTS ---------- */
-  .jax-key{font-weight:900}
-  body:not(.female) .jax-key{color:var(--male-2)}
-  body.female .jax-key{color:var(--pink-1)}
-  .mini-bar{display:inline-block; width:24px; height:8px; background:linear-gradient(90deg,#17b34c,#27c93f); border-radius:4px; vertical-align:middle; margin:0 4px;
-    box-shadow:0 0 0 1px rgba(0,0,0,.25) inset}
-</style>
-
-<script type="application/ff-patch">
-(function(){
-  /* ---------- UTIL: safe select ---------- */
-  const $ = s=>document.querySelector(s);
-
-  /* ---------- TOPBAR: swap text for logo, add Fitcoins pill, rebuild pills row ---------- */
-  (function initTopbar(){
-    const logoEl = document.querySelector('.topbar .logo');
-    if(logoEl && !logoEl.querySelector('img.ff-logo')){
-      logoEl.textContent='';
-      const img = new Image(); img.className='ff-logo';
-      img.src='https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/COMPRESSED%20LOGO.png?raw=true';
-      img.alt='Fitness Frenzy';
-      logoEl.appendChild(img);
-    }
-
-    const wrap = document.querySelector('.topbar .wrap');
-    const hp = document.getElementById('hp-readout')?.closest('.hp-pill');
-    if(wrap && hp && !document.querySelector('.pill-row')){
-      const row = document.createElement('div'); row.className='pill-row';
-      hp.replaceWith(row); row.appendChild(hp);
-
-      const coin = document.createElement('div'); coin.className='fit-pill';
-      coin.innerHTML = `<span class="l"><span class="ico">🪙</span><b>Fitcoins</b></span><span id="fitcoin-readout" class="r">0</span>`;
-      row.appendChild(coin);
-    }
-  })();
-
-  /* ---------- CARDS: ensure Reps buttons have the class; trim locked; starburst already styled ---------- */
-  (function tagRepsButtons(){
-    const root=document.getElementById('cards');
-    const scan=()=>{
-      document.querySelectorAll('.card .meta .btn').forEach(btn=>{
-        const isReps = btn.textContent && btn.textContent.trim().startsWith('Reps');
-        btn.classList.toggle('btn-reps', !!isReps);
-      });
-    };
-    scan();
-    if(root) new MutationObserver(scan).observe(root,{childList:true,subtree:true,characterData:true});
-  })();
-
-  /* ---------- SFX: silence general click/tap beeps, keep our own pop SFX ---------- */
-  const AC = window.AudioContext || window.webkitAudioContext;
-  let myAC = null;
-  try{ if(AC) myAC = new AC(); }catch(_){}
-  try{
-    if(AC && AC.prototype && !AC.prototype.__ff_muted__){
-      const origGain = AC.prototype.createGain;
-      AC.prototype.createGain = function(){ const g = origGain.call(this); try{ g.gain.value = 0; }catch(_){ } return g; };
-      AC.prototype.__ff_muted__ = true;
-    }
-  }catch(_){}
-
-  function popSFX(){
-    try{
-      if(!myAC) return;
-      const ctx=myAC;
-      const o=ctx.createOscillator(), g=ctx.createGain();
-      o.type='sine'; o.frequency.value=740;
-      g.gain.value=0.002; o.connect(g).connect(ctx.destination);
-      o.start(); o.stop(ctx.currentTime+0.08);
-    }catch(_){}
-  }
-
-  /* ---------- OFFLINE: add pop animation, confetti, and SFX ---------- */
-  (function offlineEffects(){
-    const off = document.getElementById('offline');
-    if(!off) return;
-    const bub = off.querySelector('.bubble');
-    const mo = new MutationObserver(()=>{
-      if(off.classList.contains('show')){
-        if(bub) bub.classList.add('pop-in');
-        confettiBurstLite(off);
-        popSFX();
-      }
-    });
-    mo.observe(off,{attributes:true,attributeFilter:['class']});
-  })();
-
-  /* ---------- ACHIEVEMENTS: add pop & SFX when banner appears ---------- */
-  (function achEffects(){
-    const root = document.getElementById('ach');
-    if(!root) return;
-    new MutationObserver(muts=>{
-      for(const m of muts){
-        m.addedNodes.forEach(n=>{
-          if(n.nodeType===1 && n.classList.contains('banner')){
-            n.classList.add('pop-in');
-            popSFX();
-          }
-        });
-      }
-    }).observe(root,{childList:true});
-  })();
-
-  /* ---------- Confetti (lite) for offline ---------- */
-  function confettiBurstLite(scope){
-    const box=document.createElement('div'); box.style.position='fixed'; box.style.top='12px'; box.style.left='50%'; box.style.width='0'; box.style.height='0'; box.style.pointerEvents='none'; box.style.zIndex='121';
-    (scope||document.body).appendChild(box);
-    const colors=['#ff7a1a','#ffd54d','#3aa6ff','#8eff7a','#ff76b5'];
-    for(let i=0;i<18;i++){
-      const s=document.createElement('span');
-      s.style.position='absolute'; s.style.width='8px'; s.style.height='12px'; s.style.background=colors[i%colors.length];
-      s.style.opacity='0'; s.style.transformOrigin='center';
-      const dx=(Math.random()*2-1)*220+'px';
-      const dy=(Math.random()*-1)*300-80+'px';
-      const rot=(Math.random()*360-180)+'deg';
-      s.animate([
-        {opacity:0, transform:`translate(0,0) rotate(0)`},
-        {opacity:1, offset:.1},
-        {opacity:0, transform:`translate(${dx},${dy}) rotate(${rot})`}
-      ], {duration:900, easing:'ease-out', fill:'forwards'});
-      box.appendChild(s);
-    }
-    setTimeout(()=>box.remove(), 950);
-  }
-
-  /* ---------- START SCREEN tweaks ---------- */
-  (function startTweaks(){
-    const spans = document.querySelectorAll('.start .ava span'); spans.forEach(s=>s.remove());
-  })();
-
-  /* ---------- TUTORIAL: wording + keyword highlights + mini progress bar ---------- */
-  (function tutorPatcher(){
-    const tip = document.getElementById('tip');
-    const textEl = document.getElementById('tip-text');
-
-    // Live rewrite when content changes
-    if(textEl){
-      new MutationObserver(()=>{
-        let html = textEl.textContent || '';
-
-        // Replace any "turns orange" style wording with "lights up"
-        html = html.replace(/turns?\s+\w+/gi,'lights up');
-
-        // Insert a tiny green progress bar after "green bar"
-        html = html.replace(/green bar/i, match => `${match} <span class="mini-bar"></span>`);
-
-        // Highlight keywords in gender color
-        const keys = ['HP','Reps','cooldown','unlock','Unlock','exercise','Exercises'];
-        keys.forEach(k=>{
-          const re = new RegExp(`\\b${k}\\b`,'g');
-          html = html.replace(re, `<span class="jax-key">${k}</span>`);
-        });
-
-        textEl.innerHTML = html;
-      }).observe(textEl,{characterData:true, childList:true, subtree:true});
-    }
-  })();
-
-  /* ---------- SETTINGS: fix subtab flicker ("coming soon" on first open) ---------- */
-  (function fixSettingsFlicker(){
-    const menu = document.getElementById('menu');
-    if(!menu) return;
-
-    // Remember last subtab
-    document.addEventListener('click', e=>{
-      const b = e.target.closest('.subtabs .tab');
-      if(b){ localStorage.setItem('ff:last_settings_subtab', (b.textContent||'').trim().toLowerCase()); }
-    });
-
-    // On opening Settings, force-render the correct subtab immediately
-    document.addEventListener('ff:menu:tab', ev=>{
-      if(ev?.detail?.tab!=='settings') return;
-      const want = localStorage.getItem('ff:last_settings_subtab') || 'general';
-      const tryClick = ()=>{
-        const tabs = document.querySelectorAll('.menu-body .subtabs .tab');
-        if(!tabs || !tabs.length){ setTimeout(tryClick, 30); return; }
-        const btn = Array.from(tabs).find(t=> (t.textContent||'').trim().toLowerCase()===want);
-        if(btn) btn.click();
-      };
-      setTimeout(tryClick, 30);
-    });
-  })();
-
-  /* ---------- OPTIONAL: naive placeholder Fitcoins (derived from total HP) ---------- */
-  (function fitcoinsPlaceholder(){
-    // Shows floor(totalEarned / 100) as temp Fitcoins; replace with real logic later
-    let last=0;
-    const hpEl=document.getElementById('hp-readout');
-    const out=()=>document.getElementById('fitcoin-readout');
-    const getNum=el=>{ const t=(el?.textContent||'0').replace(/[^0-9.]/g,''); return parseFloat(t)||0; };
-    const update=()=>{
-      const hp=getNum(hpEl);
-      const coins = Math.floor(hp/100); // placeholder formula
-      if(coins!==last && out()){ out().textContent = coins.toString(); last=coins; }
-    };
-    update();
-    setInterval(update, 500);
-    document.addEventListener('ff:hp:change', update);
-  })();
-})();
-</script>
 
 
 
 <style data-ff-patch>
-  /* Keep sticky, but below modal layers */
+  /* Keep sticky, but below overlays & tutorial */
   .topbar{
     position:sticky !important;
     top:0;
-    z-index:60 !important; /* Splash=80, Start=70, Tip=110 (below) */
+    z-index:25 !important; /* tip=90, offline=90, splash=80, start=70 */
   }
 
-  /* Hide topbar while splash/start are showing */
+  /* Hide topbar entirely while splash or start is showing */
   .splash.show ~ .topbar,
-  .start.show  ~ .topbar{
+  .start.show ~ .topbar{
     display:none !important;
   }
-
-  /* Make sure the tutorial (tip) sits above the topbar */
-  .tip{ z-index:110 !important; }        /* Ach=120; this stays under achievements */
-  .offline.tip{ z-index:120 !important;} /* keep offline gains at the same top layer as before */
-</style>
-
-
-
-<style data-ff-patch>
-  /* Make sure tutorial can sit above the app chrome but below achievements */
-  .tip{ z-index:115 !important; }
-  /* Hide topbar while splash/start are visible (prevents intercepting touches) */
-  .splash.show ~ .topbar,
-  .start.show  ~ .topbar{ display:none !important; }
 </style>
 
 <script type="application/ff-patch">
-/* FF Tutorial Unstick + Fallback */
 (function(){
-  if (window.__FF_TUTOR_FIX__) return;
-  window.__FF_TUTOR_FIX__ = true;
-
+  /* Safety: if Splash/Start close, ensure tutorial can appear unobstructed */
   const splash = document.getElementById('splash');
   const start  = document.getElementById('start');
-  const offline= document.getElementById('offline');
-  const tip    = document.getElementById('tip');
-  const bubble = document.getElementById('tip-bubble');
-  const textEl = document.getElementById('tip-text');
-  const headImg= document.getElementById('tip-head-img');
-  const headNm = document.getElementById('tip-head-name');
-  const nextBtn= document.getElementById('tip-next');
 
-  const isShown = el => !!(el && el.classList.contains('show'));
-  const tutorialVisible = () => !!(tip && tip.classList.contains('show') && bubble.style.visibility!=='hidden');
-
-  // Try to give the built-in tutorial a clean shot after overlays close
-  function nudgeBuiltIn(){
-    // If offline gains is showing, wait; the core intentionally defers the tutorial
-    if (isShown(offline)) return;
-    // If tutorial already visible, nothing to do
-    if (tutorialVisible()) return;
-    // Give core loop a moment; if still not visible, run fallback
-    setTimeout(()=>{ if (!tutorialVisible()) fallbackIntro(); }, 800);
-  }
-
-  // Fallback mini-tutorial that uses your existing tip UI but does NOT depend on internal Tutor object
-  function fallbackIntro(){
+  function tryKickTutorial(){
     try{
-      if (!tip || !bubble || !textEl || !nextBtn) return;
-      if (tutorialVisible()) return; // core finally showed it—do nothing
-
-      // Prep UI
-      tip.classList.add('show');
-      bubble.classList.add('center');
-      bubble.style.visibility = 'visible';
-      if (headNm) headNm.textContent = 'JAX';
-      if (headImg) headImg.src = 'fitness frenzy- coaches 128 x128 test.gif';
-
-      const steps = [
-        { speaker:'jax',    text:"You look a bit low on energy. Let’s fix that fast 💪" },
-        { speaker:'player', text:"But where do I start?" },
-        { speaker:'jax',    text:"Tap Walking to earn 1 HP. Then we’ll power up. When a button lights up, you can use it." }
-      ];
-      let i = 0;
-
-      // We’ll override the original Next handler for this session
-      const onNext = (e)=>{
-        if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
-        if (i >= steps.length){
-          tip.classList.remove('show');
-          bubble.style.visibility = 'hidden';
-          nextBtn.removeEventListener('click', onNext, true);
-          return;
+      // If both Splash and Start are hidden, nudge the tutorial once.
+      const splashHidden = !splash || !splash.classList.contains('show');
+      const startHidden  = !start  || !start.classList.contains('show');
+      if (splashHidden && startHidden) {
+        // Your game already calls checkTutorial(); this is just a gentle poke in case
+        // the earlier z-index issue suppressed the first one.
+        if (typeof window.checkTutorial === 'function') {
+          window.checkTutorial(true);
+        } else {
+          // If not globally exposed, trigger a DOM event some builds listen for.
+          try{ document.dispatchEvent(new CustomEvent('ff:boot:ready')); }catch(_){}
         }
-        // Basic speaker switch (keep it centered for simplicity)
-        const s = steps[i++];
-        if (s.speaker === 'player'){
-          if (headNm) headNm.textContent = 'You';
-          if (headImg) headImg.src = (document.body.classList.contains('female') ? 'NEW FEMALE AVATAR.gif' : 'NEW MALE AVATAR.gif');
-        }else{
-          if (headNm) headNm.textContent = 'JAX';
-          if (headImg) headImg.src = 'fitness frenzy- coaches 128 x128 test.gif';
-        }
-        textEl.textContent = s.text; // our earlier highlight patch will enhance this
-        // Set button label
-        nextBtn.textContent = (i >= steps.length) ? 'Done' : 'Next';
-      };
-
-      // Start and bind (capture=true to outrank the original listener)
-      i = 0;
-      onNext();
-      nextBtn.addEventListener('click', onNext, true);
-    }catch(e){
-      console.warn('FF fallback tutorial failed:', e);
-    }
+      }
+    }catch(_){}
   }
 
-  // Watch for Splash/Start visibility changes and nudge tutorial when both are gone
-  const watch = new MutationObserver(()=>{
-    if (!isShown(splash) && !isShown(start)) {
-      // Defer slightly to let core initialize menus/cards
-      setTimeout(nudgeBuiltIn, 250);
-    }
+  // Observe splash/start visibility flips and nudge tutorial once they hide
+  [splash,start].filter(Boolean).forEach(el=>{
+    new MutationObserver(tryKickTutorial).observe(el,{attributes:true, attributeFilter:['class']});
   });
 
-  // Begin observing overlay state
-  [splash, start, offline, tip].forEach(el=>{
-    if (el) watch.observe(el, {attributes:true, attributeFilter:['class']});
-  });
-
-  // Also hook buttons in case users click very fast
-  document.getElementById('btn-new')?.addEventListener('click', ()=> setTimeout(nudgeBuiltIn, 500));
-  document.getElementById('btn-continue')?.addEventListener('click', ()=> setTimeout(nudgeBuiltIn, 1000));
-
-  // Last resort: if nothing happens a couple seconds after DOM ready, try once
-  if (document.readyState === 'complete'){
-    setTimeout(nudgeBuiltIn, 1800);
-  } else {
-    window.addEventListener('load', ()=> setTimeout(nudgeBuiltIn, 1800), {once:true});
-  }
+  // Also run once on next tick (covers direct "Continue" path)
+  setTimeout(tryKickTutorial, 120);
 })();
 </script>
 
 
-
-<style data-ff-patch>
-  /* Keep splash/starts on top; bar stays hidden while they’re visible */
-  .splash.show ~ .topbar,
-  .start.show  ~ .topbar{ display:none !important; }
-
-  /* Ensure Skip is always clickable and visible */
-  #splash-skip{ position:relative; z-index:200 }
-</style>
-
-<script type="application/ff-patch">
-/* ===== Reliability + Perf Patch (splash watchdog + lean observers) ===== */
-(function(){
-  /* ---------------- Splash → Start watchdog ---------------- */
-  const splash = document.getElementById('splash');
-  const start  = document.getElementById('start');
-  const btnNew = document.getElementById('btn-new');
-  const btnCont= document.getElementById('btn-continue');
-
-  function forceShowStart(){
-    if(!splash || !start) return;
-    // If Start already open, bail
-    if (start.classList.contains('show')) return;
-    // Hide splash, show start
-    splash.classList.remove('show');
-    start.classList.add('show');
-    // Make sure Continue button visibility is sane (best effort)
-    if (btnCont && !btnCont.style.display) btnCont.style.display = 'none';
-  }
-
-  // If splash is still up after a reasonable time, move on.
-  // - 5500ms covers asset hiccups on mobile; we also re-check at 8s just in case.
-  const safety1 = setTimeout(()=>{ if (splash?.classList.contains('show')) forceShowStart(); }, 5500);
-  const safety2 = setTimeout(()=>{ if (splash?.classList.contains('show')) forceShowStart(); }, 8000);
-
-  // If user taps Skip, immediately force handoff (belt + suspenders)
-  document.getElementById('splash-skip')?.addEventListener('click', ()=> {
-    try{ clearTimeout(safety1); clearTimeout(safety2); }catch(_){}
-    forceShowStart();
-  }, {capture:true});
-
-  // If Start is closed (user pressed New/Continue), don’t interfere
-  function markGameBegin(){ try{ clearTimeout(safety1); clearTimeout(safety2); }catch(_){} }
-  btnNew?.addEventListener('click', markGameBegin, {once:true});
-  btnCont?.addEventListener('click', markGameBegin, {once:true});
-
-  /* ---------------- Lean Reps button tagging (structure-only) ---------------- */
-  // Earlier we watched characterData on #cards, which fires a lot due to cooldown text updates.
-  // This version only runs when cards are added/removed OR a card locks/unlocks.
-  const cards = document.getElementById('cards');
-  if (cards){
-    const TAGGED = 'data-ff-reps-tagged';
-
-    const classifyCard = (card)=>{
-      try{
-        const btn = card.querySelector('.meta .btn');
-        if(!btn) return;
-        const label = (btn.textContent||'').trim();
-        // Only add .btn-reps when this is the Reps button. Unlock buttons remain neutral.
-        if (label.startsWith('Reps')) btn.classList.add('btn-reps'); else btn.classList.remove('btn-reps');
-      }catch(_){}
-    };
-
-    const scanNewCards = (root)=>{
-      root.querySelectorAll('.card').forEach(card=>{
-        if(!card.hasAttribute(TAGGED)){
-          // Watch this card for lock/unlock changes (class toggles)
-          new MutationObserver(muts=>{
-            for(const m of muts){
-              if(m.type==='attributes' && m.attributeName==='class'){
-                classifyCard(card);
-              }
-            }
-          }).observe(card,{attributes:true, attributeFilter:['class']});
-          classifyCard(card);
-          card.setAttribute(TAGGED,'1');
-        }else{
-          classifyCard(card);
-        }
-      });
-    };
-
-    // Initial pass
-    scanNewCards(cards);
-
-    // Only respond to child list changes (add/remove cards), not text changes
-    const mo = new MutationObserver((muts)=>{
-      let needsScan=false;
-      for(const m of muts){
-        if (m.type==='childList' && (m.addedNodes.length || m.removedNodes.length)){
-          needsScan=true; break;
-        }
-      }
-      if(!needsScan) return;
-      // Coalesce scans into a single RAF tick
-      if(!scanNewCards._queued){
-        scanNewCards._queued = true;
-        requestAnimationFrame(()=>{ scanNewCards._queued=false; scanNewCards(cards); });
-      }
-    });
-    mo.observe(cards,{childList:true, subtree:true});
-  }
-
-  /* ---------------- Minor: coalesce hp/min UI updates (if present) ---------------- */
-  // If our example HP/min patch is present, keep its updates smooth
-  (function(){
-    const rateLine = document.getElementById('hp-rate');
-    if(!rateLine || !window.ffHooks) return;
-    let pending=false, lastData=null;
-    const draw=()=>{ if(!pending) return; pending=false; if(lastData){ rateLine.textContent = 'HP/min: ' + (lastData.hpPerMin||0).toFixed(2); } };
-    ffHooks.off?.('stats:tick', window.__HP_RATE_HANDLER__);
-    window.__HP_RATE_HANDLER__ = (d)=>{ lastData=d; if(!pending){ pending=true; requestAnimationFrame(draw); } };
-    ffHooks.on('stats:tick', window.__HP_RATE_HANDLER__);
-  })();
-
-})();
-</script>
 
 
 
