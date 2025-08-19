@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fitness Frenzy — VS6e (Cooldown Gate Fixed)</title>
+  <title>Fitness Frenzy — VS7d (Splash+Start full-screen & start-btn fix)</title>
   <style>
     :root{
       --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
-      --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --danger:#ff3860; --warn:#ffcc00;
-      --rep:#27c93f;
+      --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f; --danger:#ff3860;
+      --female-accent:#ff76b5;
+      /* Replace these with your repo paths if different */
+      --start-hero-desktop:url('FF-desktop.png');
+      --start-hero-mobile:url('FF-mobile.png');
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -23,6 +26,8 @@
     .hp-pill{margin-top:8px; background:#182047; border:1px solid #2a2e5e; padding:8px 10px; border-radius:10px; font-variant-numeric: tabular-nums; display:flex; align-items:center; justify-content:space-between}
     .avatar{width:56px; height:56px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:900; border:2px solid #3b3f78; position:relative; cursor:pointer}
     .avatar .dot{position:absolute; top:-4px; right:-4px; width:16px; height:16px; background:var(--good); border-radius:50%; border:2px solid #0f1020; display:none}
+    body.female .bulk button.active{background:var(--female-accent); color:#2b0020}
+    body.female .btn.glow{box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)}
 
     .cards{display:grid; gap:12px}
     .card{display:grid; grid-template-columns:110px 1fr; gap:12px; padding:10px; background:var(--panel); border:1px solid #262a58; border-radius:12px}
@@ -30,6 +35,7 @@
     .tile.locked{filter: grayscale(100%); opacity:.9}
     .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px}
     .tap-btn{appearance:none; border:0; background:var(--accent); color:#1b0d00; font-weight:800; padding:8px 10px; border-radius:8px; cursor:pointer}
+    body.female .tap-btn{background:var(--female-accent); color:#2b0020}
     .tile.cooling .tap-btn{opacity:.5; cursor:not-allowed}
     .title{font-weight:700; margin-top:2px}
     .cooldown{margin-top:6px; height:20px; background:#141739; border:1px solid #2a2e5e; border-radius:6px; overflow:hidden; position:relative}
@@ -44,6 +50,7 @@
     .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:#cfead6; text-shadow:0 1px 2px #000}
     .pill{appearance:none; border:1px solid #2a2e5e; background:#1f254f; color:#e9edff; padding:8px 12px; border-radius:999px; cursor:pointer; font-variant-numeric: tabular-nums}
     .pill.orange{background:var(--accent); color:#1b0d00; font-weight:800}
+    body.female .pill.orange{background:var(--female-accent); color:#2b0020}
     .pulse{animation:pulse 1.8s ease-in-out infinite}
     @keyframes pulse{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.03) } }
 
@@ -66,33 +73,109 @@
     .coach-sub{font-size:12px; color:#a6adcf}
     .hired{color:var(--good); font-weight:700}
 
-    /* Tutorial + Offline modal (block interaction) */
-    .jax,.off{position:fixed; inset:0; display:none; place-items:center; z-index:55; pointer-events:auto}
+    /* Tutorial + Offline modal */
+    .jax,.off{position:fixed; inset:0; display:none; place-items:center; z-index:55}
     .jax.show,.off.show{display:grid}
     .jax::before,.off::before{content:""; position:absolute; inset:0; background:rgba(0,0,0,.55)}
-    .jax .panel,.off .panel{position:relative; z-index:1; pointer-events:auto; max-width:min(640px, 92vw); background:#111333; border:1px solid #2a2e5e; border-radius:14px; padding:16px}
-    .off .list{margin-top:6px; display:grid; gap:6px}
-    .off .row{display:flex; justify-content:space-between; background:#141a3f; border:1px solid #2a2e5e; border-radius:10px; padding:8px 10px}
-    .off .total{margin-top:8px; display:flex; justify-content:space-between; font-weight:900}
-    .off .actions{margin-top:12px; display:flex; justify-content:flex-end; gap:8px}
+    .jax .panel,.off .panel{position:relative; z-index:1; max-width:min(640px, 92vw); background:#111333; border:1px solid #2a2e5e; border-radius:14px; padding:16px}
+
+    /* Splash (always shows first for ≥2s) */
+    .splash{position:fixed; inset:0; z-index:80; display:none; background: radial-gradient(1200px 1200px at 50% 30%, #1b1f47 0%, #0c0d1e 62%, #070812 100%);}
+    .splash.show{display:block}
+    .splash .brand{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center}
+    .splash .logo{font-size:42px; font-weight:900; letter-spacing:1.2px}
+    .rays{position:absolute; top:50%; left:50%; width:280px; height:280px; margin:-140px 0 0 -140px; border-radius:50%; background:
+      conic-gradient(from 0deg, rgba(255,255,255,.12), rgba(255,255,255,0) 10%, rgba(255,255,255,.12) 20%, rgba(255,255,255,0) 30%);
+      animation:spin 6s linear infinite; filter: blur(3px); opacity:.35;
+    }
+    @keyframes spin{ to{ transform:translate(-50%,-50%) rotate(360deg) } }
+    .splash .tag{margin-top:10px; color:#aab1d6}
+    .splash .skip{position:absolute; bottom:20px; left:50%; transform:translateX(-50%); background:#1b1f44; border:1px solid #2a2e5e; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer}
+
+    /* Start (full-bleed background image) */
+    .start{position:fixed; inset:0; z-index:70; display:none}
+    .start.show{display:block}
+    .start .bg{position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; filter: saturate(1.05);}
+    .start .scrim{position:absolute; inset:0; background: radial-gradient(800px 500px at 10% 5%, rgba(18,20,52,.9) 0%, rgba(18,20,52,.6) 40%, rgba(18,20,52,.35) 65%, rgba(18,20,52,.15) 90%), linear-gradient(180deg, rgba(10,12,33,.82), rgba(10,12,33,.55) 40%, rgba(10,12,33,.82));}
+    .start .panel{position:absolute; left:50%; transform:translateX(-50%); top:8vh; width:min(980px, 94vw); border-radius:16px; border:1px solid rgba(42,46,94,.8); background:rgba(12,14,35,.66); backdrop-filter: blur(6px); padding:16px}
+    .start .title{font-weight:900; font-size:26px; letter-spacing:.6px; display:flex; align-items:center; gap:10px}
+    .start .tagline{color:#aab1d6; margin-top:4px}
+    .start .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; margin-top:18px}
+    .start .avatars{display:flex; gap:8px; align-items:center}
+    .start .ava{width:90px; height:90px; border-radius:10px; display:grid; place-items:center; font-weight:900; border:2px solid #2a2e5e; cursor:pointer; background:#121434}
+    .start .ava.active{outline:3px solid var(--accent-2)}
+    .start .ava.f{border-color:var(--female-accent)}
+    .start .buttons{display:flex; gap:8px; justify-content:flex-start; flex-wrap:wrap}
+    .start .btn-start{background:var(--accent); color:#1b0d00; font-weight:900}
+    body.female .start .btn-start{background:var(--female-accent); color:#2b0020}
+    .start .btn-continue{background:#1f254f}
+    .start .footer{display:flex; align-items:center; justify-content:space-between; margin-top:12px; color:#aab1d6; gap:10px; flex-wrap:wrap}
+    .start .vol{display:flex; align-items:center; gap:8px}
+    .start input[type=range]{width:220px}
 
     /* Toast + Error bar */
-    .toast{position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:60; display:none}
+    .toast{position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:100; display:none}
     .toast.show{display:block}
     .toast .box{background:#0f1333; border:1px solid #32407a; color:#e9edff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 30px rgba(0,0,0,.35)}
-    .err{position:fixed; top:0; left:0; right:0; background:#8b1111; color:#fff; z-index:100; padding:8px 12px; font-weight:700; display:none}
+    .err{position:fixed; top:0; left:0; right:0; background:#8b1111; color:#fff; z-index:120; padding:8px 12px; font-weight:700; display:none}
     .err.show{display:block}
   </style>
 </head>
 <body>
   <div id="err" class="err"></div>
 
-  <div class="topbar">
+  <!-- Splash -->
+  <div id="splash" class="splash show" aria-hidden="true">
+    <div class="rays"></div>
+    <div class="brand">
+      <div class="logo">GameBros</div>
+      <div class="tag">loading assets…</div>
+    </div>
+    <button id="splash-skip" class="skip">Skip</button>
+  </div>
+
+  <!-- Start (full-screen bg) -->
+  <div id="start" class="start" role="dialog" aria-modal="true" aria-label="Start menu" data-bg-desktop="FF-desktop.png" data-bg-mobile="FF-mobile.png">
+    <div id="start-bg" class="bg"></div>
+    <div class="scrim"></div>
+    <div class="panel">
+      <div>
+        <div class="title">Fitness Frenzy</div>
+        <div class="tagline">Tap • Train • Level Up</div>
+      </div>
+      <div class="grid">
+        <div>
+          <div class="muted">Choose your avatar</div>
+          <div class="avatars" id="start-avatars">
+            <div class="ava m active" data-sex="male">Male</div>
+            <div class="ava f" data-sex="female">Female</div>
+          </div>
+        </div>
+        <div>
+          <div class="muted">Actions</div>
+          <div class="buttons">
+            <button id="btn-new" class="btn btn-start">New Game</button>
+            <button id="btn-continue" class="btn btn-continue" style="display:none">Continue</button>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <div class="muted">Music starts after you click.</div>
+        <div class="vol">
+          <span class="muted">Music</span>
+          <input id="music-range" type="range" min="0" max="1" step="0.01" />
+          <span id="vol-read" class="muted">0.12</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="topbar" aria-hidden="true">
     <div class="wrap">
       <div class="row">
         <div class="row" style="gap:12px; align-items:center">
           <button id="avatar" class="avatar" title="Menu"><span>FF</span><span id="avatar-dot" class="dot"></span></button>
-          <div class="logo">Fitness Frenzy — VS6e</div>
+          <div class="logo">Fitness Frenzy — VS7d</div>
         </div>
         <div class="bulk" id="bulk">
           <button data-q="1" class="active">×1</button>
@@ -104,7 +187,7 @@
     </div>
   </div>
 
-  <div class="wrap">
+  <div class="wrap" aria-hidden="true">
     <div id="cards" class="cards"></div>
   </div>
 
@@ -164,8 +247,12 @@
 
   <script>
     try{
-      if(!window.__FF_VS6E__){
-        window.__FF_VS6E__ = true;
+      if(!window.__FF_VS7D__){
+        window.__FF_VS7D__ = true;
+
+        // ---- Helpers
+        function deepClone(x){ try{ return structuredClone(x); }catch(_){ try{ return JSON.parse(JSON.stringify(x)); }catch(__){ return x; } } }
+        const isMobile = () => /Mobi|Android/i.test(navigator.userAgent) || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
 
         // ---- UI refs
         const hpEl = document.getElementById('hp-readout');
@@ -178,6 +265,17 @@
         const toast = document.getElementById('toast');
         const toastText = document.getElementById('toast-text');
 
+        // Splash / Start refs
+        const splash = document.getElementById('splash');
+        const splashSkip = document.getElementById('splash-skip');
+        const start = document.getElementById('start');
+        const startBg = document.getElementById('start-bg');
+        const btnNew = document.getElementById('btn-new');
+        const btnContinue = document.getElementById('btn-continue');
+        const startAvatars = document.getElementById('start-avatars');
+        const musicRange = document.getElementById('music-range');
+        const volRead = document.getElementById('vol-read');
+
         let dirty = false;
         function markDirty(){ dirty = true; }
         function flushUI(){
@@ -186,6 +284,7 @@
           hpEl.textContent = fmt(get().hp);
           for(const id of cardRefs.keys()) updateCard(id);
           avatarDot.style.display = anyCoachAffordable() ? 'block' : 'none';
+          document.body.classList.toggle('female', get().avatar === 'female');
           requestAnimationFrame(flushUI);
         }
 
@@ -243,6 +342,7 @@
         }
         function defaults(){ return {
           schema:20,
+          started:false,
           hp:0, qty:1, avatar:'male',
           exercises: defaultExercises(),
           coaches:{},
@@ -273,7 +373,7 @@
               d.repTarget = prev.repTarget ? prev.repTarget|0 : 10;
               d.level = prev.level ? prev.level|0 : 1;
               d.cooldown = prev.cooldown ? prev.cooldown|0 : ex.baseCooldownMs;
-              d.lastTapAt = prev.lastTapAt ? prev.lastTapAt|0 : 0;  // <-- preserve lastTapAt in-memory
+              d.lastTapAt = prev.lastTapAt ? prev.lastTapAt|0 : 0;
             }
             return d;
           });
@@ -284,6 +384,8 @@
           data.achievements = data.achievements || base.achievements;
           data.offline = data.offline || base.offline;
           data.stats = data.stats || base.stats;
+          data.avatar = data.avatar==='female' ? 'female' : 'male';
+          data.started = !!data.started;
           data.schema = 20;
           return data;
         }
@@ -308,11 +410,10 @@
         }
         function save(s){
           try{
-            const p = ensureIntegrity(structuredClone(s));
-            // strip timers only in the persisted copy
+            const p = ensureIntegrity(deepClone(s));
             p.exercises.forEach(e => e.lastTapAt = 0);
             localStorage.setItem(KEY_MAIN, JSON.stringify(p));
-          }catch{}
+          }catch(e){ /* no-op */ }
         }
         function loadPrefs(){
           try{
@@ -327,11 +428,54 @@
 
         let S = load();
         let Prefs = loadPrefs();
+        document.body.classList.toggle('female', S.avatar==='female');
         const get = () => S;
-        function patch(mut){ S = ensureIntegrity(mut(structuredClone(S))); save(S); markDirty(); }
+        function patch(mut){ S = ensureIntegrity(mut(deepClone(S))); save(S); markDirty(); }
 
         function showToast(msg){ toastText.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1800); }
 
+        // Minimal SFX beeps
+        const SFX = (()=>{
+          let ctx = null;
+          function ensure(){ if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch{} } return ctx; }
+          function beep(freq=440, dur=0.05){
+            const c = ensure(); if(!c) return;
+            const o = c.createOscillator(); const g = c.createGain();
+            o.frequency.value=freq; o.type='square';
+            g.gain.value=0.02;
+            o.connect(g).connect(c.destination);
+            o.start(); o.stop(c.currentTime+dur);
+          }
+          return { click(){beep(660,0.03)}, ok(){beep(520,0.05)}, deny(){beep(180,0.08)} };
+        })();
+
+        // Music
+        const Music = (()=>{
+          let audio = null;
+          let inited = false;
+          function desiredVol(){ return isMobile() ? (Prefs.musicVolMobile ?? 0.03) : (Prefs.musicVolDesktop ?? 0.12); }
+          function setVolume(v){
+            if(isMobile()) Prefs.musicVolMobile = v; else Prefs.musicVolDesktop = v;
+            savePrefs(Prefs);
+            if(audio) audio.volume = v;
+            if(volRead) volRead.textContent = Number(v).toFixed(2);
+            if(musicRange) musicRange.value = String(v);
+          }
+          function init(){
+            if(inited) return;
+            inited = true;
+            audio = new Audio();
+            audio.loop = true;
+            audio.src = isMobile() ? 'FF-fighting music (soft).mp3' : 'FF-fighting music.mp3';
+            audio.volume = desiredVol();
+            audio.addEventListener('error', ()=>{});
+          }
+          async function play(){ if(!inited) init(); try{ await audio.play(); }catch{} }
+          function stop(){ if(audio){ audio.pause(); } }
+          return { init, play, stop, setVolume, desiredVol };
+        })();
+
+        // Tutorial + Offline
         const jax = document.getElementById('jax'), jaxText=document.getElementById('jax-text'), jaxSkip=document.getElementById('jax-skip'), jaxNext=document.getElementById('jax-next');
         const Tutor = (() => {
           let queue = []; let active=false;
@@ -389,15 +533,17 @@
           card.append(tile, right);
 
           tap.addEventListener('click', () => {
-            if(Tutor.active || off.classList.contains('show')) return;
+            if(blocked()) return;
             const s = get(); const ex = s.exercises[idx]; if(!ex || !ex.unlocked) return;
             const now = performance.now();
-            if (ex.lastTapAt>0 && now < ex.lastTapAt + ex.cooldown) return;
+            if (ex.lastTapAt>0 && now < ex.lastTapAt + ex.cooldown) { SFX.deny(); return; }
             const gain = perTapHP(baseHP(idx, exMeta.baseCooldownMs), ex.repHP);
             patch(st => { st.hp += gain; st.stats.manual++; st.stats.totalEarned+=gain; st.exercises[idx].lastTapAt = now; return st; });
+            SFX.ok();
           });
           rightBtn.addEventListener('click', () => {
-            if(Tutor.active || off.classList.contains('show')) return;
+            if(blocked()) return;
+            SFX.click();
             const s = get(); const ex = s.exercises[idx]; if(!ex) return;
             if(!ex.unlocked){
               const b = baseHP(idx, exMeta.baseCooldownMs);
@@ -479,11 +625,12 @@
         }
 
         bulk.addEventListener('click', (e) => {
-          if(Tutor.active || off.classList.contains('show')) return;
+          if(blocked()) return;
           const b = e.target.closest('button'); if(!b) return;
           [...bulk.children].forEach(btn => btn.classList.toggle('active', btn === b));
           const qty = parseInt(b.dataset.q,10);
           patch(s => { s.qty = qty; return s; });
+          SFX.click();
         });
 
         function anyCoachAffordable(){
@@ -498,10 +645,9 @@
           }
           return false;
         }
-        function openMenu(tab='coaches'){ renderMenu(tab); menu.classList.add('show'); }
+        function openMenu(tab='coaches'){ if(blocked()) return; renderMenu(tab); menu.classList.add('show'); }
         function closeMenu(){ menu.classList.remove('show'); }
-        const avatarClick = () => { if(!Tutor.active && !off.classList.contains('show')) openMenu('coaches'); };
-        avatarBtn.addEventListener('click', avatarClick);
+        avatarBtn.addEventListener('click', ()=>{ if(!blocked()) openMenu('coaches'); });
         menu.addEventListener('click', (e)=>{
           const close=e.target.closest('[data-close]'); if(close) return closeMenu();
           const tabBtn=e.target.closest('.tab');
@@ -542,6 +688,7 @@
                 patch(st => { st.hp -= price; st.coaches[cId] = true; return st; });
                 maybeAchieve('coach_duty');
                 renderCoaches();
+                SFX.ok();
               });
               action.append(btn);
             }
@@ -552,10 +699,14 @@
           else menuBody.append(frag);
         }
         function renderSettings(){
+          const v = Music.desiredVol();
           const div=document.createElement('div');
           div.innerHTML = '<div class="muted">Settings</div>' +
             '<div style="height:8px"></div>' +
             `<div class="muted">Offline cap: ${OFFLINE_CAP_HOURS}h; Modal threshold: ${(OFFLINE_MIN_MS/1000).toFixed(0)}s (dev)</div>` +
+            '<div style="height:10px"></div>' +
+            '<div class="muted">Music volume</div>' +
+            `<input id="set-vol" type="range" min="0" max="1" step="0.01" value="${v}"> <span class="muted" id="set-vol-read">${Number(v).toFixed(2)}</span>` +
             '<div style="height:10px"></div>' +
             '<div class="muted">Debug tools (local only)</div>' +
             '<div style="height:6px"></div>' +
@@ -583,6 +734,11 @@
           div.querySelector('#dbgShow').addEventListener('click', ()=>{
             const sum = computeOffline();
             showOfflineModal(sum);
+          });
+          div.querySelector('#set-vol').addEventListener('input', (e)=>{
+            const val = parseFloat(e.target.value||'0');
+            Music.setVolume(val);
+            div.querySelector('#set-vol-read').textContent = val.toFixed(2);
           });
           menuBody.innerHTML=''; menuBody.append(div);
         }
@@ -685,13 +841,6 @@
 
         setInterval(()=>{ if(!Tutor.active && !off.classList.contains('show')) stampNow(); }, 15000);
 
-        (function checkReturn(){
-          try{
-            const s = computeOffline();
-            if(s.clamped >= OFFLINE_MIN_MS){ showOfflineModal(s); } else { stampNow(); }
-          }catch(e){ stampNow(); }
-        })();
-
         function tick(){
           const now = performance.now();
           const s = get();
@@ -719,7 +868,7 @@
 
             const ready = !ex.lastTapAt || now >= (ex.lastTapAt||0) + (ex.cooldown||0);
             const cId = 'c'+(i+1);
-            if(!Tutor.active && !off.classList.contains('show') && s.coaches[cId] && ready){
+            if(!blocked() && s.coaches[cId] && ready){
               const gain = perTapHP(baseHP(i, Exercises[i].baseCooldownMs), ex.repHP||0);
               patch(st => { st.hp += gain; st.stats.auto++; st.stats.totalEarned+=gain; st.exercises[i].lastTapAt = now; return st; });
             }
@@ -728,7 +877,111 @@
         }
         requestAnimationFrame(tick);
 
+        // ---------- Splash → Start gating ----------
+        function hasRealSave(d){
+          if(d.started) return true;
+          if(d.hp>0) return true;
+          if(Object.keys(d.coaches||{}).length>0) return true;
+          if((d.exercises||[]).some((e,i)=> i>0 && e && e.unlocked)) return true;
+          if((d.exercises||[]).some(e=> e && (e.repHP||0)>0)) return true;
+          return false;
+        }
+        function applyStartBackground(){
+          const ds = start.getAttribute('data-bg-desktop') || 'FF-desktop.png';
+          const ms = start.getAttribute('data-bg-mobile') || 'FF-mobile.png';
+          const url = (window.innerWidth>=720 ? ds : ms);
+          startBg.style.backgroundImage = `var(--start-hero-${window.innerWidth>=720?'desktop':'mobile'}), url('${url}')`;
+        }
+        window.addEventListener('resize', applyStartBackground);
+        applyStartBackground();
+
+        function showStart(){
+          splash.classList.remove('show');
+          if(get().started){
+            // Already started: don't force Start panel, just enable gameplay
+            document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false'));
+            // kick music on first gesture
+            window.addEventListener('pointerdown', function once(){ Music.init(); Music.play(); window.removeEventListener('pointerdown', once); }, { once:true });
+          }else{
+            start.classList.add('show');
+          }
+        }
+        function hideStart(){
+          start.classList.remove('show');
+          splash.classList.remove('show');
+          document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false'));
+        }
+        function blocked(){ return start.classList.contains('show') || splash.classList.contains('show') || Tutor.active || off.classList.contains('show'); }
+
+        // Splash timing (force ≥2s display even if skipped instantly)
+        let splashMinDone = false;
+        setTimeout(()=>{ splashMinDone = true; }, 2000);
+        let splashEnded = false;
+        function finishSplash(){
+          if(splashEnded) return;
+          if(!splashMinDone){ setTimeout(finishSplash, 250); return; }
+          splashEnded = true;
+          showStart();
+        }
+        const splashTimer = setTimeout(finishSplash, 5000);
+        splashSkip.addEventListener('click', ()=>{ clearTimeout(splashTimer); finishSplash(); SFX.click(); });
+
+        // Avatar select
+        startAvatars.addEventListener('click', (e)=>{
+          const a = e.target.closest('.ava'); if(!a) return;
+          [...startAvatars.children].forEach(x=>x.classList.toggle('active', x===a));
+          const sex = a.dataset.sex==='female' ? 'female' : 'male';
+          patch(st => { st.avatar = sex; return st; });
+          document.body.classList.toggle('female', sex==='female');
+          SFX.click();
+        });
+
+        // Start buttons — hardened
+        function begin(isNew){
+          try{
+            if(isNew){
+              S = defaults(); // reset
+              S.avatar = get().avatar;
+              S.started = true;
+              save(S); markDirty();
+            }else{
+              patch(st => { st.started = true; return st; });
+            }
+            hideStart();
+            Music.init();
+            Music.play();
+            if(isNew){
+              suppressTutorialThisSession = false;
+              setTimeout(()=>{
+                Tutor.show([ "You look a bit low on energy. Let’s fix that fast 💪", "Tap Walking to earn HP. Then we’ll power up." ]);
+                patch(st => { st.tutorial.doneIntro = true; return st; });
+              }, 150);
+            }
+            showToast(isNew ? 'New Game started' : 'Continue');
+          }catch(e){
+            const err = document.getElementById('err'); err.textContent = 'Init Error: '+ (e.message||e); err.classList.add('show');
+          }
+        }
+        btnNew.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); begin(true); });
+        btnContinue.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); begin(false); });
+
+        // Init Start menu state
+        (function initStart(){
+          btnContinue.style.display = hasRealSave(get()) ? 'inline-block' : 'none';
+          const v = Music.desiredVol();
+          if(musicRange){ musicRange.value = String(v); musicRange.addEventListener('input', e=> Music.setVolume(parseFloat(e.target.value||'0'))); }
+          if(volRead){ volRead.textContent = Number(v).toFixed(2); }
+        })();
+
+        // If already started, ensure gameplay visible beneath splash; Start won't show after splash
+        if(get().started){
+          start.classList.remove('show');
+          document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false'));
+        }
+
+        // Tutorial checks
         function tutorialCheck(){
+          if(blocked()) return;
           if(suppressTutorialThisSession) return;
           const s = get();
           if(!s.tutorial.doneIntro){
@@ -751,6 +1004,16 @@
           }
         }
         setInterval(()=>{ if(!Tutor.active) tutorialCheck(); }, 600);
+
+        // Offline modal on return (only after Start is bypassed)
+        (function checkReturn(){
+          try{
+            if(!get().started) return;
+            const s = computeOffline();
+            if(s.clamped >= OFFLINE_MIN_MS){ showOfflineModal(s); } else { stampNow(); }
+          }catch(e){ stampNow(); }
+        })();
+
       }
     }catch(e){
       const el = document.getElementById('err'); el.textContent = 'Init Error: ' + (e.message || e); el.classList.add('show');
