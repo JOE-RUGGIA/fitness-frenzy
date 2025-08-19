@@ -1503,26 +1503,33 @@ try{
 
 
 
+
+
 <style data-ff-patch>
-  /* --- Bounce on tap --- */
+  :root{
+    --ff-pink:#ff76b5;
+  }
+
+  /* --- Bounce on tap (tiles & buttons) ---/////////////////////////////////////////BOUNCE and BURST and REPS BUTTON */
   @keyframes ff-bounce {
     0%   { transform: scale(0.98); }
     40%  { transform: scale(1.07); }
     70%  { transform: scale(0.995); }
     100% { transform: scale(1); }
   }
-  .tile.ff-bounce{
+  .tile.ff-bounce,
+  .btn.ff-bounce{
     animation: ff-bounce 420ms cubic-bezier(.2,.8,.2,1);
   }
 
-  /* --- Tiny line burst (rays) --- */
+  /* --- Tiny line burst (rays) on tiles --- */
   .ff-rays{
     position:absolute;
     left:50%; top:50%;
     width:0; height:0;
     pointer-events:none;
     filter: drop-shadow(0 0 4px rgba(255,255,255,.55));
-    z-index: 3; /* above media but inside tile (tile is overflow:hidden) */
+    z-index: 3; /* above media but clipped by tile */
   }
   .ff-ray{
     position:absolute;
@@ -1539,35 +1546,45 @@ try{
     20%  { opacity:1; }
     100% { transform: rotate(var(--deg)) translateY(-18px) scale(1.0); opacity:0; }
   }
+
+  /* --- Reps button: click glow (light pink) --- */
+  .btn-reps.ff-pink-glow{
+    box-shadow:
+      0 0 0 2px rgba(255,118,181,.25) inset,
+      0 0 12px rgba(255,118,181,.40);
+  }
+
+  /* Respect reduced motion users */
+  @media (prefers-reduced-motion: reduce){
+    .tile.ff-bounce, .btn.ff-bounce{ animation-duration: 160ms; }
+    .ff-ray{ animation-duration: 220ms; }
+  }
 </style>
 
 <script type="application/ff-patch">
-/* Add bounce + small line burst on exercise tap (listens for your .burst-on) */
+/* Tile: bounce + line burst on tap; Reps button: bounce + light pink glow on click */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
-    // Bounce helper
-    function bounce(tile){
-      tile.classList.remove('ff-bounce'); // allow retrigger
+    /* ---------- Helpers ---------- */
+    function bounce(el){
+      el.classList.remove('ff-bounce'); // allow retrigger
       // force reflow
       // eslint-disable-next-line no-unused-expressions
-      tile.offsetHeight;
-      tile.classList.add('ff-bounce');
-      tile.addEventListener('animationend', ()=> tile.classList.remove('ff-bounce'), {once:true});
+      el.offsetHeight;
+      el.classList.add('ff-bounce');
+      el.addEventListener('animationend', ()=> el.classList.remove('ff-bounce'), {once:true});
     }
 
-    // Ray burst helper
     function rays(tile){
-      // container inside tile so it's clipped by tile border radius
       const wrap = document.createElement('div');
       wrap.className = 'ff-rays';
       tile.appendChild(wrap);
 
-      const N = 10;                 // number of rays
-      const jitter = ()=> (Math.random()*6 - 3); // slight angular jitter
-
+      const N = 10; // rays
+      const jitter = ()=> (Math.random()*6 - 3);
       for(let i=0;i<N;i++){
         const ray = document.createElement('i');
         ray.className = 'ff-ray';
@@ -1575,13 +1592,20 @@ try{
         ray.style.setProperty('--deg', deg+'deg');
         wrap.appendChild(ray);
       }
-      const cleanup = ()=> wrap.remove();
-      // remove after the last ray finishes
-      setTimeout(cleanup, 420);
+      setTimeout(()=> wrap.remove(), 420);
     }
 
-    // Debounce attribute per tile to avoid duplicates in the same frame
-    const FLAG='data-ff-lastfx';
+    // Ensure .btn-reps class exists even if older patches aren't present
+    function ensureRepsClass(scope){
+      (scope||document).querySelectorAll('.card .meta .btn').forEach(btn=>{
+        const isReps = btn.textContent && btn.textContent.trim().startsWith('Reps');
+        if(isReps) btn.classList.add('btn-reps');
+      });
+    }
+    ensureRepsClass(cards);
+
+    /* ---------- Tile effects: watch for your .burst-on marker ---------- */
+    const TILE_FLAG='data-ff-lastfx';
     new MutationObserver(muts=>{
       for(const m of muts){
         if(m.type!=='attributes') continue;
@@ -1590,20 +1614,35 @@ try{
         if(!tile.classList.contains('burst-on')) continue;
 
         const now = performance.now();
-        const last = Number(tile.getAttribute(FLAG) || 0);
-        if(now - last < 60) continue; // ignore rapid duplicate fires
-        tile.setAttribute(FLAG, String(now));
+        const last = Number(tile.getAttribute(TILE_FLAG) || 0);
+        if(now - last < 60) continue; // ignore dupes
+        tile.setAttribute(TILE_FLAG, String(now));
 
         bounce(tile);
         rays(tile);
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
+
+    // In case new cards render later
+    new MutationObserver(m=> ensureRepsClass(cards)).observe(cards,{childList:true,subtree:true});
+
+    /* ---------- Reps button: bounce + pink glow on click ---------- */
+    document.addEventListener('click', e=>{
+      const btn = e.target.closest('.btn-reps');
+      if(!btn) return;
+
+      // Bounce
+      bounce(btn);
+
+      // Light pink glow (temporary)
+      btn.classList.add('ff-pink-glow');
+      setTimeout(()=> btn.classList.remove('ff-pink-glow'), 420);
+    });
   }catch(e){
-    console.warn('tile fx patch error:', e);
+    console.warn('tap effects (tile + reps) patch error:', e);
   }
 })();
 </script>
-
 
 
 
