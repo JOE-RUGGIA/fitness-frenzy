@@ -1374,5 +1374,152 @@ try{
 
 
 
+
+
+
+<style>
+  /* Ensure tutorial always renders above sticky topbar */
+  .topbar{position:sticky; top:0; z-index:25 !important;}
+  .splash.show ~ .topbar,
+  .start.show  ~ .topbar{display:none !important;}
+  /* Just in case: keep the tutorial above other chrome */
+  #tip{z-index:90 !important}
+</style>
+
+<script>
+/* === Tutorial Force-Boot Patch (idempotent) === */
+(function(){
+  if (window.__FF_TUTORIAL_FALLBACK__) return;
+  window.__FF_TUTORIAL_FALLBACK__ = true;
+
+  const splash = document.getElementById('splash');
+  const start  = document.getElementById('start');
+  const tip    = document.getElementById('tip');
+  const bubble = document.getElementById('tip-bubble');
+  const headNm = document.getElementById('tip-head-name');
+  const headImg= document.getElementById('tip-head-img');
+  const textEl = document.getElementById('tip-text');
+  const nextBt = document.getElementById('tip-next');
+  const offline= document.getElementById('offline');
+  const offlineBtn = document.getElementById('offline-claim');
+
+  function uiReady(){
+    const splashHidden = !splash || !splash.classList.contains('show');
+    const startHidden  = !start  || !start.classList.contains('show');
+    return splashHidden && startHidden;
+  }
+  function tipVisible(){
+    return tip && tip.classList.contains('show');
+  }
+
+  // Use game’s own tutorial if available
+  function tryNativeTutorial(force=false){
+    try{
+      if (typeof window.checkTutorial === 'function'){
+        window.checkTutorial(!!force);
+        return true;
+      }
+    }catch(_){}
+    return false;
+  }
+
+  // Lightweight fallback tutorial using existing DOM
+  function showFallbackTutorial(){
+    if (!tip || !bubble || !textEl || !nextBt) return;
+    if (tipVisible()) return;
+
+    // Steps (JAX → You → JAX). No game state touched.
+    const steps = [
+      {who:'jax',    text:"You look a bit low on energy. Let’s fix that fast 💪"},
+      {who:'you',    text:"But where do I start?"},
+      {who:'jax',    text:"Tap Walking to earn <span class='jax-key'>HP</span>. When the unlock button <b>lights up</b>, add more to your routine. Fill the green bar <span class='mini-bar'></span> to speed up your cooldown."}
+    ];
+    let i = 0;
+
+    function render(){
+      // Speaker visuals
+      if (steps[i].who === 'you'){
+        headNm.textContent = 'You';
+        // Swap to selected avatar if present
+        headImg.src = (document.body.classList.contains('female') ? 'NEW FEMALE AVATAR.gif' : 'NEW MALE AVATAR.gif');
+      } else {
+        headNm.textContent = 'JAX';
+        headImg.src = 'fitness frenzy- coaches 128 x128 test.gif';
+      }
+      // Text (keep your highlight styles if present)
+      textEl.innerHTML = steps[i].text
+        .replace(/green bar/i, m => `${m} <span class="mini-bar"></span>`)
+        .replace(/\b(HP|Reps|cooldown|unlock|Unlock|exercise|Exercises)\b/g, '<span class="jax-key">$1</span>');
+
+      // Center by default; anchor near avatar if "you" speaking
+      bubble.classList.remove('anchored','center');
+      if (steps[i].who === 'you'){
+        const avatar = document.getElementById('avatar');
+        bubble.classList.add('anchored');
+        const rect = avatar?.getBoundingClientRect();
+        if (rect){
+          bubble.style.left = Math.max(10, rect.left) + 'px';
+          bubble.style.top  = Math.max(10, rect.bottom + 12) + 'px';
+        } else {
+          bubble.classList.add('center');
+          bubble.style.left = ''; bubble.style.top = '';
+        }
+      } else {
+        bubble.classList.add('center');
+        bubble.style.left = ''; bubble.style.top = '';
+      }
+    }
+
+    // Wiring
+    tip.classList.add('show');
+    bubble.style.visibility = 'visible';
+    render();
+
+    nextBt.onclick = function(){
+      if (++i >= steps.length){
+        tip.classList.remove('show');
+        return;
+      }
+      render();
+    };
+  }
+
+  // Orchestrate: once UI is ready, wait a moment for native flow; then fallback.
+  function bootTutorialOnce(){
+    if (!uiReady()) return;
+    // 1) Give native tutorial a shot immediately
+    let nativeShown = tryNativeTutorial(true);
+    // 2) If still not visible after 900ms, use fallback
+    setTimeout(()=>{
+      if (!tipVisible()){
+        if (!nativeShown) nativeShown = tryNativeTutorial(true);
+        if (!tipVisible()) showFallbackTutorial();
+      }
+    }, 900);
+  }
+
+  // Trigger when Splash/Start close
+  [splash, start].filter(Boolean).forEach(el=>{
+    new MutationObserver(bootTutorialOnce).observe(el,{attributes:true,attributeFilter:['class']});
+  });
+  // Also try once on load (covers direct Continue path)
+  setTimeout(bootTutorialOnce, 150);
+
+  // If Offline Gains appears first, show tutorial after user claims
+  if (offlineBtn){
+    offlineBtn.addEventListener('click', ()=>{
+      setTimeout(bootTutorialOnce, 300);
+    });
+  }
+})();
+</script>
+
+
+
+
+
+
+
+
 </body>
 </html>
