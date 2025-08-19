@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Fitness Frenzy — VS7x (offline fix + coach avatars)</title>
+<title>Fitness Frenzy — VS7x (offline fix + coach avatars + settings stats)</title>
 <style>
   :root{
     --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
@@ -77,6 +77,17 @@
   .coach-title{font-weight:800}
   .coach-sub{font-size:14px; color:#a6adcf}
   .hired{color:var(--good); font-weight:800}
+
+  /* Settings subtabs + stats UI */
+  .subtabs{display:flex; gap:8px; margin:10px 0 12px}
+  .subtabs .tab{padding:6px 10px; font-size:14px}
+  .stat-kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin:6px 0 14px}
+  .kpi{background:#171a3a; border:1px solid #2a2e5e; border-radius:12px; padding:10px 12px}
+  .kpi .h{font-size:12px; color:#aab1d6}
+  .kpi .v{font-size:18px; font-weight:800; margin-top:4px}
+  .stat-table{width:100%; border-collapse:collapse; font-size:14px; margin-top:6px}
+  .stat-table th, .stat-table td{padding:8px 10px; border-bottom:1px solid #2a2e5e; text-align:left}
+  .pill{display:inline-block; padding:2px 8px; border-radius:999px; background:#1b1f44; border:1px solid #2a2e5e; font-size:12px}
 
   /* Splash */
   .splash{position:fixed; inset:0; z-index:80; display:none; background:#ffffff}
@@ -440,7 +451,7 @@ try{
 
     /* State */
     function defaultExercises(){ return Exercises.map((ex,idx)=>({id:ex.id, unlocked:idx===0, repHP:0, repTarget:10, level:1, cooldown:ex.baseCooldownMs, lastTapAt:0})); }
-    function defaults(){ return { schema:20, started:false, hp:0, qty:1, avatar:'male', exercises:defaultExercises(), coaches:{}, tutorial:{doneIntro:false, shown:{repsHint:false, unlock:{jog:false}, coachFirst:false}}, achievements:{first_steps:false, add_routine:false, coach_duty:false, speed_demon:false}, offline:{lastSeenAt:Date.now()}, stats:{manual:0,auto:0,totalEarned:0} }; }
+    function defaults(){ return { schema:21, started:false, hp:0, qty:1, avatar:'male', exercises:defaultExercises(), coaches:{}, tutorial:{doneIntro:false, shown:{repsHint:false, unlock:{jog:false}, coachFirst:false}}, achievements:{first_steps:false, add_routine:false, coach_duty:false, speed_demon:false}, offline:{lastSeenAt:Date.now()}, stats:{manual:0,auto:0,totalEarned:0,totalPlayMs:0,firstStartedAt:Date.now()} }; }
     function ensureIntegrity(d){
       const byId=new Map((d.exercises||[]).map(e=>[e.id,e]));
       d.exercises=Exercises.map((ex,idx)=>{ const prev=byId.get(ex.id), base={id:ex.id,unlocked:idx===0,repHP:0,repTarget:10,level:1,cooldown:ex.baseCooldownMs,lastTapAt:0}; if(prev){ base.unlocked=!!prev.unlocked; base.repHP=prev.repHP|0; base.repTarget=prev.repTarget?prev.repTarget|0:10; base.level=prev.level?prev.level|0:1; base.cooldown=prev.cooldown?prev.cooldown|0:ex.baseCooldownMs; base.lastTapAt=prev.lastTapAt?prev.lastTapAt|0:0; } return base; });
@@ -450,9 +461,11 @@ try{
       if(!d.tutorial.shown.unlock) d.tutorial.shown.unlock={jog:false};
       d.achievements=d.achievements||{first_steps:false, add_routine:false, coach_duty:false, speed_demon:false};
       d.offline=d.offline||{lastSeenAt:Date.now()};
-      d.stats=d.stats||{manual:0,auto:0,totalEarned:0};
+      d.stats = d.stats || {manual:0,auto:0,totalEarned:0,totalPlayMs:0,firstStartedAt:Date.now()};
+      if(typeof d.stats.totalPlayMs!=='number') d.stats.totalPlayMs=0;
+      if(!d.stats.firstStartedAt) d.stats.firstStartedAt=Date.now();
       d.avatar=d.avatar==='female'?'female':'male';
-      d.started=!!d.started; d.schema=20; return d;
+      d.started=!!d.started; d.schema=21; return d;
     }
     function load(){ const cur=localStorage.getItem(KEY_MAIN); if(cur){ try{return ensureIntegrity(JSON.parse(cur));}catch{} } return defaults(); }
     function save(s){ try{ const p=ensureIntegrity(deepClone(s)); p.exercises.forEach(e=>e.lastTapAt=0); localStorage.setItem(KEY_MAIN, JSON.stringify(p)); }catch(_){} }
@@ -610,10 +623,11 @@ try{
     bulk.addEventListener('click', e=>{ if(blocked()) return; const b=e.target.closest('button'); if(!b) return; [...bulk.children].forEach(btn=>btn.classList.toggle('active', btn===b)); const qty=parseInt(b.dataset.q,10); patch(s=>{ s.qty=qty; return s; }); SFX.click(); });
 
     /* Menu + tabs */
+    let activeMenuTab='coaches';
     function anyCoachAffordable(){ const s=get(); for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue; const cId='c'+(i+1); if(s.coaches[cId]) continue; const price=coachPrice(i); if(s.hp>=price) return true; } return false; }
-    function openMenu(tab='coaches'){ if(blocked()) return; renderMenu(tab); menu.classList.add('show'); }
+    function openMenu(tab='coaches'){ if(blocked()) return; activeMenuTab=tab; renderMenu(tab); menu.classList.add('show'); }
     function closeMenu(){ menu.classList.remove('show'); }
-    document.getElementById('menu').addEventListener('click', e=>{ const close=e.target.closest('[data-close]'); if(close) return closeMenu(); const tabBtn=e.target.closest('.tab'); if(tabBtn){ [...menu.querySelectorAll('.tab')].forEach(b=>b.classList.toggle('active', b===tabBtn)); renderMenu(tabBtn.dataset.tab); } });
+    document.getElementById('menu').addEventListener('click', e=>{ const close=e.target.closest('[data-close]'); if(close) return closeMenu(); const tabBtn=e.target.closest('.tab'); if(tabBtn){ [...menu.querySelectorAll('.tab')].forEach(b=>b.classList.toggle('active', b===tabBtn)); activeMenuTab=tabBtn.dataset.tab; renderMenu(activeMenuTab); } });
     avatarBtn.addEventListener('click', ()=>{ if(!blocked()) openMenu('coaches'); });
 
     function renderMenu(tab){
@@ -636,6 +650,9 @@ try{
       }
       menuBody.innerHTML=''; if(!any) menuBody.innerHTML='<div class="muted">Unlock an exercise to hire its coach.</div>'; else menuBody.append(frag);
     }
+
+    /* Settings + STATS */
+    let settingsSub='general';
     function setAvatar(sex){
       const s=(sex==='female')?'female':'male';
       patch(st=>{ st.avatar=s; return st; });
@@ -643,30 +660,104 @@ try{
       for(let i=0;i<Exercises.length;i++){ const ex=get().exercises[i]; if(!ex) continue; ensureMediaForCard(i, !!ex.unlocked); }
       markDirty();
     }
+    function fmtDur(ms){ ms=Math.max(0,ms|0); const s=Math.floor(ms/1000); const hh=String(Math.floor(s/3600)).padStart(2,'0'); const mm=String(Math.floor((s%3600)/60)).padStart(2,'0'); const ss=String(s%60).padStart(2,'0'); return `${hh}:${mm}:${ss}`; }
+    function hpPerMin(totalHP, ms){ if(ms<=0) return '0'; return (totalHP/(ms/60000)).toFixed(2); }
+
     function renderSettings(){
       const s=get(), p=loadPrefs();
       const div=document.createElement('div');
-      div.innerHTML=`
-        <div class="muted">Avatar</div>
-        <div style="display:flex; gap:14px; margin:8px 0 16px 0; font-size:16px">
-          <label><input type="radio" name="av" value="male" ${s.avatar==='male'?'checked':''}> Male</label>
-          <label><input type="radio" name="av" value="female" ${s.avatar==='female'?'checked':''}> Female</label>
-        </div>
-        <div class="muted">Audio</div>
-        <div style="display:flex; align-items:center; gap:12px; margin:8px 0 16px 0">
-          <label><input id="music-on" type="checkbox" ${p.musicOn?'checked':''}> Music on</label>
-          <label>Volume <input id="music-vol" type="range" min="0" max="1" step="0.01" value="${p.musicVol}"></label>
-        </div>
-        <div class="muted">Save</div>
-        <div style="height:6px"></div>
-        <button id="reset" class="btn">Reset Save</button>`;
+      const subtabs=document.createElement('div'); subtabs.className='subtabs';
+      const tGen=document.createElement('button'); tGen.className='tab'+(settingsSub==='general'?' active':''); tGen.textContent='General'; tGen.addEventListener('click',()=>{ settingsSub='general'; renderSettings(); });
+      const tStats=document.createElement('button'); tStats.className='tab'+(settingsSub==='stats'?' active':''); tStats.textContent='Stats'; tStats.addEventListener('click',()=>{ settingsSub='stats'; renderSettings(); });
+      subtabs.append(tGen,tStats);
+
+      const body=document.createElement('div');
+
+      if(settingsSub==='general'){
+        body.innerHTML=`
+          <div class="muted">Avatar</div>
+          <div style="display:flex; gap:14px; margin:8px 0 16px 0; font-size:16px">
+            <label><input type="radio" name="av" value="male" ${s.avatar==='male'?'checked':''}> Male</label>
+            <label><input type="radio" name="av" value="female" ${s.avatar==='female'?'checked':''}> Female</label>
+          </div>
+          <div class="muted">Audio</div>
+          <div style="display:flex; align-items:center; gap:12px; margin:8px 0 16px 0">
+            <label><input id="music-on" type="checkbox" ${p.musicOn?'checked':''}> Music on</label>
+            <label>Volume <input id="music-vol" type="range" min="0" max="1" step="0.01" value="${p.musicVol}"></label>
+          </div>
+          <div class="muted">Save</div>
+          <div style="height:6px"></div>
+          <button id="reset" class="btn">Reset Save</button>`;
+      } else {
+        // Build STATS view
+        const now=Date.now();
+        const sessionMs = (!start.classList.contains('show') && !splash.classList.contains('show')) ? (now - (window.__FF_SESSION_START__||now)) : 0;
+        const totalMs = (s.stats.totalPlayMs||0) + sessionMs;
+        const unlockedCount = s.exercises.filter(e=>e&&e.unlocked).length;
+        const hiredCount = Object.keys(s.coaches||{}).length;
+        let fastest = null, bestTap = 0;
+        for(let i=0;i<s.exercises.length;i++){
+          const ex=s.exercises[i]; if(!ex||!ex.unlocked) continue;
+          if(fastest===null || ex.cooldown < fastest) fastest=ex.cooldown;
+          const tap=perTapHP(baseHP(i,Exercises[i].baseCooldownMs), ex.repHP||0); if(tap>bestTap) bestTap=tap;
+        }
+        const kpis=document.createElement('div'); kpis.className='stat-kpis';
+        kpis.innerHTML=`
+          <div class="kpi"><div class="h">Current HP</div><div class="v">${fmt(s.hp)}</div></div>
+          <div class="kpi"><div class="h">Total Earned</div><div class="v">${fmt(s.stats.totalEarned||0)}</div></div>
+          <div class="kpi"><div class="h">Play Time</div><div class="v">${fmtDur(totalMs)}</div></div>
+          <div class="kpi"><div class="h">HP / min (avg)</div><div class="v">${hpPerMin(s.stats.totalEarned||0,totalMs)}</div></div>
+          <div class="kpi"><div class="h">Manual Taps</div><div class="v">${fmt(s.stats.manual||0)}</div></div>
+          <div class="kpi"><div class="h">Auto Taps</div><div class="v">${fmt(s.stats.auto||0)}</div></div>
+          <div class="kpi"><div class="h">Exercises Unlocked</div><div class="v">${unlockedCount} / ${Exercises.length}</div></div>
+          <div class="kpi"><div class="h">Coaches Hired</div><div class="v">${hiredCount}</div></div>
+          <div class="kpi"><div class="h">Fastest Cooldown</div><div class="v">${fastest!==null?(fastest/1000).toFixed(2)+'s':'—'}</div></div>
+          <div class="kpi"><div class="h">Best HP per Tap</div><div class="v">${bestTap||0}</div></div>
+        `;
+
+        const table=document.createElement('table'); table.className='stat-table';
+        const thead=document.createElement('thead'); thead.innerHTML=`<tr>
+          <th>Exercise</th><th>Level</th><th>Reps</th><th>Cooldown</th><th>HP/tap</th><th>Coach</th>
+        </tr>`;
+        const tbody=document.createElement('tbody');
+        for(let i=0;i<Exercises.length;i++){
+          const meta=Exercises[i]; const ex=s.exercises[i]; if(!ex) continue;
+          const tr=document.createElement('tr');
+          const hpTap=ex.unlocked? perTapHP(baseHP(i,meta.baseCooldownMs), ex.repHP||0) : '—';
+          tr.innerHTML=`
+            <td>${meta.name} ${ex.unlocked?'':'<span class="pill" style="margin-left:6px">Locked</span>'}</td>
+            <td>${ex.unlocked?(ex.level||1):'—'}</td>
+            <td>${ex.unlocked? ((ex.repHP||0)+' / '+(ex.repTarget||10)):'—'}</td>
+            <td>${ex.unlocked? ((ex.cooldown/1000).toFixed(2)+'s'):'—'}</td>
+            <td>${ex.unlocked? hpTap:'—'}</td>
+            <td>${(get().coaches['c'+(i+1)])?'<span class="hired">Hired</span>':'—'}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+        table.append(thead,tbody);
+
+        const footer=document.createElement('div');
+        const startedAt=new Date(s.stats.firstStartedAt||Date.now());
+        footer.innerHTML=`<div style="margin-top:12px; color:#aab1d6; font-size:13px">
+          Started: ${startedAt.toLocaleString()} • Session running: ${fmtDur(sessionMs)}
+        </div>`;
+
+        body.append(kpis, table, footer);
+      }
+
+      div.append(subtabs, body);
       menuBody.innerHTML=''; menuBody.append(div);
-      div.querySelector('#reset').addEventListener('click',()=>{ if(confirm('Reset your save and return to splash?')){ try{ localStorage.removeItem(KEY_MAIN);}catch(_){ } location.reload(); } });
-      div.querySelectorAll('input[name="av"]').forEach(r=> r.addEventListener('change', e=> setAvatar(e.target.value)));
-      const chk=div.querySelector('#music-on'); const rng=div.querySelector('#music-vol');
-      chk.addEventListener('change',()=>Music.setOn(chk.checked));
-      rng.addEventListener('input',()=>Music.setVol(parseFloat(rng.value)));
+
+      // Wire general handlers
+      if(settingsSub==='general'){
+        body.querySelector('#reset').addEventListener('click',()=>{ if(confirm('Reset your save and return to splash?')){ try{ localStorage.removeItem(KEY_MAIN);}catch(_){ } location.reload(); } });
+        body.querySelectorAll('input[name="av"]').forEach(r=> r.addEventListener('change', e=> setAvatar(e.target.value)));
+        const chk=body.querySelector('#music-on'); const rng=body.querySelector('#music-vol');
+        chk.addEventListener('change',()=>Music.setOn(chk.checked));
+        rng.addEventListener('input',()=>Music.setVol(parseFloat(rng.value)));
+      }
     }
+
     function renderAchievements(){
       const s=get(); const grid=document.createElement('div');
       const makeRow=(key,data)=>{ const row=document.createElement('div'); row.className='coach-row';
@@ -747,7 +838,7 @@ try{
     startAvatars.addEventListener('click', e=>{ const a=e.target.closest('.ava'); if(!a) return; const sex=a.dataset.sex==='female'?'female':'male'; setStartActive(a); setAvatar(sex); });
 
     /* Offline handling */
-    const OFFLINE_MIN_MS=20000;           // show if ≥ 20s away (your preference)
+    const OFFLINE_MIN_MS=20000;           // show if ≥ 20s away
     const OFFLINE_CAP_MS=72*60*60*1000;   // 72h cap
     let skipTutorialOnce=false;
 
@@ -772,7 +863,7 @@ try{
       offlineList.innerHTML = lines.length ? `<div>${lines.join('<br>')}</div>` : '';
       offlineText.textContent = `Your coaches kept training for ${(ms/1000).toFixed(0)}s and earned +${fmt(total)} HP.`;
       offlineModal.classList.add('show');
-      skipTutorialOnce=true; // GDD: never show tutorial after an offline-claim screen
+      skipTutorialOnce=true; // never show tutorial after an offline-claim screen in this session
       offlineClaim.onclick = ()=>{
         patch(st=>{ st.hp += total; st.offline.lastSeenAt = Date.now(); return st; });
         offlineModal.classList.remove('show');
@@ -780,28 +871,37 @@ try{
       };
     }
 
-    // Update last-seen when leaving / hiding
-    function stampLastSeen(){
-      patch(st=>{ st.offline.lastSeenAt = Date.now(); return st; });
+    // Track playtime across sessions
+    window.__FF_SESSION_START__ = Date.now();
+    function stampPlaytime(){
+      const now=Date.now();
+      // Only count when the game is active (not splash/start)
+      const active = !(start.classList.contains('show') || splash.classList.contains('show'));
+      if(!active) { window.__FF_SESSION_START__ = now; return; }
+      const delta = now - (window.__FF_SESSION_START__||now);
+      if(delta>0){
+        patch(st=>{ st.stats.totalPlayMs = (st.stats.totalPlayMs||0) + delta; return st; });
+        window.__FF_SESSION_START__ = now;
+      }
     }
-    document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stampLastSeen(); });
-    window.addEventListener('beforeunload', stampLastSeen);
+    document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ stampPlaytime(); stampLastSeen(); } else { window.__FF_SESSION_START__ = Date.now(); } });
+    window.addEventListener('beforeunload', ()=>{ stampPlaytime(); stampLastSeen(); });
 
     function begin(isNew){
       try{
         const chosen=get().avatar;
         if(isNew){
           S=defaults(); S.avatar=chosen; S.started=true; S.offline.lastSeenAt=Date.now(); save(S); markDirty();
-          hideStart(); Music.startPlay(); setTimeout(()=> checkTutorial(true), 80);
+          hideStart(); Music.startPlay(); window.__FF_SESSION_START__ = Date.now(); setTimeout(()=> checkTutorial(true), 80);
           showToast('New Game started');
         }else{
           // Continue: compute offline FIRST. Do not force intro.
           const off=computeOffline();
-          hideStart(); Music.startPlay();
+          hideStart(); Music.startPlay(); window.__FF_SESSION_START__ = Date.now();
           if(off.total>0){ showOffline(off.total, off.lines, off.ms); }
           else { setTimeout(()=> checkTutorial(false), 80); }
           // Always stamp new lastSeen after resume
-          patch(st=>{ st.started=true; st.offline.lastSeenAt=Date.now(); return st; });
+          patch(st=>{ st.started=true; st.offline.lastSeenAt=Date.now(); if(!st.stats.firstStartedAt) st.stats.firstStartedAt=Date.now(); return st; });
           showToast('Continue');
         }
       }catch(e){ const err=document.getElementById('err'); err.textContent='Init Error: '+(e.message||e); err.style.display='block'; }
@@ -897,6 +997,14 @@ try{
     /* Loopers */
     function tickReady(){ checkTutorial(false); requestAnimationFrame(tickReady); }
     requestAnimationFrame(tickReady);
+
+    // While menu is open, refresh stats every second
+    setInterval(()=>{ if(menu.classList.contains('show') && activeMenuTab==='settings' && settingsSub==='stats'){ markDirty(); renderSettings(); } }, 1000);
+
+    // Helper to update last seen timestamp
+    function stampLastSeen(){
+      patch(st=>{ st.offline.lastSeenAt = Date.now(); return st; });
+    }
 
   }
 }catch(e){
