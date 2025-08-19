@@ -3,19 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fitness Frenzy — VS7m (mobile avatars + tile click)</title>
+  <title>Fitness Frenzy — VS7q (female fix + no flicker)</title>
   <style>
     :root{
       --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --accent:#ff7a1a; --accent-2:#3aa6ff;
       --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f;
       --female-accent:#ff76b5;
-      --start-hero-desktop:url('FF-desktop.png');
-      --start-hero-mobile:url('FF-mobile.png');
       --splash-logo:url('GameBros Logo.png');
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0; background:var(--bg); color:#f5f7ff; font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+    body{margin:0; background:var(--bg); color:var(--text); font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
 
     .topbar{position:sticky; top:0; z-index:20; background:linear-gradient(180deg, #151734, #10122a); border-bottom:1px solid #22254b; padding:10px 12px}
     .wrap{max-width:880px; margin:0 auto; padding:12px}
@@ -34,8 +32,11 @@
     .card{display:grid; grid-template-columns:110px 1fr; gap:12px; padding:10px; background:var(--panel); border:1px solid #262a58; border-radius:12px}
     .tile{background:var(--panel-2); border-radius:10px; position:relative; height:110px; user-select:none; overflow:hidden; cursor:pointer; outline:none}
     .tile.locked{filter: grayscale(100%); opacity:.9; cursor:default}
-    .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px}
-    .media{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none}
+    .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 6px; border-radius:6px; font-size:12px; z-index:2}
+    .media{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; z-index:0}
+    .repband{position:absolute; left:6px; right:6px; bottom:6px; height:16px; border-radius:8px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden; z-index:2}
+    .repfill{height:100%; width:0%; background:linear-gradient(90deg, #17b34c, #27c93f)}
+    .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:#cfead6; text-shadow:0 1px 2px #000}
     .title{font-weight:700; margin-top:2px}
     .cooldown{margin-top:6px; height:20px; background:#141739; border:1px solid #2a2e5e; border-radius:6px; overflow:hidden; position:relative}
     .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg, #2f6df3, #41b0ff)}
@@ -44,14 +45,6 @@
     .muted{color:#aab1d6}
     .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:10px 14px; border-radius:10px; min-width:180px; cursor:pointer; font-variant-numeric: tabular-nums}
     .btn.glow{box-shadow:0 0 0 2px rgba(255, 192, 120, .25) inset, 0 0 12px rgba(255, 122, 26, .35)}
-    .repband{position:absolute; left:6px; right:6px; bottom:6px; height:16px; border-radius:8px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden}
-    .repfill{height:100%; width:0%; background:linear-gradient(90deg, #17b34c, #27c93f)}
-    .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:#cfead6; text-shadow:0 1px 2px #000}
-    .pill{appearance:none; border:1px solid #2a2e5e; background:#1f254f; color:#e9edff; padding:8px 12px; border-radius:999px; cursor:pointer; font-variant-numeric: tabular-nums}
-    .pill.orange{background:var(--accent); color:#1b0d00; font-weight:800}
-    body.female .pill.orange{background:var(--female-accent); color:#2b0020}
-    .pulse{animation:pulse 1.8s ease-in-out infinite}
-    @keyframes pulse{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.03) } }
 
     /* Menu overlay */
     .menu{position:fixed; inset:0; display:none; z-index:40}
@@ -172,7 +165,7 @@
       <div class="row">
         <div class="row" style="gap:12px; align-items:center">
           <button id="avatar" class="avatar" title="Menu"><span>FF</span><span id="avatar-dot" class="dot"></span></button>
-          <div class="logo">Fitness Frenzy — VS7m</div>
+          <div class="logo">Fitness Frenzy — VS7q</div>
         </div>
         <div class="bulk" id="bulk">
           <button data-q="1" class="active">×1</button>
@@ -207,29 +200,6 @@
     </div>
   </div>
 
-  <!-- JAX -->
-  <div id="jax" class="jax" role="dialog" aria-modal="true" aria-label="Tutorial">
-    <div class="panel">
-      <div class="head"><div class="ava">J</div><div style="font-weight:900">JAX</div></div>
-      <div id="jax-text" class="body"></div>
-      <div class="actions"><button id="jax-skip" class="btn">Skip</button><button id="jax-next" class="btn">Next</button></div>
-    </div>
-  </div>
-
-  <!-- Offline -->
-  <div id="off" class="off" role="dialog" aria-modal="true" aria-label="Offline gains">
-    <div class="panel">
-      <h3>Welcome back! 🎒</h3>
-      <div class="muted" id="off-sub"></div>
-      <div id="off-list" class="list"></div>
-      <div class="total"><div>Total</div><div id="off-total">0</div></div>
-      <div class="actions">
-        <button id="off-dismiss" class="btn">Dismiss</button>
-        <button id="off-claim" class="btn">Claim</button>
-      </div>
-    </div>
-  </div>
-
   <div id="toast" class="toast"><div class="box" id="toast-text"></div></div>
 
   <script>
@@ -243,8 +213,8 @@
 
   <script>
     try{
-      if(!window.__FF_VS7M__){
-        window.__FF_VS7M__ = true;
+      if(!window.__FF_VS7Q__){
+        window.__FF_VS7Q__ = true;
 
         function deepClone(x){ try{ return structuredClone(x); }catch(_){ try{ return JSON.parse(JSON.stringify(x)); }catch(__){ return x; } } }
         const isMobile = () => /Mobi|Android/i.test(navigator.userAgent) || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
@@ -271,6 +241,71 @@
 
         const KEY_MAIN = 'ff-v1';
         const KEY_PREFS = 'ff-v1:prefs';
+
+        // --- Assets map (stills + GIFs first-4) ---
+        const STILLS = {
+          male: {
+            walk: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.png?raw=true",
+            jog:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.png?raw=true",
+            sit:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.png?raw=true",
+            push: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.png?raw=true",
+            jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jumping%20jacks.png?raw=true",
+            pull: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pull%20ups.png?raw=true",
+            rope: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20jump%20rope.png?raw=true",
+            plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20planks.png?raw=true",
+            mtclimb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20mountain%20climbers.png?raw=true",
+            kb:   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20kettlebells.png?raw=true",
+            burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20burpees.png?raw=true",
+            bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20bench%20press.png?raw=true",
+            backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20back%20squat.png?raw=true",
+            dead: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20deadlifts.png?raw=true",
+            hand: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstands.png?raw=true",
+            hspu: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20handstand%20push%20ups.png?raw=true",
+            muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20muscle%20ups.png?raw=true",
+            lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20front%20lever.png?raw=true",
+            icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20iron%20cross.png?raw=true",
+            vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20victorian%20cross.png?raw=true"
+          },
+          female: {
+            walk: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.png?raw=true",
+            jog:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.png?raw=true",
+            sit:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.png?raw=true",
+            push: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.png?raw=true",
+            jacks:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jumping%20jacks.png?raw=true",
+            pull: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pull%20up.png?raw=true",
+            rope: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20jump%20rope.png?raw=true",
+            plank:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20plank.png?raw=true",
+            mtclimb:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20mountain%20climbers.png?raw=true",
+            kb:   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20kettlebell.png?raw=true",
+            burpee:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20burpees.png?raw=true",
+            bench:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20bench%20press.png?raw=true",
+            backsq:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20back%20squat.png?raw=true",
+            dead: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20deadlift.png?raw=true",
+            hand: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand.png?raw=true",
+            hspu: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20handstand%20push%20ups.png?raw=true",
+            muscle:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20muscle%20up.png?raw=true",
+            lever:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20front%20lever.png?raw=true",
+            icross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20iron%20cross.png?raw=true",
+            vcross:"https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20victorian%20cross.png?raw=true"
+          }
+        };
+        const GIFS = {
+          male: {
+            walk: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20walking.gif?raw=true",
+            jog:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20running.gif?raw=true",
+            sit:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20situps.gif?raw=true",
+            push: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/male%20pushups.gif?raw=true"
+          },
+          female: {
+            walk: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20walking.gif?raw=true",
+            jog:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20running.gif?raw=true",
+            sit:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20situp.gif?raw=true",
+            push: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20pushup.gif?raw=true"
+          }
+        };
+
+        function canonical(u){ if(!u) return ''; const i=u.indexOf('?'); return i>=0?u.slice(0,i):u; }
+        function bust(u){ if(!u) return ''; return u + (u.includes('?')?'&':'?') + 't=' + Date.now(); }
 
         function loadPrefs(){
           try{ const raw = localStorage.getItem(KEY_PREFS); return raw? JSON.parse(raw): {}; }catch(_){ return {}; }
@@ -302,23 +337,23 @@
         const OFFLINE_CAP_HOURS=72, OFFLINE_MIN_MS=20000;
 
         const Exercises=[
-          { id:'walk', name:'Walking', baseCooldownMs:1000, alias:'Walking' },
-          { id:'jog', name:'Jogging', baseCooldownMs:3000, alias:'Running' },
-          { id:'sit', name:'Sit-ups', baseCooldownMs:6000, alias:'Situps' },
-          { id:'push', name:'Push-ups', baseCooldownMs:12000, alias:'Pushups' },
+          { id:'walk', name:'Walking', baseCooldownMs:1000 },
+          { id:'jog', name:'Jogging', baseCooldownMs:3000 },
+          { id:'sit', name:'Sit-ups', baseCooldownMs:6000 },
+          { id:'push', name:'Push-ups', baseCooldownMs:12000 },
           { id:'jacks', name:'Jumping Jacks', baseCooldownMs:24000 },
-          { id:'pull', name:'Pull-ups', baseCooldownMs:48000, alias:'Pull ups' },
-          { id:'rope', name:'Jump Rope', baseCooldownMs:96000, alias:'Jump Rope' },
+          { id:'pull', name:'Pull-ups', baseCooldownMs:48000 },
+          { id:'rope', name:'Jump Rope', baseCooldownMs:96000 },
           { id:'plank', name:'Plank', baseCooldownMs:192000 },
           { id:'mtclimb', name:'Mountain Climbers', baseCooldownMs:384000 },
-          { id:'kb', name:'Kettlebell', baseCooldownMs:768000, alias:'Kettlebells' },
+          { id:'kb', name:'Kettlebell', baseCooldownMs:768000 },
           { id:'burpee', name:'Burpees', baseCooldownMs:1536000 },
           { id:'bench', name:'Bench Press', baseCooldownMs:3072000 },
           { id:'backsq', name:'Back Squat', baseCooldownMs:6144000 },
-          { id:'dead', name:'Deadlift', baseCooldownMs:12288000, alias:'Deadlifts' },
+          { id:'dead', name:'Deadlift', baseCooldownMs:12288000 },
           { id:'hand', name:'Handstands', baseCooldownMs:24576000 },
-          { id:'hspu', name:'Handstand Push-ups', baseCooldownMs:49152000, alias:'HSPU' },
-          { id:'muscle', name:'Muscle-ups', baseCooldownMs:98304000, alias:'Muscle ups' },
+          { id:'hspu', name:'Handstand Push-ups', baseCooldownMs:49152000 },
+          { id:'muscle', name:'Muscle-ups', baseCooldownMs:98304000 },
           { id:'lever', name:'Front Lever', baseCooldownMs:196608000 },
           { id:'icross', name:'Iron Cross', baseCooldownMs:393216000 },
           { id:'vcross', name:'Victorian Cross', baseCooldownMs:786432000 },
@@ -372,49 +407,67 @@
         const get=()=>S;
         function patch(mut){ S=ensureIntegrity(mut(deepClone(S))); save(S); markDirty(); }
 
-        function showToast(msg){ toastText.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1800); }
+        function showToast(msg){ toastText.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1600); }
 
-        // SFX
+        // SFX (positive only)
         const SFX=(()=>{ let ctx=null; function ensure(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch{} } return ctx; }
           function beep(freq=440,dur=.05){ const c=ensure(); if(!c) return; const o=c.createOscillator(), g=c.createGain(); o.frequency.value=freq; o.type='square'; g.gain.value=.02; o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+dur); }
           return { click(){beep(660,.03)}, ok(){beep(520,.05)} };
         })();
 
-        // Tutorial + Offline
-        const jax=document.getElementById('jax'), jaxText=document.getElementById('jax-text'), jaxSkip=document.getElementById('jax-skip'), jaxNext=document.getElementById('jax-next');
-        const Tutor=(()=>{ let queue=[], active=false; function show(lines){ queue=lines.slice(); active=true; jax.classList.add('show'); step(); }
-          function step(){ if(queue.length===0){ hide(); return; } jaxText.textContent=queue.shift(); }
-          function hide(){ active=false; jax.classList.remove('show'); }
-          jaxNext.addEventListener('click', step); jaxSkip.addEventListener('click', hide);
-          return { show, hide, get active(){return active;} };
-        })();
-
-        const off=document.getElementById('off'), offSub=document.getElementById('off-sub'), offList=document.getElementById('off-list'), offTotal=document.getElementById('off-total');
-        const offClaim=document.getElementById('off-claim'), offDismiss=document.getElementById('off-dismiss');
-        let suppressTutorialThisSession=false;
-        let introShownThisSession=false;
-
-        // Media resolver
-        const mediaCache=new Map();
-        function titleCase(s){ return s.replace(/\w\S*/g, t=>t[0].toUpperCase()+t.slice(1).toLowerCase()); }
-        function snake(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
-        function kebab(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$|/g,''); }
-        function fileCandidatesFor(idx, unlocked){
-          const ex=Exercises[idx]; const sex=get().avatar; const gender=sex; const Gender=sex[0].toUpperCase()+sex.slice(1);
-          const human=ex.name; const alias=ex.alias||human; const titleHuman=titleCase(human); const titleAlias=titleCase(alias);
-          const sHuman=snake(human), sAlias=snake(alias); const kHuman=kebab(human), kAlias=kebab(alias);
-          const exts=[]; if(idx<=3&&unlocked){ exts.push('gif','png'); } else { exts.push('png','gif'); }
-          const bases=[ `${gender}_${sAlias}`, `${gender}_${sHuman}`, `${Gender} ${titleAlias}`, `${Gender} ${titleHuman}`,
-                        `${sAlias}_${gender}`, `${sHuman}_${gender}`, `${kAlias}-${gender}`, `${kHuman}-${gender}`,
-                        `${titleAlias}`, `${titleHuman}`, `${sAlias}`, `${sHuman}`, `${kAlias}`, `${kHuman}`,
-                        `${gender}_${ex.id}`, `${ex.id}_${gender}`, `${ex.id}` ];
-          const prefixes=['','./','assets/','img/',`${gender}/`,`assets/${gender}/`,`img/${gender}/`];
-          const out=[]; for(const b of bases){ for(const ext of exts){ for(const pre of prefixes){ out.push(`${pre}${b}.${ext}`);} } } return out;
+        // --- Media resolver: stills for all, GIFs for first-4 when unlocked; no flicker ---
+        function currentSex(){ return get().avatar==='female'?'female':'male'; }
+        function mediaURL(exId, idx, unlocked){
+          const sex=currentSex();
+          if(unlocked && idx<4 && GIFS[sex] && GIFS[sex][exId]) return GIFS[sex][exId];
+          return (STILLS[sex] && STILLS[sex][exId]) || '';
         }
-        function probeFirstURL(urls){ return new Promise(resolve=>{ let i=0; const next=()=>{ if(i>=urls.length) return resolve(''); const url=urls[i++]; const img=new Image(); img.onload=()=>resolve(url); img.onerror=next; img.src=url; }; next(); }); }
-        async function resolveMedia(idx, unlocked){ const key=`${get().avatar}|${Exercises[idx].id}|${unlocked?1:0}`; if(mediaCache.has(key)) return mediaCache.get(key); const found=await probeFirstURL(fileCandidatesFor(idx,unlocked)); mediaCache.set(key,found); return found; }
 
         const cardRefs=new Map();
+        async function ensureMediaForCard(idx, unlocked){
+          const r=cardRefs.get(Exercises[idx].id); if(!r) return;
+          const url=mediaURL(Exercises[idx].id, idx, unlocked);
+          if(!url){
+            r.media.removeAttribute('src'); r.media.style.display='none'; return;
+          }
+          const cur=canonical(r.media.src);
+          const target=canonical(url);
+          if(cur!==target){
+            // only update when truly changing (gender or lock state change)
+            r.media.src = url; // no clear step to avoid blink
+            r.media.style.display='';
+          }
+        }
+
+        function updateCard(id){
+          const r=cardRefs.get(id); if(!r) return; const exMeta=Exercises[r.idx]; const ex=get().exercises[r.idx];
+          r.title.textContent = exMeta ? exMeta.name : (ex && ex.id) || 'Exercise';
+          if(!ex){
+            r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
+          }
+          r.lvl.textContent='Lvl '+(ex.level||1);
+          if(!ex.unlocked){
+            r.tile.classList.add('locked');
+            const b=baseHP(r.idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs);
+            r.left.textContent='—'; r.rightBtn.textContent='Unlock • '+fmt(price)+' HP';
+            const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford);
+            r.reptext.textContent='—'; r.repfill.style.width='0%';
+            ensureMediaForCard(r.idx,false);
+          } else {
+            r.tile.classList.remove('locked');
+            const b=baseHP(r.idx,exMeta.baseCooldownMs); const hpTap=perTapHP(b, ex.repHP||0);
+            r.left.textContent=hpTap+' HP / tap';
+            const rb=repBaseCost(b); const g=repGrowth(ex.level||1); const qty=get().qty||1;
+            const price=Math.ceil(qty===1?repCostSingle(rb,g,ex.repHP||0):repCostBulk(rb,g,ex.repHP||0,qty));
+            r.rightBtn.textContent='Reps • '+fmt(price)+' HP';
+            const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford);
+            r.reptext.textContent=(ex.repHP||0)+' / '+(ex.repTarget||10);
+            const pct=Math.max(0,Math.min(100,100*((ex.repHP||0)/(ex.repTarget||10))));
+            r.repfill.style.width=pct+'%';
+            ensureMediaForCard(r.idx,true);
+          }
+        }
+
         function createCard(idx){
           const exMeta=Exercises[idx], exState=get().exercises[idx];
           if(!exMeta) return;
@@ -469,34 +522,8 @@
           ensureMediaForCard(idx, get().exercises[idx].unlocked);
           updateCard(exMeta.id);
         }
-        async function ensureMediaForCard(idx, unlocked){ const r=cardRefs.get(Exercises[idx].id); if(!r) return; const url=await resolveMedia(idx,unlocked); if(url){ r.media.src=url; r.media.style.display=''; }else{ r.media.removeAttribute('src'); r.media.style.display='none'; } }
-        function updateCard(id){
-          const r=cardRefs.get(id); if(!r) return; const exMeta=Exercises[r.idx]; const ex=get().exercises[r.idx];
-          r.title.textContent = exMeta ? exMeta.name : (ex && ex.id) || 'Exercise';
-          if(!ex){
-            r.tile.classList.add('locked'); r.left.textContent='—'; r.rightBtn.textContent='—'; r.reptext.textContent='—'; r.repfill.style.width='0%'; return;
-          }
-          r.lvl.textContent='Lvl '+(ex.level||1);
-          if(!ex.unlocked){
-            r.tile.classList.add('locked');
-            const b=baseHP(r.idx,exMeta.baseCooldownMs); const price=unlockCost(b,exMeta.baseCooldownMs);
-            r.left.textContent='—'; r.rightBtn.textContent='Unlock • '+fmt(price)+' HP';
-            const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford); r.rightBtn.classList.toggle('pulse',afford);
-            r.reptext.textContent='—'; r.repfill.style.width='0%'; ensureMediaForCard(r.idx,false);
-          } else {
-            r.tile.classList.remove('locked');
-            const b=baseHP(r.idx,exMeta.baseCooldownMs); const hpTap=perTapHP(b, ex.repHP||0);
-            r.left.textContent=hpTap+' HP / tap';
-            const rb=repBaseCost(b); const g=repGrowth(ex.level||1); const qty=get().qty||1;
-            const price=Math.ceil(qty===1?repCostSingle(rb,g,ex.repHP||0):repCostBulk(rb,g,ex.repHP||0,qty));
-            r.rightBtn.textContent='Reps • '+fmt(price)+' HP';
-            const afford=get().hp>=price; r.rightBtn.classList.toggle('glow',afford); r.rightBtn.classList.remove('pulse');
-            r.reptext.textContent=(ex.repHP||0)+' / '+(ex.repTarget||10);
-            const pct=Math.max(0,Math.min(100,100*((ex.repHP||0)/(ex.repTarget||10))));
-            r.repfill.style.width=pct+'%'; ensureMediaForCard(r.idx,true);
-          }
-        }
         function buildCards(){ cardsRoot.innerHTML=''; cardRefs.clear(); for(let i=0;i<Exercises.length;i++) createCard(i); }
+
         bulk.addEventListener('click', e=>{ if(blocked()) return; const b=e.target.closest('button'); if(!b) return; [...bulk.children].forEach(btn=>btn.classList.toggle('active', btn===b)); const qty=parseInt(b.dataset.q,10); patch(s=>{ s.qty=qty; return s; }); SFX.click(); });
 
         function anyCoachAffordable(){ const s=get(); for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue; const cId='c'+(i+1); if(s.coaches[cId]) continue; const price=coachPrice(i); if(s.hp>=price) return true; } return false; }
@@ -506,28 +533,46 @@
         document.getElementById('menu').addEventListener('click', menuBackdropHandler);
         avatarBtn.addEventListener('click', ()=>{ if(!blocked()) openMenu('coaches'); });
 
-        function renderMenu(tab){ if(tab==='coaches') return renderCoaches(); if(tab==='settings') return renderSettings(); if(tab==='achievements') return renderAchievements(); menuBody.innerHTML='<div class="muted">Coming soon.</div>'; }
+        function renderMenu(tab){
+          if(tab==='coaches') return renderCoaches();
+          if(tab==='settings') return renderSettings();
+          if(tab==='achievements') return renderAchievements();
+          menuBody.innerHTML='<div class="muted">Coming soon.</div>';
+        }
         function renderCoaches(){ const s=get(); const frag=document.createDocumentFragment(); let any=false; for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue; any=true; const row=document.createElement('div'); row.className='coach-row'; const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent=i%2===0?'F':'M'; const mid=document.createElement('div'); const title=document.createElement('div'); title.className='coach-title'; title.textContent='Coach '+(i+1); const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent='Works on: '+Exercises[i].name; mid.append(title,sub); const action=document.createElement('div'); const cId='c'+(i+1); const hired=!!s.coaches[cId]; const price=coachPrice(i); if(hired){ const span=document.createElement('span'); span.className='hired'; span.textContent='Hired'; action.append(span); }else{ const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Hire • '+fmt(price)+' HP'; if(s.hp>=price) btn.classList.add('glow'); btn.addEventListener('click',()=>{ const cur=get(); if(cur.hp<price || cur.coaches[cId]) return; patch(st=>{ st.hp-=price; st.coaches[cId]=true; return st; }); maybeAchieve('coach_duty'); renderCoaches(); SFX.ok(); }); action.append(btn); } row.append(ava,mid,action); frag.append(row); } menuBody.innerHTML=''; if(!any){ menuBody.innerHTML='<div class="muted">Unlock an exercise to hire its coach.</div>'; } else menuBody.append(frag); }
-        function renderSettings(){ const div=document.createElement('div'); div.innerHTML='<div class="muted">Audio</div><div style="display:flex; align-items:center; gap:10px; margin:8px 0 16px 0"><label><input id="music-on" type="checkbox"> Music on</label><label>Volume <input id="music-vol" type="range" min="0" max="1" step="0.01" style="vertical-align:middle"></label></div><div class="muted">Debug / Save</div><div style="height:6px"></div><button id="dbg5" class="btn">Simulate 5m offline</button> <button id="dbgShow" class="btn">Show Offline Modal Now</button> <button id="reset" class="btn">Reset Save</button>'; menuBody.innerHTML=''; menuBody.append(div); const chk=div.querySelector('#music-on'); const rng=div.querySelector('#music-vol'); chk.checked=Music.on; rng.value=String(Music.vol); chk.addEventListener('change',()=>Music.setOn(chk.checked)); rng.addEventListener('input',()=>Music.setVol(parseFloat(rng.value))); div.querySelector('#reset').addEventListener('click',()=>{ if(confirm('Reset your save and return to splash?')){ try{ localStorage.removeItem(KEY_MAIN);}catch(_){ } location.reload(); } }); div.querySelector('#dbg5').addEventListener('click',()=>{ patch(st=>{ st.offline.lastSeenAt=Date.now()-5*60*1000; return st; }); const sum=computeOffline(); showOfflineModal(sum); }); div.querySelector('#dbgShow').addEventListener('click',()=>{ const sum=computeOffline(); showOfflineModal(sum); }); }
+        function setAvatar(sex){
+          const s = (sex==='female') ? 'female' : 'male';
+          patch(st=>{ st.avatar=s; return st; });
+          document.body.classList.toggle('female', s==='female');
+          // Refresh media only on gender switch
+          for(let i=0;i<Exercises.length;i++){ const ex=get().exercises[i]; if(!ex) continue; ensureMediaForCard(i, !!ex.unlocked); }
+          markDirty();
+        }
+        function renderSettings(){
+          const s=get();
+          const div=document.createElement('div');
+          div.innerHTML=`
+            <div class="muted">Avatar</div>
+            <div style="display:flex; gap:12px; margin:8px 0 16px 0">
+              <label><input type="radio" name="av" value="male" ${s.avatar==='male'?'checked':''}> Male</label>
+              <label><input type="radio" name="av" value="female" ${s.avatar==='female'?'checked':''}> Female</label>
+            </div>
+            <div class="muted">Debug / Save</div>
+            <div style="height:6px"></div>
+            <button id="reset" class="btn">Reset Save</button>`;
+          menuBody.innerHTML=''; menuBody.append(div);
+          div.querySelector('#reset').addEventListener('click',()=>{ if(confirm('Reset your save and return to splash?')){ try{ localStorage.removeItem(KEY_MAIN);}catch(_){ } location.reload(); } });
+          div.querySelectorAll('input[name="av"]').forEach(r => r.addEventListener('change', (e)=> setAvatar(e.target.value)));
+        }
         function renderAchievements(){ const s=get(); const grid=document.createElement('div'); const makeRow=(key,data)=>{ const row=document.createElement('div'); row.className='coach-row'; const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent='★'; const mid=document.createElement('div'); const title=document.createElement('div'); title.className='coach-title'; title.textContent=data.title; const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent=data.desc+' — Reward: '+data.reward+' HP'; mid.append(title,sub); const action=document.createElement('div'); if(s.achievements[key]){ const span=document.createElement('span'); span.className='hired'; span.textContent='Completed'; action.append(span); } else { const span=document.createElement('span'); span.className='coach-sub'; span.textContent='Locked'; action.append(span); } row.append(ava,mid,action); return row; }; grid.append(makeRow('first_steps',ACH.first_steps), makeRow('add_routine',ACH.add_routine), makeRow('coach_duty',ACH.coach_duty), makeRow('speed_demon',ACH.speed_demon)); menuBody.innerHTML=''; menuBody.append(grid); }
 
         function maybeAchieve(key){ const data=ACH[key]; if(!data) return; const s=get(); if(s.achievements[key]) return; patch(st=>{ st.achievements[key]=true; st.hp+=data.reward; return st; }); showToast(`Achievement: ${data.title}  +${data.reward} HP`); }
 
         function stampNow(){ patch(st=>{ st.offline.lastSeenAt=Date.now(); return st; }); }
-        function computeOffline(){ const s=get(); const now=Date.now(); const last=s.offline?.lastSeenAt||now; let ms=Math.max(0, now-last); const capMs=OFFLINE_CAP_HOURS*3600*1000; const clamped=Math.min(ms, capMs); const list=[]; let total=0,totalTaps=0; for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; const cId='c'+(i+1); if(!ex||!ex.unlocked) continue; if(!s.coaches[cId]) continue; if((ex.cooldown||0)<=0) continue; const taps=Math.floor(clamped/ex.cooldown); if(taps<=0) continue; const gainPerTap=perTapHP(baseHP(i,Exercises[i].baseCooldownMs), ex.repHP||0); const gain=gainPerTap*taps; list.push({name:Exercises[i].name,taps,gain}); total+=gain; totalTaps+=taps; } return { ms, clamped, list, total, totalTaps }; }
-        function showOfflineModal(s){ offSub.textContent=`You were away for ${(s.clamped/3600000).toFixed(2)} hours (capped at ${OFFLINE_CAP_HOURS}h).`; offList.innerHTML=''; if(s.list.length===0){ const row=document.createElement('div'); row.className='row'; row.innerHTML='<div class="muted">No coached exercises tapped while you were away.</div>'; offList.append(row); } else { s.list.forEach(it=>{ const row=document.createElement('div'); row.className='row'; row.innerHTML=`<div>${it.name} — ${it.taps} taps</div><div>+ ${fmt(it.gain)} HP</div>`; offList.append(row); }); } offTotal.textContent='+'+fmt(s.total)+' HP'; off.classList.add('show'); suppressTutorialThisSession=true; }
-        offClaim.addEventListener('click',()=>{ const s=computeOffline(); if(s.total>0){ patch(st=>{ st.hp+=s.total; st.stats.auto+=s.totalTaps; st.stats.totalEarned+=s.total; return st; }); showToast(`Claimed +${fmt(s.total)} HP from offline`); } stampNow(); off.classList.remove('show'); });
-        offDismiss.addEventListener('click',()=>{ stampNow(); off.classList.remove('show'); });
-
-        window.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') stampNow(); });
-        window.addEventListener('pagehide', stampNow);
 
         function build(){ buildCards(); markDirty(); }
         build();
         requestAnimationFrame(flushUI);
-
-        // GIF refresh
-        setInterval(()=>{ const s=get(); for(let i=0;i<4;i++){ const ex=s.exercises[i]; if(!ex||!ex.unlocked) continue; const r=cardRefs.get(Exercises[i].id); if(!r||!r.media.src) continue; const [base]=r.media.src.split('?'); r.media.src=base+'?t='+Date.now(); } }, 12000);
 
         function tick(){ const now=performance.now(); const s=get(); for(let i=0;i<Exercises.length;i++){ const ex=s.exercises[i]; const r=cardRefs.get(Exercises[i].id); if(!r) continue;
           if(!ex||!ex.unlocked){ r.bar.style.width='0%'; r.t.textContent='—'; r.tile.classList.remove('cooling'); continue; }
@@ -544,58 +589,33 @@
         window.addEventListener('resize', applyStartBackground); applyStartBackground();
         function showStart(){ splash.classList.remove('show'); btnContinue.style.display=hasRealSave(get())?'inline-block':'none'; start.classList.add('show'); }
         function hideStart(){ start.classList.remove('show'); splash.classList.remove('show'); document.querySelectorAll('[aria-hidden="true"]').forEach(el=>el.setAttribute('aria-hidden','false')); }
-        function blocked(){ return start.classList.contains('show') || splash.classList.contains('show') || Tutor.active || off.classList.contains('show'); }
+        function blocked(){ return start.classList.contains('show') || splash.classList.contains('show'); }
 
         let splashMinDone=false; setTimeout(()=>{ splashMinDone=true; }, 2000);
         let splashEnded=false; function finishSplash(){ if(splashEnded) return; if(!splashMinDone){ setTimeout(finishSplash, 250); return; } splashEnded=true; showStart(); }
-        const splashTimer=setTimeout(finishSplash, 5000); document.getElementById('splash-skip').addEventListener('click',()=>{ clearTimeout(splashTimer); finishSplash(); });
+        const splashTimer=setTimeout(finishSplash, 5000); splashSkip.addEventListener('click',()=>{ clearTimeout(splashTimer); finishSplash(); });
 
-        // Avatar
-        startAvatars.addEventListener('click', e=>{ const a=e.target.closest('.ava'); if(!a) return; [...startAvatars.children].forEach(x=>x.classList.toggle('active', x===a)); const sex=a.dataset.sex==='female'?'female':'male'; patch(st=>{ st.avatar=sex; return st; }); document.body.classList.toggle('female', sex==='female'); mediaCache.clear(); for(let i=0;i<Exercises.length;i++){ const ex=get().exercises[i]; ensureMediaForCard(i, !!ex && !!ex.unlocked); } });
+        // Avatar (start screen)
+        function setStartActive(a){ [...startAvatars.children].forEach(x=>x.classList.toggle('active', x===a)); }
+        startAvatars.addEventListener('click', e=>{
+          const a=e.target.closest('.ava'); if(!a) return;
+          const sex=a.dataset.sex==='female'?'female':'male';
+          setStartActive(a);
+          setAvatar(sex);
+        });
 
-        // Start actions
+        // Start actions (fix: preserve chosen avatar)
         function begin(isNew){
           try{
-            if(isNew){ S=defaults(); S.avatar=get().avatar; S.started=true; save(S); markDirty(); }
+            const chosen = get().avatar; // capture before reset
+            if(isNew){ S=defaults(); S.avatar=chosen; S.started=true; save(S); markDirty(); }
             else { patch(st=>{ st.started=true; return st; }); }
-            Music.startPlay();
             hideStart();
-            setTimeout(()=> tutorialCheck(true), 50);
-            showToast(isNew?'New Game started':'Continue');
+            setTimeout(()=> showToast(isNew?'New Game started':'Continue'), 30);
           }catch(e){ const err=document.getElementById('err'); err.textContent='Init Error: '+(e.message||e); err.classList.add('show'); }
         }
         btnNew.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); begin(true); });
         btnContinue.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); begin(false); });
-        start.addEventListener('click', ()=>{ Music.startPlay(); }, { once:true });
-
-        // Tutorial checks
-        function tutorialCheck(forceIntro=false){
-          if(blocked()) return;
-          if(suppressTutorialThisSession) return;
-          const s=get();
-          if(!s.tutorial.doneIntro){
-            if(introShownThisSession && !forceIntro) return;
-            introShownThisSession = true;
-            patch(st=>{ st.tutorial.doneIntro=true; return st; });
-            Tutor.show([ "You look a bit low on energy. Let’s fix that fast 💪", "Tap Walking to earn HP. Then we’ll power up." ]);
-            return;
-          }
-          if(!s.tutorial.shown?.repsHint && (s.exercises[0]?.repHP||0)===0 && s.hp >= 4){
-            patch(st=>{ st.tutorial.shown.repsHint=true; return st; });
-            Tutor.show([ "Great start! Use Reps to hit harder each tap.", "When the green bar fills, your cooldown halves." ]);
-            return;
-          }
-          const jIdx=1; const j=s.exercises[jIdx]; const b=baseHP(jIdx,Exercises[jIdx].baseCooldownMs); const price=unlockCost(b,Exercises[jIdx].baseCooldownMs);
-          if(!s.tutorial.shown?.unlock?.jog && (!j||!j.unlocked) && s.hp >= price){
-            patch(st=>{ st.tutorial.shown.unlock.jog=true; return st; });
-            Tutor.show([ "Add to your routine! Unlock Jogging when the pill turns orange." ]);
-            return;
-          }
-        }
-        setInterval(()=>{ if(!Tutor.active) tutorialCheck(false); }, 700);
-
-        // Offline on return
-        (function checkReturn(){ try{ if(!get().started) return; const s=computeOffline(); if(s.clamped>=OFFLINE_MIN_MS){ showOfflineModal(s); } else { stampNow(); } }catch(e){ stampNow(); } })();
 
       }
     }catch(e){
