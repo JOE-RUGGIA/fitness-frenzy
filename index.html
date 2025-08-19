@@ -1510,68 +1510,50 @@ try{
     --ff-pink:#ff76b5;
   }
 
-  /* --- Bounce on tap (tiles & buttons) ---/////////////////////////////////////////BOUNCE and BURST and REPS BUTTON */
+<style data-ff-patch>
+  /* --- Bounce (generic; works for tiles and buttons) ---/////////////////////////////////////////BOUNCE and BURST and REPS BUTTON */
   @keyframes ff-bounce {
-    0%   { transform: scale(0.98); }
-    40%  { transform: scale(1.07); }
-    70%  { transform: scale(0.995); }
-    100% { transform: scale(1); }
+    0% { transform: scale(0.98); }
+    40%{ transform: scale(1.07); }
+    70%{ transform: scale(0.995); }
+    100%{transform: scale(1); }
   }
-  .tile.ff-bounce,
-  .btn.ff-bounce{
+  .ff-bounce{
     animation: ff-bounce 420ms cubic-bezier(.2,.8,.2,1);
   }
 
-  /* --- Tiny line burst (rays) on tiles --- */
+  /* --- Tiny line burst (rays) inside the tile --- */
   .ff-rays{
-    position:absolute;
-    left:50%; top:50%;
-    width:0; height:0;
-    pointer-events:none;
+    position:absolute; left:50%; top:50%;
+    width:0; height:0; pointer-events:none;
     filter: drop-shadow(0 0 4px rgba(255,255,255,.55));
-    z-index: 3; /* above media but clipped by tile */
+    z-index:3; /* above media, clipped by tile */
   }
   .ff-ray{
-    position:absolute;
-    left:-1px; top:-8px;          /* center anchor */
-    width:2px; height:14px;       /* small rays */
-    background:rgba(255,255,255,.95);
-    border-radius:2px;
-    opacity:0;
-    transform-origin: 1px 8px;
+    position:absolute; left:-1px; top:-8px;
+    width:2px; height:14px; background:rgba(255,255,255,.95);
+    border-radius:2px; opacity:0; transform-origin: 1px 8px;
     animation: ff-ray 380ms ease-out forwards;
   }
   @keyframes ff-ray{
-    0%   { transform: rotate(var(--deg)) translateY(0) scale(0.85); opacity:0; }
+    0%   { transform: rotate(var(--deg)) translateY(0)  scale(.85); opacity:0; }
     20%  { opacity:1; }
-    100% { transform: rotate(var(--deg)) translateY(-18px) scale(1.0); opacity:0; }
-  }
-
-  /* --- Reps button: click glow (light pink) --- */
-  .btn-reps.ff-pink-glow{
-    box-shadow:
-      0 0 0 2px rgba(255,118,181,.25) inset,
-      0 0 12px rgba(255,118,181,.40);
-  }
-
-  /* Respect reduced motion users */
-  @media (prefers-reduced-motion: reduce){
-    .tile.ff-bounce, .btn.ff-bounce{ animation-duration: 160ms; }
-    .ff-ray{ animation-duration: 220ms; }
+    100% { transform: rotate(var(--deg)) translateY(-18px) scale(1); opacity:0; }
   }
 </style>
 
 <script type="application/ff-patch">
-/* Tile: bounce + line burst on tap; Reps button: bounce + light pink glow on click */
+/* Tile bounce + rays on tap, AND Reps button bounce only when a purchase succeeds */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
-    /* ---------- Helpers ---------- */
+    // ---- helpers
     function bounce(el){
-      el.classList.remove('ff-bounce'); // allow retrigger
-      // force reflow
+      if(!el) return;
+      el.classList.remove('ff-bounce');
+      // force reflow to restart animation
       // eslint-disable-next-line no-unused-expressions
       el.offsetHeight;
       el.classList.add('ff-bounce');
@@ -1582,29 +1564,17 @@ try{
       const wrap = document.createElement('div');
       wrap.className = 'ff-rays';
       tile.appendChild(wrap);
-
-      const N = 10; // rays
-      const jitter = ()=> (Math.random()*6 - 3);
+      const N = 10, jitter = ()=> (Math.random()*6 - 3);
       for(let i=0;i<N;i++){
         const ray = document.createElement('i');
         ray.className = 'ff-ray';
-        const deg = (360/N)*i + jitter();
-        ray.style.setProperty('--deg', deg+'deg');
+        ray.style.setProperty('--deg', ((360/N)*i + jitter())+'deg');
         wrap.appendChild(ray);
       }
       setTimeout(()=> wrap.remove(), 420);
     }
 
-    // Ensure .btn-reps class exists even if older patches aren't present
-    function ensureRepsClass(scope){
-      (scope||document).querySelectorAll('.card .meta .btn').forEach(btn=>{
-        const isReps = btn.textContent && btn.textContent.trim().startsWith('Reps');
-        if(isReps) btn.classList.add('btn-reps');
-      });
-    }
-    ensureRepsClass(cards);
-
-    /* ---------- Tile effects: watch for your .burst-on marker ---------- */
+    // ---- 1) Tile effects: listen for your existing .burst-on tap marker
     const TILE_FLAG='data-ff-lastfx';
     new MutationObserver(muts=>{
       for(const m of muts){
@@ -1615,7 +1585,7 @@ try{
 
         const now = performance.now();
         const last = Number(tile.getAttribute(TILE_FLAG) || 0);
-        if(now - last < 60) continue; // ignore dupes
+        if(now - last < 60) continue; // ignore duplicates in same frame
         tile.setAttribute(TILE_FLAG, String(now));
 
         bounce(tile);
@@ -1623,26 +1593,36 @@ try{
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
 
-    // In case new cards render later
-    new MutationObserver(m=> ensureRepsClass(cards)).observe(cards,{childList:true,subtree:true});
-
-    /* ---------- Reps button: bounce + pink glow on click ---------- */
-    document.addEventListener('click', e=>{
-      const btn = e.target.closest('.btn-reps');
+    // ---- 2) Reps button: bounce ONLY when a purchase actually completes
+    // Strategy: capture the click, read current "rep" value, then re-read shortly after.
+    // If it increased, we know the purchase went through -> bounce the button.
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.card .meta .btn');
       if(!btn) return;
+      const txt = (btn.textContent||'').trim();
+      if(!/^Reps\b/i.test(txt)) return;            // only Reps buttons
 
-      // Bounce
-      bounce(btn);
+      const card = btn.closest('.card');
+      const repEl = card?.querySelector('.repband .reptext');
+      if(!repEl) return;
 
-      // Light pink glow (temporary)
-      btn.classList.add('ff-pink-glow');
-      setTimeout(()=> btn.classList.remove('ff-pink-glow'), 420);
-    });
+      const before = parseInt((repEl.textContent||'0').split('/')[0].replace(/\D/g,''), 10) || 0;
+
+      // After core logic runs and DOM updates
+      setTimeout(()=>{
+        const after = parseInt((repEl.textContent||'0').split('/')[0].replace(/\D/g,''), 10) || 0;
+        if(after > before){                         // purchase confirmed
+          bounce(btn);
+        }
+      }, 110); // small delay to allow your patch() + UI update to land
+    }, true); // capture phase catches clicks even if stopped downstream
+
   }catch(e){
-    console.warn('tap effects (tile + reps) patch error:', e);
+    console.warn('tile & reps bounce patch error:', e);
   }
 })();
 </script>
+
 
 
 
