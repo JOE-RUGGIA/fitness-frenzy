@@ -1925,31 +1925,99 @@ try{
 
 
 <script type="application/ff-patch">
-/* Tile click de-dupe: prevent synthetic+native double fires (esp. touch+pointer)//////////////////////////////////////DOUBLE HP////DOUBLE CD BAR////// */
+/* Tile click + floater de-dupe (append-only) ////////////////////////////////////////DOUBLE FLOAT HP FIX/////////////////////////////*/
 (function(){
   try{
-    const DEDUP_MS = 70; // tiny window; blocks only accidental double-fires
+    /* --- 1) Tile click de-dupe: block immediate duplicate clicks per tile --- */
+    const CLICK_WINDOW_MS = 60;                   // tiny window—doesn't hurt fast spam
+    const LAST_ATTR = 'data-ff-lastclick-ts';
 
     document.addEventListener('click', (e)=>{
       const tile = e.target && e.target.closest && e.target.closest('.tile');
       if(!tile) return;
 
       const now  = performance.now();
-      const last = Number(tile.getAttribute('data-ff-clickdedup') || 0);
+      const last = Number(tile.getAttribute(LAST_ATTR) || 0);
 
-      // If a second click arrives too fast, swallow it before it reaches handleTap
-      if(now - last < DEDUP_MS){
+      if(now - last < CLICK_WINDOW_MS){
+        // Drop this duplicate before it reaches the game's handler
         e.stopImmediatePropagation();
         e.preventDefault();
         return;
       }
-      tile.setAttribute('data-ff-clickdedup', String(now));
-    }, true); // capture = run before game handlers
+      tile.setAttribute(LAST_ATTR, String(now));
+    }, true); // capture = runs before game listeners
+
+    /* --- 2) Floating +HP de-dupe: remove clones spawned in the same spot/frame --- */
+    const FLOATER_CLASS = 'ff-floathp';
+    const HISTORY_MS = 120;       // compare very recent floaters only
+    const MAX_DIST = 20;          // px radius to consider "same spot"
+
+    // keep a tiny ring buffer of recent floaters (time + coords)
+    const recent = [];
+    const nowMs  = ()=> performance.now();
+
+    function parsePx(v){ const n = parseFloat(v||''); return Number.isFinite(n)?n:NaN; }
+
+    new MutationObserver((muts)=>{
+      const tNow = nowMs();
+      for(const m of muts){
+        if(m.type !== 'childList' || !m.addedNodes || !m.addedNodes.length) continue;
+        for(const n of m.addedNodes){
+          if(!(n instanceof HTMLElement)) continue;
+          if(!n.classList || !n.classList.contains(FLOATER_CLASS)) continue;
+
+          // read inline left/top we set when creating the floater
+          const x = parsePx(n.style.left);
+          const y = parsePx(n.style.top);
+
+          // If missing coords, skip (not ours)
+          if(!Number.isFinite(x) || !Number.isFinite(y)) continue;
+
+          // purge stale history
+          for(let i=recent.length-1;i>=0;i--){
+            if(tNow - recent[i].t > HISTORY_MS) recent.splice(i,1);
+          }
+
+          // check near-duplicate
+          let isDupe = false;
+          for(const r of recent){
+            const dx = Math.abs(r.x - x), dy = Math.abs(r.y - y);
+            if(dx <= MAX_DIST && dy <= MAX_DIST){
+              isDupe = true; break;
+            }
+          }
+
+          if(isDupe){
+            // remove the newer duplicate
+            n.remove();
+          }else{
+            recent.push({t:tNow, x, y});
+          }
+        }
+      }
+    }).observe(document.body, {childList:true, subtree:true});
+
+    /* --- 3) (Optional) tag manual taps so other patches can see them (harmless) --- */
+    const MANUAL_ATTR = 'data-ff-lastmanual';
+    new MutationObserver((muts)=>{
+      for(const m of muts){
+        if(m.type!=='attributes') continue;
+        const el = m.target;
+        if(!el.classList || !el.classList.contains('tile')) continue;
+
+        if(el.classList.contains('burst-on')){
+          el.setAttribute(MANUAL_ATTR, String(performance.now()));
+        }
+      }
+    }).observe(document.getElementById('cards'), {attributes:true, attributeFilter:['class'], subtree:true});
+
   }catch(e){
-    console.warn('tile click de-dupe patch error:', e);
+    console.warn('De-dupe patch error:', e);
   }
 })();
 </script>
+
   
 
 
