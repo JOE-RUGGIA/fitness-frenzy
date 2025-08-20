@@ -2761,7 +2761,7 @@ try{
 
 
 <script type="application/ff-patch">
-/* Tutorial VO — STEP 4: JAX "Great start! Use Reps to hit harder each tap." //////////////////////////REPS///////////VOICEOVER/////JAX///////REPS*/
+/* Tutorial VO — STEP 4: JAX "Great start! Use Reps to hit harder each tap." */
 (function(){
   try{
     if (window.__FF_TUTORIAL_VO_STEP4__) return;
@@ -2772,8 +2772,8 @@ try{
     const tipBubble = document.getElementById('tip-bubble');
     if(!tipText || !tipHead || !tipBubble) return;
 
-    // Raw GitHub audio
-    const URL_JAX_REPS = "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3";
+    // Raw GitHub audio for this line
+    const URL = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/Jax%20audio%20REPS.mp3";
 
     function makeAudio(url){
       const a = new Audio(url);
@@ -2782,9 +2782,9 @@ try{
       a.volume = 1.0;
       return a;
     }
-    const vo = makeAudio(URL_JAX_REPS);
+    const vo = makeAudio(URL);
 
-    // Play with gesture fallback (mobile autoplay)
+    // Gesture-safe play (autoplay fallback)
     function playSafe(a){
       try{
         const p = a.play();
@@ -2804,7 +2804,7 @@ try{
       }catch(_){}
     }
 
-    // Light music ducking during VO
+    // Light music ducking
     let prevVol = null, ducked = false, timer = null;
     function duck(){
       try{
@@ -2832,13 +2832,14 @@ try{
       return String(s||'')
         .toLowerCase()
         .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
-        .replace(/[^a-z0-9\s]/g,'')            // punctuation/apostrophes
+        .replace(/[^a-z0-9\s]/g,'')            // punctuation
         .replace(/\s+/g,' ')
         .trim();
     }
     function isTargetLine(txt){
       const n = norm(txt);
-      return n.includes("great start") && n.includes("use reps") && n.includes("hit harder each tap");
+      // robust to minor text tweaks
+      return n.includes("great start") && n.includes("use reps to hit harder each tap");
     }
 
     const FLAG = 'data-vo-jax-reps-played';
@@ -2852,10 +2853,10 @@ try{
       if (tipBubble.getAttribute(FLAG) === '1') return;
 
       const raw = tipText.textContent || '';
-      if(!raw) return;
+      if (!raw) return;
 
       if (isTargetLine(raw)){
-        tipBubble.setAttribute(FLAG, '1');
+        tipBubble.setAttribute(FLAG,'1');
         try{ vo.currentTime = 0; }catch(_){}
         duck();
         playSafe(vo);
@@ -2872,7 +2873,7 @@ try{
     });
     obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
 
-    // If already on that step
+    // In case the step is already visible
     setTimeout(maybePlay, 0);
 
   }catch(e){
@@ -2880,6 +2881,9 @@ try{
   }
 })();
 </script>
+
+
+  
   
 
 </body>
