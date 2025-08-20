@@ -1397,7 +1397,17 @@ try{
 
 
 <style data-ff-patch>
-  /* Low-latency polish///////////////////////////////////////////HOPEFULLY FINAL RUN ON EXERCISE CARDS/////BUTTON SFX///RAPID FIRE///FLOATERS/////// */
+  /* ---- Card & tile color (enforced) ////////////////////////////////card color update//////////floaters even when fast////////effects//////etc---- */
+  .card{
+    background:#112036 !important;
+    border-color:#0c1a2b !important;
+  }
+  .tile{
+    background:#112036 !important;
+    border-color:#0c1a2b !important;
+  }
+
+  /* Low-latency polish */
   .tile, .btn, .btn-reps{ will-change: transform; }
 
   /* Bounce (used by tiles & buttons) */
@@ -1461,7 +1471,7 @@ try{
 
 <script type="application/ff-patch">
 /* Fast-click + tile SFX mute + single-shot tile FX (bounce+rays+floating HP)
-   + Reps bounce-on-purchase + coach/automation HP floaters */
+   + Reps bounce-on-purchase + auto/coach HP floaters (no speed limit) */
 (function(){
   try{
     const cards = document.getElementById('cards');
@@ -1568,10 +1578,8 @@ try{
       setTimeout(cleanup, 1200);
     }
 
-    /* ---------- SINGLE-SHOT TILE FX (manual taps) ----------
-       Fires once when 'burst-on' is ADDED; stores timestamp to ignore duplicates. */
+    /* ---------- SINGLE-SHOT TILE FX (manual taps) ---------- */
     const LATCH = 'data-ff-fx-latch';
-    const LAST_MANUAL = 'data-ff-lastmanual';
     new MutationObserver(muts=>{
       for(const m of muts){
         if(m.type!=='attributes') continue;
@@ -1583,7 +1591,6 @@ try{
 
         if(has && !latched){
           tile.setAttribute(LATCH,'1');
-          tile.setAttribute(LAST_MANUAL, String(performance.now()));
           const card = tile.closest('.card');
           const amt = getTapHP(card) ?? 1;
           bounce(tile);
@@ -1595,47 +1602,48 @@ try{
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
 
-    /* ---------- COACH/AUTO TAPS: spawn HP floaters on cooldown reset ----------
-       Detect bar width jumping from ~100% -> ~0% and show a floater
-       (skips if a manual tap just fired to avoid duplicates). */
-    const barPrev = new WeakMap();
-    function seedBars(){
-      cards.querySelectorAll('.card .cooldown .bar').forEach(bar=>{
-        if(bar.__ff_obs__) return;
-        bar.__ff_obs__ = true;
-        // seed previous width
-        barPrev.set(bar, parseFloat(bar.style.width)||0);
+    /* ---------- AUTO/COACH TAPS: floaters with no speed limit ----------
+       Latch per cooldown bar: re-arm when bar grows to >=90%, fire once when it resets to <=5%. */
+    const barArmed = new WeakMap();
+    function widthPct(bar){
+      const v = parseFloat(bar.style.width);
+      return Number.isFinite(v) ? v : 0;
+    }
+    function armIfReady(bar, curr){
+      if(curr >= 90){ barArmed.set(bar, true); }
+    }
+    function watchBar(bar){
+      if(bar.__ff_obs__) return;
+      bar.__ff_obs__ = true;
 
-        const obs = new MutationObserver(muts=>{
-          for(const mm of muts){
-            if(mm.type!=='attributes' || mm.attributeName!=='style') continue;
-            const prev = barPrev.get(bar);
-            const curr = parseFloat(bar.style.width)||0;
-            barPrev.set(bar, curr);
-            if(prev==null) continue;
+      // seed armed state
+      armIfReady(bar, widthPct(bar));
 
-            // Detect fresh tap start: ~100% -> ~0-5%
-            if(prev >= 95 && curr <= 5){
-              const card = bar.closest('.card');
-              const tile = card?.querySelector('.tile');
-              if(!tile) continue;
+      const obs = new MutationObserver(()=>{
+        const curr = widthPct(bar);
+        const armed = barArmed.get(bar) === true;
 
-              // If a manual tap triggered very recently, skip (already showed effects)
-              const lastManual = Number(tile.getAttribute(LAST_MANUAL) || 0);
-              if(lastManual && (performance.now() - lastManual) < 140) continue;
+        // Ready phase → arm
+        if(curr >= 90){ barArmed.set(bar, true); return; }
 
-              // Auto/coach tap → show just the HP floater (no bounce/rays)
-              const amt = getTapHP(card) ?? 1;
-              floatHPOver(tile, amt);
-            }
+        // Reset detected → fire floater once per cycle (no time throttling)
+        if(armed && curr <= 5){
+          barArmed.set(bar, false);
+          const card = bar.closest('.card');
+          const tile = card?.querySelector('.tile');
+          if(tile){
+            const amt = getTapHP(card) ?? 1;
+            floatHPOver(tile, amt);  // auto/coach floater (no bounce/rays)
           }
-        });
-        obs.observe(bar, {attributes:true, attributeFilter:['style']});
+        }
       });
+      obs.observe(bar, {attributes:true, attributeFilter:['style']});
+    }
+    function seedBars(){
+      cards.querySelectorAll('.card .cooldown .bar').forEach(watchBar);
     }
     seedBars();
-    // Re-seed when cards are added/updated
-    new MutationObserver(()=> seedBars()).observe(cards, {childList:true, subtree:true});
+    new MutationObserver(seedBars).observe(cards, {childList:true, subtree:true});
 
     /* ---------- REPS BUTTON: bounce ONLY on confirmed purchase ---------- */
     document.addEventListener('click', (e)=>{
@@ -1660,10 +1668,11 @@ try{
     }, true);
 
   }catch(e){
-    console.warn('coach floaters + single-shot FX patch error:', e);
+    console.warn('auto floaters (no limit) + FX patch error:', e);
   }
 })();
 </script>
+
 
 
 
