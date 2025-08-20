@@ -2210,5 +2210,92 @@ try{
 </script>
 
 
+
+
+
+
+  <style data-ff-patch>
+  /* Stripe overlay element that actually sits inside the bar////////////////////////////////////////2nd cool down patch////////////////////// */
+  .cooldown .bar{ position:absolute; inset:0; border-radius:8px; }
+  .cooldown .bar .ff-stripes{
+    position:absolute; inset:0; border-radius:inherit;
+    pointer-events:none; opacity:0;
+    background-image:
+      repeating-linear-gradient(135deg,
+        rgba(255,255,255,.20) 0 8px,
+        rgba(255,255,255,0)   8px 16px);
+    background-size:32px 32px;
+    background-position:0 0;
+    will-change: background-position, opacity, transform;
+    transform: translateZ(0); /* force GPU layer on mobile */
+  }
+  /* Turn on animation when ready/maxed or pinned fast */
+  .cooldown.ff-striped .bar .ff-stripes{
+    opacity:.85;
+    animation: ff-stripes-move 1.0s linear infinite;
+  }
+  .cooldown.ff-fast.ff-striped .bar .ff-stripes{
+    animation-duration:.6s;
+    opacity:.95;
+  }
+  @keyframes ff-stripes-move{
+    from { background-position: 0 0; }
+    to   { background-position: 48px 0; }
+  }
+</style>
+
+<script type="application/ff-patch">
+/* Insert a real stripe layer into each cooldown bar and toggle it live */
+(function(){
+  if(window.__FF_STRIPE_ELEMENT__) return;
+  window.__FF_STRIPE_ELEMENT__ = true;
+
+  function ensureStripe(bar){
+    if(!bar) return null;
+    let s = bar.querySelector('.ff-stripes');
+    if(!s){
+      s = document.createElement('i');
+      s.className = 'ff-stripes';
+      bar.appendChild(s);
+    }
+    return s;
+  }
+  function pct(bar){
+    const v = parseFloat(bar.style.width);
+    return Number.isFinite(v) ? v : 0;
+  }
+  function update(cd, bar){
+    if(!cd || !bar) return;
+    ensureStripe(bar);
+    const p = pct(bar);
+    const active = p >= 95 || cd.classList.contains('ff-fast'); // maxed or pinned fast
+    cd.classList.toggle('ff-striped', active);
+  }
+
+  function watchBar(bar){
+    if(bar.__ff_stripes_elem__) return;
+    bar.__ff_stripes_elem__ = true;
+
+    const cd = bar.closest('.cooldown');
+    ensureStripe(bar);
+    update(cd, bar);
+
+    const obs = new MutationObserver(()=> update(cd, bar));
+    obs.observe(bar, {attributes:true, attributeFilter:['style']});
+  }
+
+  function seed(){
+    document.querySelectorAll('.card .cooldown .bar').forEach(watchBar);
+  }
+  seed();
+
+  const cards = document.getElementById('cards');
+  if(cards){
+    new MutationObserver(seed).observe(cards, {childList:true, subtree:true});
+  }
+})();
+</script>
+
+
 </body>
 </html>
