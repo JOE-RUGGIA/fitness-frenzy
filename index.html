@@ -2023,5 +2023,104 @@ try{
 
 
 
+
+
+
+<style data-ff-patch>
+  /* Visually pin ultra-fast cooldowns so the bar stays full and calm//////////////////////////////////STOP FLASHING COOL DOWN BAR WHEN FASTTTTTTTTTTTTTTTT */
+  .cooldown.ff-fast .bar{ width:100% !important; }
+  /* Show a stable "Ready" label while pinned (hide the jittery live timer) */
+  .cooldown.ff-fast .t{
+    color:transparent !important;
+    position:relative;
+  }
+  .cooldown.ff-fast .t::after{
+    content:'Ready';
+    position:absolute; left:8px; right:8px;
+    color:#a6b0d8;
+  }
+</style>
+
+<script type="application/ff-patch">
+/* Pin fast cooldown bars (no visual flashing), without breaking auto floaters */
+(function(){
+  if(window.__FF_COOLDOWN_PIN__) return;
+  window.__FF_COOLDOWN_PIN__ = true;
+
+  // Reset detection thresholds (match your auto-floater logic style)
+  const ARM = 85, RESET_ABS = 35, RESET_DROP = 50;
+
+  // Pin when cycle is very fast; unpin with hysteresis to avoid flicker
+  const PIN_MS   = 800;   // pin if cycle <= 0.8s
+  const UNPIN_MS = 1100;  // unpin if cycle >= 1.1s
+
+  const prevPct   = new WeakMap();   // last width %
+  const lastReset = new WeakMap();   // last detected reset time
+  const avgCycle  = new WeakMap();   // smoothed cycle length (ms)
+  const isPinned  = new WeakMap();   // boolean
+
+  function pct(bar){
+    const v = parseFloat(bar.style.width);
+    return Number.isFinite(v) ? v : 0;
+  }
+
+  function watchBar(bar){
+    if(bar.__ff_pin_obs__) return;
+    bar.__ff_pin_obs__ = true;
+
+    const cd = bar.closest('.cooldown');
+    prevPct.set(bar, pct(bar));
+
+    const obs = new MutationObserver(()=>{
+      const prev = prevPct.get(bar) ?? 0;
+      const curr = pct(bar);
+      prevPct.set(bar, curr);
+
+      // Consider it a "reset" when dropping hard/low from armed state
+      const droppedHard = (prev - curr) >= RESET_DROP;
+      const lowNow      = curr <= RESET_ABS;
+      const armedPrev   = prev >= ARM;
+
+      if((armedPrev && lowNow) || droppedHard){
+        const now = performance.now();
+        const last = lastReset.get(bar);
+
+        if(last){
+          const instant = now - last;
+          const smoothed = (avgCycle.get(bar) ?? instant) * 0.7 + instant * 0.3;
+          avgCycle.set(bar, smoothed);
+
+          const pinned = isPinned.get(bar) === true;
+          if(!pinned && smoothed <= PIN_MS){
+            cd.classList.add('ff-fast');
+            isPinned.set(bar, true);
+          }else if(pinned && smoothed >= UNPIN_MS){
+            cd.classList.remove('ff-fast');
+            isPinned.set(bar, false);
+          }
+        }
+        lastReset.set(bar, now);
+      }
+    });
+
+    // Observe inline style changes (your game writes width% there)
+    obs.observe(bar, {attributes:true, attributeFilter:['style']});
+  }
+
+  function seed(){
+    document.querySelectorAll('.card .cooldown .bar').forEach(watchBar);
+  }
+  seed();
+
+  // Re-seed if cards are rebuilt
+  const cards = document.getElementById('cards');
+  if(cards){
+    new MutationObserver(seed).observe(cards, {childList:true, subtree:true});
+  }
+})();
+</script>
+
+
+
 </body>
 </html>
