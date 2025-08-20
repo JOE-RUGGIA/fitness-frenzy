@@ -2025,7 +2025,137 @@ try{
 
 
 
+<style data-ff-patch>
+  /* --- Achievement pop/bounce ---//////////////////////////////////////////////ACHIEVEMENT CONFETTIIIIIIIIIIII */
+  @keyframes ff-ach-pop {
+    0%   { transform: translate(-50%,0) scale(.88); opacity:.0 }
+    60%  { transform: translate(-50%,0) scale(1.06); opacity:1 }
+    100% { transform: translate(-50%,0) scale(1.00); opacity:1 }
+  }
+  @keyframes ff-ach-bounce {
+    0% { transform: translate(-50%,0) scale(1.00) }
+    35%{ transform: translate(-50%,0) scale(1.03) }
+    70%{ transform: translate(-50%,0) scale(.995) }
+    100%{transform: translate(-50%,0) scale(1.00) }
+  }
+  .ach .banner.ff-pop {
+    animation: ff-ach-pop 420ms cubic-bezier(.2,.8,.2,1);
+  }
+  .ach .banner.ff-bounce {
+    animation: ff-ach-bounce 360ms cubic-bezier(.2,.8,.2,1);
+  }
 
+  /* --- Extra sparkles around the banner (lightweight) --- */
+  .ff-ach-sparkle {
+    position:absolute; width:6px; height:6px; border-radius:50%;
+    background: radial-gradient(#fff, rgba(255,255,255,0.15));
+    opacity:0; pointer-events:none;
+    filter: drop-shadow(0 0 6px rgba(255,255,255,.6));
+    animation: ff-spark-fly 700ms ease-out forwards;
+  }
+  @keyframes ff-spark-fly{
+    0%  { transform: translate(0,0) scale(.6) rotate(0deg);   opacity:.0 }
+    12% { opacity:1 }
+    100%{ transform: translate(var(--dx), var(--dy)) scale(1.05) rotate(180deg); opacity:0 }
+  }
+</style>
+
+<script type="application/ff-patch">
+/* Achievements: add pop/bounce, extra sparkles, and a clean chime SFX */
+(function(){
+  try{
+    const achRoot = document.getElementById('ach');
+    if(!achRoot) return;
+
+    /* ---- Minimal, pleasant notification SFX ----
+       A short triad chime with gentle decay; keeps volume sane. */
+    const AchSFX = (function(){
+      let ctx = null;
+      function ensureCtx(){
+        if(ctx) return ctx;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return null;
+        ctx = new AC();
+        return ctx;
+      }
+      function envGain(at, peak=0.025, dur=0.28){
+        const c = ensureCtx(); if(!c) return null;
+        const g = c.createGain();
+        g.gain.setValueAtTime(0, at);
+        g.gain.linearRampToValueAtTime(peak, at + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0008, at + dur);
+        return g;
+      }
+      function tone(freq, startOffset=0){
+        const c = ensureCtx(); if(!c) return;
+        const t0 = c.currentTime + startOffset;
+        const o  = c.createOscillator();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(freq, t0);
+        // tiny upward glide for sparkle
+        o.frequency.linearRampToValueAtTime(freq*1.03, t0 + 0.12);
+        const g = envGain(t0, 0.022, 0.35);
+        if(!g) return;
+        o.connect(g).connect(c.destination);
+        o.start(t0);
+        o.stop(t0 + 0.36);
+      }
+      function play(){
+        try{
+          tone(880,   0.00); // A5
+          tone(1320,  0.03); // E6
+          tone(1760,  0.06); // A6
+        }catch(_){}
+      }
+      return { play };
+    })();
+
+    function addSparkles(banner){
+      const rect = banner.getBoundingClientRect();
+      const cx = rect.width/2, cy = rect.height/2;
+      const n = 14;
+      for(let i=0;i<n;i++){
+        const p = document.createElement('i');
+        p.className = 'ff-ach-sparkle';
+        const ang = (Math.PI*2*i/n) + (Math.random()*0.5 - 0.25);
+        const dist = 36 + Math.random()*28;
+        const dx = Math.cos(ang)*dist;
+        const dy = Math.sin(ang)*dist - 6;
+        p.style.setProperty('--dx', dx+'px');
+        p.style.setProperty('--dy', dy+'px');
+        p.style.left = (cx-3)+'px';
+        p.style.top  = (cy-3)+'px';
+        banner.appendChild(p);
+        // cleanup
+        setTimeout(()=> p.remove(), 720);
+      }
+    }
+
+    // Watch for achievement banners being added and decorate them
+    new MutationObserver((muts)=>{
+      for(const m of muts){
+        if(m.type !== 'childList' || !m.addedNodes) continue;
+        for(const n of m.addedNodes){
+          if(!(n instanceof HTMLElement)) continue;
+          const banner = n.matches?.('.banner') ? n : n.querySelector?.('.banner');
+          if(!banner) continue;
+
+          // POP now, BOUNCE shortly after to settle
+          banner.classList.add('ff-pop');
+          setTimeout(()=> banner.classList.add('ff-bounce'), 420);
+
+          // Sparkles + SFX (play once per banner)
+          addSparkles(banner);
+          AchSFX.play();
+        }
+      }
+    }).observe(achRoot, {childList:true, subtree:true});
+
+  }catch(e){
+    console.warn('Achievement FX patch error:', e);
+  }
+})();
+</script>
 
 
 </body>
