@@ -2329,11 +2329,11 @@ try{
 
 
 <script type="application/ff-patch">
-/* JAX VO mapping v4 — Line 1 waits for bubble text (better sync), still prewarmed */
+/* JAX VO mapping v5 — Desktop-safe muted-boot for line 1 + token-synced fade-in////////////////////////////////VOICES///////////////// */
 (function(){
   try{
-    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V4__) return;
-    window.__FF_JAX_TUTORIAL_VO_PATCH_V4__ = true;
+    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5__) return;
+    window.__FF_JAX_TUTORIAL_VO_PATCH_V5__ = true;
 
     /* ---------- Audio URLs ---------- */
     const URLS = {
@@ -2347,10 +2347,11 @@ try{
       j9: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3'
     };
 
+    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+
     /* ---------- Player + ducking ---------- */
     const cache = Object.create(null);        // key -> HTMLAudioElement
-    const inflight = Object.create(null);     // key -> Promise
-    const started = Object.create(null);      // key -> actually playing
+    const startedAudible = Object.create(null); // key -> actually audible
     let voicesActive = 0, prevVol = null;
 
     function duckMusic(){
@@ -2381,71 +2382,26 @@ try{
       a.addEventListener('abort', restoreMusic, {once:true});
       return a;
     }
-    function playClipEnsure(key, vol=0.9){
-      if (started[key]) return Promise.resolve('already-started');
-      if (inflight[key]) return inflight[key];
+    function getAudio(key){ return cache[key] || (cache[key]=make(URLS[key], 0.9)); }
 
-      duckMusic();
-      const a = cache[key] = cache[key] || make(URLS[key], vol);
-
-      inflight[key] = new Promise((resolve, reject)=>{
-        let done = false;
-        const onPlaying = ()=>{ if(done) return; done = true; started[key]=true; cleanup(); resolve('playing'); };
-        const onMaybePlaying = ()=>{ if(a.currentTime > 0.01 && !started[key]) onPlaying(); };
-        const onError = (err)=>{ if(done) return; done=true; cleanup(); reject(err||new Error('play failed')); };
-        const cleanup = ()=>{ a.removeEventListener('playing',onPlaying); a.removeEventListener('timeupdate',onMaybePlaying); a.removeEventListener('error',onError); };
-
-        a.addEventListener('playing', onPlaying);
-        a.addEventListener('timeupdate', onMaybePlaying);
-        a.addEventListener('error', onError);
-
-        try{ a.currentTime = 0; a.play().catch(onError); }catch(e){ onError(e); }
-      }).finally(()=> inflight[key]=null);
-
-      return inflight[key];
-    }
-    function playWithRetry(key, opts={}){
-      const {vol=0.9, attempts=3, backoff=160} = opts;
-      let tries = 0, resolved = false;
-
-      function tryOnce(){
-        tries++;
-        return playClipEnsure(key, vol).then(()=>{ resolved = true; }).catch(()=>{});
-      }
-      function wait(ms){ return new Promise(r=> setTimeout(r, ms)); }
-      function gestureOnce(){
-        return new Promise(r=>{
-          const onPD = ()=>{ cleanup(); r(); };
-          const onKD = e=>{ if(e.code==='Enter'||e.code==='Space'){ cleanup(); r(); } };
-          const cleanup=()=>{ document.removeEventListener('pointerdown', onPD, true); document.removeEventListener('keydown', onKD, true); };
-          document.addEventListener('pointerdown', onPD, true);
-          document.addEventListener('keydown', onKD, true);
-          setTimeout(()=>{ cleanup(); r(); }, 1800);
-        });
-      }
-
-      return (async ()=>{
-        while(!resolved && tries < attempts){ await tryOnce(); if(resolved) break; await wait(backoff); }
-        if(!resolved){ await gestureOnce(); await tryOnce(); if(!resolved) restoreMusic(); }
-      })();
-    }
-
-    /* Prime all clips on first gesture for instant later playback */
     function primeAll(){
       if (window.__FF_JAX_PRIMED__) return;
       window.__FF_JAX_PRIMED__ = true;
       Object.keys(URLS).forEach(k=>{
-        const a = cache[k] = cache[k] || make(URLS[k], 0);
+        const a = getAudio(k);
         try{ a.load(); }catch(_){}
       });
-      // Silent unlock (best-effort)
-      Object.values(cache).forEach(a=>{
-        try{
-          const old=a.volume; a.volume=0; a.currentTime=0.001;
-          a.play().then(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){ } })
-                   .catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){ } });
-        }catch(_){}
-      });
+    }
+
+    function fadeTo(a, target=0.9, ms=240){
+      const start = a.volume || 0, t0 = performance.now();
+      (function step(){
+        const dt = performance.now()-t0;
+        const p = Math.min(1, dt/ms);
+        const v = start + (target-start)*p;
+        try{ a.volume = v; }catch(_){}
+        if(p<1) requestAnimationFrame(step);
+      })();
     }
 
     /* ---------- Elements ---------- */
@@ -2459,77 +2415,106 @@ try{
     const norm = (s)=> String(s||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
     const hasAll = (t, arr)=> arr.every(x=> t.includes(x));
 
-    /* ---------- Line 1: wait for the JAX bubble tokens (better sync) ---------- */
-    function waitForJaxIntroTokens(timeoutMs=2600){
-      const t0 = performance.now();
-      return new Promise(r=>{
-        (function loop(){
-          const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
-          const t = norm(tipText.textContent);
-          // Match early tokens of your first line: "low on energy" / "fix that fast"
-          const good = (speaker==='JAX') && (t.includes('low on energy') || t.includes('fix that fast'));
-          if (good) return r(true);
-          if (performance.now() - t0 > timeoutMs) return r(false);
-          requestAnimationFrame(loop);
-        })();
-      });
+    /* ---------- DESKTOP: boot JAX #1 muted inside the gesture ---------- */
+    let l1MutedPlaying = false;   // desktop only
+    function desktopBootLine1(){
+      if (isTouch) return;                    // mobile skips this path
+      if (window.__FF_JAX_L1_BOOTED__) return;
+      window.__FF_JAX_L1_BOOTED__ = true;
+
+      try{
+        primeAll();
+        const a = getAudio('j1');
+        // Start muted immediately so autoplay allows it
+        const prev = a.volume;
+        a.volume = 0;
+        a.currentTime = 0;
+        a.play().then(()=>{
+          l1MutedPlaying = true;
+          // don't duck music yet—no audible audio
+        }).catch(()=>{ /* ignore; we'll try mobile path later */ a.volume = prev; });
+      }catch(_){}
     }
 
-    function onStartGesture(){
-      if (window.__FF_JAX_L1_SCHEDULED__) return;
-      window.__FF_JAX_L1_SCHEDULED__ = true;
+    /* ---------- When tokens appear, rewind and fade-in (sync to typing) ---------- */
+    function tryAudibilizeLine1(){
+      if (startedAudible.j1) return;
 
-      try{ primeAll(); }catch(_){}
+      const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
+      const t = norm(tipText.textContent);
+      const hasIntroTokens = (speaker==='JAX') && (t.includes('low on energy') || t.includes('fix that fast'));
 
-      // Give the UI a breath to open the bubble, then wait for tokens.
-      // Longer defer helps both desktop & mobile: feels aligned to typing.
-      setTimeout(async ()=>{
-        const seen = await waitForJaxIntroTokens(2600);
-        // Small nudge so audio lands right after the first few characters show
-        await new Promise(r=> setTimeout(r, seen ? 120 : 0));
-        if(!started.j1) playWithRetry('j1', {attempts:3, backoff:180});
-      }, 320);
+      if(!hasIntroTokens) return;
+
+      const a = getAudio('j1');
+      if (!a) return;
+
+      // If desktop muted-boot succeeded, rewind and fade in; else (mobile) play fresh
+      try{
+        if (!isTouch && l1MutedPlaying){
+          a.currentTime = 0;
+          duckMusic();
+          fadeTo(a, 0.9, 260);
+          startedAudible.j1 = true;
+        }else{
+          // Mobile or desktop fallback: start now
+          a.currentTime = 0;
+          duckMusic();
+          a.play().then(()=>{
+            startedAudible.j1 = true;
+            try{ fadeTo(a, 0.9, 220); }catch(_){}
+          }).catch(()=>{ /* gesture may be required; user will click again soon */ });
+        }
+      }catch(_){}
     }
-    btnNew.addEventListener('pointerdown', onStartGesture, {capture:true, passive:true});
-    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') onStartGesture(); }, {capture:true});
 
-    /* ---------- 2) Player reply (female or male) ---------- */
+    /* ---------- Player reply (female or male) ---------- */
     function maybePlayPlayerReply(){
       const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       if (speaker!=='YOU') return;
       const t = norm(tipText.textContent);
       if (!/but where do i start\??/.test(t)) return;
 
-      if (document.body.classList.contains('female')){
-        if(!started.you_f_2) playWithRetry('you_f_2', {attempts:2});
-      }else{
-        if(!started.you_m_2) playWithRetry('you_m_2', {attempts:2});
-      }
+      const key = document.body.classList.contains('female') ? 'you_f_2' : 'you_m_2';
+      if (startedAudible[key]) return;
+
+      try{
+        const a = getAudio(key);
+        a.currentTime = 0;
+        duckMusic();
+        a.play().then(()=>{ startedAudible[key]=true; }).catch(()=>{});
+      }catch(_){}
     }
 
-    /* ---------- 3,4,5,6,9 (early token triggers) ---------- */
+    /* ---------- JAX lines 3,4,5,6,9 (early token triggers) ---------- */
     function maybePlayJaxAuto(){
       const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       if (speaker!=='JAX') return;
       const t = norm(tipText.textContent);
 
-      if (!started.j3 && hasAll(t,['walking','1 hp'])) { playWithRetry('j3', {attempts:2}); return; }
-      if (!started.j4 && t.includes('reps'))         { playWithRetry('j4', {attempts:2}); return; }
-      if (!started.j5 && hasAll(t,['green','bar','cooldown']) && /(halves|half)/.test(t)) { playWithRetry('j5', {attempts:2}); return; }
-      if (!started.j6 && hasAll(t,['unlock','jogging','button','lights'])) { playWithRetry('j6', {attempts:2}); return; }
-      if (!started.j9 && hasAll(t,['ready','scale','coach']) && /hire/.test(t)) { playWithRetry('j9', {attempts:2}); return; }
+      if (!startedAudible.j3 && hasAll(t,['walking','1 hp'])) { const a=getAudio('j3'); a.currentTime=0; duckMusic(); a.play().then(()=>{startedAudible.j3=true;}).catch(()=>{}); return; }
+      if (!startedAudible.j4 && t.includes('reps'))         { const a=getAudio('j4'); a.currentTime=0; duckMusic(); a.play().then(()=>{startedAudible.j4=true;}).catch(()=>{}); return; }
+      if (!startedAudible.j5 && hasAll(t,['green','bar','cooldown']) && /(halves|half)/.test(t)) { const a=getAudio('j5'); a.currentTime=0; duckMusic(); a.play().then(()=>{startedAudible.j5=true;}).catch(()=>{}); return; }
+      if (!startedAudible.j6 && hasAll(t,['unlock','jogging','button','lights'])) { const a=getAudio('j6'); a.currentTime=0; duckMusic(); a.play().then(()=>{startedAudible.j6=true;}).catch(()=>{}); return; }
+      if (!startedAudible.j9 && hasAll(t,['ready','scale','coach']) && /hire/.test(t)) { const a=getAudio('j9'); a.currentTime=0; duckMusic(); a.play().then(()=>{startedAudible.j9=true;}).catch(()=>{}); return; }
     }
 
-    /* ---------- Observe + RAF poll ---------- */
-    const obs = new MutationObserver(()=>{ maybePlayPlayerReply(); maybePlayJaxAuto(); });
+    /* ---------- Wire up ---------- */
+    // New Game gesture: desktop boots muted L1 immediately (mobile skips)
+    btnNew.addEventListener('pointerdown', desktopBootLine1, {capture:true, passive:true});
+    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') desktopBootLine1(); }, {capture:true});
+
+    // Observe tutorial bubble and poll to sync VO with typing tokens
+    const obs = new MutationObserver(()=>{ tryAudibilizeLine1(); maybePlayPlayerReply(); maybePlayJaxAuto(); });
     obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
-    (function raf(){ maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
+    (function raf(){ tryAudibilizeLine1(); maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
   }catch(e){
-    console.warn('JAX VO v4 patch error:', e);
+    console.warn('JAX VO v5 patch error:', e);
   }
 })();
 </script>
+
 
 
 
