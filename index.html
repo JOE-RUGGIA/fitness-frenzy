@@ -3573,68 +3573,81 @@ try{
 })();
 </script>
 
+
+
   
   
   
 <script type="application/ff-patch">
-/* Tutorial typing speed-up: finish each line early for a faster type effect */
+/* Tutorial typing speed (gentler): finishes each line after a longer, length-aware delay //////////////typing speed///////////////*/
 (function(){
   try{
-    if (window.__FF_TUTORIAL_FASTTYPE__) return;
-    window.__FF_TUTORIAL_FASTTYPE__ = true;
+    if (window.__FF_TUTORIAL_FASTTYPE_V2__) return;
+    window.__FF_TUTORIAL_FASTTYPE_V2__ = true;
 
     const tipText   = document.getElementById('tip-text');
     const tipBubble = document.getElementById('tip-bubble');
     const tipNext   = document.getElementById('tip-next');
     if(!tipText || !tipBubble || !tipNext) return;
 
+    /* ---- TUNABLES ----
+       Bump these up/down to taste. */
     const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
-    const FINISH_DELAY_MS = isTouch ? 260 : 200; // when to “finish typing” per step
 
-    // State per step
-    let targetText = "";     // full line for this step
-    let stepToken  = 0;      // increments each new step
-    let armTimer   = null;
+    const BASE_DESKTOP_MS = 380;   // base time before “finish typing” on desktop
+    const BASE_MOBILE_MS  = 460;   // base time before “finish typing” on mobile
+    const PER_CHAR_MS     = 4;     // extra ms per character in the sentence
+    const MAX_EXTRA_MS    = 360;   // cap the extra time from length
+    const JITTER_MS       = 40;    // small randomness to feel organic (0..JITTER_MS)
+    const MIN_DELAY_MS    = 320;   // never finish sooner than this
 
-    function armFastFinish(myToken){
-      clearTimeout(armTimer);
-      armTimer = setTimeout(()=>{
-        // If we’re still on the same step and not fully typed, click “Next” once
-        if (myToken !== stepToken) return;
-        const cur = tipText.textContent || "";
-        if (targetText && cur.length < targetText.length) {
-          // This emulates the user’s first click while typing:
-          // your tutorial code finishes the current line (does NOT advance the step).
-          tipNext.click();
-        }
-      }, FINISH_DELAY_MS);
+    function calcDelayFor(text){
+      const base   = isTouch ? BASE_MOBILE_MS : BASE_DESKTOP_MS;
+      const extra  = Math.min(MAX_EXTRA_MS, Math.max(0, (text.length||0) * PER_CHAR_MS));
+      const jitter = Math.floor(Math.random() * JITTER_MS);
+      return Math.max(MIN_DELAY_MS, base + extra + jitter);
     }
 
-    // Observe tipText to (1) detect new steps and (2) capture full line safely.
-    // Your engine briefly sets the FULL text to measure size, then clears to "" and types.
-    // We capture that "old value" before it’s cleared.
+    // State per step
+    let targetText = "";  // full line for this step
+    let stepToken  = 0;   // increments each new step
+    let armTimer   = null;
+
+    function armFinish(myToken, text){
+      clearTimeout(armTimer);
+      const delay = calcDelayFor(text || targetText);
+      armTimer = setTimeout(()=>{
+        if (myToken !== stepToken) return;     // step changed
+        const cur = tipText.textContent || "";
+        if (targetText && cur.length < targetText.length){
+          // Emulate user click while typing: finishes the current line (does NOT advance)
+          tipNext.click();
+        }
+      }, delay);
+    }
+
+    // Observe tipText to: (1) detect new steps and (2) capture full line before typing starts.
+    // Your engine briefly sets full text (for sizing), then clears to "" and types it out.
     const obs = new MutationObserver((muts)=>{
       for(const m of muts){
-        if (m.type === 'characterData') {
+        if (m.type === 'characterData'){
           const newVal = m.target.data || "";
           const oldVal = m.oldValue || "";
-          // Detect when renderStep() cleared the text right after sizing:
-          // oldVal = full sentence, newVal -> "" (or very short)
-          if (oldVal && newVal.length <= 2) {
+          // New step pattern: had full text, then cleared/very short
+          if (oldVal && oldVal.length > 2 && newVal.length <= 2){
             targetText = oldVal;
             stepToken++;
-            armFastFinish(stepToken);
+            armFinish(stepToken, targetText);
           }
-        } else if (m.type === 'childList') {
-          // Also handle cases where the node is replaced
-          // If it got cleared right after holding a longer string, treat as a new step
+        } else if (m.type === 'childList'){
+          // Node replacement variant of the above
           const before = (m.removedNodes && m.removedNodes[0] && m.removedNodes[0].nodeType===3) ? m.removedNodes[0].data : "";
           const afterNode = (m.addedNodes && m.addedNodes[0] && m.addedNodes[0].nodeType===3) ? m.addedNodes[0] : null;
           const after = afterNode ? afterNode.data : (tipText.textContent||"");
           if (before && before.length > 2 && after.length <= 2){
             targetText = before;
             stepToken++;
-            armFastFinish(stepToken);
+            armFinish(stepToken, targetText);
           }
         }
       }
@@ -3646,19 +3659,20 @@ try{
       subtree: true
     });
 
-    // If a step is already on screen when we load, arm a quick finish
+    // If already on a step when this loads, arm a finish soon (using a short placeholder)
     setTimeout(()=>{
-      if ((tipText.textContent||"").length <= 2) {
+      if ((tipText.textContent||"").length <= 2){
         stepToken++;
-        armFastFinish(stepToken);
+        armFinish(stepToken, "placeholder");
       }
     }, 0);
 
   }catch(e){
-    console.warn('Tutorial fast typing patch error:', e);
+    console.warn('Tutorial fast typing (v2) patch error:', e);
   }
 })();
 </script>
+
   
   
 
