@@ -2327,189 +2327,147 @@ try{
 
 
 
-  
+
+
+
 
 
 
 
 <script type="application/ff-patch">
-/* Tutorial VO: JAX 1, Player 2 (F/M), JAX 3/4/5/6/9 + music ducking */
+/* Tutorial Voiceovers (gender-aware) + music ducking (append-only) */
 (function(){
   try{
-    if (window.__FF_TUTORIAL_VO__) return;
-    window.__FF_TUTORIAL_VO__ = true;
+    const tip = document.getElementById('tip');
+    const tipText = document.getElementById('tip-text');
+    const tipHeadName = document.getElementById('tip-head-name');
+    if(!tip || !tipText || !tipHeadName) return;
 
-    /* --------- Audio library (cache) --------- */
-    const VO_URL = {
-      j1:  'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true',
-      p2f: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true',
-      p2m: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/male%20player%20audio%201.mp3',
-      j3:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3',
-      j4:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3',
-      j5:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3',
-      j6:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3',
-      j9:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3'
+    /* --- VO library --- */
+    const VO_URLS = {
+      jax_intro: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=1",
+      player_q_f: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=1",
+      player_q_m: "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/male%20player%20audio%201.mp3",
+      jax_walk:   "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3",
+      jax_reps:   "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3",
+      jax_cd:     "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3",
+      jax_jog:    "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3",
+      jax_coach:  "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3"
     };
 
-    const cache = new Map();
-    function getClip(key, vol=0.9){
-      if (cache.has(key)) return cache.get(key);
-      const url = VO_URL[key];
-      if (!url) return null;
-      const a = new Audio(url);
+    // Preload & keep a single audio instance per clip
+    const CLIPS = {};
+    function getClip(key){
+      if(!VO_URLS[key]) return null;
+      if(CLIPS[key]) return CLIPS[key];
+      const a = new Audio(VO_URLS[key]);
       a.preload = 'auto';
-      a.loop = false;
-      try { a.volume = vol; } catch(_){}
-      cache.set(key, a);
+      a.playsInline = true;
+      try{ a.crossOrigin = 'anonymous'; }catch(_){}
+      a.volume = 0.95;
+      CLIPS[key] = a;
       return a;
     }
 
-    /* --------- Music duck/restore (reference-counted) --------- */
-    let duckCount = 0, prevVol = null, ducked = false;
-    function duckMusic(){
-      try{
-        duckCount++;
-        if (ducked) return;
-        if (typeof Music !== 'undefined' && Music){
-          prevVol = Music.vol; // getter
-          const newVol = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.55));
-          Music.setVol(newVol);
-          ducked = true;
-        }
-      }catch(_){}
-    }
-    function restoreMusic(){
-      try{
-        duckCount = Math.max(0, duckCount - 1);
-        if (duckCount > 0) return;
-        if (ducked && typeof Music !== 'undefined' && Music && prevVol != null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      if (duckCount === 0){ ducked = false; prevVol = null; }
-    }
-
-    function playOnce(key){
-      const a = getClip(key); if(!a) return;
-      // if already playing, do nothing (idempotent by key)
-      if (!a.__ff_wired){
-        const done = ()=> restoreMusic();
-        a.addEventListener('ended', done);
-        a.addEventListener('pause', done);
-        a.addEventListener('abort', done);
-        a.__ff_wired = true;
+    /* --- Music ducking while VO plays --- */
+    let currentVO = null;
+    let savedVol = null;
+    function duckStart(){
+      if(typeof Music!=='undefined' && Music){
+        try{
+          if(savedVol==null) savedVol = Music.vol;
+          Music.setVol(savedVol * 0.5);
+        }catch(_){}
       }
-      try{
-        duckMusic();
-        a.currentTime = 0;
-        a.play().catch(()=>{ restoreMusic(); });
-      }catch(_){ restoreMusic(); }
+    }
+    function duckEnd(){
+      if(typeof Music!=='undefined' && Music){
+        try{
+          if(savedVol!=null) Music.setVol(savedVol);
+        }catch(_){}
+      }
+      savedVol = null;
+    }
+    function playVO(key){
+      const clip = getClip(key);
+      if(!clip) return;
+
+      // Stop any current VO
+      if(currentVO){
+        try{ currentVO.onended = null; currentVO.pause(); currentVO.currentTime = 0; }catch(_){}
+        currentVO = null;
+      }
+
+      duckStart();
+      currentVO = clip;
+      clip.currentTime = 0;
+      clip.onended = ()=>{ clip.onended = null; if(currentVO===clip){ currentVO=null; duckEnd(); } };
+      clip.play().catch(()=>{ /* ignore */ });
     }
 
-    /* --------- Trigger 1: Play JAX #1 on New Game gesture --------- */
-    const btnNew = document.getElementById('btn-new');
-    if (btnNew){
-      const startJax1 = ()=>{
-        if (window.__FF_JAX1_PLAYED__) return;
-        window.__FF_JAX1_PLAYED__ = true;
-        playOnce('j1');
-        // Warm up subsequent clips
-        ['p2f','p2m','j3','j4','j5','j6','j9'].forEach(k=>{ try{ getClip(k, 0.0); }catch(_){ } });
-      };
-      btnNew.addEventListener('pointerdown', startJax1, {capture:true, passive:true});
-      btnNew.addEventListener('keydown', (e)=>{ if(e.code==='Enter'||e.code==='Space') startJax1(); }, {capture:true});
+    /* --- Match current tutorial line → VO key --- */
+    function normalize(s){
+      return String(s||'')
+        .replace(/[’‘]/g,"'")     // unify apostrophes
+        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // drop emoji
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g,' ')
+        .replace(/\s+/g,' ')
+        .trim();
+    }
+    function pickKey(speaker, raw){
+      const t = normalize(raw);
+
+      if(speaker==='JAX'){
+        if(t.startsWith('you look a bit low on energy lets fix that fast')) return 'jax_intro';
+        if( (t.includes('walking') && t.includes('1 hp')) || t.includes('power up') ) return 'jax_walk';
+        if( t.includes('great start') || t.includes('use reps') ) return 'jax_reps';
+        if( t.includes('green bar') || (t.includes('cooldown') && t.includes('halves')) ) return 'jax_cd';
+        if( t.includes('unlock jogging') || t.includes('button lights up') ) return 'jax_jog';
+        if( t.includes('ready to scale') || (t.includes('hire') && t.includes('coach')) ) return 'jax_coach';
+      }else{
+        // Player ("You")
+        if( t.includes('but where do i start') ){
+          const female = document.body.classList.contains('female');
+          return female ? 'player_q_f' : 'player_q_m';
+        }
+      }
+      return null;
     }
 
-    /* --------- Trigger 2..6 & 9: observe the tutorial bubble --------- */
-    const tipHeadName = document.getElementById('tip-head-name');
-    const tipText     = document.getElementById('tip-text');
-    const cardsRoot   = document.getElementById('cards');
-
-    // Helpers
-    const T = (el)=> (el?.textContent || '').trim().toLowerCase();
-
-    // Idempotent flags so each line plays once per session
-    const played = {
-      p2:false, j3:false, j4:false, j5:false, j6:false, j9:false
-    };
-
-    function matchP2you(txt){
-      // “But where do I start?” (allow minor punctuation/case) 
-      return /where\s+do\s+i\s+start\??/i.test(txt);
-    }
-    function matchJ3(txt){
-      // “Tap Walking to earn 1 HP. Then we’ll power up.” (robust match)
-      return /walking/i.test(txt) && /1\s*hp/i.test(txt);
-    }
-    function matchJ4(txt){
-      // “Great start! Use Reps to hit harder each tap.”
-      return /use\s+reps/i.test(txt) && /hit\s+harder/i.test(txt);
-    }
-    function matchJ5(txt){
-      // “When the green bar fills, your cooldown halves.”
-      return /green\s+bar/i.test(txt) && /cooldown/i.test(txt) && /half/i.test(txt);
-    }
-    function matchJ6(txt){
-      // “Unlock Jogging when the button lights up.”
-      return /unlock\s+jogging/i.test(txt) && /button\s+lights\s+up/i.test(txt);
-    }
-    function matchJ9(txt){
-      // “Ready to scale? Open the Menu (tap your avatar) and hire a coach.”
-      return /ready\s+to\s+scale/i.test(txt) && /hire\s+a\s+coach/i.test(txt);
-    }
-
-    function scanBubble(){
-      const who = T(tipHeadName);         // 'jax' or 'you'
-      const raw = (tipText?.textContent || '').trim();
-
-      if (!raw) return;
-
-      if (who === 'you' && !played.p2 && matchP2you(raw)){
-        played.p2 = true;
-        // choose female/male VO based on current avatar class
-        const isFemale = document.body.classList.contains('female');
-        playOnce(isFemale ? 'p2f' : 'p2m');
+    /* --- Watcher: fire VO once per line --- */
+    let lastKey = '';
+    let lastSpeaker = '';
+    function step(){
+      const visible = tip.classList.contains('show');
+      if(!visible){
+        lastKey = ''; lastSpeaker = ''; // reset between sessions
+        requestAnimationFrame(step);
         return;
       }
 
-      if (who === 'jax'){
-        if (!played.j3 && matchJ3(raw)){ played.j3 = true; playOnce('j3'); return; }
-        if (!played.j4 && matchJ4(raw)){ played.j4 = true; playOnce('j4'); return; }
-        if (!played.j5 && matchJ5(raw)){ played.j5 = true; playOnce('j5'); return; }
-        if (!played.j6 && matchJ6(raw)){ played.j6 = true; playOnce('j6'); return; }
-        if (!played.j9 && matchJ9(raw)){ played.j9 = true; playOnce('j9'); return; }
+      const speaker = (tipHeadName.textContent || '').trim().toUpperCase(); // 'JAX' or 'YOU'
+      const raw = tipText.textContent || '';
+      const key = pickKey(speaker, raw);
+
+      // Trigger only on (speaker change OR new key) and when some text is present
+      if(raw && (speaker !== lastSpeaker || (key && key !== lastKey))){
+        if(key) playVO(key);
+        lastKey = key || '';
+        lastSpeaker = speaker;
       }
+
+      requestAnimationFrame(step);
     }
+    requestAnimationFrame(step);
 
-    // Observe bubble text/speaker changes continuously
-    const ro = new MutationObserver(scanBubble);
-    if (tipText) ro.observe(tipText, {characterData:true, childList:true, subtree:true});
-    if (tipHeadName) ro.observe(tipHeadName, {characterData:true, childList:true, subtree:true});
-
-    // Also rescan on card state changes (in case tutorial fires during rebuilds)
-    if (cardsRoot){
-      new MutationObserver(scanBubble).observe(cardsRoot, {childList:true, subtree:true});
-    }
-
-    // Kick a couple frames to catch the very first lines after New Game
-    requestAnimationFrame(()=> requestAnimationFrame(scanBubble));
-
+    // Optional: expose debugging helpers
+    window.FF_TUTORIAL_VO = { playVO, pickKey };
   }catch(e){
-    console.warn('Tutorial VO wiring error:', e);
+    console.warn('Tutorial VO patch error:', e);
   }
 })();
 </script>
-
-
-
-
-
-
-
-
-
-
-
 
 
 
