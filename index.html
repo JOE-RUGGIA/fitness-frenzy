@@ -2158,5 +2158,47 @@ try{
 </script>
 
 
+
+
+
+
+
+  <script type="application/ff-patch">
+/* Resume background music on first real user gesture (works with fast-click layers)////////////////////FIXING DESKTOP MUSIC//////////////////////////// */
+(function(){
+  try{
+    if (window.__FF_MUSIC_ARMED__) return;
+    window.__FF_MUSIC_ARMED__ = true;
+
+    function startMusicOnce(){
+      try{
+        // Respect your existing prefs: Music.startPlay() is a no-op if music is off
+        if (window.Music && typeof Music.startPlay === 'function'){
+          Music.startPlay();
+        }
+      }catch(_){}
+    }
+
+    const onPointer = ()=>{ startMusicOnce(); cleanup(); };
+    const onKey = (e)=>{ if(e.code === 'Enter' || e.code === 'Space'){ startMusicOnce(); cleanup(); } };
+
+    function cleanup(){
+      window.removeEventListener('pointerdown', onPointer, true);
+      window.removeEventListener('touchstart', onPointer, true);
+      window.removeEventListener('keydown', onKey, true);
+    }
+
+    // Use capture so we run before any synthetic click/swallow logic
+    window.addEventListener('pointerdown', onPointer, { once:true, capture:true, passive:true });
+    window.addEventListener('touchstart',  onPointer, { once:true, capture:true, passive:true });
+    window.addEventListener('keydown',     onKey,     { once:true, capture:true });
+
+  }catch(e){
+    console.warn('Music auto-resume patch error:', e);
+  }
+})();
+</script>
+
+
 </body>
 </html>
