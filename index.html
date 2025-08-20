@@ -1697,5 +1697,159 @@ try{
 
 
 
+
+
+
+<style data-ff-patch>
+  /* ---------- Splash progress bar ---------/////////////////////////////////////////////SSSSSPPPPPLLLLAAAASSSSHHHHHHH PROGRESS BAR//////- */
+  .splash .brand{ width:100%; display:flex; flex-direction:column; align-items:center; }
+  .ff-progress{
+    width:min(480px, 72vw);
+    height:12px;
+    border-radius:999px;
+    background:linear-gradient(180deg,#e7e9f8,#cfd5ff);
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.18);
+    border:1px solid rgba(0,0,0,.15);
+    overflow:hidden;
+    margin-top:14px;
+  }
+  .ff-progress-fill{
+    width:0%;
+    height:100%;
+    border-radius:999px;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,.35), rgba(255,255,255,0) 40%),
+      linear-gradient(90deg, var(--accent-2), #7ac6ff);
+    transition:width .22s ease;
+  }
+
+  /* ---------- Start screen tweaks ---------- */
+  .start .ava{ width:108px; height:108px; }
+  @media (max-width:480px){
+    .start .ava{ width:96px; height:96px; }
+  }
+  /* Remove Male/Female labels + hint */
+  .start .ava span{ display:none !important; }
+  .start .hint{ display:none !important; }
+
+  /* Male Start button = blue; Female remains pink via your existing rule */
+  .start .btn-start{
+    background:var(--accent-2) !important;   /* blue for male */
+    color:#061222 !important;
+    font-weight:900;
+  }
+  body.female .start .btn-start{
+    background:var(--female-accent) !important; /* pink for female */
+    color:#2b0020 !important;
+  }
+</style>
+
+<script type="application/ff-patch">
+/* Splash loading bar + start screen polish */
+(function(){
+  try{
+    /* ----- Inject progress bar into splash ----- */
+    const splash = document.getElementById('splash');
+    const brand  = splash && splash.querySelector('.brand');
+    if(!brand) return;
+
+    // Create bar
+    let bar = brand.querySelector('.ff-progress');
+    if(!bar){
+      bar = document.createElement('div');
+      bar.className = 'ff-progress';
+      const fill = document.createElement('div');
+      fill.className = 'ff-progress-fill';
+      bar.appendChild(fill);
+      // Insert under the existing tagline if present
+      const tag = brand.querySelector('.tag');
+      (tag ? tag.after(bar) : brand.appendChild(bar));
+    }
+    const fill = bar.querySelector('.ff-progress-fill');
+
+    // Gentle progress blend: time-based + asset preloads
+    let p = 0;                // current [0..1]
+    const t0 = performance.now();
+    const MAX_MS = 4500;      // soft cap
+    const SOFT_CAP = .9;      // don't exceed until splash closes
+
+    // Collect a light set of early assets to preload to make it feel real
+    const assets = (()=>{
+      const urls = [];
+      try{
+        const ds = (document.getElementById('start')?.getAttribute('data-bg-desktop')) || 'FF-desktop.png';
+        const ms = (document.getElementById('start')?.getAttribute('data-bg-mobile'))  || 'FF-mobile.png';
+        urls.push(ds, ms);
+      }catch(_){}
+      try{
+        // First 4 GIFs per gender (already in your global GIFS const)
+        if(window.GIFS){
+          ['male','female'].forEach(g=>{
+            const gset = window.GIFS[g]||{};
+            ['walk','jog','sit','push'].forEach(k=> gset[k] && urls.push(gset[k]));
+          });
+        }
+      }catch(_){}
+      return urls.filter(Boolean);
+    })();
+
+    let loaded = 0, total = assets.length;
+    const seen = new Set();
+    function preload(url){
+      if(seen.has(url)) return;
+      seen.add(url);
+      const img = new Image();
+      img.onload = img.onerror = ()=>{ loaded++; };
+      img.decoding = 'async';
+      img.src = url;
+    }
+    assets.forEach(preload);
+
+    function tick(){
+      // time-based contribution
+      const dt = performance.now() - t0;
+      const timeP = Math.max(0, Math.min(1, dt / MAX_MS)) * SOFT_CAP;
+
+      // asset-based contribution
+      const assetP = total ? (loaded/total)*SOFT_CAP : 0;
+
+      const target = Math.max(timeP, assetP);
+      // ease current toward target
+      p += (target - p) * 0.25;
+
+      fill.style.width = Math.max(0, Math.min(100, p*100)).toFixed(1) + '%';
+
+      if(splash.classList.contains('show')){
+        requestAnimationFrame(tick);
+      }else{
+        // finalize to 100% once splash closes
+        fill.style.transition = 'width .18s ease';
+        fill.style.width = '100%';
+      }
+    }
+    requestAnimationFrame(tick);
+
+    // Also finalize if user presses "Skip"
+    const skip = document.getElementById('splash-skip');
+    if(skip){
+      skip.addEventListener('click', ()=>{
+        fill.style.transition = 'width .18s ease';
+        fill.style.width = '100%';
+      }, {capture:true});
+    }
+
+    /* ----- Start screen polish: strip labels safely ----- */
+    const start = document.getElementById('start');
+    if(start){
+      start.querySelectorAll('.ava span').forEach(s=> s.textContent=''); // remove visible text for SR parity
+    }
+  }catch(e){
+    console.warn('Splash/start patch error:', e);
+  }
+})();
+</script>
+  
+
+
 </body>
 </html>
