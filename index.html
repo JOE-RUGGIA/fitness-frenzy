@@ -2330,7 +2330,7 @@ try{
 
  <script type="application/ff-patch">
 /* JAX intro voice → (then) Female player reply
-   + Desktop-safe music boot (before ducking), mobile unchanged */
+   + Universal music boot on first real gesture (no double audio) */
 (function(){
   try{
     if (window.__FF_JAX_FEMALE_VOICE_PATCH__) return;
@@ -2338,8 +2338,6 @@ try{
 
     const JAX_URL    = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true';
     const FEMALE_URL = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true';
-
-    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
 
     let jax, fvo;
     let ducked = false, prevVol = null;
@@ -2352,14 +2350,16 @@ try{
       return a;
     }
 
-    /* ---- Desktop music boot (once) ---- */
-    function ensureDesktopMusicOnce(){
-      if (isTouch) return;                            // mobile handled by game already
-      if (window.__FF_MUSIC_STARTED__) return;        // guard
+    /* ---- Music boot (all devices), guarded to avoid doubles ---- */
+    function ensureMusicOnce(){
+      if (window.__FF_MUSIC_STARTED__) return;
+      // mark FIRST so multiple gesture events don't race
       window.__FF_MUSIC_STARTED__ = true;
       try{
         if (typeof Music !== 'undefined' && Music && Music.startPlay){
-          Music.startPlay();                          // respects prefs/volume
+          // respect user setting if they toggled music off
+          if (typeof Music.on === 'boolean' && Music.on === false) return;
+          Music.startPlay();
         }
       }catch(_){}
     }
@@ -2368,7 +2368,6 @@ try{
       try{
         if (ducked) return;
         if (typeof Music !== 'undefined' && Music){
-          // Capture current (or default) before ducking
           prevVol = (typeof Music.vol === 'number') ? Music.vol : (Music.vol ?? 0.12);
           const newVol = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.55));
           Music.setVol(newVol);
@@ -2391,7 +2390,7 @@ try{
       try{ a.currentTime = 0; a.play().catch(()=>{}); }catch(_){}
     }
 
-    /* Wait until the tutorial bubble shows a "You" line, then play female VO */
+    /* After JAX, if female avatar, wait for the "You" bubble then play VO */
     function waitForPlayerBubbleThenPlayFemale(maxWaitMs=6000){
       const t0 = performance.now();
       const tipHeadName = document.getElementById('tip-head-name');
@@ -2424,14 +2423,15 @@ try{
     }
 
     function playIntroSequence(){
-      if (window.__FF_JAX_LINE_PLAYED__) return;       // guard FIRST (handles double-gestures)
+      if (window.__FF_JAX_LINE_PLAYED__) return;
       window.__FF_JAX_LINE_PLAYED__ = true;
 
-      // ✅ Make sure desktop music is up before we duck it
-      ensureDesktopMusicOnce();
+      // ✅ start music once (desktop & mobile) using this real gesture
+      ensureMusicOnce();
 
       try{
         if (!jax) jax = ensureAudio(JAX_URL, 0.9);
+
         const restore = ()=> restoreMusic();
         jax.addEventListener('ended', restore, {once:true});
         jax.addEventListener('pause', restore, {once:true});
@@ -2447,27 +2447,28 @@ try{
       }catch(_){}
     }
 
-    /* Hook New Game (real gestures) */
+    /* Hook Start (New Game) with real gestures so autoplay is allowed */
     const btnNew = document.getElementById('btn-new');
-    if (!btnNew) return;
+    if (btnNew){
+      btnNew.addEventListener('pointerdown', playIntroSequence, {capture:true, passive:true});
+      btnNew.addEventListener('keydown', (e)=>{
+        if (e.code === 'Enter' || e.code === 'Space') playIntroSequence();
+      }, {capture:true});
+    }
 
-    btnNew.addEventListener('pointerdown', playIntroSequence, {capture:true, passive:true});
-    btnNew.addEventListener('keydown', (e)=>{
-      if (e.code === 'Enter' || e.code === 'Space') playIntroSequence();
-    }, {capture:true});
-
-    /* Bonus: if you also want music to definitely boot on desktop when hitting Continue/Skip,
-       we can lightly hook them too without touching VO: */
+    /* Also boot music (once) on Continue and Skip — no VO triggered here */
     ['btn-continue','splash-skip'].forEach(id=>{
       const el = document.getElementById(id);
       if(!el) return;
-      const boot = ()=> ensureDesktopMusicOnce();
+      const boot = ()=>{
+        if (!window.__FF_MUSIC_STARTED__) ensureMusicOnce();
+      };
       el.addEventListener('pointerdown', boot, {capture:true, passive:true});
       el.addEventListener('keydown', (e)=>{ if(e.code==='Enter'||e.code==='Space') boot(); }, {capture:true});
     });
 
   }catch(e){
-    console.warn('JAX + Female VO + desktop music boot patch error:', e);
+    console.warn('JAX + Female VO + universal music boot patch error:', e);
   }
 })();
 </script>
