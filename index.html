@@ -2213,5 +2213,113 @@ try{
 
 
 
+
+
+
+
+
+
+  <script type="application/ff-patch">
+/* Coach names (F/M alternating; mapped by the "Works on: <Exercise>" label)///////////////////////////COACH NAMES//////INFO////////////// */
+(function(){
+  try{
+    const menuBody = document.getElementById('menu-body');
+    if(!menuBody) return;
+
+    // Index-aligned to your Exercises array (0..19)
+    const COACH_NAMES = [
+      /* 0  Walking           */ 'Maya Stride',        // F
+      /* 1  Jogging           */ 'Dash Carter',        // M
+      /* 2  Sit-ups           */ 'Cora Lane',          // F
+      /* 3  Push-ups          */ 'Rex Pressman',       // M
+      /* 4  Jumping Jacks     */ 'Jill Jump',          // F
+      /* 5  Pull-ups          */ 'Leo Pullman',        // M
+      /* 6  Jump Rope         */ 'Skye Skipper',       // F
+      /* 7  Plank             */ 'Max Plank',          // M
+      /* 8  Mountain Climbers */ 'Sierra Summit',      // F
+      /* 9  Kettlebell        */ 'Kade Kettler',       // M
+      /* 10 Burpees           */ 'Bree Burpee',        // F
+      /* 11 Bench Press       */ 'Ben Pressley',       // M
+      /* 12 Back Squat        */ 'Sasha Squatova',     // F
+      /* 13 Deadlift          */ 'Declan Deadlift',    // M
+      /* 14 Handstands        */ 'Hana Handstand',     // F
+      /* 15 Handstand Push-ups*/ 'Hunter Invert',      // M
+      /* 16 Muscle-ups        */ 'Mira Muscle',        // F
+      /* 17 Front Lever       */ 'Levi Lever',         // M
+      /* 18 Iron Cross        */ 'Iris Cross',         // F
+      /* 19 Victorian Cross   */ 'Victor Crossley'     // M
+    ];
+
+    // Build a map: Exercise Name -> index
+    const nameToIndex = new Map();
+    try{
+      if (typeof Exercises !== 'undefined' && Array.isArray(Exercises)){
+        Exercises.forEach((ex, idx)=> nameToIndex.set(ex.name, idx));
+      } else {
+        // Fallback: hardcode names if Exercises isn't visible
+        [
+          'Walking','Jogging','Sit-ups','Push-ups','Jumping Jacks','Pull-ups','Jump Rope','Plank',
+          'Mountain Climbers','Kettlebell','Burpees','Bench Press','Back Squat','Deadlift',
+          'Handstands','Handstand Push-ups','Muscle-ups','Front Lever','Iron Cross','Victorian Cross'
+        ].forEach((n, idx)=> nameToIndex.set(n, idx));
+      }
+    }catch(_){}
+
+    function applyNameToRow(row){
+      const titleEl = row.querySelector('.coach-title');
+      const subEl   = row.querySelector('.coach-sub');
+      if(!titleEl || !subEl) return;
+
+      // Parse "Works on: <Exercise>"
+      const m = (subEl.textContent || '').match(/Works on:\s*(.+)\s*$/i);
+      const exName = m ? m[1].trim() : null;
+
+      let idx = (exName && nameToIndex.has(exName)) ? nameToIndex.get(exName) : null;
+      if (idx == null){
+        // Fallback: if the original title was "Coach N", infer N-1
+        const m2 = (titleEl.textContent||'').match(/Coach\s+(\d+)/i);
+        if(m2) idx = Math.max(0, parseInt(m2[1],10)-1);
+      }
+
+      if (idx != null && COACH_NAMES[idx]){
+        titleEl.textContent = COACH_NAMES[idx];
+      }
+    }
+
+    function applyAll(){
+      menuBody.querySelectorAll('.coach-row').forEach(applyNameToRow);
+    }
+
+    // Run now (if Coaches tab already open)
+    applyAll();
+
+    // Re-run whenever the menu rerenders
+    new MutationObserver((muts)=>{
+      for(const m of muts){
+        if(m.type === 'childList'){
+          m.addedNodes.forEach(n=>{
+            if(!(n instanceof HTMLElement)) return;
+            if(n.classList.contains && n.classList.contains('coach-row')) applyNameToRow(n);
+            n.querySelectorAll && n.querySelectorAll('.coach-row').forEach(applyNameToRow);
+          });
+        }
+      }
+    }).observe(menuBody, {childList:true, subtree:true});
+
+    // Also apply when user switches tabs and returns to Coaches
+    document.getElementById('menu')?.addEventListener('click', (e)=>{
+      const tab = e.target.closest?.('.tab[data-tab="coaches"]');
+      if(tab) setTimeout(applyAll, 0);
+    }, true);
+
+    // Expose for debugging if you want to tweak names live:
+    window.BM_COACH_NAMES = COACH_NAMES;
+  }catch(e){
+    console.warn('Coach names patch error:', e);
+  }
+})();
+</script>
+
+
 </body>
 </html>
