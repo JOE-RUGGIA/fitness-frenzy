@@ -2333,223 +2333,205 @@ try{
 
 
 <script type="application/ff-patch">
-/* JAX VO mapping v5h — Music starts AFTER JAX #1 finishes.
-   - Mobile: bless L1 with play→pause (audible=0.01) during gesture
-   - Desktop: muted-boot for L1
-   - Gate Music.startPlay until JAX #1 ends (or fallback)
-   - Robust female detect, token triggers, fallbacks preserved */
+/* VO v6 — Single-voice bus (no overlaps) + Mobile bless + Music starts after JAX#1
+   - Serializes all VO (no “chorus”)
+   - Mobile: give JAX#1 the gesture first (quiet 0.01 play→pause)
+   - Desktop: optional muted boot
+   - Music held until JAX#1 ends (or 3.5s failsafe)
+   - Robust female/male detection; token triggers + safe fallbacks
+*/
 (function(){
   try{
-    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5H__) return;
-    window.__FF_JAX_TUTORIAL_VO_PATCH_V5H__ = true;
+    if (window.__FF_VO_V6__) return; window.__FF_VO_V6__ = true;
 
+    /* -------------------- Config & URLs -------------------- */
     const URLS = {
-      j1: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true',
+      j1:      'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true',
       you_f_2: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true',
       you_m_2: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/male%20player%20audio%201.mp3',
-      j3: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3',
-      j4: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3',
-      j5: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3',
-      j6: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3',
-      j9: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3'
+      j3:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3',
+      j4:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3',
+      j5:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3',
+      j6:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3',
+      j9:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3'
     };
-
     const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
 
-    /* ---------- Robust female detect ---------- */
+    /* -------------------- Female detect -------------------- */
     function isFemaleAvatar(){
       try{
         if (document.body.classList.contains('female')) return true;
-        const sv=document.getElementById('start-avatars'); if(sv&&sv.querySelector('.ava.f.active')) return true;
-        const top=document.getElementById('avatar-img'); if(top&&/FEMALE/i.test(top.src)) return true;
-        const tip=document.getElementById('tip-head-img'); if(tip&&/FEMALE/i.test(tip.src)) return true;
+        const sv=document.getElementById('start-avatars'); if(sv && sv.querySelector('.ava.f.active')) return true;
+        const top=document.getElementById('avatar-img');  if(top && /FEMALE/i.test(top.src)) return true;
+        const tip=document.getElementById('tip-head-img');if(tip && /FEMALE/i.test(tip.src)) return true;
       }catch(_){}
       return false;
     }
+    window.BM_IS_FEMALE = isFemaleAvatar; // debug helper
 
-    /* ---------- Music gate: hold music until JAX #1 finishes ---------- */
-    let ORIG_MUSIC_START=null, musicQueued=false, musicAllowed=false, musicFallback=null;
+    /* -------------------- Music gate -------------------- */
+    let ORIG_MUSIC_START=null, musicQueued=false, musicAllowed=false, musicFailsafe=null;
     function installMusicGate(){
       if (!window.Music || !Music.startPlay || ORIG_MUSIC_START) return;
       ORIG_MUSIC_START = Music.startPlay.bind(Music);
-      Music.startPlay = function(){
-        if (musicAllowed) return ORIG_MUSIC_START();
-        musicQueued = true; // quietly queue
-      };
+      Music.startPlay = function(){ if (musicAllowed) return ORIG_MUSIC_START(); musicQueued=true; };
     }
     function releaseMusicGate(){
       if (musicAllowed) return;
       musicAllowed = true;
-      clearTimeout(musicFallback);
-      if (musicQueued && ORIG_MUSIC_START) { musicQueued=false; ORIG_MUSIC_START(); }
+      clearTimeout(musicFailsafe);
+      if (musicQueued && ORIG_MUSIC_START){ musicQueued=false; ORIG_MUSIC_START(); }
     }
 
-    /* ---------- Player + ducking ---------- */
+    /* -------------------- Audio cache + helpers -------------------- */
     const cache = Object.create(null);
-    const startedAudible = Object.create(null);
-    let voicesActive = 0, prevVol = null;
+    function make(url, vol=0.9){
+      const a = new Audio(url);
+      a.preload='auto'; a.loop=false;
+      try{ a.volume=vol; a.playsInline=true; a.setAttribute('playsinline',''); a.setAttribute('webkit-playsinline',''); }catch(_){}
+      return a;
+    }
+    function getAudio(key){ return cache[key] || (cache[key]=make(URLS[key],0.9)); }
+    function primeAll(){ if(window.__FF_VO_PRIMED__) return; window.__FF_VO_PRIMED__=true; Object.keys(URLS).forEach(k=>{ try{ getAudio(k).load(); }catch(_){} }); }
+    function fadeTo(a, target=0.9, ms=220){
+      const start=a.volume||0, t0=performance.now();
+      (function step(){
+        const p=Math.min(1,(performance.now()-t0)/ms);
+        try{ a.volume = start + (target-start)*p; }catch(_){}
+        if(p<1) requestAnimationFrame(step);
+      })();
+    }
+    function blessPlayPause(a){ // mobile “unlock” — audible but quiet
+      try{
+        const old=a.volume;
+        a.muted=false; a.volume=0.01; a.currentTime=0.001;
+        return a.play().then(()=>{ setTimeout(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){ } }, 40); }).catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){ } });
+      }catch(_){}
+    }
 
+    /* -------------------- Duck music under VO -------------------- */
+    let voicesActive=0, prevVol=null;
     function duckMusic(){
       try{
-        if (voicesActive===0 && typeof Music!=='undefined' && Music){
-          prevVol = Music.vol;
-          Music.setVol(Math.max(0, Math.min(1, (prevVol ?? 0.12)*0.55)));
-        }
+        if (voicesActive===0 && window.Music){ prevVol = Music.vol; Music.setVol(Math.max(0,Math.min(1,(prevVol ?? 0.12)*0.55))); }
         voicesActive++;
       }catch(_){}
     }
     function restoreMusic(){
       try{
-        voicesActive = Math.max(0, voicesActive-1);
-        if (voicesActive===0 && typeof Music!=='undefined' && Music && prevVol!=null){
-          Music.setVol(prevVol);
-          prevVol = null;
-        }
+        voicesActive=Math.max(0,voicesActive-1);
+        if (voicesActive===0 && window.Music && prevVol!=null){ Music.setVol(prevVol); prevVol=null; }
       }catch(_){}
     }
-    function make(url, vol=0.9){
-      const a = new Audio(url);
-      a.preload = 'auto'; a.loop = false;
-      try{ a.volume = vol; a.playsInline = true; a.setAttribute('playsinline',''); a.setAttribute('webkit-playsinline',''); }catch(_){}
-      a.addEventListener('ended', restoreMusic, {once:true});
-      a.addEventListener('pause', restoreMusic, {once:true});
-      a.addEventListener('abort', restoreMusic, {once:true});
-      return a;
-    }
-    function getAudio(key){ return cache[key] || (cache[key] = make(URLS[key], 0.9)); }
-    function primeAll(){ if (window.__FF_JAX_PRIMED__) return; window.__FF_JAX_PRIMED__=true; Object.keys(URLS).forEach(k=>{ try{ getAudio(k).load(); }catch(_){ } }); }
 
-    function fadeTo(a, target=0.9, ms=240){
-      const start=a.volume||0, t0=performance.now();
-      (function step(){ const p=Math.min(1,(performance.now()-t0)/ms);
-        try{ a.volume = start + (target-start)*p; }catch(_){}
-        if(p<1) requestAnimationFrame(step);
-      })();
-    }
+    /* -------------------- VO BUS (single-voice queue) -------------------- */
+    const VO = (function(){
+      const q=[]; let now=null; const lastReqTs={}, IN_WINDOW=700; // dedupe window per key
+      function has(key){ return (now && now.key===key) || q.some(it=>it.key===key); }
+      function request(key){
+        const t=performance.now(); if(lastReqTs[key] && t-lastReqTs[key]<IN_WINDOW) return; lastReqTs[key]=t;
+        if(has(key)) return;
+        q.push({key}); pump();
+      }
+      function stopCurrent(){
+        if(!now) return;
+        try{
+          now.audio.onended=null; now.audio.onpause=null; now.audio.onabort=null;
+          now.audio.pause(); now.audio.currentTime=0;
+        }catch(_){}
+        restoreMusic();
+        now=null;
+      }
+      function playClip(key){
+        const a=getAudio(key);
+        duckMusic();
+        a.muted=false; a.volume=0; a.currentTime=0;
+        a.onended = ()=>{ restoreMusic(); if(key==='j1'){ releaseMusicGate(); } now=null; pump(); };
+        a.onpause = ()=>{ /* if near end, still release */ try{ if(key==='j1' && a.duration && a.currentTime>a.duration*0.85){ releaseMusicGate(); } }catch(_){ } };
+        try{
+          a.play().then(()=>{ fadeTo(a,0.9,220); if(key==='j1') hookMusicReleaseOnce(a); }).catch(()=>{ now=null; pump(); });
+        }catch(_){ now=null; pump(); }
+        return a;
+      }
+      let musicHooked=false;
+      function hookMusicReleaseOnce(a){
+        if(musicHooked) return; musicHooked=true;
+        a.addEventListener('ended', ()=> releaseMusicGate(), {once:true});
+      }
+      function pump(){
+        if(now || !q.length) return;
+        const item=q.shift();
+        now={key:item.key, audio: playClip(item.key)};
+      }
+      return { request, has, stopCurrent };
+    })();
 
-    /* ---------- Elements ---------- */
+    /* -------------------- Elements & text token checks -------------------- */
     const btnNew=document.getElementById('btn-new');
     const tipHeadName=document.getElementById('tip-head-name');
     const tipText=document.getElementById('tip-text');
     const tipRoot=document.getElementById('tip');
     if(!btnNew||!tipHeadName||!tipText||!tipRoot) return;
 
-    /* ---------- Helpers ---------- */
-    function norm(s){
-      return String(s||'')
-        .replace(/\u00a0/g,' ')
-        .replace(/[\u2018\u2019]/g,"'").replace(/['’]/g,'')
-        .replace(/\s+/g,' ').trim().toLowerCase();
-    }
+    const norm = s=> String(s||'').replace(/\u00a0/g,' ')
+                      .replace(/[\u2018\u2019]/g,"'").replace(/['’]/g,'')
+                      .replace(/\s+/g,' ').trim().toLowerCase();
     const hasAll=(t,arr)=>arr.every(x=>t.includes(x));
 
-    /* ---------- Bless helper (mobile): unmuted v=0.01 play→pause ---------- */
-    function blessPlayPause(a){
-      try{
-        const old=a.volume;
-        a.muted=false; a.volume=0.01; a.currentTime=0.001;
-        return a.play().then(()=>{ setTimeout(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){ } }, 40); })
-                        .catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){ } });
-      }catch(_){}
-    }
-
-    /* ---------- Start gesture: prime, install music gate, bless/boot L1 ---------- */
-    let STARTED=false, desktopMutedBoot=false;
+    /* -------------------- Start gesture: prime, gate music, bless -------------------- */
+    let started=false, desktopMutedBoot=false, j1Fallback1=null, j1Fallback2=null;
     function onStartGesture(){
-      if (STARTED) return; STARTED=true;
-      primeAll();
-      installMusicGate();  // capture any early music starts from the game
+      if(started) return; started=true;
+      primeAll(); installMusicGate();
 
-      const aJ1 = getAudio('j1');
-      if (isTouch){
-        // Mobile: bless L1 (audible token goes to VO)
+      const aJ1=getAudio('j1');
+      if(isTouch){
+        // Give VO the gesture first (prevents music stealing the token)
         blessPlayPause(aJ1);
+        // Also bless the rest; cheap and future-proof
+        ['you_f_2','you_m_2','j3','j4','j5','j6','j9'].forEach(k=> blessPlayPause(getAudio(k)));
       }else{
-        // Desktop: keep L1 silently playing (muted) and fade in later
+        // Desktop: optional muted boot so J1 is ready to fade in
         try{ aJ1.muted=true; aJ1.volume=0; aJ1.currentTime=0; aJ1.play().then(()=>{ desktopMutedBoot=true; }).catch(()=>{}); }catch(_){}
       }
 
-      // Bless the rest on mobile too
-      if (isTouch){
-        ['you_f_2','you_m_2','j3','j4','j5','j6','j9'].forEach(k=> blessPlayPause(getAudio(k)));
+      // Female safety: if tokens lag, queue J1 anyway (no overlap—bus handles it)
+      if(isFemaleAvatar()){
+        clearTimeout(j1Fallback1); clearTimeout(j1Fallback2);
+        j1Fallback1=setTimeout(()=>{ if(!VO.has('j1')) VO.request('j1'); }, 900);
+        j1Fallback2=setTimeout(()=>{ if(!VO.has('j1')) VO.request('j1'); }, 1900);
       }
 
-      // Absolute failsafe: if nothing plays at all, start music after 3.5s
-      clearTimeout(musicFallback);
-      musicFallback=setTimeout(()=>{ releaseMusicGate(); }, 3500);
+      // Absolute failsafe: start music later if nothing played
+      clearTimeout(musicFailsafe);
+      musicFailsafe=setTimeout(()=>{ releaseMusicGate(); }, 3500);
     }
 
-    /* ---------- Make L1 audible + start music AFTER it finishes ---------- */
-    let j1EndedHooked=false;
-    function hookJ1EndToStartMusic(a){
-      if (j1EndedHooked) return;
-      j1EndedHooked = true;
-      a.addEventListener('ended', ()=>{ releaseMusicGate(); }, {once:true});
-      // small safety: release if paused very near the end (some mobile browsers)
-      a.addEventListener('pause', ()=>{
-        try{
-          if (a.duration && a.currentTime > a.duration * 0.85) releaseMusicGate();
-        }catch(_){}
-      }, {once:true});
-    }
-
-    function audibilizeL1(){
-      if (startedAudible.j1) return true;
-      const a=getAudio('j1'); if(!a) return false;
-      try{
-        duckMusic();
-        a.muted=false; a.volume=0; a.currentTime=0;
-        hookJ1EndToStartMusic(a);
-        if (!isTouch && desktopMutedBoot){
-          // already playing muted; just fade up
-          fadeTo(a,0.9,260);
-          startedAudible.j1 = true;
-          return true;
-        }else{
-          return a.play().then(()=>{ startedAudible.j1=true; fadeTo(a,0.9,220); return true; })
-                          .catch(()=> false);
-        }
-      }catch(_){ return false; }
-    }
-
-    /* ---------- Female fallbacks if token detect lags ---------- */
-    let fT1=null, fT2=null;
-    function scheduleFemaleFallbacks(){
-      if(!isFemaleAvatar()) return;
-      clearTimeout(fT1); clearTimeout(fT2);
-      fT1=setTimeout(()=>{ if(!startedAudible.j1) audibilizeL1(); }, 900);
-      fT2=setTimeout(()=>{ if(!startedAudible.j1) audibilizeL1(); }, 1900);
-    }
-
-    /* ---------- Token detectors ---------- */
+    /* -------------------- Token-triggered requests (queued; no overlaps) -------------------- */
     function tryJax1(){
-      if (startedAudible.j1) return;
       const sp=(tipHeadName.textContent||'').trim().toUpperCase();
       const t=norm(tipText.textContent);
       const ok=(sp==='JAX') && (hasAll(t,['low on energy'])||hasAll(t,['fix that fast'])||hasAll(t,['you look a bit']));
       if(!ok) return;
-      clearTimeout(fT1); clearTimeout(fT2);
-      audibilizeL1();
+      clearTimeout(j1Fallback1); clearTimeout(j1Fallback2);
+      VO.request('j1');
     }
     function maybePlayPlayerReply(){
       const sp=(tipHeadName.textContent||'').trim().toUpperCase(); if(sp!=='YOU') return;
       const t=norm(tipText.textContent); if(!/but where do i start\??/.test(t)) return;
-      const key = isFemaleAvatar() ? 'you_f_2' : 'you_m_2';
-      if(startedAudible[key]) return;
-      try{ const a=getAudio(key); a.currentTime=0; duckMusic(); a.play().then(()=>{ startedAudible[key]=true; }).catch(()=>{}); }catch(_){}
+      VO.request(isFemaleAvatar() ? 'you_f_2' : 'you_m_2');
     }
     function maybePlayJaxAuto(){
       const sp=(tipHeadName.textContent||'').trim().toUpperCase(); if(sp!=='JAX') return;
       const t=norm(tipText.textContent);
-      const fire=(key,cond)=>{ if(!startedAudible[key] && cond){ const a=getAudio(key); a.currentTime=0; duckMusic(); a.play().then(()=>{ startedAudible[key]=true; }).catch(()=>{}); return true; } return false; };
-      if(fire('j3', hasAll(t,['walking','1 hp']))) return;
-      if(fire('j4', t.includes('reps'))) return;
-      if(fire('j5', hasAll(t,['green','bar','cooldown']) && /(halves|half)/.test(t))) return;
-      if(fire('j6', hasAll(t,['unlock','jogging','button','lights']))) return;
-      fire('j9', hasAll(t,['ready','scale','coach']) && /hire/.test(t));
+      if (hasAll(t,['walking','1 hp'])) { VO.request('j3'); return; }
+      if (t.includes('reps'))          { VO.request('j4'); return; }
+      if (hasAll(t,['green','bar','cooldown']) && /(halves|half)/.test(t)) { VO.request('j5'); return; }
+      if (hasAll(t,['unlock','jogging','button','lights'])) { VO.request('j6'); return; }
+      if (hasAll(t,['ready','scale','coach']) && /hire/.test(t)) { VO.request('j9'); return; }
     }
 
-    /* ---------- Wire up ---------- */
+    /* -------------------- Wire up -------------------- */
     btnNew.addEventListener('pointerdown', onStartGesture, {capture:true, passive:true});
     btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') onStartGesture(); }, {capture:true});
 
@@ -2557,9 +2539,10 @@ try{
     obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
     (function raf(){ tryJax1(); maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
-  }catch(e){ console.warn('JAX VO v5h patch error:', e); }
+  }catch(e){ console.warn('VO v6 error:', e); }
 })();
 </script>
+
 
 
 
