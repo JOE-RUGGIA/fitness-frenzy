@@ -1924,5 +1924,35 @@ try{
 
 
 
+<script type="application/ff-patch">
+/* Tile click de-dupe: prevent synthetic+native double fires (esp. touch+pointer)//////////////////////////////////////DOUBLE HP////DOUBLE CD BAR////// */
+(function(){
+  try{
+    const DEDUP_MS = 70; // tiny window; blocks only accidental double-fires
+
+    document.addEventListener('click', (e)=>{
+      const tile = e.target && e.target.closest && e.target.closest('.tile');
+      if(!tile) return;
+
+      const now  = performance.now();
+      const last = Number(tile.getAttribute('data-ff-clickdedup') || 0);
+
+      // If a second click arrives too fast, swallow it before it reaches handleTap
+      if(now - last < DEDUP_MS){
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        return;
+      }
+      tile.setAttribute('data-ff-clickdedup', String(now));
+    }, true); // capture = run before game handlers
+  }catch(e){
+    console.warn('tile click de-dupe patch error:', e);
+  }
+})();
+</script>
+  
+
+
+
 </body>
 </html>
