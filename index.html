@@ -2163,38 +2163,47 @@ try{
 
 
 
-  <script type="application/ff-patch">
-/* Resume background music on first real user gesture (works with fast-click layers)////////////////////FIXING DESKTOP MUSIC//////////////////////////// */
+<script type="application/ff-patch">
+/* Desktop music boot fix: start audio on a real user gesture/////////////////////////MUSIC FIX//////////////////////////////// */
 (function(){
   try{
-    if (window.__FF_MUSIC_ARMED__) return;
-    window.__FF_MUSIC_ARMED__ = true;
+    if(window.__FF_MUSIC_BOOT_FIX__) return;
+    window.__FF_MUSIC_BOOT_FIX__ = true;
 
-    function startMusicOnce(){
+    const buttons = ['splash-skip','btn-new','btn-continue'];
+    const events  = ['pointerdown','touchstart','keydown'];
+
+    function startMusicFromGesture(e){
+      // key filter so we only count Enter/Space as gestures
+      if(e.type === 'keydown' && !(e.code === 'Enter' || e.code === 'Space')) return;
+      if(window.__FF_MUSIC_STARTED__) return;
+      window.__FF_MUSIC_STARTED__ = true;
+
       try{
-        // Respect your existing prefs: Music.startPlay() is a no-op if music is off
-        if (window.Music && typeof Music.startPlay === 'function'){
+        // Prefer the game's Music helper (respects prefs/volume)
+        if (typeof Music !== 'undefined' && Music && Music.startPlay){
           Music.startPlay();
+        } else {
+          // Fallback: create a one-off audio instance (kept if Music is unavailable)
+          const url = (/Mobi|Android/i.test(navigator.userAgent))
+            ? 'FF-fighting music (soft).mp3'
+            : 'FF-fighting music.mp3';
+          const a = new Audio(url);
+          a.loop = true;
+          try { a.volume = 0.12; } catch(_){}
+          a.play().catch(()=>{ /* blocked? leave silently */ });
+          window.__FF_MUSIC_ELEM__ = a;
         }
       }catch(_){}
     }
 
-    const onPointer = ()=>{ startMusicOnce(); cleanup(); };
-    const onKey = (e)=>{ if(e.code === 'Enter' || e.code === 'Space'){ startMusicOnce(); cleanup(); } };
-
-    function cleanup(){
-      window.removeEventListener('pointerdown', onPointer, true);
-      window.removeEventListener('touchstart', onPointer, true);
-      window.removeEventListener('keydown', onKey, true);
-    }
-
-    // Use capture so we run before any synthetic click/swallow logic
-    window.addEventListener('pointerdown', onPointer, { once:true, capture:true, passive:true });
-    window.addEventListener('touchstart',  onPointer, { once:true, capture:true, passive:true });
-    window.addEventListener('keydown',     onKey,     { once:true, capture:true });
-
+    buttons.forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      events.forEach(ev=> el.addEventListener(ev, startMusicFromGesture, {capture:true, passive:true}));
+    });
   }catch(e){
-    console.warn('Music auto-resume patch error:', e);
+    console.warn('Music boot fix error:', e);
   }
 })();
 </script>
