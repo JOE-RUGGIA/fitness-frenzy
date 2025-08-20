@@ -2335,117 +2335,161 @@ try{
 
 
 <script type="application/ff-patch">
-/* Tutorial VO — Step 1 only: JAX "You look a bit low on energy. Let’s fix that fast." */
+/* Tutorial VO — STEP 1 only (JAX intro), with gesture-gated play + music ducking */
 (function(){
   try{
-    if (window.__FF_TUTORIAL_VO__) return;
-    window.__FF_TUTORIAL_VO__ = true;
+    // Guard to avoid double-install
+    if (window.__FF_TUTORIAL_VO_STEP1__) return;
+    window.__FF_TUTORIAL_VO_STEP1__ = true;
 
-    const tipText = document.getElementById('tip-text');
-    const tipHead = document.getElementById('tip-head-name');
+    const tipText   = document.getElementById('tip-text');
+    const tipHead   = document.getElementById('tip-head-name');
     const tipBubble = document.getElementById('tip-bubble');
     if(!tipText || !tipHead || !tipBubble) return;
 
-    // Line 1 (JAX) audio with a fallback to ?raw=1 for GitHub blob links
-    const JAX_INTRO_URLS = [
-      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3",
-      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=1"
-    ];
+    // Use RAW GitHub (blob pages won't play)
+    const JAX_INTRO_URL = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/Jax%20Audio%201.mp3";
 
-    // Simple loader with fallback + gesture retry if autoplay is blocked
-    function loadAudio(urls){
-      const a = new Audio();
-      a.preload = "auto";
-      a.crossOrigin = "anonymous";
-      a.volume = 0.85;
+    // Build audio element
+    const vo = new Audio(JAX_INTRO_URL);
+    vo.preload   = "auto";
+    vo.crossOrigin = "anonymous"; // harmless here
+    vo.volume    = 1.0;           // full VO; we’ll duck music instead
 
-      let i = 0;
-      function set(i0){
-        i = i0;
-        a.src = urls[i];
-        a.onerror = ()=> {
-          if(i+1 < urls.length) set(i+1);
-        };
-      }
-      set(0);
+    // Global one-time gesture gate (some browsers need a real gesture)
+    let gestureOk = false;
+    function markGesture(){
+      gestureOk = true;
+      // No need to keep listeners after first gesture
+      removeGestureListeners();
+    }
+    function addGestureListeners(){
+      document.addEventListener('pointerdown', markGesture, {capture:true, passive:true});
+      document.addEventListener('touchstart',  markGesture, {capture:true, passive:true});
+      document.addEventListener('keydown',     (e)=>{ if(e.code==='Enter'||e.code==='Space') markGesture(); }, {capture:true});
+    }
+    function removeGestureListeners(){
+      document.removeEventListener('pointerdown', markGesture, true);
+      document.removeEventListener('touchstart',  markGesture, true);
+      document.removeEventListener('keydown',     markGesture, true);
+    }
+    addGestureListeners();
 
-      // Attempt play; if blocked, retry on next user gesture
-      a.playSafe = function(){
-        try{
-          const p = a.play();
-          if(p && typeof p.then === 'function'){
-            p.catch(()=> {
-              const once = (ev)=>{ document.removeEventListener('pointerdown', once, true);
-                                   document.removeEventListener('touchstart', once, true);
-                                   document.removeEventListener('keydown', once, true);
-                                   a.play().catch(()=>{}); };
-              document.addEventListener('pointerdown', once, {capture:true, passive:true});
-              document.addEventListener('touchstart',  once, {capture:true, passive:true});
-              document.addEventListener('keydown',     once, {capture:true});
-            });
-          }
-        }catch(_){}
-      };
-      return a;
+    // Music ducking around VO
+    let prevVol = null, ducked = false, duckTimer = null;
+    function duckMusic(){
+      try{
+        if (typeof Music !== 'undefined' && Music){
+          if (prevVol == null) prevVol = Music.vol;
+          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.35));
+          Music.setVol(target);
+          ducked = true;
+        }
+      }catch(_){}
+    }
+    function restoreMusic(){
+      try{
+        if (!ducked) return;
+        if (typeof Music !== 'undefined' && Music && prevVol != null){
+          Music.setVol(prevVol);
+        }
+      }catch(_){}
+      ducked = false; prevVol = null;
     }
 
-    const voJaxIntro = loadAudio(JAX_INTRO_URLS);
+    // Safe play with retry-on-gesture
+    function playVO(){
+      try{
+        duckMusic();
+        const p = vo.play();
+        if (p && typeof p.then==='function'){
+          p.then(()=>{}).catch(()=>{
+            // If blocked: wait for next gesture, then retry once
+            const once = ()=>{ document.removeEventListener('pointerdown', once, true);
+                               document.removeEventListener('touchstart',  once, true);
+                               document.removeEventListener('keydown',     once, true);
+                               vo.play().catch(()=>{}); };
+            document.addEventListener('pointerdown', once, {capture:true, passive:true});
+            document.addEventListener('touchstart',  once, {capture:true, passive:true});
+            document.addEventListener('keydown',     once, {capture:true});
+          });
+        }
+      }catch(_){}
+    }
+    vo.addEventListener('ended', ()=> {
+      // small delay before restoring, so the tail feels natural
+      clearTimeout(duckTimer);
+      duckTimer = setTimeout(restoreMusic, 120);
+    });
+    vo.addEventListener('error', ()=> {
+      // If raw GH hiccups, just restore music and move on
+      clearTimeout(duckTimer);
+      duckTimer = setTimeout(restoreMusic, 60);
+    });
 
-    // Normalize text to recognize the step even with emoji / punctuation differences
+    // Normalize text for robust step detection
     function norm(s){
       return String(s||'')
         .toLowerCase()
         .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // strip emoji
-        .replace(/[^a-z0-9\s]/g,'')            // strip punctuation
+        .replace(/[^a-z0-9\s]/g,'')            // punctuation
         .replace(/\s+/g,' ')
         .trim();
     }
+    // We’ll match any variant of the first line
+    function isIntroLine(txt){
+      const n = norm(txt);
+      // Allow partial match as it types, but ensure we’re on that sentence
+      return n.includes("you look a bit low on energy") && n.includes("lets fix that fast");
+    }
 
-    // Target phrases we expect (cover both your versions with/without emoji)
-    const TARGETS = new Set([
-      "you look a bit low on energy lets fix that fast",
-      "you look a bit low on energy lets fix that fast"
-    ]);
+    // Ensure we only play once per appearance
+    function keyForBubble(){ return 'data-vo-jax-intro-played'; }
 
-    // Play once per step
-    let playedForStep = false;
-
-    function maybePlay(){
-      // Only for JAX speaker
+    function maybePlayForThisStep(){
       const speaker = (tipHead.textContent||'').trim().toUpperCase();
-      if(speaker !== 'JAX') { playedForStep = false; return; }
+      if (speaker !== 'JAX') {
+        tipBubble.removeAttribute(keyForBubble());
+        return;
+      }
+      // If already played for this bubble instance, bail
+      if (tipBubble.getAttribute(keyForBubble()) === '1') return;
 
       const raw = tipText.textContent || '';
-      const n = norm(raw);
+      if (!raw) return;
 
-      // Start as soon as the line appears (no need to wait for full typing)
-      if(!playedForStep && n && [...TARGETS].some(t=> n.startsWith(t.slice(0, 12)) && n.includes("low on energy"))){
-        playedForStep = true;
+      if (isIntroLine(raw)){
+        // Mark played to avoid doubles on DOM reflows
+        tipBubble.setAttribute(keyForBubble(),'1');
 
-        // Avoid accidental double-fire if DOM reflows
-        if(tipBubble.getAttribute('data-vo-jax-intro') === '1') return;
-        tipBubble.setAttribute('data-vo-jax-intro','1');
-
-        voJaxIntro.currentTime = 0;
-        voJaxIntro.playSafe();
+        // If we haven't had a gesture yet, try anyway; the retry-on-gesture will catch it
+        playVO();
       }
     }
 
-    // Watch for tutorial typing changes
-    const obs = new MutationObserver(()=> maybePlay());
-    obs.observe(tipText, {characterData:true, childList:true, subtree:true});
-    // Also watch speaker changes
-    const obs2 = new MutationObserver(()=> { playedForStep = false; tipBubble.removeAttribute('data-vo-jax-intro'); maybePlay(); });
+    // Observe the typing and speaker changes
+    const obs1 = new MutationObserver(muts=> { for(const _ of muts){ maybePlayForThisStep(); break; } });
+    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
+
+    const obs2 = new MutationObserver(muts=> {
+      for(const _ of muts){
+        // Speaker changed → reset marker and re-check
+        tipBubble.removeAttribute(keyForBubble());
+        maybePlayForThisStep();
+        break;
+      }
+    });
     obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
 
-    // Kick once in case the step is already visible
-    maybePlay();
+    // Kick in case step already visible
+    setTimeout(maybePlayForThisStep, 0);
 
   }catch(e){
-    console.warn('Tutorial VO (JAX step 1) error:', e);
+    console.warn('Tutorial VO (JAX step 1) init error:', e);
   }
 })();
 </script>
+
 
 
 
