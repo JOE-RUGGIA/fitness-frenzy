@@ -2333,18 +2333,11 @@ try{
 
 
 <script type="application/ff-patch">
-/* VO v6 — Single-voice bus (no overlaps) + Mobile bless + Music starts after JAX#1
-   - Serializes all VO (no “chorus”)
-   - Mobile: give JAX#1 the gesture first (quiet 0.01 play→pause)
-   - Desktop: optional muted boot
-   - Music held until JAX#1 ends (or 3.5s failsafe)
-   - Robust female/male detection; token triggers + safe fallbacks
-*/
+/* VO v6b — Single-voice bus + PHASE GATING (no overlap), mobile bless, music after JAX#1 */
 (function(){
   try{
-    if (window.__FF_VO_V6__) return; window.__FF_VO_V6__ = true;
+    if (window.__FF_VO_V6B__) return; window.__FF_VO_V6B__ = true;
 
-    /* -------------------- Config & URLs -------------------- */
     const URLS = {
       j1:      'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true',
       you_f_2: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true',
@@ -2357,128 +2350,110 @@ try{
     };
     const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
 
-    /* -------------------- Female detect -------------------- */
+    /* ---- female detect ---- */
     function isFemaleAvatar(){
       try{
         if (document.body.classList.contains('female')) return true;
-        const sv=document.getElementById('start-avatars'); if(sv && sv.querySelector('.ava.f.active')) return true;
-        const top=document.getElementById('avatar-img');  if(top && /FEMALE/i.test(top.src)) return true;
-        const tip=document.getElementById('tip-head-img');if(tip && /FEMALE/i.test(tip.src)) return true;
+        const sv=document.getElementById('start-avatars'); if(sv&&sv.querySelector('.ava.f.active')) return true;
+        const top=document.getElementById('avatar-img'); if(top&&/FEMALE/i.test(top.src)) return true;
+        const tip=document.getElementById('tip-head-img'); if(tip&&/FEMALE/i.test(tip.src)) return true;
       }catch(_){}
       return false;
     }
-    window.BM_IS_FEMALE = isFemaleAvatar; // debug helper
 
-    /* -------------------- Music gate -------------------- */
+    /* ---- music gate: start after JAX1 ---- */
     let ORIG_MUSIC_START=null, musicQueued=false, musicAllowed=false, musicFailsafe=null;
     function installMusicGate(){
-      if (!window.Music || !Music.startPlay || ORIG_MUSIC_START) return;
+      if(!window.Music||!Music.startPlay||ORIG_MUSIC_START) return;
       ORIG_MUSIC_START = Music.startPlay.bind(Music);
-      Music.startPlay = function(){ if (musicAllowed) return ORIG_MUSIC_START(); musicQueued=true; };
+      Music.startPlay = function(){ if(musicAllowed) return ORIG_MUSIC_START(); musicQueued=true; };
     }
     function releaseMusicGate(){
-      if (musicAllowed) return;
-      musicAllowed = true;
-      clearTimeout(musicFailsafe);
-      if (musicQueued && ORIG_MUSIC_START){ musicQueued=false; ORIG_MUSIC_START(); }
+      if(musicAllowed) return;
+      musicAllowed=true; clearTimeout(musicFailsafe);
+      if(musicQueued && ORIG_MUSIC_START){ musicQueued=false; ORIG_MUSIC_START(); }
     }
 
-    /* -------------------- Audio cache + helpers -------------------- */
-    const cache = Object.create(null);
+    /* ---- audio helpers ---- */
+    const cache=Object.create(null);
     function make(url, vol=0.9){
-      const a = new Audio(url);
+      const a=new Audio(url);
       a.preload='auto'; a.loop=false;
       try{ a.volume=vol; a.playsInline=true; a.setAttribute('playsinline',''); a.setAttribute('webkit-playsinline',''); }catch(_){}
       return a;
     }
     function getAudio(key){ return cache[key] || (cache[key]=make(URLS[key],0.9)); }
-    function primeAll(){ if(window.__FF_VO_PRIMED__) return; window.__FF_VO_PRIMED__=true; Object.keys(URLS).forEach(k=>{ try{ getAudio(k).load(); }catch(_){} }); }
-    function fadeTo(a, target=0.9, ms=220){
-      const start=a.volume||0, t0=performance.now();
-      (function step(){
-        const p=Math.min(1,(performance.now()-t0)/ms);
-        try{ a.volume = start + (target-start)*p; }catch(_){}
-        if(p<1) requestAnimationFrame(step);
-      })();
-    }
-    function blessPlayPause(a){ // mobile “unlock” — audible but quiet
-      try{
-        const old=a.volume;
-        a.muted=false; a.volume=0.01; a.currentTime=0.001;
-        return a.play().then(()=>{ setTimeout(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){ } }, 40); }).catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){ } });
-      }catch(_){}
-    }
+    function primeAll(){ if(window.__FF_VO_PRIMED__) return; window.__FF_VO_PRIMED__=true; Object.keys(URLS).forEach(k=>{ try{ getAudio(k).load(); }catch(_){ } }); }
+    function fadeTo(a,target=0.9,ms=220){ const s=a.volume||0,t0=performance.now(); (function step(){ const p=Math.min(1,(performance.now()-t0)/ms); try{ a.volume=s+(target-s)*p; }catch(_){}
+      if(p<1) requestAnimationFrame(step); })(); }
+    function blessPlayPause(a){ try{ const old=a.volume; a.muted=false; a.volume=0.01; a.currentTime=0.001;
+      return a.play().then(()=> setTimeout(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){} },40)).catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){} });
+    }catch(_){} }
 
-    /* -------------------- Duck music under VO -------------------- */
+    /* ---- duck music under VO ---- */
     let voicesActive=0, prevVol=null;
-    function duckMusic(){
-      try{
-        if (voicesActive===0 && window.Music){ prevVol = Music.vol; Music.setVol(Math.max(0,Math.min(1,(prevVol ?? 0.12)*0.55))); }
-        voicesActive++;
-      }catch(_){}
-    }
-    function restoreMusic(){
-      try{
-        voicesActive=Math.max(0,voicesActive-1);
-        if (voicesActive===0 && window.Music && prevVol!=null){ Music.setVol(prevVol); prevVol=null; }
-      }catch(_){}
-    }
+    function duckMusic(){ try{ if(voicesActive===0 && window.Music){ prevVol=Music.vol; Music.setVol(Math.max(0,Math.min(1,(prevVol ?? 0.12)*0.55))); } voicesActive++; }catch(_){} }
+    function restoreMusic(){ try{ voicesActive=Math.max(0,voicesActive-1); if(voicesActive===0 && window.Music && prevVol!=null){ Music.setVol(prevVol); prevVol=null; } }catch(_){} }
 
-    /* -------------------- VO BUS (single-voice queue) -------------------- */
-    const VO = (function(){
-      const q=[]; let now=null; const lastReqTs={}, IN_WINDOW=700; // dedupe window per key
-      function has(key){ return (now && now.key===key) || q.some(it=>it.key===key); }
-      function request(key){
-        const t=performance.now(); if(lastReqTs[key] && t-lastReqTs[key]<IN_WINDOW) return; lastReqTs[key]=t;
-        if(has(key)) return;
-        q.push({key}); pump();
-      }
-      function stopCurrent(){
-        if(!now) return;
-        try{
-          now.audio.onended=null; now.audio.onpause=null; now.audio.onabort=null;
-          now.audio.pause(); now.audio.currentTime=0;
-        }catch(_){}
-        restoreMusic();
-        now=null;
+    /* ---- VO BUS (single voice) ---- */
+    const VO=(function(){
+      const q=[]; let now=null; const lastReqTs={}, WINDOW=700;
+      function has(k){ return (now && now.key===k) || q.some(i=>i.key===k); }
+      function request(k){
+        if(!allowKey(k)) return; // phase gate
+        const t=performance.now(); if(lastReqTs[k] && t-lastReqTs[k]<WINDOW) return; lastReqTs[k]=t;
+        if(has(k)) return; q.push({key:k}); pump();
       }
       function playClip(key){
-        const a=getAudio(key);
-        duckMusic();
+        const a=getAudio(key); duckMusic();
         a.muted=false; a.volume=0; a.currentTime=0;
-        a.onended = ()=>{ restoreMusic(); if(key==='j1'){ releaseMusicGate(); } now=null; pump(); };
-        a.onpause = ()=>{ /* if near end, still release */ try{ if(key==='j1' && a.duration && a.currentTime>a.duration*0.85){ releaseMusicGate(); } }catch(_){ } };
-        try{
-          a.play().then(()=>{ fadeTo(a,0.9,220); if(key==='j1') hookMusicReleaseOnce(a); }).catch(()=>{ now=null; pump(); });
-        }catch(_){ now=null; pump(); }
+        a.onended = ()=>{ restoreMusic(); onClipEnded(key); now=null; pump(); };
+        a.onpause = ()=>{ try{ if(key==='j1' && a.duration && a.currentTime>a.duration*0.85){ releaseMusicGate(); } }catch(_){ } };
+        try{ a.play().then(()=>{ fadeTo(a,0.9,220); if(key==='j1') hookMusicReleaseOnce(a); }).catch(()=>{ now=null; pump(); }); }catch(_){ now=null; pump(); }
         return a;
       }
       let musicHooked=false;
-      function hookMusicReleaseOnce(a){
-        if(musicHooked) return; musicHooked=true;
-        a.addEventListener('ended', ()=> releaseMusicGate(), {once:true});
-      }
-      function pump(){
-        if(now || !q.length) return;
-        const item=q.shift();
-        now={key:item.key, audio: playClip(item.key)};
-      }
-      return { request, has, stopCurrent };
+      function hookMusicReleaseOnce(a){ if(musicHooked) return; musicHooked=true; a.addEventListener('ended', ()=> releaseMusicGate(), {once:true}); }
+      function pump(){ if(now||!q.length) return; const item=q.shift(); now={key:item.key, audio:playClip(item.key)}; }
+      return { request, has };
     })();
 
-    /* -------------------- Elements & text token checks -------------------- */
+    /* ---- PHASE GATE: 1:j1 → 2:you → 3:j3 → 4:j4 → 5:j5 → 6:j6 → 7+:free ---- */
+    let phase=1; // start expecting j1
+    function allowKey(key){
+      if(phase<=0) return true;
+      if(phase===1) return key==='j1';
+      if(phase===2) return key==='you_f_2' || key==='you_m_2';
+      if(phase===3) return key==='j3';
+      if(phase===4) return key==='j4';
+      if(phase===5) return key==='j5';
+      if(phase===6) return key==='j6';
+      // phase >= 7: allow all tutorial + j9
+      return true;
+    }
+    function onClipEnded(key){
+      switch(key){
+        case 'j1': phase = Math.max(phase,2); break;
+        case 'you_f_2':
+        case 'you_m_2': phase = Math.max(phase,3); break;
+        case 'j3': phase = Math.max(phase,4); break;
+        case 'j4': phase = Math.max(phase,5); break;
+        case 'j5': phase = Math.max(phase,6); break;
+        case 'j6': phase = Math.max(phase,7); break;
+      }
+    }
+
+    /* ---- elements + token detectors ---- */
     const btnNew=document.getElementById('btn-new');
     const tipHeadName=document.getElementById('tip-head-name');
     const tipText=document.getElementById('tip-text');
     const tipRoot=document.getElementById('tip');
     if(!btnNew||!tipHeadName||!tipText||!tipRoot) return;
 
-    const norm = s=> String(s||'').replace(/\u00a0/g,' ')
-                      .replace(/[\u2018\u2019]/g,"'").replace(/['’]/g,'')
-                      .replace(/\s+/g,' ').trim().toLowerCase();
+    const norm=s=>String(s||'').replace(/\u00a0/g,' ').replace(/[\u2018\u2019]/g,"'").replace(/['’]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
     const hasAll=(t,arr)=>arr.every(x=>t.includes(x));
 
-    /* -------------------- Start gesture: prime, gate music, bless -------------------- */
+    /* ---- start gesture: prime, gate music, bless ---- */
     let started=false, desktopMutedBoot=false, j1Fallback1=null, j1Fallback2=null;
     function onStartGesture(){
       if(started) return; started=true;
@@ -2486,52 +2461,49 @@ try{
 
       const aJ1=getAudio('j1');
       if(isTouch){
-        // Give VO the gesture first (prevents music stealing the token)
         blessPlayPause(aJ1);
-        // Also bless the rest; cheap and future-proof
         ['you_f_2','you_m_2','j3','j4','j5','j6','j9'].forEach(k=> blessPlayPause(getAudio(k)));
       }else{
-        // Desktop: optional muted boot so J1 is ready to fade in
         try{ aJ1.muted=true; aJ1.volume=0; aJ1.currentTime=0; aJ1.play().then(()=>{ desktopMutedBoot=true; }).catch(()=>{}); }catch(_){}
       }
 
-      // Female safety: if tokens lag, queue J1 anyway (no overlap—bus handles it)
       if(isFemaleAvatar()){
         clearTimeout(j1Fallback1); clearTimeout(j1Fallback2);
         j1Fallback1=setTimeout(()=>{ if(!VO.has('j1')) VO.request('j1'); }, 900);
         j1Fallback2=setTimeout(()=>{ if(!VO.has('j1')) VO.request('j1'); }, 1900);
       }
 
-      // Absolute failsafe: start music later if nothing played
       clearTimeout(musicFailsafe);
       musicFailsafe=setTimeout(()=>{ releaseMusicGate(); }, 3500);
     }
 
-    /* -------------------- Token-triggered requests (queued; no overlaps) -------------------- */
+    /* ---- token-triggered enqueue (subject to phase gate) ---- */
     function tryJax1(){
+      if(phase>1) return;
       const sp=(tipHeadName.textContent||'').trim().toUpperCase();
       const t=norm(tipText.textContent);
       const ok=(sp==='JAX') && (hasAll(t,['low on energy'])||hasAll(t,['fix that fast'])||hasAll(t,['you look a bit']));
-      if(!ok) return;
-      clearTimeout(j1Fallback1); clearTimeout(j1Fallback2);
-      VO.request('j1');
+      if(ok) VO.request('j1');
     }
     function maybePlayPlayerReply(){
+      if(phase!==2) return;
       const sp=(tipHeadName.textContent||'').trim().toUpperCase(); if(sp!=='YOU') return;
       const t=norm(tipText.textContent); if(!/but where do i start\??/.test(t)) return;
-      VO.request(isFemaleAvatar() ? 'you_f_2' : 'you_m_2');
+      VO.request(isFemaleAvatar()? 'you_f_2' : 'you_m_2');
     }
     function maybePlayJaxAuto(){
+      if(phase<3) return; // don’t allow past j1/you yet
       const sp=(tipHeadName.textContent||'').trim().toUpperCase(); if(sp!=='JAX') return;
       const t=norm(tipText.textContent);
-      if (hasAll(t,['walking','1 hp'])) { VO.request('j3'); return; }
-      if (t.includes('reps'))          { VO.request('j4'); return; }
-      if (hasAll(t,['green','bar','cooldown']) && /(halves|half)/.test(t)) { VO.request('j5'); return; }
-      if (hasAll(t,['unlock','jogging','button','lights'])) { VO.request('j6'); return; }
-      if (hasAll(t,['ready','scale','coach']) && /hire/.test(t)) { VO.request('j9'); return; }
+      if(phase===3 && hasAll(t,['walking','1 hp'])) { VO.request('j3'); return; }
+      if(phase===4 && t.includes('reps'))          { VO.request('j4'); return; }
+      if(phase===5 && hasAll(t,['green','bar','cooldown']) && /(halves|half)/.test(t)) { VO.request('j5'); return; }
+      if(phase===6 && hasAll(t,['unlock','jogging','button','lights'])) { VO.request('j6'); return; }
+      // j9 can trigger any time AFTER phase 6
+      if(phase>=6 && hasAll(t,['ready','scale','coach']) && /hire/.test(t)) { VO.request('j9'); }
     }
 
-    /* -------------------- Wire up -------------------- */
+    /* ---- wire up ---- */
     btnNew.addEventListener('pointerdown', onStartGesture, {capture:true, passive:true});
     btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') onStartGesture(); }, {capture:true});
 
@@ -2539,9 +2511,10 @@ try{
     obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
     (function raf(){ tryJax1(); maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
-  }catch(e){ console.warn('VO v6 error:', e); }
+  }catch(e){ console.warn('VO v6b error:', e); }
 })();
 </script>
+
 
 
 
