@@ -1929,7 +1929,8 @@ try{
 (function(){
   try{
     /* --- 1) Tile click de-dupe: block immediate duplicate clicks per tile --- */
-    const CLICK_WINDOW_MS = 60;                   // tiny window—doesn't hurt fast spam
+    const CLICK_WINDOW_MS = (('ontouchstart' in window) || navigator.maxTouchPoints > 0) ? 320 : 60;
+                   // tiny window—doesn't hurt fast spam
     const LAST_ATTR = 'data-ff-lastclick-ts';
 
     document.addEventListener('click', (e)=>{
