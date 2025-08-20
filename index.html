@@ -3574,6 +3574,93 @@ try{
 </script>
 
   
+  
+  
+<script type="application/ff-patch">
+/* Tutorial typing speed-up: finish each line early for a faster type effect */
+(function(){
+  try{
+    if (window.__FF_TUTORIAL_FASTTYPE__) return;
+    window.__FF_TUTORIAL_FASTTYPE__ = true;
+
+    const tipText   = document.getElementById('tip-text');
+    const tipBubble = document.getElementById('tip-bubble');
+    const tipNext   = document.getElementById('tip-next');
+    if(!tipText || !tipBubble || !tipNext) return;
+
+    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+    const FINISH_DELAY_MS = isTouch ? 260 : 200; // when to “finish typing” per step
+
+    // State per step
+    let targetText = "";     // full line for this step
+    let stepToken  = 0;      // increments each new step
+    let armTimer   = null;
+
+    function armFastFinish(myToken){
+      clearTimeout(armTimer);
+      armTimer = setTimeout(()=>{
+        // If we’re still on the same step and not fully typed, click “Next” once
+        if (myToken !== stepToken) return;
+        const cur = tipText.textContent || "";
+        if (targetText && cur.length < targetText.length) {
+          // This emulates the user’s first click while typing:
+          // your tutorial code finishes the current line (does NOT advance the step).
+          tipNext.click();
+        }
+      }, FINISH_DELAY_MS);
+    }
+
+    // Observe tipText to (1) detect new steps and (2) capture full line safely.
+    // Your engine briefly sets the FULL text to measure size, then clears to "" and types.
+    // We capture that "old value" before it’s cleared.
+    const obs = new MutationObserver((muts)=>{
+      for(const m of muts){
+        if (m.type === 'characterData') {
+          const newVal = m.target.data || "";
+          const oldVal = m.oldValue || "";
+          // Detect when renderStep() cleared the text right after sizing:
+          // oldVal = full sentence, newVal -> "" (or very short)
+          if (oldVal && newVal.length <= 2) {
+            targetText = oldVal;
+            stepToken++;
+            armFastFinish(stepToken);
+          }
+        } else if (m.type === 'childList') {
+          // Also handle cases where the node is replaced
+          // If it got cleared right after holding a longer string, treat as a new step
+          const before = (m.removedNodes && m.removedNodes[0] && m.removedNodes[0].nodeType===3) ? m.removedNodes[0].data : "";
+          const afterNode = (m.addedNodes && m.addedNodes[0] && m.addedNodes[0].nodeType===3) ? m.addedNodes[0] : null;
+          const after = afterNode ? afterNode.data : (tipText.textContent||"");
+          if (before && before.length > 2 && after.length <= 2){
+            targetText = before;
+            stepToken++;
+            armFastFinish(stepToken);
+          }
+        }
+      }
+    });
+    obs.observe(tipText, {
+      characterData: true,
+      characterDataOldValue: true,
+      childList: true,
+      subtree: true
+    });
+
+    // If a step is already on screen when we load, arm a quick finish
+    setTimeout(()=>{
+      if ((tipText.textContent||"").length <= 2) {
+        stepToken++;
+        armFastFinish(stepToken);
+      }
+    }, 0);
+
+  }catch(e){
+    console.warn('Tutorial fast typing patch error:', e);
+  }
+})();
+</script>
+  
+  
 
 </body>
 </html>
