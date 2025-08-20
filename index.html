@@ -1851,5 +1851,73 @@ try{
   
 
 
+
+
+
+
+
+<style data-ff-patch>
+  /* Gender-colored bold highlight for tutorial keywords //////////////////////////TUTORIAL TEXT FIX////////////////*/
+  .ff-key{ font-weight:900; color:var(--accent-2); }
+  body.female .ff-key{ color:var(--female-accent); }
+</style>
+
+<script type="application/ff-patch">
+/* Highlight JAX tutorial keywords (gender color) + update phrasing */
+(function(){
+  try{
+    const tipText = document.getElementById('tip-text');
+    const tipHeadName = document.getElementById('tip-head-name');
+    if(!tipText || !tipHeadName) return;
+
+    // Transform plain text -> HTML with colored bold keywords
+    function transform(raw){
+      if(!raw) return '';
+      let t = raw;
+
+      // Update phrasing
+      t = t.replace(/Unlock\s+Jogging\s+when\s+the\s+pill\s+turns\s+orange\./i,
+                    'Unlock Jogging when the button lights up.');
+
+      // Keyword highlights (order matters to avoid nested replacements)
+      // Walking
+      t = t.replace(/\bWalking\b/gi, '<b class="ff-key">Walking</b>');
+      // 1 HP / 1HP
+      t = t.replace(/\b1\s*HP\b/gi, '<b class="ff-key">1&nbsp;HP</b>');
+      // Reps
+      t = t.replace(/\bReps\b/gi, '<b class="ff-key">Reps</b>');
+      // green bar
+      t = t.replace(/\bgreen\s+bar\b/gi, '<b class="ff-key">green bar</b>');
+      // cooldown
+      t = t.replace(/\bcooldown\b/gi, '<b class="ff-key">cooldown</b>');
+      // Jogging
+      t = t.replace(/\bJogging\b/gi, '<b class="ff-key">Jogging</b>');
+
+      return t;
+    }
+
+    // Apply highlight only to JAX lines; leave "You" lines untouched.
+    let lastRaw = '';
+    function step(){
+      const isJax = (tipHeadName.textContent || '').trim().toUpperCase() === 'JAX';
+      const raw = tipText.textContent || ''; // safe, no tags
+      if(isJax && raw !== lastRaw){
+        tipText.innerHTML = transform(raw);
+        lastRaw = raw;
+      }else if(!isJax){
+        // Let the built-in typer handle user lines (no styling)
+        lastRaw = '';
+      }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }catch(e){
+    console.warn('JAX keyword highlight patch error:', e);
+  }
+})();
+</script>
+
+
+
 </body>
 </html>
