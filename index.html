@@ -2335,7 +2335,7 @@ try{
 
 
 <script type="application/ff-patch">
-/* Tutorial VO — STEP 1 only (JAX intro), with gesture-gated play + music ducking */
+/* Tutorial VO — STEP 1 only (JAX intro), with gesture-gated play + music ducking ////////////////JAX 1////////////////JAX 1////////////////////*/
 (function(){
   try{
     // Guard to avoid double-install
@@ -2491,6 +2491,143 @@ try{
 </script>
 
 
+
+
+
+
+
+
+
+<script type="application/ff-patch">
+/* Tutorial VO — STEP 2: Player "But where do I start?" (gender-aware) //////////////////////////MALE//////FEMALE///////////////////VOICES///////////*/
+(function(){
+  try{
+    if (window.__FF_TUTORIAL_VO_STEP2__) return;
+    window.__FF_TUTORIAL_VO_STEP2__ = true;
+
+    const tipText   = document.getElementById('tip-text');
+    const tipHead   = document.getElementById('tip-head-name');
+    const tipBubble = document.getElementById('tip-bubble');
+    if(!tipText || !tipHead || !tipBubble) return;
+
+    // RAW GitHub MP3s
+    const URL_F = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/female%20player%20audio%201.mp3";
+    const URL_M = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/male%20player%20audio%201.mp3";
+
+    function makeAudio(url){
+      const a = new Audio(url);
+      a.preload = "auto";
+      a.crossOrigin = "anonymous";
+      a.volume = 1.0;
+      return a;
+    }
+    const voF = makeAudio(URL_F);
+    const voM = makeAudio(URL_M);
+
+    // Gesture gate (retry if autoplay blocked)
+    function playSafe(a){
+      try{
+        const p = a.play();
+        if(p && typeof p.then === 'function'){
+          p.catch(()=> {
+            const once = ()=>{ 
+              document.removeEventListener('pointerdown', once, true);
+              document.removeEventListener('touchstart',  once, true);
+              document.removeEventListener('keydown',     once, true);
+              a.play().catch(()=>{});
+            };
+            document.addEventListener('pointerdown', once, {capture:true, passive:true});
+            document.addEventListener('touchstart',  once, {capture:true, passive:true});
+            document.addEventListener('keydown',     once, {capture:true});
+          });
+        }
+      }catch(_){}
+    }
+
+    // Light music ducking for VO
+    let prevVol = null, ducked = false, timer = null;
+    function duck(){
+      try{
+        if (typeof Music !== 'undefined' && Music){
+          if(prevVol == null) prevVol = Music.vol;
+          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
+          Music.setVol(target);
+          ducked = true;
+        }
+      }catch(_){}
+    }
+    function restore(){
+      try{
+        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
+          Music.setVol(prevVol);
+        }
+      }catch(_){}
+      ducked = false; prevVol = null;
+    }
+    [voF, voM].forEach(a=>{
+      a.addEventListener('ended', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 120); });
+      a.addEventListener('error', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 60); });
+    });
+
+    // Helpers
+    function norm(s){
+      return String(s||'')
+        .toLowerCase()
+        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
+        .replace(/[^a-z0-9\s]/g,'')            // punctuation
+        .replace(/\s+/g,' ')
+        .trim();
+    }
+    function isPlayerLine(txt){
+      const n = norm(txt);
+      return n.includes("but where do i start");
+    }
+    function key(){ return 'data-vo-player1-played'; }
+
+    function maybePlay(){
+      // Only when the speaker is the player
+      const speaker = (tipHead.textContent||'').trim().toUpperCase();
+      if(speaker !== 'YOU'){
+        tipBubble.removeAttribute(key());
+        return;
+      }
+      if (tipBubble.getAttribute(key()) === '1') return;
+
+      const raw = tipText.textContent || '';
+      if(!raw) return;
+
+      if(isPlayerLine(raw)){
+        tipBubble.setAttribute(key(),'1');
+
+        // Choose gender by body class
+        const isFemale = document.body.classList.contains('female');
+        const a = isFemale ? voF : voM;
+
+        try{ a.currentTime = 0; }catch(_){}
+        duck();
+        playSafe(a);
+      }
+    }
+
+    // Observe tutorial text and speaker changes
+    const obs1 = new MutationObserver(()=> maybePlay());
+    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
+
+    const obs2 = new MutationObserver(()=>{
+      tipBubble.removeAttribute(key());
+      maybePlay();
+    });
+    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
+
+    // Kick in case step already visible
+    setTimeout(maybePlay, 0);
+
+  }catch(e){
+    console.warn('Tutorial VO (player step 1) init error:', e);
+  }
+})();
+</script>
+  
 
 
   
