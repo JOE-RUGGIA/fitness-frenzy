@@ -2329,11 +2329,11 @@ try{
 
 
 <script type="application/ff-patch">
-/* JAX VO mapping v3 — robust first-line start + retries + prewarm////////////////////////////////////////////////DIALOG AUDIO//////////////// */
+/* JAX VO mapping v4 — Line 1 waits for bubble text (better sync), still prewarmed */
 (function(){
   try{
-    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V3__) return;
-    window.__FF_JAX_TUTORIAL_VO_PATCH_V3__ = true;
+    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V4__) return;
+    window.__FF_JAX_TUTORIAL_VO_PATCH_V4__ = true;
 
     /* ---------- Audio URLs ---------- */
     const URLS = {
@@ -2350,7 +2350,7 @@ try{
     /* ---------- Player + ducking ---------- */
     const cache = Object.create(null);        // key -> HTMLAudioElement
     const inflight = Object.create(null);     // key -> Promise
-    const started = Object.create(null);      // key -> boolean (actually playing)
+    const started = Object.create(null);      // key -> actually playing
     let voicesActive = 0, prevVol = null;
 
     function duckMusic(){
@@ -2376,13 +2376,11 @@ try{
       a.preload = 'auto';
       a.loop = false;
       try{ a.volume = vol; }catch(_){}
-      // Always restore music when this element finishes
       a.addEventListener('ended', restoreMusic, {once:true});
       a.addEventListener('pause', restoreMusic, {once:true});
       a.addEventListener('abort', restoreMusic, {once:true});
       return a;
     }
-
     function playClipEnsure(key, vol=0.9){
       if (started[key]) return Promise.resolve('already-started');
       if (inflight[key]) return inflight[key];
@@ -2392,96 +2390,47 @@ try{
 
       inflight[key] = new Promise((resolve, reject)=>{
         let done = false;
-
-        const onPlaying = ()=>{ 
-          if (done) return;
-          done = true;
-          started[key] = true;
-          cleanup();
-          resolve('playing');
-        };
-        const onError = (err)=>{ 
-          if (done) return;
-          done = true;
-          cleanup();
-          reject(err||new Error('play failed'));
-        };
-        const cleanup = ()=>{
-          a.removeEventListener('playing', onPlaying);
-          a.removeEventListener('timeupdate', onMaybePlaying);
-          a.removeEventListener('error', onError);
-        };
-        const onMaybePlaying = ()=>{
-          // Some browsers don’t fire 'playing' reliably; detect progress
-          if (a.currentTime > 0.01 && !started[key]){
-            onPlaying();
-          }
-        };
+        const onPlaying = ()=>{ if(done) return; done = true; started[key]=true; cleanup(); resolve('playing'); };
+        const onMaybePlaying = ()=>{ if(a.currentTime > 0.01 && !started[key]) onPlaying(); };
+        const onError = (err)=>{ if(done) return; done=true; cleanup(); reject(err||new Error('play failed')); };
+        const cleanup = ()=>{ a.removeEventListener('playing',onPlaying); a.removeEventListener('timeupdate',onMaybePlaying); a.removeEventListener('error',onError); };
 
         a.addEventListener('playing', onPlaying);
         a.addEventListener('timeupdate', onMaybePlaying);
         a.addEventListener('error', onError);
 
-        try{
-          a.currentTime = 0;
-          a.play().catch(onError);
-        }catch(e){
-          onError(e);
-        }
-      }).finally(()=>{ inflight[key] = null; });
+        try{ a.currentTime = 0; a.play().catch(onError); }catch(e){ onError(e); }
+      }).finally(()=> inflight[key]=null);
 
       return inflight[key];
     }
-
-    /* Retry helper: try now, then after small delays, and on next gesture */
     function playWithRetry(key, opts={}){
-      const {vol=0.9, initialDelay=0, attempts=3, backoff=140} = opts;
-      let tries = 0, resolved = false, rejectErr = null;
+      const {vol=0.9, attempts=3, backoff=160} = opts;
+      let tries = 0, resolved = false;
 
       function tryOnce(){
         tries++;
-        return playClipEnsure(key, vol).then(()=>{ resolved = true; })
-          .catch(err=>{ rejectErr = err; });
+        return playClipEnsure(key, vol).then(()=>{ resolved = true; }).catch(()=>{});
       }
-
-      function scheduleNext(delay){
-        return new Promise(r=> setTimeout(r, delay));
-      }
-
-      function gestureRetryOnce(){
+      function wait(ms){ return new Promise(r=> setTimeout(r, ms)); }
+      function gestureOnce(){
         return new Promise(r=>{
-          const onG = ()=>{
-            document.removeEventListener('pointerdown', onG, true);
-            document.removeEventListener('keydown', onGK, true);
-            r();
-          };
-          const onGK = (e)=>{
-            if(e.code==='Enter'||e.code==='Space'){ onG(); }
-          };
-          document.addEventListener('pointerdown', onG, true);
-          document.addEventListener('keydown', onGK, true);
-          // safety timeout in case no gesture happens
-          setTimeout(()=>{ try{ document.removeEventListener('pointerdown', onG, true); document.removeEventListener('keydown', onGK, true);}catch(_){ } r(); }, 1500);
+          const onPD = ()=>{ cleanup(); r(); };
+          const onKD = e=>{ if(e.code==='Enter'||e.code==='Space'){ cleanup(); r(); } };
+          const cleanup=()=>{ document.removeEventListener('pointerdown', onPD, true); document.removeEventListener('keydown', onKD, true); };
+          document.addEventListener('pointerdown', onPD, true);
+          document.addEventListener('keydown', onKD, true);
+          setTimeout(()=>{ cleanup(); r(); }, 1800);
         });
       }
 
       return (async ()=>{
-        if(initialDelay>0) await scheduleNext(initialDelay);
-        while(!resolved && tries < attempts){
-          await tryOnce();
-          if(resolved) break;
-          await scheduleNext(backoff);
-        }
-        if(!resolved){
-          // One last shot on the next real gesture
-          await gestureRetryOnce();
-          await tryOnce();
-          if(!resolved){ restoreMusic(); /* give up cleanly */ }
-        }
+        while(!resolved && tries < attempts){ await tryOnce(); if(resolved) break; await wait(backoff); }
+        if(!resolved){ await gestureOnce(); await tryOnce(); if(!resolved) restoreMusic(); }
       })();
     }
 
-    /* Prime all clips on first gesture for instant subsequent playback */
+    /* Prime all clips on first gesture for instant later playback */
     function primeAll(){
       if (window.__FF_JAX_PRIMED__) return;
       window.__FF_JAX_PRIMED__ = true;
@@ -2489,13 +2438,12 @@ try{
         const a = cache[k] = cache[k] || make(URLS[k], 0);
         try{ a.load(); }catch(_){}
       });
-      // Optional silent unlock — ignore failures
+      // Silent unlock (best-effort)
       Object.values(cache).forEach(a=>{
         try{
-          const old = a.volume; a.volume = 0;
-          a.currentTime = 0.001;
-          a.play().then(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){} })
-                   .catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){} });
+          const old=a.volume; a.volume=0; a.currentTime=0.001;
+          a.play().then(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){ } })
+                   .catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){ } });
         }catch(_){}
       });
     }
@@ -2507,26 +2455,45 @@ try{
     const tipRoot = document.getElementById('tip');
     if(!btnNew || !tipHeadName || !tipText || !tipRoot) return;
 
-    /* ---------- Text utils ---------- */
+    /* ---------- Utils ---------- */
     const norm = (s)=> String(s||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
     const hasAll = (t, arr)=> arr.every(x=> t.includes(x));
 
-    /* ---------- Line 1 on New Game, with defer + retry ---------- */
+    /* ---------- Line 1: wait for the JAX bubble tokens (better sync) ---------- */
+    function waitForJaxIntroTokens(timeoutMs=2600){
+      const t0 = performance.now();
+      return new Promise(r=>{
+        (function loop(){
+          const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
+          const t = norm(tipText.textContent);
+          // Match early tokens of your first line: "low on energy" / "fix that fast"
+          const good = (speaker==='JAX') && (t.includes('low on energy') || t.includes('fix that fast'));
+          if (good) return r(true);
+          if (performance.now() - t0 > timeoutMs) return r(false);
+          requestAnimationFrame(loop);
+        })();
+      });
+    }
+
     function onStartGesture(){
       if (window.__FF_JAX_L1_SCHEDULED__) return;
       window.__FF_JAX_L1_SCHEDULED__ = true;
 
       try{ primeAll(); }catch(_){}
 
-      // Defer slightly so background Music starts first in the same gesture
-      setTimeout(()=>{
-        playWithRetry('j1', {initialDelay:0, attempts:3, backoff:160});
-      }, 80);
+      // Give the UI a breath to open the bubble, then wait for tokens.
+      // Longer defer helps both desktop & mobile: feels aligned to typing.
+      setTimeout(async ()=>{
+        const seen = await waitForJaxIntroTokens(2600);
+        // Small nudge so audio lands right after the first few characters show
+        await new Promise(r=> setTimeout(r, seen ? 120 : 0));
+        if(!started.j1) playWithRetry('j1', {attempts:3, backoff:180});
+      }, 320);
     }
     btnNew.addEventListener('pointerdown', onStartGesture, {capture:true, passive:true});
     btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') onStartGesture(); }, {capture:true});
 
-    /* ---------- Player reply (female or male) ---------- */
+    /* ---------- 2) Player reply (female or male) ---------- */
     function maybePlayPlayerReply(){
       const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       if (speaker!=='YOU') return;
@@ -2540,7 +2507,7 @@ try{
       }
     }
 
-    /* ---------- JAX lines 3,4,5,6,9 (early token triggers) ---------- */
+    /* ---------- 3,4,5,6,9 (early token triggers) ---------- */
     function maybePlayJaxAuto(){
       const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       if (speaker!=='JAX') return;
@@ -2559,7 +2526,7 @@ try{
     (function raf(){ maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
   }catch(e){
-    console.warn('JAX VO v3 patch error:', e);
+    console.warn('JAX VO v4 patch error:', e);
   }
 })();
 </script>
