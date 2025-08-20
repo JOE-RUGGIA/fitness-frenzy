@@ -1397,7 +1397,7 @@ try{
 
 
 <style data-ff-patch>
-  /* ---- Card & tile color (enforced) ---- */
+  /* ---- Card & tile color (enforced) ----//////////////////////////////////HAPTIC ADDED//////////////////// */
   .card{
     background:#112036 !important;
     border-color:#0c1a2b !important;
@@ -1470,12 +1470,23 @@ try{
 </style>
 
 <script type="application/ff-patch">
-/* Fast-click + tile SFX mute + single-shot tile FX (bounce+rays+floating HP)
-   + Reps bounce-on-purchase + robust auto/coach floaters (handles ultra-fast cooldowns) */
+/* Fast-click + tile SFX mute + single-shot tile FX (bounce+rays+floating HP + HAPTIC)
+   + Reps bounce-on-purchase + robust auto/coach floaters */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
+
+    /* ---------- HAPTIC helper ---------- */
+    function haptic(level='light'){
+      try{
+        const vib = navigator.vibrate || navigator.webkitVibrate;
+        if(!vib) return;
+        if(level==='light') vib.call(navigator, 10);
+        else if(level==='medium') vib.call(navigator, [12, 18, 12]);
+        else vib.call(navigator, [18, 24, 18]); // heavy
+      }catch(_){}
+    }
 
     /* ---------- TILE-SFX MUTE (leaves Reps SFX intact) ---------- */
     (function installMuteShim(){
@@ -1578,7 +1589,7 @@ try{
       setTimeout(cleanup, 1200);
     }
 
-    /* ---------- SINGLE-SHOT TILE FX (manual taps) ---------- */
+    /* ---------- SINGLE-SHOT TILE FX (manual taps) + HAPTIC ---------- */
     const LATCH = 'data-ff-fx-latch';
     new MutationObserver(muts=>{
       for(const m of muts){
@@ -1593,6 +1604,8 @@ try{
           tile.setAttribute(LATCH,'1');
           const card = tile.closest('.card');
           const amt  = getTapHP(card) ?? 1;
+
+          haptic('light');      // <<— NEW: subtle haptic on real manual tap
           bounce(tile);
           rays(tile);
           floatHPOver(tile, amt);
@@ -1602,18 +1615,10 @@ try{
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
 
-    /* ---------- AUTO/COACH TAPS: ultra-fast-safe detection ----------
-       Logic:
-       - A bar is "armed" when it reaches >= ARM% (ready zone).
-       - A reset is detected if either:
-           a) curr <= RESET_ABS%   OR
-           b) (prev - curr) >= RESET_DROP%
-         This catches 100%→20% one-frame drops at super-fast cooldowns.
-       - After firing, we disarm; it will re-arm next time it grows back to >= ARM%.
-    */
-    const ARM = 85;          // ready zone threshold
-    const RESET_ABS = 35;    // absolute "low" after reset
-    const RESET_DROP = 50;   // relative drop to qualify as reset
+    /* ---------- AUTO/COACH TAPS: ultra-fast-safe detection ---------- */
+    const ARM = 85;
+    const RESET_ABS = 35;
+    const RESET_DROP = 50;
     const barArmed = new WeakMap();
     const barPrev  = new WeakMap();
 
@@ -1626,7 +1631,6 @@ try{
       if(bar.__ff_obs__) return;
       bar.__ff_obs__ = true;
 
-      // seed state
       const start = pctFromStyle(bar);
       barPrev.set(bar, start);
       barArmed.set(bar, start >= ARM);
@@ -1636,10 +1640,8 @@ try{
         const curr = pctFromStyle(bar);
         barPrev.set(bar, curr);
 
-        // Arm when sufficiently full
         if(curr >= ARM){ barArmed.set(bar, true); return; }
 
-        // If armed, detect reset with either absolute low or big drop
         if(barArmed.get(bar)){
           if (curr <= RESET_ABS || (prev - curr) >= RESET_DROP){
             barArmed.set(bar, false);
@@ -1647,7 +1649,7 @@ try{
             const tile = card?.querySelector('.tile');
             if(tile){
               const amt = getTapHP(card) ?? 1;
-              floatHPOver(tile, amt); // auto/coach floater (no bounce/rays)
+              floatHPOver(tile, amt); // auto/coach floater (no bounce/rays/haptic)
             }
           }
         }
@@ -1685,7 +1687,7 @@ try{
     }, true);
 
   }catch(e){
-    console.warn('auto floaters (ultra-fast) + FX patch error:', e);
+    console.warn('haptic + FX patch error:', e);
   }
 })();
 </script>
