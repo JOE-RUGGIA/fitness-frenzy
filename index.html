@@ -2755,6 +2755,131 @@ try{
 })();
 </script>
 
+
+
+
+
+
+<script type="application/ff-patch">
+/* Tutorial VO — STEP 4: JAX "Great start! Use Reps to hit harder each tap." //////////////////////////REPS///////////VOICEOVER/////JAX///////REPS*/
+(function(){
+  try{
+    if (window.__FF_TUTORIAL_VO_STEP4__) return;
+    window.__FF_TUTORIAL_VO_STEP4__ = true;
+
+    const tipText   = document.getElementById('tip-text');
+    const tipHead   = document.getElementById('tip-head-name');
+    const tipBubble = document.getElementById('tip-bubble');
+    if(!tipText || !tipHead || !tipBubble) return;
+
+    // Raw GitHub audio
+    const URL_JAX_REPS = "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3";
+
+    function makeAudio(url){
+      const a = new Audio(url);
+      a.preload = "auto";
+      a.crossOrigin = "anonymous";
+      a.volume = 1.0;
+      return a;
+    }
+    const vo = makeAudio(URL_JAX_REPS);
+
+    // Play with gesture fallback (mobile autoplay)
+    function playSafe(a){
+      try{
+        const p = a.play();
+        if(p && typeof p.then === 'function'){
+          p.catch(()=>{
+            const once = ()=>{ 
+              document.removeEventListener('pointerdown', once, true);
+              document.removeEventListener('touchstart',  once, true);
+              document.removeEventListener('keydown',     once, true);
+              a.play().catch(()=>{});
+            };
+            document.addEventListener('pointerdown', once, {capture:true, passive:true});
+            document.addEventListener('touchstart',  once, {capture:true, passive:true});
+            document.addEventListener('keydown',     once, {capture:true});
+          });
+        }
+      }catch(_){}
+    }
+
+    // Light music ducking during VO
+    let prevVol = null, ducked = false, timer = null;
+    function duck(){
+      try{
+        if (typeof Music !== 'undefined' && Music){
+          if(prevVol == null) prevVol = Music.vol;
+          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
+          Music.setVol(target);
+          ducked = true;
+        }
+      }catch(_){}
+    }
+    function restore(){
+      try{
+        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
+          Music.setVol(prevVol);
+        }
+      }catch(_){}
+      ducked = false; prevVol = null;
+    }
+    vo.addEventListener('ended', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 120); });
+    vo.addEventListener('error', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 60); });
+
+    // Detection helpers
+    function norm(s){
+      return String(s||'')
+        .toLowerCase()
+        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
+        .replace(/[^a-z0-9\s]/g,'')            // punctuation/apostrophes
+        .replace(/\s+/g,' ')
+        .trim();
+    }
+    function isTargetLine(txt){
+      const n = norm(txt);
+      return n.includes("great start") && n.includes("use reps") && n.includes("hit harder each tap");
+    }
+
+    const FLAG = 'data-vo-jax-reps-played';
+
+    function maybePlay(){
+      const speaker = (tipHead.textContent||'').trim().toUpperCase();
+      if (speaker !== 'JAX'){
+        tipBubble.removeAttribute(FLAG);
+        return;
+      }
+      if (tipBubble.getAttribute(FLAG) === '1') return;
+
+      const raw = tipText.textContent || '';
+      if(!raw) return;
+
+      if (isTargetLine(raw)){
+        tipBubble.setAttribute(FLAG, '1');
+        try{ vo.currentTime = 0; }catch(_){}
+        duck();
+        playSafe(vo);
+      }
+    }
+
+    // Observe tutorial typing and speaker changes
+    const obs1 = new MutationObserver(()=> maybePlay());
+    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
+
+    const obs2 = new MutationObserver(()=>{
+      tipBubble.removeAttribute(FLAG);
+      maybePlay();
+    });
+    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
+
+    // If already on that step
+    setTimeout(maybePlay, 0);
+
+  }catch(e){
+    console.warn('Tutorial VO (JAX step 4) init error:', e);
+  }
+})();
+</script>
   
 
 </body>
