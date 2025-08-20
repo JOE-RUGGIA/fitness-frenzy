@@ -2321,5 +2321,84 @@ try{
 </script>
 
 
+
+
+
+
+
+
+
+  <script type="application/ff-patch">
+/* JAX intro voice line on first tutorial bubble////////////////////////////////JAX TALKING 1///////////////////////////////// */
+(function(){
+  try{
+    const tip       = document.getElementById('tip');
+    const tipText   = document.getElementById('tip-text');
+    const tipHeader = document.getElementById('tip-head-name');
+    if(!tip || !tipText || !tipHeader) return;
+
+    // Prepare audio
+    const JAX_URL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true";
+    const jaxAudio = new Audio(JAX_URL);
+    jaxAudio.preload = 'auto';
+    jaxAudio.crossOrigin = 'anonymous';
+    try { jaxAudio.volume = 0.9; } catch(_) {}
+
+    let attemptedThisTip = false;  // attempted (or played) since the tip opened
+    let tipVisible = tip.classList.contains('show');
+
+    function tryPlayVoice(){
+      if(attemptedThisTip) return;
+      attemptedThisTip = true;
+      // Try immediately…
+      jaxAudio.currentTime = 0;
+      jaxAudio.play().catch(()=>{
+        // …if blocked, defer to the very next real gesture
+        const fire = ()=>{ 
+          jaxAudio.currentTime = 0; 
+          jaxAudio.play().finally(()=> {
+            window.removeEventListener('pointerdown', fire, true);
+            window.removeEventListener('touchstart', fire, true);
+            window.removeEventListener('keydown', fire, true);
+          });
+        };
+        window.addEventListener('pointerdown', fire, {once:true, capture:true});
+        window.addEventListener('touchstart',  fire, {once:true, capture:true});
+        window.addEventListener('keydown',     (e)=>{ if(e.code==='Enter'||e.code==='Space') fire(); }, {once:true, capture:true});
+      });
+    }
+
+    // Detect open/close of the tutorial overlay to reset per-session guard
+    new MutationObserver(()=>{
+      const nowVisible = tip.classList.contains('show');
+      if(nowVisible && !tipVisible){
+        // Tip just opened — reset so first JAX bubble can trigger audio
+        attemptedThisTip = false;
+      }
+      tipVisible = nowVisible;
+    }).observe(tip, {attributes:true, attributeFilter:['class']});
+
+    // Watch text changes; fire for the FIRST JAX bubble in the session
+    const targetPhrase = /low on energy/i;  // matches your first JAX line
+    new MutationObserver(()=>{
+      if(!tip.classList.contains('show')) return;
+      const isJax = (tipHeader.textContent||'').trim().toUpperCase() === 'JAX';
+      if(!isJax || attemptedThisTip) return;
+
+      const raw = tipText.textContent || '';
+      // Prefer the exact first-line phrase, but as a fallback: allow any first JAX bubble
+      if(targetPhrase.test(raw) || raw.length>0){
+        tryPlayVoice();
+      }
+    }).observe(tipText, {subtree:true, characterData:true, childList:true});
+  }catch(e){
+    console.warn('JAX voice patch error:', e);
+  }
+})();
+</script>
+
+
+  
+
 </body>
 </html>
