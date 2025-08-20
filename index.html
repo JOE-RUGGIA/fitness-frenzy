@@ -3275,5 +3275,129 @@ try{
 </script>
   
 
+
+
+
+
+
+<script type="application/ff-patch">
+/* Tutorial bubble POP SFX on appear/advance */
+(function(){
+  try{
+    if (window.__FF_TUTORIAL_POP_SFX__) return;
+    window.__FF_TUTORIAL_POP_SFX__ = true;
+
+    const tip  = document.getElementById('tip');
+    const bubble = document.getElementById('tip-bubble');
+    const tipText = document.getElementById('tip-text');
+    const tipHead = document.getElementById('tip-head-name');
+    if(!tip || !bubble || !tipText || !tipHead) return;
+
+    /* --- Minimal pop SFX (Web Audio), gentle volume --- */
+    const PopSFX = (function(){
+      let ctx = null;
+      function ensureCtx(){
+        if(ctx) return ctx;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return null;
+        ctx = new AC();
+        return ctx;
+      }
+      function play(){
+        const c = ensureCtx(); if(!c) return;
+        const t = c.currentTime;
+
+        // short, percussive "pop": sine sweep + click transient
+        const o = c.createOscillator();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(240, t);
+        o.frequency.exponentialRampToValueAtTime(720, t + 0.06);
+
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.0004, t);
+        g.gain.exponentialRampToValueAtTime(0.035, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0004, t + 0.10);
+
+        // tiny click layer
+        const n = c.createBuffer(1, 220, c.sampleRate);
+        const ch = n.getChannelData(0);
+        for(let i=0;i<ch.length;i++) ch[i] = (Math.random()*2-1) * Math.exp(-i/80);
+        const nb = c.createBufferSource(); nb.buffer = n;
+        const gn = c.createGain(); gn.gain.setValueAtTime(0.025, t); gn.gain.exponentialRampToValueAtTime(0.0005, t+0.07);
+
+        o.connect(g).connect(c.destination);
+        nb.connect(gn).connect(c.destination);
+        o.start(t); o.stop(t + 0.11);
+        nb.start(t); nb.stop(t + 0.08);
+      }
+      return { play };
+    })();
+
+    // Resume context after first user gesture (if needed)
+    ['pointerdown','touchstart','keydown'].forEach(ev=>{
+      document.addEventListener(ev, ()=>{
+        try{
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if(AC && PopSFX && PopSFX._ctx && PopSFX._ctx.state === 'suspended'){
+            PopSFX._ctx.resume().catch(()=>{});
+          }
+        }catch(_){}
+      }, {once:true, capture:true});
+    });
+
+    /* --- When to pop --- */
+    let lastPlay = 0;
+    function tryPop(){
+      const now = performance.now();
+      if (now - lastPlay < 200) return; // rate-limit (avoid double on quick reflows)
+      lastPlay = now;
+      PopSFX.play();
+    }
+
+    function isVisible(el){
+      const cs = getComputedStyle(el);
+      return cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
+    }
+
+    // 1) Pop when the tutorial overlay is shown (first time)
+    let wasTipShown = tip.classList.contains('show');
+    new MutationObserver(()=>{
+      const cur = tip.classList.contains('show');
+      if(cur && !wasTipShown && isVisible(bubble)) tryPop();
+      wasTipShown = cur;
+    }).observe(tip, {attributes:true, attributeFilter:['class']});
+
+    // 2) Pop when the bubble switches speaker/anchor (new step cue)
+    let lastSpeaker = tipHead.textContent || '';
+    new MutationObserver(()=>{
+      const cur = tipHead.textContent || '';
+      if(cur !== lastSpeaker && isVisible(bubble)) tryPop();
+      lastSpeaker = cur;
+    }).observe(tipHead, {characterData:true, childList:true, subtree:true});
+
+    // 3) Pop when the text is reset for a new step (typing restarts)
+    let lastLen = (tipText.textContent||'').length;
+    new MutationObserver(()=>{
+      const curLen = (tipText.textContent||'').length;
+      // A big drop (or to zero) indicates step transition before typing refills
+      if(isVisible(bubble) && lastLen > 6 && curLen <= 2) tryPop();
+      lastLen = curLen;
+    }).observe(tipText, {characterData:true, childList:true, subtree:true});
+
+    // 4) Safety: if bubble visibility toggles from hidden -> visible
+    let wasVis = isVisible(bubble);
+    new MutationObserver(()=>{
+      const v = isVisible(bubble);
+      if(v && !wasVis) tryPop();
+      wasVis = v;
+    }).observe(bubble, {attributes:true, attributeFilter:['style','class']});
+
+  }catch(e){
+    console.warn('Tutorial POP SFX patch error:', e);
+  }
+})();
+</script>
+
+
 </body>
 </html>
