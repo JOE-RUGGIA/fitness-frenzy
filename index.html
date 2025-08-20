@@ -2164,49 +2164,53 @@ try{
 
 
 <script type="application/ff-patch">
-/* Desktop music boot fix: start audio on a real user gesture/////////////////////////MUSIC FIX//////////////////////////////// */
+/* Music boot fix (DESKTOP-ONLY): start audio on a real desktop gesture.
+   Mobile uses the game's own begin() -> Music.startPlay() to avoid doubles.????//////////////////////////////////////////////////////MUSICCCCC/////////// */
 (function(){
   try{
-    if(window.__FF_MUSIC_BOOT_FIX__) return;
+    if (window.__FF_MUSIC_BOOT_FIX__) return;
     window.__FF_MUSIC_BOOT_FIX__ = true;
 
-    const buttons = ['splash-skip','btn-new','btn-continue'];
-    const events  = ['pointerdown','touchstart','keydown'];
+    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+    if (isTouch) return; // <-- Skip on mobile to prevent double playback
 
-    function startMusicFromGesture(e){
-      // key filter so we only count Enter/Space as gestures
-      if(e.type === 'keydown' && !(e.code === 'Enter' || e.code === 'Space')) return;
-      if(window.__FF_MUSIC_STARTED__) return;
+    const ids = ['splash-skip','btn-new','btn-continue'];
+
+    function onGesture(e){
+      // Only Enter/Space for keyboard
+      if (e.type === 'keydown' && !(e.code === 'Enter' || e.code === 'Space')) return;
+      if (window.__FF_MUSIC_STARTED__) return;
+
+      // Set the guard FIRST to survive double events
       window.__FF_MUSIC_STARTED__ = true;
 
+      // Remove listeners so it can only happen once
+      ids.forEach(id=>{
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.removeEventListener('pointerdown', onGesture, true);
+        el.removeEventListener('keydown', onGesture, true);
+      });
+
       try{
-        // Prefer the game's Music helper (respects prefs/volume)
         if (typeof Music !== 'undefined' && Music && Music.startPlay){
-          Music.startPlay();
-        } else {
-          // Fallback: create a one-off audio instance (kept if Music is unavailable)
-          const url = (/Mobi|Android/i.test(navigator.userAgent))
-            ? 'FF-fighting music (soft).mp3'
-            : 'FF-fighting music.mp3';
-          const a = new Audio(url);
-          a.loop = true;
-          try { a.volume = 0.12; } catch(_){}
-          a.play().catch(()=>{ /* blocked? leave silently */ });
-          window.__FF_MUSIC_ELEM__ = a;
+          Music.startPlay(); // respects user prefs/volume
         }
       }catch(_){}
     }
 
-    buttons.forEach(id=>{
+    ids.forEach(id=>{
       const el = document.getElementById(id);
       if(!el) return;
-      events.forEach(ev=> el.addEventListener(ev, startMusicFromGesture, {capture:true, passive:true}));
+      el.addEventListener('pointerdown', onGesture, {capture:true, passive:true});
+      el.addEventListener('keydown', onGesture, {capture:true});
     });
   }catch(e){
-    console.warn('Music boot fix error:', e);
+    console.warn('Music boot fix (desktop-only) error:', e);
   }
 })();
 </script>
+
 
 
 </body>
