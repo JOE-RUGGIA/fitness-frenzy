@@ -2327,13 +2327,17 @@ try{
 
 
 
+  
+
+
+
 
 <script type="application/ff-patch">
-/* JAX VO mapping v5b — robust female/male detection + desktop-safe L1 muted boot */
+/* JAX VO mapping v5c — desktop muted-boot for L1 + robust female detect + MOBILE UNLOCK */
 (function(){
   try{
-    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5B__) return;
-    window.__FF_JAX_TUTORIAL_VO_PATCH_V5B__ = true;
+    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5C__) return;
+    window.__FF_JAX_TUTORIAL_VO_PATCH_V5C__ = true;
 
     /* ---------- Audio URLs ---------- */
     const URLS = {
@@ -2352,25 +2356,17 @@ try{
     /* ---------- Robust avatar detection ---------- */
     function isFemaleAvatar(){
       try{
-        // Primary signal
         if (document.body.classList.contains('female')) return true;
-
-        // Start screen selection
         const sv = document.getElementById('start-avatars');
         if (sv && sv.querySelector('.ava.f.active')) return true;
-
-        // Topbar current avatar image
         const topAva = document.getElementById('avatar-img');
         if (topAva && /FEMALE/i.test(topAva.src)) return true;
-
-        // Tutorial bubble head image
         const tipImg = document.getElementById('tip-head-img');
         if (tipImg && /FEMALE/i.test(tipImg.src)) return true;
       }catch(_){}
       return false;
     }
-    // Expose for quick dev checks
-    window.BM_IS_FEMALE = isFemaleAvatar;
+    window.BM_IS_FEMALE = isFemaleAvatar; // optional debug
 
     /* ---------- Player + ducking ---------- */
     const cache = Object.create(null);             // key -> HTMLAudioElement
@@ -2438,10 +2434,35 @@ try{
     const norm = (s)=> String(s||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
     const hasAll = (t, arr)=> arr.every(x=> t.includes(x));
 
+    /* ---------- MOBILE: unlock all audio elements inside the gesture ---------- */
+    function mobileUnlockAllOnce(){
+      if (!isTouch) return;
+      if (window.__FF_JAX_MOBILE_UNLOCKED__) return;
+      window.__FF_JAX_MOBILE_UNLOCKED__ = true;
+
+      try{
+        primeAll();
+        Object.keys(URLS).forEach(k=>{
+          const a = getAudio(k);
+          try{
+            const oldVol = a.volume;
+            a.volume = 0; a.muted = true; a.currentTime = 0.001;
+            a.play().then(()=>{
+              // immediately pause & restore; this "unlocks" future plays
+              setTimeout(()=>{ try{ a.pause(); a.currentTime = 0; a.muted = false; a.volume = oldVol; }catch(_){ } }, 0);
+            }).catch(()=>{
+              try{ a.muted = false; a.volume = oldVol; }catch(_){}
+              // it's okay if one fails; others will still unlock
+            });
+          }catch(_){}
+        });
+      }catch(_){}
+    }
+
     /* ---------- DESKTOP: boot JAX #1 muted inside the gesture ---------- */
     let l1MutedPlaying = false;   // desktop only
     function desktopBootLine1(){
-      if (isTouch) return;                    // mobile skips this path
+      if (isTouch) return;                    // mobile uses unlock path
       if (window.__FF_JAX_L1_BOOTED__) return;
       window.__FF_JAX_L1_BOOTED__ = true;
 
@@ -2477,6 +2498,7 @@ try{
           fadeTo(a, 0.9, 260);
           startedAudible.j1 = true;
         }else{
+          // On mobile, we already unlocked; now just play immediately
           a.currentTime = 0;
           duckMusic();
           a.play().then(()=>{ startedAudible.j1 = true; fadeTo(a, 0.9, 220); }).catch(()=>{});
@@ -2484,7 +2506,7 @@ try{
       }catch(_){}
     }
 
-    /* ---------- Player reply (female or male) — now using robust detection ---------- */
+    /* ---------- Player reply (female or male) ---------- */
     function maybePlayPlayerReply(){
       const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       if (speaker!=='YOU') return;
@@ -2516,19 +2538,23 @@ try{
     }
 
     /* ---------- Wire up ---------- */
-    btnNew.addEventListener('pointerdown', desktopBootLine1, {capture:true, passive:true});
-    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') desktopBootLine1(); }, {capture:true});
+    // New Game gesture: mobile unlocks all audio; desktop boots muted L1
+    const startGesture = (e)=>{ mobileUnlockAllOnce(); desktopBootLine1(); };
+    btnNew.addEventListener('touchstart', startGesture, {capture:true, passive:true}); // iOS friendliness
+    btnNew.addEventListener('pointerdown', startGesture, {capture:true, passive:true});
+    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') startGesture(e); }, {capture:true});
 
-    const tipRoot = document.getElementById('tip');
+    // Observe tutorial bubble and poll to sync VO with typing tokens
     const obs = new MutationObserver(()=>{ tryAudibilizeLine1(); maybePlayPlayerReply(); maybePlayJaxAuto(); });
     obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
     (function raf(){ tryAudibilizeLine1(); maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
   }catch(e){
-    console.warn('JAX VO v5b patch error:', e);
+    console.warn('JAX VO v5c patch error:', e);
   }
 })();
 </script>
+
 
 
 
