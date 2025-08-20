@@ -2333,15 +2333,15 @@ try{
 
 
 <script type="application/ff-patch">
-/* JAX VO mapping v5g — MOBILE FIX:
-   - Grab gesture for JAX #1 first (quiet play→pause, volume=0.01, unmuted)
-   - Defer Music.startPlay until JAX #1 is audible (or 1500ms fallback)
-   - Keep desktop muted-boot, robust male/female, token triggers & fallbacks
-*/
+/* JAX VO mapping v5h — Music starts AFTER JAX #1 finishes.
+   - Mobile: bless L1 with play→pause (audible=0.01) during gesture
+   - Desktop: muted-boot for L1
+   - Gate Music.startPlay until JAX #1 ends (or fallback)
+   - Robust female detect, token triggers, fallbacks preserved */
 (function(){
   try{
-    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5G__) return;
-    window.__FF_JAX_TUTORIAL_VO_PATCH_V5G__ = true;
+    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5H__) return;
+    window.__FF_JAX_TUTORIAL_VO_PATCH_V5H__ = true;
 
     const URLS = {
       j1: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true',
@@ -2355,6 +2355,36 @@ try{
     };
 
     const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+
+    /* ---------- Robust female detect ---------- */
+    function isFemaleAvatar(){
+      try{
+        if (document.body.classList.contains('female')) return true;
+        const sv=document.getElementById('start-avatars'); if(sv&&sv.querySelector('.ava.f.active')) return true;
+        const top=document.getElementById('avatar-img'); if(top&&/FEMALE/i.test(top.src)) return true;
+        const tip=document.getElementById('tip-head-img'); if(tip&&/FEMALE/i.test(tip.src)) return true;
+      }catch(_){}
+      return false;
+    }
+
+    /* ---------- Music gate: hold music until JAX #1 finishes ---------- */
+    let ORIG_MUSIC_START=null, musicQueued=false, musicAllowed=false, musicFallback=null;
+    function installMusicGate(){
+      if (!window.Music || !Music.startPlay || ORIG_MUSIC_START) return;
+      ORIG_MUSIC_START = Music.startPlay.bind(Music);
+      Music.startPlay = function(){
+        if (musicAllowed) return ORIG_MUSIC_START();
+        musicQueued = true; // quietly queue
+      };
+    }
+    function releaseMusicGate(){
+      if (musicAllowed) return;
+      musicAllowed = true;
+      clearTimeout(musicFallback);
+      if (musicQueued && ORIG_MUSIC_START) { musicQueued=false; ORIG_MUSIC_START(); }
+    }
+
+    /* ---------- Player + ducking ---------- */
     const cache = Object.create(null);
     const startedAudible = Object.create(null);
     let voicesActive = 0, prevVol = null;
@@ -2379,116 +2409,110 @@ try{
     }
     function make(url, vol=0.9){
       const a = new Audio(url);
-      a.preload='auto'; a.loop=false;
-      try{ a.volume=vol; a.playsInline=true; a.setAttribute('playsinline',''); a.setAttribute('webkit-playsinline',''); }catch(_){}
+      a.preload = 'auto'; a.loop = false;
+      try{ a.volume = vol; a.playsInline = true; a.setAttribute('playsinline',''); a.setAttribute('webkit-playsinline',''); }catch(_){}
       a.addEventListener('ended', restoreMusic, {once:true});
       a.addEventListener('pause', restoreMusic, {once:true});
       a.addEventListener('abort', restoreMusic, {once:true});
       return a;
     }
-    function getAudio(key){ return cache[key] || (cache[key]=make(URLS[key],0.9)); }
-    function primeAll(){ if(window.__FF_JAX_PRIMED__) return; window.__FF_JAX_PRIMED__=true; Object.keys(URLS).forEach(k=>{ try{ getAudio(k).load(); }catch(_){}}); }
+    function getAudio(key){ return cache[key] || (cache[key] = make(URLS[key], 0.9)); }
+    function primeAll(){ if (window.__FF_JAX_PRIMED__) return; window.__FF_JAX_PRIMED__=true; Object.keys(URLS).forEach(k=>{ try{ getAudio(k).load(); }catch(_){ } }); }
+
     function fadeTo(a, target=0.9, ms=240){
       const start=a.volume||0, t0=performance.now();
-      (function step(){ const p=Math.min(1,(performance.now()-t0)/ms); try{ a.volume=start+(target-start)*p; }catch(_){}
+      (function step(){ const p=Math.min(1,(performance.now()-t0)/ms);
+        try{ a.volume = start + (target-start)*p; }catch(_){}
         if(p<1) requestAnimationFrame(step);
       })();
     }
 
-    /* Robust female detect */
-    function isFemaleAvatar(){
-      try{
-        if(document.body.classList.contains('female')) return true;
-        const sv=document.getElementById('start-avatars'); if(sv&&sv.querySelector('.ava.f.active')) return true;
-        const top=document.getElementById('avatar-img'); if(top&&/FEMALE/i.test(top.src)) return true;
-        const tip=document.getElementById('tip-head-img'); if(tip&&/FEMALE/i.test(tip.src)) return true;
-      }catch(_){}
-      return false;
-    }
-
-    /* Elements */
+    /* ---------- Elements ---------- */
     const btnNew=document.getElementById('btn-new');
     const tipHeadName=document.getElementById('tip-head-name');
     const tipText=document.getElementById('tip-text');
     const tipRoot=document.getElementById('tip');
     if(!btnNew||!tipHeadName||!tipText||!tipRoot) return;
 
+    /* ---------- Helpers ---------- */
     function norm(s){
-      return String(s||'').replace(/\u00a0/g,' ')
+      return String(s||'')
+        .replace(/\u00a0/g,' ')
         .replace(/[\u2018\u2019]/g,"'").replace(/['’]/g,'')
         .replace(/\s+/g,' ').trim().toLowerCase();
     }
     const hasAll=(t,arr)=>arr.every(x=>t.includes(x));
 
-    /* --- Music deferral gate so VO gets the first token --- */
-    let ORIG_MUSIC_START=null, musicPending=false, allowMusic=false, musicFallbackTimer=null;
-    function installMusicGate(){
-      if(!window.Music || !Music.startPlay || ORIG_MUSIC_START) return;
-      ORIG_MUSIC_START = Music.startPlay.bind(Music);
-      Music.startPlay = function(){
-        if(allowMusic){ return ORIG_MUSIC_START(); }
-        // queue once
-        if(!musicPending){
-          musicPending=true;
-          // fallback in case VO never starts
-          clearTimeout(musicFallbackTimer);
-          musicFallbackTimer=setTimeout(()=>{ allowMusic=true; ORIG_MUSIC_START(); }, 1500);
-        }
-        // don’t start now
-      };
-    }
-    function releaseMusicGate(){
-      if(allowMusic) return;
-      allowMusic=true;
-      clearTimeout(musicFallbackTimer);
-      if(musicPending && ORIG_MUSIC_START){ musicPending=false; ORIG_MUSIC_START(); }
-    }
-
-    /* --- Bless helper (mobile): unmuted, v=0.01, quick play→pause --- */
+    /* ---------- Bless helper (mobile): unmuted v=0.01 play→pause ---------- */
     function blessPlayPause(a){
       try{
         const old=a.volume;
         a.muted=false; a.volume=0.01; a.currentTime=0.001;
-        return a.play().then(()=>{ setTimeout(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){ } }, 30); })
+        return a.play().then(()=>{ setTimeout(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){ } }, 40); })
                         .catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){ } });
       }catch(_){}
     }
 
-    /* --- Start sequence (runs once, before game’s click handler) --- */
-    let START_ARMED=false;
+    /* ---------- Start gesture: prime, install music gate, bless/boot L1 ---------- */
+    let STARTED=false, desktopMutedBoot=false;
     function onStartGesture(){
-      if(START_ARMED) return; START_ARMED=true;
+      if (STARTED) return; STARTED=true;
       primeAll();
-      installMusicGate();     // Make sure music waits for VO
-      const aJ1=getAudio('j1');
+      installMusicGate();  // capture any early music starts from the game
 
-      if(isTouch){
-        // Give JAX #1 the gesture token: bless play→pause (unmuted & audible (0.01))
+      const aJ1 = getAudio('j1');
+      if (isTouch){
+        // Mobile: bless L1 (audible token goes to VO)
         blessPlayPause(aJ1);
       }else{
-        // Desktop: muted-boot keeps it playing silently, we’ll fade in on tokens
-        try{ aJ1.muted=true; aJ1.volume=0; aJ1.currentTime=0; aJ1.play().catch(()=>{}); }catch(_){}
+        // Desktop: keep L1 silently playing (muted) and fade in later
+        try{ aJ1.muted=true; aJ1.volume=0; aJ1.currentTime=0; aJ1.play().then(()=>{ desktopMutedBoot=true; }).catch(()=>{}); }catch(_){}
       }
 
-      // Also bless the rest on mobile (cheap)
-      if(isTouch){
-        ['you_f_2','you_m_2','j3','j4','j5','j6','j9'].forEach(k=>{ blessPlayPause(getAudio(k)); });
+      // Bless the rest on mobile too
+      if (isTouch){
+        ['you_f_2','you_m_2','j3','j4','j5','j6','j9'].forEach(k=> blessPlayPause(getAudio(k)));
       }
+
+      // Absolute failsafe: if nothing plays at all, start music after 3.5s
+      clearTimeout(musicFallback);
+      musicFallback=setTimeout(()=>{ releaseMusicGate(); }, 3500);
     }
 
-    /* --- Make L1 audible when tokens appear (and release music gate) --- */
+    /* ---------- Make L1 audible + start music AFTER it finishes ---------- */
+    let j1EndedHooked=false;
+    function hookJ1EndToStartMusic(a){
+      if (j1EndedHooked) return;
+      j1EndedHooked = true;
+      a.addEventListener('ended', ()=>{ releaseMusicGate(); }, {once:true});
+      // small safety: release if paused very near the end (some mobile browsers)
+      a.addEventListener('pause', ()=>{
+        try{
+          if (a.duration && a.currentTime > a.duration * 0.85) releaseMusicGate();
+        }catch(_){}
+      }, {once:true});
+    }
+
     function audibilizeL1(){
-      if(startedAudible.j1) return true;
+      if (startedAudible.j1) return true;
       const a=getAudio('j1'); if(!a) return false;
       try{
         duckMusic();
         a.muted=false; a.volume=0; a.currentTime=0;
-        return a.play().then(()=>{ startedAudible.j1=true; fadeTo(a,0.9,220); releaseMusicGate(); return true; })
-                        .catch(()=> false);
+        hookJ1EndToStartMusic(a);
+        if (!isTouch && desktopMutedBoot){
+          // already playing muted; just fade up
+          fadeTo(a,0.9,260);
+          startedAudible.j1 = true;
+          return true;
+        }else{
+          return a.play().then(()=>{ startedAudible.j1=true; fadeTo(a,0.9,220); return true; })
+                          .catch(()=> false);
+        }
       }catch(_){ return false; }
     }
 
-    /* --- Female safety fallbacks if tokens are late --- */
+    /* ---------- Female fallbacks if token detect lags ---------- */
     let fT1=null, fT2=null;
     function scheduleFemaleFallbacks(){
       if(!isFemaleAvatar()) return;
@@ -2497,9 +2521,9 @@ try{
       fT2=setTimeout(()=>{ if(!startedAudible.j1) audibilizeL1(); }, 1900);
     }
 
-    /* --- Token detectors --- */
+    /* ---------- Token detectors ---------- */
     function tryJax1(){
-      if(startedAudible.j1) return;
+      if (startedAudible.j1) return;
       const sp=(tipHeadName.textContent||'').trim().toUpperCase();
       const t=norm(tipText.textContent);
       const ok=(sp==='JAX') && (hasAll(t,['low on energy'])||hasAll(t,['fix that fast'])||hasAll(t,['you look a bit']));
@@ -2525,7 +2549,7 @@ try{
       fire('j9', hasAll(t,['ready','scale','coach']) && /hire/.test(t));
     }
 
-    /* --- Wire up (use pointerdown capture once; avoid touchstart double-fire) --- */
+    /* ---------- Wire up ---------- */
     btnNew.addEventListener('pointerdown', onStartGesture, {capture:true, passive:true});
     btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') onStartGesture(); }, {capture:true});
 
@@ -2533,9 +2557,10 @@ try{
     obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
     (function raf(){ tryJax1(); maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
-  }catch(e){ console.warn('JAX VO v5g patch error:', e); }
+  }catch(e){ console.warn('JAX VO v5h patch error:', e); }
 })();
 </script>
+
 
 
 
