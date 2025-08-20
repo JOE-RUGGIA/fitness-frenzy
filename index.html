@@ -2329,31 +2329,24 @@ try{
 
 
   <script type="application/ff-patch">
-/* JAX intro voice line on Start (New Game) — with gentle music ducking ////////////////////////////////JJJJJAAAAXXXXXX VOICEOVER/////////111111//////////*/
+/* JAX intro voice → (then) Female player reply, with gentle music ducking ///////////////////////////JAX AND FEMALE PLAYER/////////////////////////*/
 (function(){
   try{
-    if (window.__FF_JAX_VOICE_PATCH__) return;
-    window.__FF_JAX_VOICE_PATCH__ = true;
+    if (window.__FF_JAX_FEMALE_VOICE_PATCH__) return;
+    window.__FF_JAX_FEMALE_VOICE_PATCH__ = true;
 
-    const VO_URL = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true';
+    const JAX_URL    = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true';
+    const FEMALE_URL = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true';
 
-    let vo = null;
-    let ducked = false;
-    let prevVol = null;
+    let jax, fvo;
+    let ducked = false, prevVol = null;
 
-    function ensureVO(){
-      if (vo) return vo;
-      vo = new Audio(VO_URL);
-      vo.preload = 'auto';
-      vo.loop = false;
-      // Voice is foreground; keep it clear but not blasting
-      try { vo.volume = 0.9; } catch(_){}
-      // Restore music when voice ends or is stopped
-      const restore = ()=> restoreMusic();
-      vo.addEventListener('ended', restore);
-      vo.addEventListener('pause', restore);
-      vo.addEventListener('abort', restore);
-      return vo;
+    function ensureAudio(url, vol=0.9){
+      const a = new Audio(url);
+      a.preload = 'auto';
+      a.loop = false;
+      try{ a.volume = vol; }catch(_){}
+      return a;
     }
 
     function duckMusic(){
@@ -2361,14 +2354,12 @@ try{
         if (ducked) return;
         if (typeof Music !== 'undefined' && Music){
           prevVol = Music.vol; // getter
-          // Reduce to ~55% while VO plays
           const newVol = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.55));
           Music.setVol(newVol);
           ducked = true;
         }
       }catch(_){}
     }
-
     function restoreMusic(){
       try{
         if (!ducked) return;
@@ -2376,36 +2367,87 @@ try{
           Music.setVol(prevVol);
         }
       }catch(_){}
-      ducked = false;
-      prevVol = null;
+      ducked = false; prevVol = null;
     }
 
-    function playJaxVoice(){
-      if (window.__FF_JAX_VOICE_PLAYED__) return;
-      window.__FF_JAX_VOICE_PLAYED__ = true; // guard FIRST to avoid double-fires on mobile
+    function playOnce(a){
+      try{ a.currentTime = 0; a.play().catch(()=>{}); }catch(_){}
+    }
+
+    /* Wait until the tutorial bubble shows a "You" line, then play female VO */
+    function waitForPlayerBubbleThenPlayFemale(maxWaitMs=6000){
+      const t0 = performance.now();
+      const tipHeadName = document.getElementById('tip-head-name');
+      const tipText = document.getElementById('tip-text');
+
+      function tick(){
+        // If avatar isn't female anymore, skip
+        if (!document.body.classList.contains('female')) return;
+
+        const isYou = (tipHeadName?.textContent || '').trim().toUpperCase() === 'YOU';
+        const hasText = !!(tipText && tipText.textContent && tipText.textContent.trim().length);
+
+        if (isYou && hasText){
+          if (!window.__FF_FEMALE_LINE_PLAYED__){
+            window.__FF_FEMALE_LINE_PLAYED__ = true;
+            try{
+              if (!fvo) fvo = ensureAudio(FEMALE_URL, 0.9);
+              // When female VO ends, restore music (in case we never get another event)
+              const done = ()=> restoreMusic();
+              fvo.addEventListener('ended', done, {once:true});
+              fvo.addEventListener('pause', done, {once:true});
+              duckMusic();
+              playOnce(fvo);
+            }catch(_){}
+          }
+          return;
+        }
+        if (performance.now() - t0 > maxWaitMs) return; // give up quietly
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function playIntroSequence(){
+      if (window.__FF_JAX_LINE_PLAYED__) return;       // guard FIRST (handles mobile double events)
+      window.__FF_JAX_LINE_PLAYED__ = true;
+
       try{
-        const a = ensureVO();
+        if (!jax) jax = ensureAudio(JAX_URL, 0.9);
+
+        // Restore music after JAX ends (or pauses/aborts)
+        const restore = ()=> restoreMusic();
+        jax.addEventListener('ended', restore, {once:true});
+        jax.addEventListener('pause', restore, {once:true});
+        jax.addEventListener('abort', restore, {once:true});
+
+        // After JAX ends, if avatar is female, wait for the "You" bubble then play female VO
+        jax.addEventListener('ended', ()=>{
+          if (document.body.classList.contains('female')){
+            waitForPlayerBubbleThenPlayFemale();
+          }
+        }, {once:true});
+
         duckMusic();
-        a.currentTime = 0;
-        a.play().catch(()=>{ /* if blocked, we stay silent gracefully */ });
+        playOnce(jax);
       }catch(_){}
     }
 
-    // Hook only NEW GAME (not Continue) per your request
+    // Hook ONLY New Game (not Continue). Use real gestures so autoplay isn't blocked.
     const btnNew = document.getElementById('btn-new');
     if (!btnNew) return;
 
-    // Use real user gestures (pointerdown/Enter/Space) so autoplay isn't blocked.
-    btnNew.addEventListener('pointerdown', playJaxVoice, {capture:true, passive:true});
+    btnNew.addEventListener('pointerdown', playIntroSequence, {capture:true, passive:true});
     btnNew.addEventListener('keydown', (e)=>{
-      if (e.code === 'Enter' || e.code === 'Space') playJaxVoice();
+      if (e.code === 'Enter' || e.code === 'Space') playIntroSequence();
     }, {capture:true});
 
   }catch(e){
-    console.warn('JAX voice patch error:', e);
+    console.warn('JAX + Female VO patch error:', e);
   }
 })();
 </script>
+
 
   
 
