@@ -3407,16 +3407,16 @@ try{
 
 
 <script type="application/ff-patch">
-/* Start Screen: avatar click SFX + gender voice intro (with music ducking) /////////////////////////////MALE////FEMALE////SFX*/
+/* REPLACE previous: Start Screen avatar click SFX + gender voice intro (raw.githubusercontent.com URLs) */
 (function(){
   try{
-    if (window.__FF_START_AVA_SFX__) return;
-    window.__FF_START_AVA_SFX__ = true;
+    if (window.__FF_START_AVA_SFX_V2__) return;
+    window.__FF_START_AVA_SFX_V2__ = true;
 
     const root = document.getElementById('start-avatars');
     if(!root) return;
 
-    /* ---------- Click SFX (short, clean pop) ---------- */
+    /* ---------- Click SFX (short pop) ---------- */
     const ClickSFX = (function(){
       let ctx = null;
       function ensureCtx(){
@@ -3430,7 +3430,6 @@ try{
         const c = ensureCtx(); if(!c) return;
         const t = c.currentTime;
 
-        // Tiny pop + blip
         const o = c.createOscillator();
         o.type = 'sine';
         o.frequency.setValueAtTime(340, t);
@@ -3453,30 +3452,32 @@ try{
         o.start(t); o.stop(t + 0.10);
         ns.start(t); ns.stop(t + 0.07);
       }
-      return { play };
+      return { play, get _ctx(){ return ctx; } };
     })();
 
-    // Resume audio context on first gesture if needed
+    // Ensure audio context can resume after first gesture
     ['pointerdown','touchstart','keydown'].forEach(ev=>{
       document.addEventListener(ev, ()=>{
         try{
           const AC = window.AudioContext || window.webkitAudioContext;
-          if(AC && ClickSFX && ClickSFX._ctx && ClickSFX._ctx.state === 'suspended'){
+          if(AC && ClickSFX._ctx && ClickSFX._ctx.state === 'suspended'){
             ClickSFX._ctx.resume().catch(()=>{});
           }
         }catch(_){}
       }, {once:true, capture:true});
     });
 
-    /* ---------- Voice SFX (gender-specific) ---------- */
-    const VO_URL_M = "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20male%20audio%20intro%20(start%20menu).mp3";
-    const VO_URL_F = "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20female%20audio%20intro%20(start%20screen).mp3";
+    /* ---------- Voice SFX (gender-specific) using RAW URLs ---------- */
+    const VO_URL_M = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/player%20male%20audio%20intro%20(start%20menu).mp3";
+    const VO_URL_F = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/player%20female%20audio%20intro%20(start%20screen).mp3";
 
     function makeVO(url){
       const a = new Audio(url);
       a.preload = "auto";
       a.crossOrigin = "anonymous";
       a.volume = 1.0;
+      // Kick the network pipeline
+      try{ a.load(); }catch(_){}
       return a;
     }
     const voMale   = makeVO(VO_URL_M);
@@ -3489,7 +3490,7 @@ try{
       try{
         if (typeof Music !== 'undefined' && Music){
           if(prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
+          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.35)); // stronger duck
           Music.setVol(target);
           ducked = true;
         }
@@ -3510,32 +3511,39 @@ try{
 
     function playVO(a){
       try{
-        // stop any ongoing VO
+        // Stop any ongoing VO
         if(currentVO && currentVO !== a){
           try{ currentVO.pause(); currentVO.currentTime = 0; }catch(_){}
         }
         currentVO = a;
         try{ a.currentTime = 0; }catch(_){}
         duckMusic();
-        const p = a.play();
-        if(p && typeof p.then === 'function'){
-          p.catch(()=>{
-            // if blocked, retry on next gesture
-            const once = ()=>{ 
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('keydown',     once, true);
-              a.play().catch(()=>{});
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
+
+        // Attempt immediately, then again in a micro-task to survive iOS quirks
+        const attempt = ()=>{
+          const p = a.play();
+          if(p && typeof p.then === 'function'){
+            p.catch(()=>{
+              // if blocked, retry on next gesture
+              const once = ()=>{ 
+                document.removeEventListener('pointerdown', once, true);
+                document.removeEventListener('touchstart',  once, true);
+                document.removeEventListener('keydown',     once, true);
+                a.play().catch(()=>{});
+              };
+              document.addEventListener('pointerdown', once, {capture:true, passive:true});
+              document.addEventListener('touchstart',  once, {capture:true, passive:true});
+              document.addEventListener('keydown',     once, {capture:true});
+            });
+          }
+        };
+        attempt();
+        setTimeout(attempt, 0); // secondary nudge for Safari
+
       }catch(_){}
     }
 
-    /* ---------- Pointer de-dupe (avoid double fire from touch/pointer blends) ---------- */
+    /* ---------- Pointer de-dupe on tiles ---------- */
     const LAST_TS_ATTR = 'data-ff-ava-lastpd';
     function isDup(el){
       const now = performance.now();
@@ -3550,8 +3558,9 @@ try{
     root.addEventListener('pointerdown', (e)=>{
       const ava = e.target && e.target.closest && e.target.closest('.ava');
       if(!ava) return;
-      if(isDup(ava)) return;          // swallow duplicates
-      ClickSFX.play();                 // immediate tactile click
+      if(isDup(ava)) return;
+
+      ClickSFX.play(); // tactile click
 
       const sex = (ava.dataset.sex || '').toLowerCase();
       if(sex === 'male')   playVO(voMale);
@@ -3559,10 +3568,11 @@ try{
     }, {capture:true, passive:true});
 
   }catch(e){
-    console.warn('Start avatar SFX patch error:', e);
+    console.warn('Start avatar SFX patch (v2) error:', e);
   }
 })();
 </script>
+
   
 
 </body>
