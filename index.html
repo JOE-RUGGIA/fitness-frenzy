@@ -2329,200 +2329,80 @@ try{
 
 
   <script type="application/ff-patch">
-/* JAX intro voice line on first tutorial bubble////////////////////////////////JAX TALKING 1///////////////////////////////// */
+/* JAX intro voice line on Start (New Game) — with gentle music ducking ////////////////////////////////JJJJJAAAAXXXXXX VOICEOVER/////////111111//////////*/
 (function(){
   try{
-    const tip       = document.getElementById('tip');
-    const tipText   = document.getElementById('tip-text');
-    const tipHeader = document.getElementById('tip-head-name');
-    if(!tip || !tipText || !tipHeader) return;
+    if (window.__FF_JAX_VOICE_PATCH__) return;
+    window.__FF_JAX_VOICE_PATCH__ = true;
 
-    // Prepare audio
-    const JAX_URL = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true";
-    const jaxAudio = new Audio(JAX_URL);
-    jaxAudio.preload = 'auto';
-    jaxAudio.crossOrigin = 'anonymous';
-    try { jaxAudio.volume = 0.9; } catch(_) {}
+    const VO_URL = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true';
 
-    let attemptedThisTip = false;  // attempted (or played) since the tip opened
-    let tipVisible = tip.classList.contains('show');
+    let vo = null;
+    let ducked = false;
+    let prevVol = null;
 
-    function tryPlayVoice(){
-      if(attemptedThisTip) return;
-      attemptedThisTip = true;
-      // Try immediately…
-      jaxAudio.currentTime = 0;
-      jaxAudio.play().catch(()=>{
-        // …if blocked, defer to the very next real gesture
-        const fire = ()=>{ 
-          jaxAudio.currentTime = 0; 
-          jaxAudio.play().finally(()=> {
-            window.removeEventListener('pointerdown', fire, true);
-            window.removeEventListener('touchstart', fire, true);
-            window.removeEventListener('keydown', fire, true);
-          });
-        };
-        window.addEventListener('pointerdown', fire, {once:true, capture:true});
-        window.addEventListener('touchstart',  fire, {once:true, capture:true});
-        window.addEventListener('keydown',     (e)=>{ if(e.code==='Enter'||e.code==='Space') fire(); }, {once:true, capture:true});
-      });
+    function ensureVO(){
+      if (vo) return vo;
+      vo = new Audio(VO_URL);
+      vo.preload = 'auto';
+      vo.loop = false;
+      // Voice is foreground; keep it clear but not blasting
+      try { vo.volume = 0.9; } catch(_){}
+      // Restore music when voice ends or is stopped
+      const restore = ()=> restoreMusic();
+      vo.addEventListener('ended', restore);
+      vo.addEventListener('pause', restore);
+      vo.addEventListener('abort', restore);
+      return vo;
     }
 
-    // Detect open/close of the tutorial overlay to reset per-session guard
-    new MutationObserver(()=>{
-      const nowVisible = tip.classList.contains('show');
-      if(nowVisible && !tipVisible){
-        // Tip just opened — reset so first JAX bubble can trigger audio
-        attemptedThisTip = false;
-      }
-      tipVisible = nowVisible;
-    }).observe(tip, {attributes:true, attributeFilter:['class']});
+    function duckMusic(){
+      try{
+        if (ducked) return;
+        if (typeof Music !== 'undefined' && Music){
+          prevVol = Music.vol; // getter
+          // Reduce to ~55% while VO plays
+          const newVol = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.55));
+          Music.setVol(newVol);
+          ducked = true;
+        }
+      }catch(_){}
+    }
 
-    // Watch text changes; fire for the FIRST JAX bubble in the session
-    const targetPhrase = /low on energy/i;  // matches your first JAX line
-    new MutationObserver(()=>{
-      if(!tip.classList.contains('show')) return;
-      const isJax = (tipHeader.textContent||'').trim().toUpperCase() === 'JAX';
-      if(!isJax || attemptedThisTip) return;
+    function restoreMusic(){
+      try{
+        if (!ducked) return;
+        if (typeof Music !== 'undefined' && Music && prevVol != null){
+          Music.setVol(prevVol);
+        }
+      }catch(_){}
+      ducked = false;
+      prevVol = null;
+    }
 
-      const raw = tipText.textContent || '';
-      // Prefer the exact first-line phrase, but as a fallback: allow any first JAX bubble
-      if(targetPhrase.test(raw) || raw.length>0){
-        tryPlayVoice();
-      }
-    }).observe(tipText, {subtree:true, characterData:true, childList:true});
+    function playJaxVoice(){
+      if (window.__FF_JAX_VOICE_PLAYED__) return;
+      window.__FF_JAX_VOICE_PLAYED__ = true; // guard FIRST to avoid double-fires on mobile
+      try{
+        const a = ensureVO();
+        duckMusic();
+        a.currentTime = 0;
+        a.play().catch(()=>{ /* if blocked, we stay silent gracefully */ });
+      }catch(_){}
+    }
+
+    // Hook only NEW GAME (not Continue) per your request
+    const btnNew = document.getElementById('btn-new');
+    if (!btnNew) return;
+
+    // Use real user gestures (pointerdown/Enter/Space) so autoplay isn't blocked.
+    btnNew.addEventListener('pointerdown', playJaxVoice, {capture:true, passive:true});
+    btnNew.addEventListener('keydown', (e)=>{
+      if (e.code === 'Enter' || e.code === 'Space') playJaxVoice();
+    }, {capture:true});
+
   }catch(e){
     console.warn('JAX voice patch error:', e);
-  }
-})();
-</script>
-
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* Universal audio unlock + JAX intro VO (safe with existing patches) ////////////////////////////////////////////JAX FIX PATCH TO SEE IF IT WORKS//////////////////////*/
-(function(){
-  try{
-    if (window.__FF_AUDIO_UNIFIED__) return;
-    window.__FF_AUDIO_UNIFIED__ = true;
-
-    /* -------------------- JAX VO setup -------------------- */
-    const JAX_URL   = "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true";
-    const jaxAudio  = new Audio(JAX_URL);
-    jaxAudio.preload    = 'auto';
-    jaxAudio.crossOrigin= 'anonymous';
-    try{ jaxAudio.volume = 0.9; }catch(_){}
-
-    let jaxWantPlay   = false;   // we want to play as soon as audio is unlocked
-    let jaxPlayedThisTip = false;
-
-    function tryPlayJax(){
-      if (jaxPlayedThisTip) return;
-      jaxAudio.currentTime = 0;
-      jaxAudio.play().then(()=>{ jaxPlayedThisTip = true; }).catch(()=>{
-        // still blocked—leave want flag on and let the next gesture fire it
-        jaxWantPlay = true;
-      });
-    }
-
-    /* -------------------- Audio unlocker -------------------- */
-    function unlockAudioOnce(){
-      if (window.__FF_AUDIO_UNLOCK_DONE__) return;
-      window.__FF_AUDIO_UNLOCK_DONE__ = true;
-
-      // Resume any known WebAudio contexts (best-effort)
-      try{
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC && AC.prototype && AC.prototype.resume){
-          // If your game created a context already, it will be resumed on first sound play anyway.
-          // This is a no-op unless you store the ctx. Best-effort fallback:
-          if (window.__FF_CTX__ && window.__FF_CTX__.state === 'suspended'){
-            window.__FF_CTX__.resume().catch(()=>{});
-          }
-        }
-      }catch(_){}
-
-      // Start/ensure music via your Music helper (respects prefs/volume)
-      try{
-        if (typeof Music !== 'undefined' && Music && Music.startPlay){
-          if (Music.on !== false) Music.startPlay();
-        }
-      }catch(_){}
-
-      // If you used a fallback element earlier, ensure it's playing
-      try{
-        const a = window.__FF_MUSIC_ELEM__;
-        if (a && a.paused) { a.play().catch(()=>{}); }
-      }catch(_){}
-
-      // If JAX VO is queued, play it now
-      if (jaxWantPlay && !jaxPlayedThisTip){
-        tryPlayJax();
-      }
-    }
-
-    function onGesture(e){
-      if (e.type === 'keydown' && !(e.code === 'Enter' || e.code === 'Space')) return;
-      unlockAudioOnce();
-      // If the first JAX bubble is already on screen and we haven't played yet:
-      if (jaxWantPlay && !jaxPlayedThisTip){
-        tryPlayJax();
-      }
-      // Remove listeners after first unlock
-      window.removeEventListener('pointerdown', onGesture, true);
-      window.removeEventListener('touchstart',  onGesture, true);
-      window.removeEventListener('keydown',     onGesture, true);
-    }
-
-    // Listen for the FIRST real gesture anywhere
-    window.addEventListener('pointerdown', onGesture, {capture:true, passive:true});
-    window.addEventListener('touchstart',  onGesture, {capture:true, passive:true});
-    window.addEventListener('keydown',     onGesture, {capture:true});
-
-    /* -------------------- Hook JAX first bubble -------------------- */
-    const tip       = document.getElementById('tip');
-    const tipText   = document.getElementById('tip-text');
-    const tipHeader = document.getElementById('tip-head-name');
-    if (!tip || !tipText || !tipHeader) return;
-
-    // Track open/close to reset per-tip play guard
-    let tipVisible = tip.classList.contains('show');
-    new MutationObserver(()=>{
-      const nowVisible = tip.classList.contains('show');
-      if (nowVisible && !tipVisible){
-        jaxPlayedThisTip = false; // new tutorial session
-      }
-      tipVisible = nowVisible;
-    }).observe(tip, {attributes:true, attributeFilter:['class']});
-
-    // Detect the first JAX bubble content and attempt to play VO
-    const firstLineProbe = /low on energy/i; // matches "You look a bit low on energy..."
-    new MutationObserver(()=>{
-      if (!tip.classList.contains('show')) return;
-      const isJax = (tipHeader.textContent||'').trim().toUpperCase() === 'JAX';
-      if (!isJax || jaxPlayedThisTip) return;
-
-      const raw = tipText.textContent || '';
-      if (raw.length === 0) return;
-
-      // Treat the very first visible JAX line as the cue
-      // (prefer matching the known phrase, but don't require it)
-      if (firstLineProbe.test(raw) || raw.length > 0){
-        // If audio already unlocked, play immediately; otherwise queue it
-        if (window.__FF_AUDIO_UNLOCK_DONE__){
-          tryPlayJax();
-        } else {
-          jaxWantPlay = true;
-        }
-      }
-    }).observe(tipText, {subtree:true, characterData:true, childList:true});
-
-  }catch(e){
-    console.warn('Unified audio unlock + JAX VO patch error:', e);
   }
 })();
 </script>
