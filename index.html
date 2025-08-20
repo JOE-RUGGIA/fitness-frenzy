@@ -2122,5 +2122,53 @@ try{
 
 
 
+
+
+
+
+
+<style data-ff-patch>
+  /* Animated slanted lines inside the cooldown fill //////////////////ADDED SLAINTED LINES MOVING///////////////////////////////////////////////////*/
+  .cooldown .bar{
+    position:relative;
+    overflow:hidden;
+    isolation:isolate; /* keep stripes clipped cleanly */
+  }
+  .cooldown .bar::after{
+    content:'';
+    position:absolute; inset:0;
+    pointer-events:none;
+    /* white diagonal lines with transparency so your male/female fill shows through */
+    background:
+      repeating-linear-gradient(
+        -45deg,
+        rgba(255,255,255,.22) 0px, rgba(255,255,255,.22) 6px,
+        rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px
+      );
+    background-size:24px 24px;
+    animation: ff-bar-stripes 1.2s linear infinite;
+    mix-blend-mode:screen;
+  }
+  /* When visually pinned (ultra-fast), speed up the stripe motion */
+  .cooldown.ff-fast .bar::after{
+    animation-duration:.6s;
+    opacity:.95;
+  }
+  @keyframes ff-bar-stripes{
+    0%   { background-position: 0 0; }
+    100% { background-position: 24px 0; }
+  }
+
+  /* Accessibility: respect reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    .cooldown .bar::after{ animation:none; }
+  }
+</style>
+
+<script type="application/ff-patch">
+/* (No JS needed for movement—CSS handles it.) Keep existing pinning script as-is. */
+</script>
+
+
 </body>
 </html>
