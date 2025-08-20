@@ -2329,124 +2329,166 @@ try{
 
 
 <script type="application/ff-patch">
-/* JAX intro voice → (then) Female player reply, with gentle music ducking */
+/* JAX intro (1) → Player reply (2a/2b) → Auto VO for lines 3,4,5,6,9
+   Uses tutorial bubble text to trigger the right audio.
+   Includes music ducking with a small refcount guard. */
 (function(){
   try{
-    if (window.__FF_JAX_FEMALE_VOICE_PATCH__) return;
-    window.__FF_JAX_FEMALE_VOICE_PATCH__ = true;
+    if (window.__FF_JAX_TUTORIAL_VO_PATCH__) return;
+    window.__FF_JAX_TUTORIAL_VO_PATCH__ = true;
 
-    const JAX_URL    = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true';
-    const FEMALE_URL = 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true';
+    /* ---------- Audio URLs (from you) ---------- */
+    const URLS = {
+      j1: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true',
+      you_f_2: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true',
+      you_m_2: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/male%20player%20audio%201.mp3',
+      j3: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3',
+      j4: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3',
+      j5: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3',
+      j6: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3',
+      j9: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3'
+    };
 
-    let jax, fvo;
-    let ducked = false, prevVol = null;
-
-    function ensureAudio(url, vol=0.9){
-      const a = new Audio(url);
-      a.preload = 'auto';
-      a.loop = false;
-      try{ a.volume = vol; }catch(_){}
-      return a;
-    }
-
+    /* ---------- Tiny VO player with music ducking ---------- */
+    let ctxSupported = !!(window.AudioContext || window.webkitAudioContext);
+    let voicesActive = 0;   // refcount
+    let prevVol = null;
     function duckMusic(){
       try{
-        if (ducked) return;
-        if (typeof Music !== 'undefined' && Music){
-          prevVol = Music.vol; // getter
+        if (voicesActive === 0 && typeof Music !== 'undefined' && Music){
+          prevVol = Music.vol;
           const newVol = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.55));
           Music.setVol(newVol);
-          ducked = true;
         }
+        voicesActive++;
       }catch(_){}
     }
     function restoreMusic(){
       try{
-        if (!ducked) return;
-        if (typeof Music !== 'undefined' && Music && prevVol != null){
+        voicesActive = Math.max(0, voicesActive-1);
+        if (voicesActive === 0 && typeof Music !== 'undefined' && Music && prevVol != null){
           Music.setVol(prevVol);
+          prevVol = null;
         }
       }catch(_){}
-      ducked = false; prevVol = null;
     }
-
-    function playOnce(a){
-      try{ a.currentTime = 0; a.play().catch(()=>{}); }catch(_){}
+    function makeAudio(url, vol=0.9){
+      const a = new Audio(url);
+      a.preload = 'auto';
+      a.loop = false;
+      try{ a.volume = vol; }catch(_){}
+      a.addEventListener('ended', restoreMusic, {once:true});
+      a.addEventListener('pause', restoreMusic, {once:true});
+      a.addEventListener('abort', restoreMusic, {once:true});
+      return a;
     }
-
-    /* Wait until the tutorial bubble shows a "You" line, then play female VO */
-    function waitForPlayerBubbleThenPlayFemale(maxWaitMs=6000){
-      const t0 = performance.now();
-      const tipHeadName = document.getElementById('tip-head-name');
-      const tipText = document.getElementById('tip-text');
-
-      function tick(){
-        // If avatar isn't female anymore, skip
-        if (!document.body.classList.contains('female')) return;
-
-        const isYou = (tipHeadName?.textContent || '').trim().toUpperCase() === 'YOU';
-        const hasText = !!(tipText && tipText.textContent && tipText.textContent.trim().length);
-
-        if (isYou && hasText){
-          if (!window.__FF_FEMALE_LINE_PLAYED__){
-            window.__FF_FEMALE_LINE_PLAYED__ = true;
-            try{
-              if (!fvo) fvo = ensureAudio(FEMALE_URL, 0.9);
-              // When female VO ends, restore music (in case we never get another event)
-              const done = ()=> restoreMusic();
-              fvo.addEventListener('ended', done, {once:true});
-              fvo.addEventListener('pause', done, {once:true});
-              duckMusic();
-              playOnce(fvo);
-            }catch(_){}
-          }
-          return;
-        }
-        if (performance.now() - t0 > maxWaitMs) return; // give up quietly
-        requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    }
-
-    function playIntroSequence(){
-      if (window.__FF_JAX_LINE_PLAYED__) return;       // guard FIRST (handles mobile double events)
-      window.__FF_JAX_LINE_PLAYED__ = true;
-
+    function playClip(url, vol=0.9){
       try{
-        if (!jax) jax = ensureAudio(JAX_URL, 0.9);
-
-        // Restore music after JAX ends (or pauses/aborts)
-        const restore = ()=> restoreMusic();
-        jax.addEventListener('ended', restore, {once:true});
-        jax.addEventListener('pause', restore, {once:true});
-        jax.addEventListener('abort', restore, {once:true});
-
-        // After JAX ends, if avatar is female, wait for the "You" bubble then play female VO
-        jax.addEventListener('ended', ()=>{
-          if (document.body.classList.contains('female')){
-            waitForPlayerBubbleThenPlayFemale();
-          }
-        }, {once:true});
-
         duckMusic();
-        playOnce(jax);
-      }catch(_){}
+        const a = makeAudio(url, vol);
+        a.currentTime = 0;
+        a.play().catch(()=>{ restoreMusic(); });
+        return a;
+      }catch(_){
+        restoreMusic();
+        return null;
+      }
     }
 
-    // Hook ONLY New Game (not Continue). Use real gestures so autoplay isn't blocked.
+    /* ---------- Elements ---------- */
     const btnNew = document.getElementById('btn-new');
-    if (!btnNew) return;
+    const tipHeadName = document.getElementById('tip-head-name');
+    const tipText = document.getElementById('tip-text');
+    if(!btnNew || !tipHeadName || !tipText) return;
 
-    btnNew.addEventListener('pointerdown', playIntroSequence, {capture:true, passive:true});
-    btnNew.addEventListener('keydown', (e)=>{
-      if (e.code === 'Enter' || e.code === 'Space') playIntroSequence();
-    }, {capture:true});
+    /* ---------- Guards so each line plays once ---------- */
+    const played = Object.create(null);
+    function once(key, fn){
+      if (played[key]) return;
+      played[key] = true;
+      fn();
+    }
+
+    /* ---------- 1) JAX first line on New Game ---------- */
+    function playIntroJax(){
+      if (window.__FF_JAX_LINE1_ONGOING__) return;
+      window.__FF_JAX_LINE1_ONGOING__ = true;
+      once('j1', ()=> playClip(URLS.j1));
+    }
+    // Real user gestures, capture phase (works with autoplay policies)
+    btnNew.addEventListener('pointerdown', playIntroJax, {capture:true, passive:true});
+    btnNew.addEventListener('keydown', (e)=>{ if(e.code==='Enter'||e.code==='Space') playIntroJax(); }, {capture:true});
+
+    /* ---------- 2) Player reply (female OR male) after JAX #1 ----------
+       We wait for the first "You" bubble that says "But where do I start?" */
+    function maybePlayPlayerReply(){
+      const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
+      const text = (tipText.textContent||'').trim().toLowerCase();
+      if (speaker !== 'YOU') return;
+      if (!/but\s+where\s+do\s+i\s+start\??/.test(text)) return;
+
+      if (document.body.classList.contains('female')){
+        once('you_f_2', ()=> playClip(URLS.you_f_2));
+      }else{
+        once('you_m_2', ()=> playClip(URLS.you_m_2));
+      }
+    }
+
+    /* ---------- 3,4,5,6,9) JAX lines auto-detected from bubble ---------- */
+    function maybePlayJaxAuto(){
+      const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
+      if (speaker !== 'JAX') return;
+      const t = (tipText.textContent||'').trim().toLowerCase();
+
+      // 3: "Walking to earn 1 HP. Then we’ll power up." (also accept "Tap Walking...")
+      if (!played.j3 && /walking/.test(t) && /\b1\s*hp\b/.test(t)){
+        once('j3', ()=> playClip(URLS.j3));
+        return;
+      }
+      // 4: "Great start! Use Reps to hit harder each tap."
+      if (!played.j4 && /use\s+reps/.test(t)){
+        once('j4', ()=> playClip(URLS.j4));
+        return;
+      }
+      // 5: "When the green bar fills, your cooldown halves."
+      if (!played.j5 && /green\s+bar/.test(t) && /cooldown/.test(t) && /half/.test(t)){
+        once('j5', ()=> playClip(URLS.j5));
+        return;
+      }
+      // 6: "Add to your routine: Unlock Jogging when the button lights up."
+      if (!played.j6 && /unlock\s+jogging/.test(t) && /button\s+lights\s+up/.test(t)){
+        once('j6', ()=> playClip(URLS.j6));
+        return;
+      }
+      // 9: "Ready to scale? Open the Menu (tap your avatar) and hire a coach."
+      if (!played.j9 && /ready\s+to\s+scale/.test(t) && /hire\s+a\s+coach/.test(t)){
+        once('j9', ()=> playClip(URLS.j9));
+        return;
+      }
+    }
+
+    /* ---------- Observe tutorial bubble changes ---------- */
+    const tipRoot = document.getElementById('tip');
+    const obs = new MutationObserver(()=>{
+      // Run both detectors on any bubble/text/name change
+      maybePlayPlayerReply();
+      maybePlayJaxAuto();
+    });
+    obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
+
+    // Also poll lightly during the typing effect
+    (function rafPoll(){
+      maybePlayPlayerReply();
+      maybePlayJaxAuto();
+      requestAnimationFrame(rafPoll);
+    })();
 
   }catch(e){
-    console.warn('JAX + Female VO patch error:', e);
+    console.warn('JAX tutorial VO mapping patch error:', e);
   }
 })();
 </script>
+
 
 
 
