@@ -2329,11 +2329,11 @@ try{
 
 
 <script type="application/ff-patch">
-/* JAX VO mapping (fast + prewarmed) — fixes line 5 + reduces delay */
+/* JAX VO mapping v3 — robust first-line start + retries + prewarm////////////////////////////////////////////////DIALOG AUDIO//////////////// */
 (function(){
   try{
-    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V2__) return;
-    window.__FF_JAX_TUTORIAL_VO_PATCH_V2__ = true;
+    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V3__) return;
+    window.__FF_JAX_TUTORIAL_VO_PATCH_V3__ = true;
 
     /* ---------- Audio URLs ---------- */
     const URLS = {
@@ -2347,20 +2347,12 @@ try{
       j9: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3'
     };
 
-    /* ---------- Fast, prewarmed player with music ducking ---------- */
-    const cache = Object.create(null);   // key -> HTMLAudioElement
+    /* ---------- Player + ducking ---------- */
+    const cache = Object.create(null);        // key -> HTMLAudioElement
+    const inflight = Object.create(null);     // key -> Promise
+    const started = Object.create(null);      // key -> boolean (actually playing)
     let voicesActive = 0, prevVol = null;
 
-    function make(url, vol=0.9){
-      const a = new Audio(url);
-      a.preload = 'auto';
-      a.loop = false;
-      try{ a.volume = vol; }catch(_){}
-      a.addEventListener('ended', restoreMusic, {once:true});
-      a.addEventListener('pause', restoreMusic, {once:true});
-      a.addEventListener('abort', restoreMusic, {once:true});
-      return a;
-    }
     function duckMusic(){
       try{
         if (voicesActive===0 && typeof Music!=='undefined' && Music){
@@ -2379,32 +2371,131 @@ try{
         }
       }catch(_){}
     }
-    function playClip(key, vol=0.9){
-      try{
-        let a = cache[key];
-        if(!a){ a = cache[key] = make(URLS[key], vol); }
-        duckMusic();
-        a.currentTime = 0;
-        a.play().catch(()=>{ restoreMusic(); });
-      }catch(_){ restoreMusic(); }
+    function make(url, vol=0.9){
+      const a = new Audio(url);
+      a.preload = 'auto';
+      a.loop = false;
+      try{ a.volume = vol; }catch(_){}
+      // Always restore music when this element finishes
+      a.addEventListener('ended', restoreMusic, {once:true});
+      a.addEventListener('pause', restoreMusic, {once:true});
+      a.addEventListener('abort', restoreMusic, {once:true});
+      return a;
     }
 
-    /* Prime: create, .load(), and (if allowed) silent play/pause so later starts are instant */
+    function playClipEnsure(key, vol=0.9){
+      if (started[key]) return Promise.resolve('already-started');
+      if (inflight[key]) return inflight[key];
+
+      duckMusic();
+      const a = cache[key] = cache[key] || make(URLS[key], vol);
+
+      inflight[key] = new Promise((resolve, reject)=>{
+        let done = false;
+
+        const onPlaying = ()=>{ 
+          if (done) return;
+          done = true;
+          started[key] = true;
+          cleanup();
+          resolve('playing');
+        };
+        const onError = (err)=>{ 
+          if (done) return;
+          done = true;
+          cleanup();
+          reject(err||new Error('play failed'));
+        };
+        const cleanup = ()=>{
+          a.removeEventListener('playing', onPlaying);
+          a.removeEventListener('timeupdate', onMaybePlaying);
+          a.removeEventListener('error', onError);
+        };
+        const onMaybePlaying = ()=>{
+          // Some browsers don’t fire 'playing' reliably; detect progress
+          if (a.currentTime > 0.01 && !started[key]){
+            onPlaying();
+          }
+        };
+
+        a.addEventListener('playing', onPlaying);
+        a.addEventListener('timeupdate', onMaybePlaying);
+        a.addEventListener('error', onError);
+
+        try{
+          a.currentTime = 0;
+          a.play().catch(onError);
+        }catch(e){
+          onError(e);
+        }
+      }).finally(()=>{ inflight[key] = null; });
+
+      return inflight[key];
+    }
+
+    /* Retry helper: try now, then after small delays, and on next gesture */
+    function playWithRetry(key, opts={}){
+      const {vol=0.9, initialDelay=0, attempts=3, backoff=140} = opts;
+      let tries = 0, resolved = false, rejectErr = null;
+
+      function tryOnce(){
+        tries++;
+        return playClipEnsure(key, vol).then(()=>{ resolved = true; })
+          .catch(err=>{ rejectErr = err; });
+      }
+
+      function scheduleNext(delay){
+        return new Promise(r=> setTimeout(r, delay));
+      }
+
+      function gestureRetryOnce(){
+        return new Promise(r=>{
+          const onG = ()=>{
+            document.removeEventListener('pointerdown', onG, true);
+            document.removeEventListener('keydown', onGK, true);
+            r();
+          };
+          const onGK = (e)=>{
+            if(e.code==='Enter'||e.code==='Space'){ onG(); }
+          };
+          document.addEventListener('pointerdown', onG, true);
+          document.addEventListener('keydown', onGK, true);
+          // safety timeout in case no gesture happens
+          setTimeout(()=>{ try{ document.removeEventListener('pointerdown', onG, true); document.removeEventListener('keydown', onGK, true);}catch(_){ } r(); }, 1500);
+        });
+      }
+
+      return (async ()=>{
+        if(initialDelay>0) await scheduleNext(initialDelay);
+        while(!resolved && tries < attempts){
+          await tryOnce();
+          if(resolved) break;
+          await scheduleNext(backoff);
+        }
+        if(!resolved){
+          // One last shot on the next real gesture
+          await gestureRetryOnce();
+          await tryOnce();
+          if(!resolved){ restoreMusic(); /* give up cleanly */ }
+        }
+      })();
+    }
+
+    /* Prime all clips on first gesture for instant subsequent playback */
     function primeAll(){
       if (window.__FF_JAX_PRIMED__) return;
       window.__FF_JAX_PRIMED__ = true;
       Object.keys(URLS).forEach(k=>{
-        const a = cache[k] = cache[k] || make(URLS[k], 0); // 0 volume for silent prime
+        const a = cache[k] = cache[k] || make(URLS[k], 0);
         try{ a.load(); }catch(_){}
       });
-      // Try a silent play/pause to unlock autoplay; ignore failures gracefully
-      Object.keys(cache).forEach(k=>{
-        const a = cache[k];
+      // Optional silent unlock — ignore failures
+      Object.values(cache).forEach(a=>{
         try{
           const old = a.volume; a.volume = 0;
           a.currentTime = 0.001;
-          a.play().then(()=>{ try{ a.pause(); a.currentTime = 0; a.volume = old; }catch(_){ } })
-                   .catch(()=>{ try{ a.currentTime = 0; a.volume = old; }catch(_){ } });
+          a.play().then(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){} })
+                   .catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){} });
         }catch(_){}
       });
     }
@@ -2416,87 +2507,63 @@ try{
     const tipRoot = document.getElementById('tip');
     if(!btnNew || !tipHeadName || !tipText || !tipRoot) return;
 
-    /* ---------- Guards ---------- */
-    const played = Object.create(null);
-    const once = (key, fn)=>{ if(played[key]) return; played[key]=true; fn(); };
+    /* ---------- Text utils ---------- */
+    const norm = (s)=> String(s||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+    const hasAll = (t, arr)=> arr.every(x=> t.includes(x));
 
-    /* ---------- Normalize text for matching (strip NBSP, collapse spaces) ---------- */
-    function norm(s){
-      return String(s||'')
-        .replace(/\u00a0/g,' ')
-        .replace(/\s+/g,' ')
-        .trim()
-        .toLowerCase();
-    }
-    function hasAll(t, arr){ return arr.every(x=> t.includes(x)); }
+    /* ---------- Line 1 on New Game, with defer + retry ---------- */
+    function onStartGesture(){
+      if (window.__FF_JAX_L1_SCHEDULED__) return;
+      window.__FF_JAX_L1_SCHEDULED__ = true;
 
-    /* ---------- 1) JAX first line + prime on New Game ---------- */
-    function onStartGesture(e){
-      // Only once; also primes audio for instant subsequent playback
-      if (window.__FF_JAX_L1_FIRED__) return;
-      window.__FF_JAX_L1_FIRED__ = true;
       try{ primeAll(); }catch(_){}
-      once('j1', ()=> playClip('j1'));
+
+      // Defer slightly so background Music starts first in the same gesture
+      setTimeout(()=>{
+        playWithRetry('j1', {initialDelay:0, attempts:3, backoff:160});
+      }, 80);
     }
     btnNew.addEventListener('pointerdown', onStartGesture, {capture:true, passive:true});
-    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') onStartGesture(e); }, {capture:true});
+    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') onStartGesture(); }, {capture:true});
 
-    /* ---------- 2) Player reply (female OR male) ---------- */
+    /* ---------- Player reply (female or male) ---------- */
     function maybePlayPlayerReply(){
-      const speaker = norm(tipHeadName.textContent).toUpperCase();
+      const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       if (speaker!=='YOU') return;
       const t = norm(tipText.textContent);
       if (!/but where do i start\??/.test(t)) return;
+
       if (document.body.classList.contains('female')){
-        once('you_f_2', ()=> playClip('you_f_2'));
+        if(!started.you_f_2) playWithRetry('you_f_2', {attempts:2});
       }else{
-        once('you_m_2', ()=> playClip('you_m_2'));
+        if(!started.you_m_2) playWithRetry('you_m_2', {attempts:2});
       }
     }
 
-    /* ---------- 3,4,5,6,9) JAX lines with EARLY trigger (partial text ok) ---------- */
+    /* ---------- JAX lines 3,4,5,6,9 (early token triggers) ---------- */
     function maybePlayJaxAuto(){
-      const speaker = norm(tipHeadName.textContent).toUpperCase();
+      const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       if (speaker!=='JAX') return;
       const t = norm(tipText.textContent);
 
-      // 3: Walking + 1 HP (anchor tokens; triggers as soon as both appear)
-      if (!played.j3 && hasAll(t, ['walking','1 hp'])){
-        once('j3', ()=> playClip('j3'));
-        return;
-      }
-      // 4: Reps line
-      if (!played.j4 && t.includes('reps')){
-        once('j4', ()=> playClip('j4'));
-        return;
-      }
-      // 5: green bar + cooldown + halves (accepts "halves" correctly)
-      if (!played.j5 && hasAll(t, ['green','bar','cooldown']) && /(halves|half)/.test(t)){
-        once('j5', ()=> playClip('j5'));
-        return;
-      }
-      // 6: unlock jogging when the button lights up
-      if (!played.j6 && hasAll(t, ['unlock','jogging','button','lights'])){
-        once('j6', ()=> playClip('j6'));
-        return;
-      }
-      // 9: ready to scale + hire a coach
-      if (!played.j9 && hasAll(t, ['ready','scale','coach']) && /hire/.test(t)){
-        once('j9', ()=> playClip('j9'));
-        return;
-      }
+      if (!started.j3 && hasAll(t,['walking','1 hp'])) { playWithRetry('j3', {attempts:2}); return; }
+      if (!started.j4 && t.includes('reps'))         { playWithRetry('j4', {attempts:2}); return; }
+      if (!started.j5 && hasAll(t,['green','bar','cooldown']) && /(halves|half)/.test(t)) { playWithRetry('j5', {attempts:2}); return; }
+      if (!started.j6 && hasAll(t,['unlock','jogging','button','lights'])) { playWithRetry('j6', {attempts:2}); return; }
+      if (!started.j9 && hasAll(t,['ready','scale','coach']) && /hire/.test(t)) { playWithRetry('j9', {attempts:2}); return; }
     }
 
-    /* ---------- Observe tutorial bubble + RAF poll ---------- */
+    /* ---------- Observe + RAF poll ---------- */
     const obs = new MutationObserver(()=>{ maybePlayPlayerReply(); maybePlayJaxAuto(); });
     obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
     (function raf(){ maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
   }catch(e){
-    console.warn('JAX VO v2 patch error:', e);
+    console.warn('JAX VO v3 patch error:', e);
   }
 })();
 </script>
+
 
 
 
