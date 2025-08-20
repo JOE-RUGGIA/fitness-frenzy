@@ -1397,7 +1397,7 @@ try{
 
 
 <style data-ff-patch>
-  /* Low-latency polish ///////////////////////////////////////HP FLOAT EFFECT/////////BUTTON EFFECTS AND SFX//////REMOVE CLICK SFX////////////*/
+  /* Low-latency polish///////////////////////////////////////////HOPEFULLY FINAL RUN ON EXERCISE CARDS/////BUTTON SFX///RAPID FIRE///FLOATERS/////// */
   .tile, .btn, .btn-reps{ will-change: transform; }
 
   /* Bounce (used by tiles & buttons) */
@@ -1460,7 +1460,8 @@ try{
 </style>
 
 <script type="application/ff-patch">
-/* Fast-click + tile SFX mute + single-shot tile FX (bounce+rays+floating HP) + Reps bounce-on-purchase */
+/* Fast-click + tile SFX mute + single-shot tile FX (bounce+rays+floating HP)
+   + Reps bounce-on-purchase + coach/automation HP floaters */
 (function(){
   try{
     const cards = document.getElementById('cards');
@@ -1567,9 +1568,10 @@ try{
       setTimeout(cleanup, 1200);
     }
 
-    /* ---------- SINGLE-SHOT TILE FX ---------- 
-       Fires exactly once when 'burst-on' is ADDED and won’t re-fire until it’s REMOVED. */
+    /* ---------- SINGLE-SHOT TILE FX (manual taps) ----------
+       Fires once when 'burst-on' is ADDED; stores timestamp to ignore duplicates. */
     const LATCH = 'data-ff-fx-latch';
+    const LAST_MANUAL = 'data-ff-lastmanual';
     new MutationObserver(muts=>{
       for(const m of muts){
         if(m.type!=='attributes') continue;
@@ -1580,19 +1582,60 @@ try{
         const latched = tile.getAttribute(LATCH)==='1';
 
         if(has && !latched){
-          // Latch + fire once
           tile.setAttribute(LATCH,'1');
+          tile.setAttribute(LAST_MANUAL, String(performance.now()));
           const card = tile.closest('.card');
           const amt = getTapHP(card) ?? 1;
           bounce(tile);
           rays(tile);
           floatHPOver(tile, amt);
         } else if(!has && latched){
-          // Reset latch when burst-on is removed
           tile.removeAttribute(LATCH);
         }
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
+
+    /* ---------- COACH/AUTO TAPS: spawn HP floaters on cooldown reset ----------
+       Detect bar width jumping from ~100% -> ~0% and show a floater
+       (skips if a manual tap just fired to avoid duplicates). */
+    const barPrev = new WeakMap();
+    function seedBars(){
+      cards.querySelectorAll('.card .cooldown .bar').forEach(bar=>{
+        if(bar.__ff_obs__) return;
+        bar.__ff_obs__ = true;
+        // seed previous width
+        barPrev.set(bar, parseFloat(bar.style.width)||0);
+
+        const obs = new MutationObserver(muts=>{
+          for(const mm of muts){
+            if(mm.type!=='attributes' || mm.attributeName!=='style') continue;
+            const prev = barPrev.get(bar);
+            const curr = parseFloat(bar.style.width)||0;
+            barPrev.set(bar, curr);
+            if(prev==null) continue;
+
+            // Detect fresh tap start: ~100% -> ~0-5%
+            if(prev >= 95 && curr <= 5){
+              const card = bar.closest('.card');
+              const tile = card?.querySelector('.tile');
+              if(!tile) continue;
+
+              // If a manual tap triggered very recently, skip (already showed effects)
+              const lastManual = Number(tile.getAttribute(LAST_MANUAL) || 0);
+              if(lastManual && (performance.now() - lastManual) < 140) continue;
+
+              // Auto/coach tap → show just the HP floater (no bounce/rays)
+              const amt = getTapHP(card) ?? 1;
+              floatHPOver(tile, amt);
+            }
+          }
+        });
+        obs.observe(bar, {attributes:true, attributeFilter:['style']});
+      });
+    }
+    seedBars();
+    // Re-seed when cards are added/updated
+    new MutationObserver(()=> seedBars()).observe(cards, {childList:true, subtree:true});
 
     /* ---------- REPS BUTTON: bounce ONLY on confirmed purchase ---------- */
     document.addEventListener('click', (e)=>{
@@ -1617,7 +1660,7 @@ try{
     }, true);
 
   }catch(e){
-    console.warn('single-shot FX patch error:', e);
+    console.warn('coach floaters + single-shot FX patch error:', e);
   }
 })();
 </script>
