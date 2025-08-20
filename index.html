@@ -1509,7 +1509,7 @@ try{
 
 
 <style data-ff-patch>
-  /* --- Low-latency polish ---//////////////////////////////////////////////////////REMOVE TAP SFX/////////////// */
+  /* --- Low-latency polish --- */
   .tile, .btn, .btn-reps{ will-change: transform; }
 
   /* --- Bounce (generic; used by tiles & buttons) --- */
@@ -1544,49 +1544,62 @@ try{
 </style>
 
 <script type="application/ff-patch">
-/* Fast-click + tile FX + Reps bounce on confirmed purchase + MUTE tile SFX only */
+/* Fast-click + tile FX + Reps bounce-on-purchase + MUTE SFX for tile taps only */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
-    /* ---------------- Wrap SFX.ok so we can mute it only for tile taps ---------------- */
-    (function wrapSFX(){
-      const TRY_MAX = 20;
-      let tries = 0, t = setInterval(()=>{
-        try{
-          if (typeof SFX === 'object' && typeof SFX.ok === 'function'){
-            if (!window.__ff_sfx_ok_original){
-              window.__ff_sfx_ok_original = SFX.ok.bind(SFX);
-              SFX.ok = function(...args){
-                // If tile-tap mute flag is set, swallow the sound
-                if (window.__ff_mute_tile_sfx === true) return;
-                return window.__ff_sfx_ok_original(...args);
-              };
-            }
-            clearInterval(t);
-          }
-        }catch(_){}
-        if(++tries>=TRY_MAX) clearInterval(t);
-      }, 50);
+    /* -------------------- TILE-SFX MUTE SHIM --------------------
+       We temporarily mark tile taps, then mute the *next* WebAudio
+       beep by zeroing the GainNode at connect-time.
+       Reps button clicks are not marked -> their SFX still plays. */
+    (function installMuteShim(){
+      const MUTE_WIN_MS = 160;
+      const markMute = ()=> { window.__FF_MUTE_TILE_SFX__ = performance.now(); };
+
+      // Mark on pointerdown/touchstart for tiles (before handlers run)
+      const TILE_SEL = '.tile';
+      window.addEventListener('pointerdown', (e)=>{
+        const t = e.target.closest(TILE_SEL); if(t) markMute();
+      }, {capture:true, passive:true});
+      window.addEventListener('touchstart', (e)=>{
+        const t = e.target.closest(TILE_SEL); if(t) markMute();
+      }, {capture:true, passive:true});
+      // Keyboard taps (Space/Enter)
+      window.addEventListener('keydown', (e)=>{
+        if(e.code!=='Space' && e.code!=='Enter') return;
+        const t = e.target && e.target.closest && e.target.closest(TILE_SEL);
+        if(t) markMute();
+      }, {capture:true});
+
+      // Patch AudioContext/webkitAudioContext createGain to zero gain
+      // during the mute window (per-beep; no global audio impact)
+      function patchCtx(Ctor){
+        if(!Ctor || !Ctor.prototype) return;
+        const orig = Ctor.prototype.createGain;
+        if(!orig || orig.__ff_patched) return;
+        Ctor.prototype.createGain = function(){
+          const g = orig.apply(this, arguments);
+          const origConnect = g.connect;
+          g.connect = function(){
+            try{
+              const stamp = window.__FF_MUTE_TILE_SFX__ || 0;
+              if (stamp && (performance.now() - stamp) < MUTE_WIN_MS){
+                try{ g.gain.value = 0; }catch(_){}
+              }
+            }catch(_){}
+            return origConnect.apply(this, arguments);
+          };
+          return g;
+        };
+        Ctor.prototype.createGain.__ff_patched = true;
+      }
+      patchCtx(window.AudioContext);
+      patchCtx(window.webkitAudioContext);
     })();
 
-    // Set mute flag for tile taps (mouse/touch), then release next tick
-    function armTileMuteOnce(){
-      window.__ff_mute_tile_sfx = true;
-      setTimeout(()=>{ window.__ff_mute_tile_sfx = false; }, 0);
-    }
-    // Capture phase so we arm the flag before core handlers run
-    document.addEventListener('click', (e)=>{
-      const tile = e.target.closest('.tile');
-      if(tile) armTileMuteOnce();
-    }, true);
-    // Keyboard path (Space/Enter triggers tile handleTap directly)
-    document.addEventListener('keydown', (e)=>{
-      if((e.code==='Space'||e.code==='Enter') && e.target.closest('.tile')) armTileMuteOnce();
-    }, true);
-
-    /* ---------------- Fast-click accelerator (touch/pen) ---------------- */
+    /* -------------------- Fast-click accelerator -------------------- */
     (function fastClick(){
       const SELECTOR = '.tile, .btn, .ava, .tab, .menu-close, .bulk button, #avatar';
 
@@ -1598,40 +1611,44 @@ try{
         const ev = new MouseEvent('click', {bubbles:true, cancelable:true, view:window});
         target.dispatchEvent(ev);
 
-        // Swallow the delayed native click
+        // Swallow the next trusted/native click within a short window
         const swallow = (e)=>{
           const recent = (Date.now() - stamp) < 280;
           if(recent && e.isTrusted && (e.target===target || target.contains(e.target))){
-            e.stopImmediatePropagation(); e.preventDefault();
+            e.stopImmediatePropagation();
+            e.preventDefault();
             document.removeEventListener('click', swallow, true);
           }
         };
         document.addEventListener('click', swallow, true);
       }
 
+      // Pointer Events path
       window.addEventListener('pointerdown', (e)=>{
-        if(e.pointerType==='mouse') return; // mouse already instant
+        if(e.pointerType==='mouse') return;                 // mouse is already instant
         const t = e.target.closest(SELECTOR);
-        if(!t) return; triggerFastClick(t);
+        if(!t) return;
+        triggerFastClick(t);
       }, {passive:true, capture:true});
 
+      // Touch fallback (older iOS)
       window.addEventListener('touchstart', (e)=>{
         const t = e.target.closest(SELECTOR);
-        if(!t) return; triggerFastClick(t);
+        if(!t) return;
+        triggerFastClick(t);
       }, {passive:true, capture:true});
     })();
 
-    /* ---------------- Helpers ---------------- */
+    /* -------------------- Visual helpers -------------------- */
     function bounce(el){
       if(!el) return;
       el.classList.remove('ff-bounce');
-      // force reflow
+      // force reflow to restart animation
       // eslint-disable-next-line no-unused-expressions
       el.offsetHeight;
       el.classList.add('ff-bounce');
       el.addEventListener('animationend', ()=> el.classList.remove('ff-bounce'), {once:true});
     }
-
     function rays(tile){
       const wrap = document.createElement('div');
       wrap.className = 'ff-rays';
@@ -1646,7 +1663,7 @@ try{
       setTimeout(()=> wrap.remove(), 420);
     }
 
-    /* ---------------- 1) Tile effects on tap ---------------- */
+    /* -------------------- 1) Tile effects on tap -------------------- */
     const TILE_FLAG='data-ff-lastfx';
     new MutationObserver(muts=>{
       for(const m of muts){
@@ -1657,7 +1674,7 @@ try{
 
         const now = performance.now();
         const last = Number(tile.getAttribute(TILE_FLAG) || 0);
-        if(now - last < 60) continue; // ignore duplicates
+        if(now - last < 60) continue; // ignore duplicates in same frame
         tile.setAttribute(TILE_FLAG, String(now));
 
         bounce(tile);
@@ -1665,12 +1682,12 @@ try{
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
 
-    /* ---------------- 2) Reps button: bounce ONLY when a purchase actually completes ---------------- */
+    /* -------------------- 2) Reps button: bounce ONLY on confirmed purchase -------------------- */
     document.addEventListener('click', (e)=>{
       const btn = e.target.closest('.card .meta .btn');
       if(!btn) return;
       const txt = (btn.textContent||'').trim();
-      if(!/^Reps\b/i.test(txt)) return;  // only Reps buttons
+      if(!/^Reps\b/i.test(txt)) return;            // only Reps buttons
 
       const card = btn.closest('.card');
       const repEl = card?.querySelector('.repband .reptext');
@@ -1683,15 +1700,17 @@ try{
       const obs = new MutationObserver(()=>{
         const after = parseRep(repEl.textContent);
         if(!bounced && after > before){
-          bounced = true; obs.disconnect(); bounce(btn); // purchase confirmed
+          bounced = true;
+          obs.disconnect();
+          bounce(btn);
         }
       });
       obs.observe(repEl, {characterData:true, childList:true, subtree:true});
-      setTimeout(()=> obs.disconnect(), 600);
-    }, true);
+      setTimeout(()=> obs.disconnect(), 600); // fail-safe
+    }, true); // capture so observer starts before core handler runs
 
   }catch(e){
-    console.warn('fast-click + tile/reps bounce + tile SFX mute patch error:', e);
+    console.warn('fast-click + tile/reps FX + tile SFX mute patch error:', e);
   }
 })();
 </script>
