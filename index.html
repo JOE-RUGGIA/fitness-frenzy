@@ -2333,185 +2333,170 @@ try{
 
 
 <script type="application/ff-patch">
-/* VO v6b — Single-voice bus + PHASE GATING (no overlap), mobile bless, music after JAX#1 */
+/* Tutorial VO: JAX 1, Player 2 (F/M), JAX 3/4/5/6/9 + music ducking */
 (function(){
   try{
-    if (window.__FF_VO_V6B__) return; window.__FF_VO_V6B__ = true;
+    if (window.__FF_TUTORIAL_VO__) return;
+    window.__FF_TUTORIAL_VO__ = true;
 
-    const URLS = {
-      j1:      'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true',
-      you_f_2: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true',
-      you_m_2: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/male%20player%20audio%201.mp3',
-      j3:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3',
-      j4:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3',
-      j5:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3',
-      j6:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3',
-      j9:      'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3'
+    /* --------- Audio library (cache) --------- */
+    const VO_URL = {
+      j1:  'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=true',
+      p2f: 'https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/female%20player%20audio%201.mp3?raw=true',
+      p2m: 'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/male%20player%20audio%201.mp3',
+      j3:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3',
+      j4:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3',
+      j5:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3',
+      j6:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3',
+      j9:  'https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3'
     };
-    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
 
-    /* ---- female detect ---- */
-    function isFemaleAvatar(){
-      try{
-        if (document.body.classList.contains('female')) return true;
-        const sv=document.getElementById('start-avatars'); if(sv&&sv.querySelector('.ava.f.active')) return true;
-        const top=document.getElementById('avatar-img'); if(top&&/FEMALE/i.test(top.src)) return true;
-        const tip=document.getElementById('tip-head-img'); if(tip&&/FEMALE/i.test(tip.src)) return true;
-      }catch(_){}
-      return false;
-    }
-
-    /* ---- music gate: start after JAX1 ---- */
-    let ORIG_MUSIC_START=null, musicQueued=false, musicAllowed=false, musicFailsafe=null;
-    function installMusicGate(){
-      if(!window.Music||!Music.startPlay||ORIG_MUSIC_START) return;
-      ORIG_MUSIC_START = Music.startPlay.bind(Music);
-      Music.startPlay = function(){ if(musicAllowed) return ORIG_MUSIC_START(); musicQueued=true; };
-    }
-    function releaseMusicGate(){
-      if(musicAllowed) return;
-      musicAllowed=true; clearTimeout(musicFailsafe);
-      if(musicQueued && ORIG_MUSIC_START){ musicQueued=false; ORIG_MUSIC_START(); }
-    }
-
-    /* ---- audio helpers ---- */
-    const cache=Object.create(null);
-    function make(url, vol=0.9){
-      const a=new Audio(url);
-      a.preload='auto'; a.loop=false;
-      try{ a.volume=vol; a.playsInline=true; a.setAttribute('playsinline',''); a.setAttribute('webkit-playsinline',''); }catch(_){}
+    const cache = new Map();
+    function getClip(key, vol=0.9){
+      if (cache.has(key)) return cache.get(key);
+      const url = VO_URL[key];
+      if (!url) return null;
+      const a = new Audio(url);
+      a.preload = 'auto';
+      a.loop = false;
+      try { a.volume = vol; } catch(_){}
+      cache.set(key, a);
       return a;
     }
-    function getAudio(key){ return cache[key] || (cache[key]=make(URLS[key],0.9)); }
-    function primeAll(){ if(window.__FF_VO_PRIMED__) return; window.__FF_VO_PRIMED__=true; Object.keys(URLS).forEach(k=>{ try{ getAudio(k).load(); }catch(_){ } }); }
-    function fadeTo(a,target=0.9,ms=220){ const s=a.volume||0,t0=performance.now(); (function step(){ const p=Math.min(1,(performance.now()-t0)/ms); try{ a.volume=s+(target-s)*p; }catch(_){}
-      if(p<1) requestAnimationFrame(step); })(); }
-    function blessPlayPause(a){ try{ const old=a.volume; a.muted=false; a.volume=0.01; a.currentTime=0.001;
-      return a.play().then(()=> setTimeout(()=>{ try{ a.pause(); a.currentTime=0; a.volume=old; }catch(_){} },40)).catch(()=>{ try{ a.currentTime=0; a.volume=old; }catch(_){} });
-    }catch(_){} }
 
-    /* ---- duck music under VO ---- */
-    let voicesActive=0, prevVol=null;
-    function duckMusic(){ try{ if(voicesActive===0 && window.Music){ prevVol=Music.vol; Music.setVol(Math.max(0,Math.min(1,(prevVol ?? 0.12)*0.55))); } voicesActive++; }catch(_){} }
-    function restoreMusic(){ try{ voicesActive=Math.max(0,voicesActive-1); if(voicesActive===0 && window.Music && prevVol!=null){ Music.setVol(prevVol); prevVol=null; } }catch(_){} }
+    /* --------- Music duck/restore (reference-counted) --------- */
+    let duckCount = 0, prevVol = null, ducked = false;
+    function duckMusic(){
+      try{
+        duckCount++;
+        if (ducked) return;
+        if (typeof Music !== 'undefined' && Music){
+          prevVol = Music.vol; // getter
+          const newVol = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.55));
+          Music.setVol(newVol);
+          ducked = true;
+        }
+      }catch(_){}
+    }
+    function restoreMusic(){
+      try{
+        duckCount = Math.max(0, duckCount - 1);
+        if (duckCount > 0) return;
+        if (ducked && typeof Music !== 'undefined' && Music && prevVol != null){
+          Music.setVol(prevVol);
+        }
+      }catch(_){}
+      if (duckCount === 0){ ducked = false; prevVol = null; }
+    }
 
-    /* ---- VO BUS (single voice) ---- */
-    const VO=(function(){
-      const q=[]; let now=null; const lastReqTs={}, WINDOW=700;
-      function has(k){ return (now && now.key===k) || q.some(i=>i.key===k); }
-      function request(k){
-        if(!allowKey(k)) return; // phase gate
-        const t=performance.now(); if(lastReqTs[k] && t-lastReqTs[k]<WINDOW) return; lastReqTs[k]=t;
-        if(has(k)) return; q.push({key:k}); pump();
+    function playOnce(key){
+      const a = getClip(key); if(!a) return;
+      // if already playing, do nothing (idempotent by key)
+      if (!a.__ff_wired){
+        const done = ()=> restoreMusic();
+        a.addEventListener('ended', done);
+        a.addEventListener('pause', done);
+        a.addEventListener('abort', done);
+        a.__ff_wired = true;
       }
-      function playClip(key){
-        const a=getAudio(key); duckMusic();
-        a.muted=false; a.volume=0; a.currentTime=0;
-        a.onended = ()=>{ restoreMusic(); onClipEnded(key); now=null; pump(); };
-        a.onpause = ()=>{ try{ if(key==='j1' && a.duration && a.currentTime>a.duration*0.85){ releaseMusicGate(); } }catch(_){ } };
-        try{ a.play().then(()=>{ fadeTo(a,0.9,220); if(key==='j1') hookMusicReleaseOnce(a); }).catch(()=>{ now=null; pump(); }); }catch(_){ now=null; pump(); }
-        return a;
+      try{
+        duckMusic();
+        a.currentTime = 0;
+        a.play().catch(()=>{ restoreMusic(); });
+      }catch(_){ restoreMusic(); }
+    }
+
+    /* --------- Trigger 1: Play JAX #1 on New Game gesture --------- */
+    const btnNew = document.getElementById('btn-new');
+    if (btnNew){
+      const startJax1 = ()=>{
+        if (window.__FF_JAX1_PLAYED__) return;
+        window.__FF_JAX1_PLAYED__ = true;
+        playOnce('j1');
+        // Warm up subsequent clips
+        ['p2f','p2m','j3','j4','j5','j6','j9'].forEach(k=>{ try{ getClip(k, 0.0); }catch(_){ } });
+      };
+      btnNew.addEventListener('pointerdown', startJax1, {capture:true, passive:true});
+      btnNew.addEventListener('keydown', (e)=>{ if(e.code==='Enter'||e.code==='Space') startJax1(); }, {capture:true});
+    }
+
+    /* --------- Trigger 2..6 & 9: observe the tutorial bubble --------- */
+    const tipHeadName = document.getElementById('tip-head-name');
+    const tipText     = document.getElementById('tip-text');
+    const cardsRoot   = document.getElementById('cards');
+
+    // Helpers
+    const T = (el)=> (el?.textContent || '').trim().toLowerCase();
+
+    // Idempotent flags so each line plays once per session
+    const played = {
+      p2:false, j3:false, j4:false, j5:false, j6:false, j9:false
+    };
+
+    function matchP2you(txt){
+      // “But where do I start?” (allow minor punctuation/case) 
+      return /where\s+do\s+i\s+start\??/i.test(txt);
+    }
+    function matchJ3(txt){
+      // “Tap Walking to earn 1 HP. Then we’ll power up.” (robust match)
+      return /walking/i.test(txt) && /1\s*hp/i.test(txt);
+    }
+    function matchJ4(txt){
+      // “Great start! Use Reps to hit harder each tap.”
+      return /use\s+reps/i.test(txt) && /hit\s+harder/i.test(txt);
+    }
+    function matchJ5(txt){
+      // “When the green bar fills, your cooldown halves.”
+      return /green\s+bar/i.test(txt) && /cooldown/i.test(txt) && /half/i.test(txt);
+    }
+    function matchJ6(txt){
+      // “Unlock Jogging when the button lights up.”
+      return /unlock\s+jogging/i.test(txt) && /button\s+lights\s+up/i.test(txt);
+    }
+    function matchJ9(txt){
+      // “Ready to scale? Open the Menu (tap your avatar) and hire a coach.”
+      return /ready\s+to\s+scale/i.test(txt) && /hire\s+a\s+coach/i.test(txt);
+    }
+
+    function scanBubble(){
+      const who = T(tipHeadName);         // 'jax' or 'you'
+      const raw = (tipText?.textContent || '').trim();
+
+      if (!raw) return;
+
+      if (who === 'you' && !played.p2 && matchP2you(raw)){
+        played.p2 = true;
+        // choose female/male VO based on current avatar class
+        const isFemale = document.body.classList.contains('female');
+        playOnce(isFemale ? 'p2f' : 'p2m');
+        return;
       }
-      let musicHooked=false;
-      function hookMusicReleaseOnce(a){ if(musicHooked) return; musicHooked=true; a.addEventListener('ended', ()=> releaseMusicGate(), {once:true}); }
-      function pump(){ if(now||!q.length) return; const item=q.shift(); now={key:item.key, audio:playClip(item.key)}; }
-      return { request, has };
-    })();
 
-    /* ---- PHASE GATE: 1:j1 → 2:you → 3:j3 → 4:j4 → 5:j5 → 6:j6 → 7+:free ---- */
-    let phase=1; // start expecting j1
-    function allowKey(key){
-      if(phase<=0) return true;
-      if(phase===1) return key==='j1';
-      if(phase===2) return key==='you_f_2' || key==='you_m_2';
-      if(phase===3) return key==='j3';
-      if(phase===4) return key==='j4';
-      if(phase===5) return key==='j5';
-      if(phase===6) return key==='j6';
-      // phase >= 7: allow all tutorial + j9
-      return true;
-    }
-    function onClipEnded(key){
-      switch(key){
-        case 'j1': phase = Math.max(phase,2); break;
-        case 'you_f_2':
-        case 'you_m_2': phase = Math.max(phase,3); break;
-        case 'j3': phase = Math.max(phase,4); break;
-        case 'j4': phase = Math.max(phase,5); break;
-        case 'j5': phase = Math.max(phase,6); break;
-        case 'j6': phase = Math.max(phase,7); break;
+      if (who === 'jax'){
+        if (!played.j3 && matchJ3(raw)){ played.j3 = true; playOnce('j3'); return; }
+        if (!played.j4 && matchJ4(raw)){ played.j4 = true; playOnce('j4'); return; }
+        if (!played.j5 && matchJ5(raw)){ played.j5 = true; playOnce('j5'); return; }
+        if (!played.j6 && matchJ6(raw)){ played.j6 = true; playOnce('j6'); return; }
+        if (!played.j9 && matchJ9(raw)){ played.j9 = true; playOnce('j9'); return; }
       }
     }
 
-    /* ---- elements + token detectors ---- */
-    const btnNew=document.getElementById('btn-new');
-    const tipHeadName=document.getElementById('tip-head-name');
-    const tipText=document.getElementById('tip-text');
-    const tipRoot=document.getElementById('tip');
-    if(!btnNew||!tipHeadName||!tipText||!tipRoot) return;
+    // Observe bubble text/speaker changes continuously
+    const ro = new MutationObserver(scanBubble);
+    if (tipText) ro.observe(tipText, {characterData:true, childList:true, subtree:true});
+    if (tipHeadName) ro.observe(tipHeadName, {characterData:true, childList:true, subtree:true});
 
-    const norm=s=>String(s||'').replace(/\u00a0/g,' ').replace(/[\u2018\u2019]/g,"'").replace(/['’]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
-    const hasAll=(t,arr)=>arr.every(x=>t.includes(x));
-
-    /* ---- start gesture: prime, gate music, bless ---- */
-    let started=false, desktopMutedBoot=false, j1Fallback1=null, j1Fallback2=null;
-    function onStartGesture(){
-      if(started) return; started=true;
-      primeAll(); installMusicGate();
-
-      const aJ1=getAudio('j1');
-      if(isTouch){
-        blessPlayPause(aJ1);
-        ['you_f_2','you_m_2','j3','j4','j5','j6','j9'].forEach(k=> blessPlayPause(getAudio(k)));
-      }else{
-        try{ aJ1.muted=true; aJ1.volume=0; aJ1.currentTime=0; aJ1.play().then(()=>{ desktopMutedBoot=true; }).catch(()=>{}); }catch(_){}
-      }
-
-      if(isFemaleAvatar()){
-        clearTimeout(j1Fallback1); clearTimeout(j1Fallback2);
-        j1Fallback1=setTimeout(()=>{ if(!VO.has('j1')) VO.request('j1'); }, 900);
-        j1Fallback2=setTimeout(()=>{ if(!VO.has('j1')) VO.request('j1'); }, 1900);
-      }
-
-      clearTimeout(musicFailsafe);
-      musicFailsafe=setTimeout(()=>{ releaseMusicGate(); }, 3500);
+    // Also rescan on card state changes (in case tutorial fires during rebuilds)
+    if (cardsRoot){
+      new MutationObserver(scanBubble).observe(cardsRoot, {childList:true, subtree:true});
     }
 
-    /* ---- token-triggered enqueue (subject to phase gate) ---- */
-    function tryJax1(){
-      if(phase>1) return;
-      const sp=(tipHeadName.textContent||'').trim().toUpperCase();
-      const t=norm(tipText.textContent);
-      const ok=(sp==='JAX') && (hasAll(t,['low on energy'])||hasAll(t,['fix that fast'])||hasAll(t,['you look a bit']));
-      if(ok) VO.request('j1');
-    }
-    function maybePlayPlayerReply(){
-      if(phase!==2) return;
-      const sp=(tipHeadName.textContent||'').trim().toUpperCase(); if(sp!=='YOU') return;
-      const t=norm(tipText.textContent); if(!/but where do i start\??/.test(t)) return;
-      VO.request(isFemaleAvatar()? 'you_f_2' : 'you_m_2');
-    }
-    function maybePlayJaxAuto(){
-      if(phase<3) return; // don’t allow past j1/you yet
-      const sp=(tipHeadName.textContent||'').trim().toUpperCase(); if(sp!=='JAX') return;
-      const t=norm(tipText.textContent);
-      if(phase===3 && hasAll(t,['walking','1 hp'])) { VO.request('j3'); return; }
-      if(phase===4 && t.includes('reps'))          { VO.request('j4'); return; }
-      if(phase===5 && hasAll(t,['green','bar','cooldown']) && /(halves|half)/.test(t)) { VO.request('j5'); return; }
-      if(phase===6 && hasAll(t,['unlock','jogging','button','lights'])) { VO.request('j6'); return; }
-      // j9 can trigger any time AFTER phase 6
-      if(phase>=6 && hasAll(t,['ready','scale','coach']) && /hire/.test(t)) { VO.request('j9'); }
-    }
+    // Kick a couple frames to catch the very first lines after New Game
+    requestAnimationFrame(()=> requestAnimationFrame(scanBubble));
 
-    /* ---- wire up ---- */
-    btnNew.addEventListener('pointerdown', onStartGesture, {capture:true, passive:true});
-    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') onStartGesture(); }, {capture:true});
-
-    const obs=new MutationObserver(()=>{ tryJax1(); maybePlayPlayerReply(); maybePlayJaxAuto(); });
-    obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
-    (function raf(){ tryJax1(); maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
-
-  }catch(e){ console.warn('VO v6b error:', e); }
+  }catch(e){
+    console.warn('Tutorial VO wiring error:', e);
+  }
 })();
 </script>
 
