@@ -2334,6 +2334,118 @@ try{
 
 
 
+<script type="application/ff-patch">
+/* Tutorial VO — Step 1 only: JAX "You look a bit low on energy. Let’s fix that fast." */
+(function(){
+  try{
+    if (window.__FF_TUTORIAL_VO__) return;
+    window.__FF_TUTORIAL_VO__ = true;
+
+    const tipText = document.getElementById('tip-text');
+    const tipHead = document.getElementById('tip-head-name');
+    const tipBubble = document.getElementById('tip-bubble');
+    if(!tipText || !tipHead || !tipBubble) return;
+
+    // Line 1 (JAX) audio with a fallback to ?raw=1 for GitHub blob links
+    const JAX_INTRO_URLS = [
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3?raw=1"
+    ];
+
+    // Simple loader with fallback + gesture retry if autoplay is blocked
+    function loadAudio(urls){
+      const a = new Audio();
+      a.preload = "auto";
+      a.crossOrigin = "anonymous";
+      a.volume = 0.85;
+
+      let i = 0;
+      function set(i0){
+        i = i0;
+        a.src = urls[i];
+        a.onerror = ()=> {
+          if(i+1 < urls.length) set(i+1);
+        };
+      }
+      set(0);
+
+      // Attempt play; if blocked, retry on next user gesture
+      a.playSafe = function(){
+        try{
+          const p = a.play();
+          if(p && typeof p.then === 'function'){
+            p.catch(()=> {
+              const once = (ev)=>{ document.removeEventListener('pointerdown', once, true);
+                                   document.removeEventListener('touchstart', once, true);
+                                   document.removeEventListener('keydown', once, true);
+                                   a.play().catch(()=>{}); };
+              document.addEventListener('pointerdown', once, {capture:true, passive:true});
+              document.addEventListener('touchstart',  once, {capture:true, passive:true});
+              document.addEventListener('keydown',     once, {capture:true});
+            });
+          }
+        }catch(_){}
+      };
+      return a;
+    }
+
+    const voJaxIntro = loadAudio(JAX_INTRO_URLS);
+
+    // Normalize text to recognize the step even with emoji / punctuation differences
+    function norm(s){
+      return String(s||'')
+        .toLowerCase()
+        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // strip emoji
+        .replace(/[^a-z0-9\s]/g,'')            // strip punctuation
+        .replace(/\s+/g,' ')
+        .trim();
+    }
+
+    // Target phrases we expect (cover both your versions with/without emoji)
+    const TARGETS = new Set([
+      "you look a bit low on energy lets fix that fast",
+      "you look a bit low on energy lets fix that fast"
+    ]);
+
+    // Play once per step
+    let playedForStep = false;
+
+    function maybePlay(){
+      // Only for JAX speaker
+      const speaker = (tipHead.textContent||'').trim().toUpperCase();
+      if(speaker !== 'JAX') { playedForStep = false; return; }
+
+      const raw = tipText.textContent || '';
+      const n = norm(raw);
+
+      // Start as soon as the line appears (no need to wait for full typing)
+      if(!playedForStep && n && [...TARGETS].some(t=> n.startsWith(t.slice(0, 12)) && n.includes("low on energy"))){
+        playedForStep = true;
+
+        // Avoid accidental double-fire if DOM reflows
+        if(tipBubble.getAttribute('data-vo-jax-intro') === '1') return;
+        tipBubble.setAttribute('data-vo-jax-intro','1');
+
+        voJaxIntro.currentTime = 0;
+        voJaxIntro.playSafe();
+      }
+    }
+
+    // Watch for tutorial typing changes
+    const obs = new MutationObserver(()=> maybePlay());
+    obs.observe(tipText, {characterData:true, childList:true, subtree:true});
+    // Also watch speaker changes
+    const obs2 = new MutationObserver(()=> { playedForStep = false; tipBubble.removeAttribute('data-vo-jax-intro'); maybePlay(); });
+    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
+
+    // Kick once in case the step is already visible
+    maybePlay();
+
+  }catch(e){
+    console.warn('Tutorial VO (JAX step 1) error:', e);
+  }
+})();
+</script>
 
 
 
