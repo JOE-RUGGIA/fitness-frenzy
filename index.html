@@ -1857,350 +1857,69 @@ try{
 
 
 <style data-ff-patch>
-  /* ---- Card & tile color (enforced) ----///////////////////////////////////////////HP FLOAT COOLDOWN BAR DOUBLE FIX///////JAX TUT REDO///// */
-  .card{
-    background:#112036 !important;
-    border-color:#0c1a2b !important;
-  }
-  .tile{
-    background:#112036 !important;
-    border-color:#0c1a2b !important;
-  }
-
-  /* Low-latency polish */
-  .tile, .btn, .btn-reps{ will-change: transform; }
-
-  /* Bounce (used by tiles & buttons) */
-  @keyframes ff-bounce {
-    0% { transform: scale(0.98); }
-    40%{ transform: scale(1.07); }
-    70%{ transform: scale(0.995); }
-    100%{transform: scale(1); }
-  }
-  .ff-bounce{
-    animation: ff-bounce 420ms cubic-bezier(.2,.8,.2,1);
-  }
-
-  /* Tiny line burst (rays) inside the tile */
-  .ff-rays{
-    position:absolute; left:50%; top:50%;
-    width:0; height:0; pointer-events:none;
-    filter: drop-shadow(0 0 4px rgba(255,255,255,.55));
-    z-index:3; /* above media, clipped by tile */
-  }
-  .ff-ray{
-    position:absolute; left:-1px; top:-8px;
-    width:2px; height:14px; background:rgba(255,255,255,.95);
-    border-radius:2px; opacity:0; transform-origin: 1px 8px;
-    animation: ff-ray 360ms ease-out forwards;
-  }
-  @keyframes ff-ray{
-    0%   { transform: rotate(var(--deg)) translateY(0)  scale(.85); opacity:0; }
-    20%  { opacity:1; }
-    100% { transform: rotate(var(--deg)) translateY(-18px) scale(1); opacity:0; }
-  }
-
-  /* Floating +HP overlay (above tiles, below menu) */
-  :root{
-    --float-male:#41b0ff;
-    --float-female:#ff76b5;
-  }
-  .ff-floathp{
-    position:fixed !important;   /* attach to viewport */
-    left:0; top:0;               /* exact px set inline */
-    transform:translate(-50%, 0);
-    z-index:35;                  /* > topbar (30), < menu (40+) */
-    font-weight:900;
-    font-size:18px;
-    color:var(--float-male);
-    text-shadow:0 1px 0 rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.35);
-    pointer-events:none;
-    user-select:none;
-    opacity:0;
-    animation: ff-floatHP 800ms ease-out forwards;
-    will-change: transform, opacity;
-  }
-  body.female .ff-floathp{ color:var(--float-female); }
-  @keyframes ff-floatHP{
-    0%   { transform:translate(-50%, 6px)  scale(.92); opacity:0; }
-    15%  { opacity:1; }
-    60%  { transform:translate(-50%, -16px) scale(1.0); opacity:1; }
-    100% { transform:translate(-50%, -32px) scale(1.02); opacity:0; }
-  }
+  /* Gender-colored bold highlight for tutorial keywords */
+  .ff-key{ font-weight:900; color:var(--accent-2); }
+  body.female .ff-key{ color:var(--female-accent); }
 </style>
 
 <script type="application/ff-patch">
-/* De-duped fast-click (no double fire on iOS), tile SFX mute, haptics,
-   single-shot tile FX (bounce+rays+floating HP), robust auto/coach floaters,
-   cooldown freeze at ~0.10s, and Reps bounce-on-purchase. */
+/* Highlight JAX tutorial keywords (gender color) + update phrasing */
 (function(){
   try{
-    const cards = document.getElementById('cards');
-    if(!cards) return;
+    const tipText = document.getElementById('tip-text');
+    const tipHeadName = document.getElementById('tip-head-name');
+    if(!tipText || !tipHeadName) return;
 
-    /* ---------- HAPTIC helper ---------- */
-    function haptic(level='light'){
-      try{
-        const vib = navigator.vibrate || navigator.webkitVibrate;
-        if(!vib) return;
-        if(level==='light') vib.call(navigator, 10);
-        else if(level==='medium') vib.call(navigator, [12, 18, 12]);
-        else vib.call(navigator, [18, 24, 18]);
-      }catch(_){}
+    // Transform plain text -> HTML with colored bold keywords
+    function transform(raw){
+      if(!raw) return '';
+      let t = raw;
+
+      // Update phrasing
+      t = t.replace(/Unlock\s+Jogging\s+when\s+the\s+pill\s+turns\s+orange\./i,
+                    'Unlock Jogging when the button lights up.');
+
+      // Keyword highlights (order matters to avoid nested replacements)
+      // Walking
+      t = t.replace(/\bWalking\b/gi, '<b class="ff-key">Walking</b>');
+      // 1 HP / 1HP
+      t = t.replace(/\b1\s*HP\b/gi, '<b class="ff-key">1&nbsp;HP</b>');
+      // Reps
+      t = t.replace(/\bReps\b/gi, '<b class="ff-key">Reps</b>');
+      // green bar
+      t = t.replace(/\bgreen\s+bar\b/gi, '<b class="ff-key">green bar</b>');
+      // cooldown
+      t = t.replace(/\bcooldown\b/gi, '<b class="ff-key">cooldown</b>');
+      // Jogging
+      t = t.replace(/\bJogging\b/gi, '<b class="ff-key">Jogging</b>');
+
+      return t;
     }
 
-    /* ---------- TILE-SFX MUTE (leaves Reps SFX intact) ---------- */
-    (function installMuteShim(){
-      const MUTE_WIN_MS = 160;
-      const markMute = ()=> { window.__FF_MUTE_TILE_SFX__ = performance.now(); };
-
-      const TILE_SEL = '.tile';
-      window.addEventListener('pointerdown', (e)=>{ if(e.target.closest(TILE_SEL)) markMute(); }, {capture:true, passive:true});
-      window.addEventListener('keydown',     (e)=>{ if((e.code==='Space'||e.code==='Enter') && e.target.closest && e.target.closest(TILE_SEL)) markMute(); }, {capture:true});
-
-      function patchCtx(Ctor){
-        if(!Ctor || !Ctor.prototype) return;
-        const orig = Ctor.prototype.createGain;
-        if(!orig || orig.__ff_patched) return;
-        Ctor.prototype.createGain = function(){
-          const g = orig.apply(this, arguments);
-          const origConnect = g.connect;
-          g.connect = function(){
-            try{
-              const t = window.__FF_MUTE_TILE_SFX__ || 0;
-              if(t && (performance.now() - t) < MUTE_WIN_MS){ try{ g.gain.value = 0; }catch(_){ } }
-            }catch(_){}
-            return origConnect.apply(this, arguments);
-          };
-          return g;
-        };
-        Ctor.prototype.createGain.__ff_patched = true;
+    // Apply highlight only to JAX lines; leave "You" lines untouched.
+    let lastRaw = '';
+    function step(){
+      const isJax = (tipHeadName.textContent || '').trim().toUpperCase() === 'JAX';
+      const raw = tipText.textContent || ''; // safe, no tags
+      if(isJax && raw !== lastRaw){
+        tipText.innerHTML = transform(raw);
+        lastRaw = raw;
+      }else if(!isJax){
+        // Let the built-in typer handle user lines (no styling)
+        lastRaw = '';
       }
-      patchCtx(window.AudioContext);
-      patchCtx(window.webkitAudioContext);
-    })();
-
-    /* ---------- FAST CLICK (dedup: use PointerEvents OR Touch, not both) ---------- */
-    (function fastClick(){
-      const SELECTOR = '.tile, .btn, .ava, .tab, .menu-close, .bulk button, #avatar';
-      const supportsPointer = 'onpointerdown' in window;
-
-      function triggerFastClick(target){
-        const stamp = Date.now();
-        target.setAttribute('data-ff-fast-stamp', stamp);
-        target.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true, view:window}));
-        const swallow = (e)=>{
-          const recent = (Date.now() - stamp) < 280;
-          if(recent && e.isTrusted && (e.target===target || target.contains(e.target))){
-            e.stopImmediatePropagation(); e.preventDefault();
-            document.removeEventListener('click', swallow, true);
-          }
-        };
-        document.addEventListener('click', swallow, true);
-      }
-
-      if(supportsPointer){
-        // Pointer path (covers touch/pen/mouse). We only accelerate non-mouse.
-        window.addEventListener('pointerdown', (e)=>{
-          if(e.pointerType==='mouse') return;
-          const t = e.target.closest(SELECTOR); if(!t) return;
-          triggerFastClick(t);
-        }, {passive:true, capture:true});
-      }else{
-        // Legacy touch path (no pointer events)
-        window.addEventListener('touchstart', (e)=>{
-          const t = e.target.closest(SELECTOR); if(!t) return;
-          triggerFastClick(t);
-        }, {passive:true, capture:true});
-      }
-    })();
-
-    /* ---------- Visual helpers ---------- */
-    function bounce(el){
-      if(!el) return;
-      el.classList.remove('ff-bounce'); el.offsetHeight; // reflow
-      el.classList.add('ff-bounce');
-      el.addEventListener('animationend', ()=> el.classList.remove('ff-bounce'), {once:true});
+      requestAnimationFrame(step);
     }
-    function rays(tile){
-      const wrap = document.createElement('div');
-      wrap.className = 'ff-rays';
-      tile.appendChild(wrap);
-      const N = 10, jitter = ()=> (Math.random()*6 - 3);
-      for(let i=0;i<N;i++){
-        const ray = document.createElement('i');
-        ray.className = 'ff-ray';
-        ray.style.setProperty('--deg', ((360/N)*i + jitter())+'deg');
-        wrap.appendChild(ray);
-      }
-      setTimeout(()=> wrap.remove(), 420);
-    }
-    function getTapHP(card){
-      try{
-        const left = card.querySelector('.meta .muted'); if(!left) return null;
-        const m = (left.textContent||'').match(/([\d,.]+)\s*HP\s*\/\s*tap/i);
-        if(!m) return null;
-        const n = Math.floor(Number(m[1].replace(/,/g,'')));
-        return Number.isFinite(n) ? n : null;
-      }catch(_){ return null; }
-    }
-    function floatHPOver(tile, amount){
-      const rect = tile.getBoundingClientRect();
-      const x = rect.left + rect.width/2;
-      const y = rect.top + 10;
-      const el = document.createElement('div');
-      el.className = 'ff-floathp';
-      el.textContent = '+' + (amount ?? 1);
-      el.style.left = x + 'px';
-      el.style.top  = y + 'px';
-      document.body.appendChild(el);
-      const cleanup = ()=> el.remove();
-      el.addEventListener('animationend', cleanup, {once:true});
-      setTimeout(cleanup, 1200);
-    }
-
-    /* ---------- SINGLE-SHOT TILE FX (manual taps) + HAPTIC ---------- */
-    const LATCH = 'data-ff-fx-latch';
-    new MutationObserver(muts=>{
-      for(const m of muts){
-        if(m.type!=='attributes') continue;
-        const tile = m.target;
-        if(!tile.classList || !tile.classList.contains('tile')) continue;
-
-        const has = tile.classList.contains('burst-on');
-        const latched = tile.getAttribute(LATCH)==='1';
-
-        if(has && !latched){
-          tile.setAttribute(LATCH,'1');
-          const card = tile.closest('.card');
-          const amt  = getTapHP(card) ?? 1;
-
-          haptic('light');
-          bounce(tile);
-          rays(tile);
-          floatHPOver(tile, amt);
-        } else if(!has && latched){
-          tile.removeAttribute(LATCH);
-        }
-      }
-    }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
-
-    /* ---------- AUTO/COACH TAPS + COOL-DOWN FREEZE AT ~0.10s ----------
-       We still detect resets to spawn floaters, but for very fast cycles we keep the bar visually full.
-       Thresholds can be tuned below. */
-    const ARM = 85;           // ready zone threshold (%)
-    const RESET_ABS = 35;     // absolute low after reset (%)
-    const RESET_DROP = 50;    // relative drop to qualify as reset (%)
-    const FREEZE_MS = 110;    // ~0.11s → freeze the bar at 100%
-
-    const barArmed   = new WeakMap();
-    const barPrevPct = new WeakMap();
-    const barFreeze  = new WeakMap();   // boolean
-    const barLastHit = new WeakMap();   // ms timestamp of last reset detection
-
-    function pctFromStyle(bar){
-      const v = parseFloat(bar.style.width);
-      return Number.isFinite(v) ? v : 0;
-    }
-
-    function forceFull(bar){
-      // Avoid recursion flicker: only write if not already at 100
-      if(bar.style.width !== '100%'){
-        bar.style.width = '100%';
-      }
-      const t = bar.parentElement?.querySelector('.t');
-      if(t && t.textContent !== 'Ready') t.textContent = 'Ready';
-    }
-
-    function watchBar(bar){
-      if(bar.__ff_obs__) return;
-      bar.__ff_obs__ = true;
-
-      const seed = pctFromStyle(bar);
-      barPrevPct.set(bar, seed);
-      barArmed.set(bar, seed >= ARM);
-
-      const obs = new MutationObserver(()=>{
-        const prev = barPrevPct.get(bar) ?? 0;
-        const curr = pctFromStyle(bar);
-        barPrevPct.set(bar, curr);
-
-        // If frozen, keep it visually full every time it changes
-        if(barFreeze.get(bar) === true){
-          forceFull(bar);
-        }
-
-        // Arm when sufficiently full
-        if(curr >= ARM){ barArmed.set(bar, true); return; }
-
-        // Detect reset (auto/coach OR manual) with absolute low or a big drop
-        if(barArmed.get(bar)){
-          const bigDrop = (prev - curr) >= RESET_DROP;
-          if (curr <= RESET_ABS || bigDrop){
-            barArmed.set(bar, false);
-
-            // Cycle time computation for freeze detection
-            const now = performance.now();
-            const last = barLastHit.get(bar) || 0;
-            barLastHit.set(bar, now);
-            const dt = last ? (now - last) : Infinity;
-
-            // If the cycle is very fast (~≤FREEZE_MS), enable freeze
-            if(dt <= FREEZE_MS + 15){
-              barFreeze.set(bar, true);
-              // Immediately present full bar to avoid flash this frame
-              forceFull(bar);
-            }
-
-            // Floater for auto/coach cycle (manual already handled by burst latch)
-            const card = bar.closest('.card');
-            const tile = card?.querySelector('.tile');
-            // Skip if a manual 'burst-on' is latched right now (prevents duplicate floaters)
-            const manualLatched = tile && tile.getAttribute(LATCH)==='1';
-            if(tile && !manualLatched){
-              const amt = getTapHP(card) ?? 1;
-              floatHPOver(tile, amt);
-            }
-          }
-        }
-      });
-
-      obs.observe(bar, {attributes:true, attributeFilter:['style']});
-    }
-
-    function seedBars(){
-      cards.querySelectorAll('.card .cooldown .bar').forEach(watchBar);
-    }
-    seedBars();
-    new MutationObserver(seedBars).observe(cards, {childList:true, subtree:true});
-
-    /* ---------- REPS BUTTON: bounce ONLY on confirmed purchase ---------- */
-    document.addEventListener('click', (e)=>{
-      const btn = e.target.closest('.card .meta .btn'); if(!btn) return;
-      const txt = (btn.textContent||'').trim(); if(!/^Reps\b/i.test(txt)) return;
-
-      const card = btn.closest('.card');
-      const repEl = card?.querySelector('.repband .reptext'); if(!repEl) return;
-
-      const parseRep = (s)=> parseInt(String(s||'0').split('/')[0].replace(/\D/g,''), 10) || 0;
-      const before = parseRep(repEl.textContent);
-
-      let bounced = false;
-      const obs = new MutationObserver(()=>{
-        const after = parseRep(repEl.textContent);
-        if(!bounced && after > before){
-          bounced = true; obs.disconnect(); bounce(btn);
-        }
-      });
-      obs.observe(repEl, {characterData:true, childList:true, subtree:true});
-      setTimeout(()=> obs.disconnect(), 600); // fail-safe
-    }, true);
-
+    requestAnimationFrame(step);
   }catch(e){
-    console.warn('dedup fast-click + freeze + FX patch error:', e);
+    console.warn('JAX keyword highlight patch error:', e);
   }
 })();
 </script>
+
+
+
+  
 
 
 
