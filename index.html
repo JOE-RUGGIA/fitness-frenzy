@@ -2329,11 +2329,11 @@ try{
 
 
 <script type="application/ff-patch">
-/* JAX VO mapping v5 — Desktop-safe muted-boot for line 1 + token-synced fade-in////////////////////////////////VOICES///////////////// */
+/* JAX VO mapping v5b — robust female/male detection + desktop-safe L1 muted boot */
 (function(){
   try{
-    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5__) return;
-    window.__FF_JAX_TUTORIAL_VO_PATCH_V5__ = true;
+    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5B__) return;
+    window.__FF_JAX_TUTORIAL_VO_PATCH_V5B__ = true;
 
     /* ---------- Audio URLs ---------- */
     const URLS = {
@@ -2349,9 +2349,32 @@ try{
 
     const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
 
+    /* ---------- Robust avatar detection ---------- */
+    function isFemaleAvatar(){
+      try{
+        // Primary signal
+        if (document.body.classList.contains('female')) return true;
+
+        // Start screen selection
+        const sv = document.getElementById('start-avatars');
+        if (sv && sv.querySelector('.ava.f.active')) return true;
+
+        // Topbar current avatar image
+        const topAva = document.getElementById('avatar-img');
+        if (topAva && /FEMALE/i.test(topAva.src)) return true;
+
+        // Tutorial bubble head image
+        const tipImg = document.getElementById('tip-head-img');
+        if (tipImg && /FEMALE/i.test(tipImg.src)) return true;
+      }catch(_){}
+      return false;
+    }
+    // Expose for quick dev checks
+    window.BM_IS_FEMALE = isFemaleAvatar;
+
     /* ---------- Player + ducking ---------- */
-    const cache = Object.create(null);        // key -> HTMLAudioElement
-    const startedAudible = Object.create(null); // key -> actually audible
+    const cache = Object.create(null);             // key -> HTMLAudioElement
+    const startedAudible = Object.create(null);    // key -> actually audible
     let voicesActive = 0, prevVol = null;
 
     function duckMusic(){
@@ -2425,14 +2448,12 @@ try{
       try{
         primeAll();
         const a = getAudio('j1');
-        // Start muted immediately so autoplay allows it
         const prev = a.volume;
         a.volume = 0;
         a.currentTime = 0;
         a.play().then(()=>{
           l1MutedPlaying = true;
-          // don't duck music yet—no audible audio
-        }).catch(()=>{ /* ignore; we'll try mobile path later */ a.volume = prev; });
+        }).catch(()=>{ a.volume = prev; });
       }catch(_){}
     }
 
@@ -2449,7 +2470,6 @@ try{
       const a = getAudio('j1');
       if (!a) return;
 
-      // If desktop muted-boot succeeded, rewind and fade in; else (mobile) play fresh
       try{
         if (!isTouch && l1MutedPlaying){
           a.currentTime = 0;
@@ -2457,25 +2477,21 @@ try{
           fadeTo(a, 0.9, 260);
           startedAudible.j1 = true;
         }else{
-          // Mobile or desktop fallback: start now
           a.currentTime = 0;
           duckMusic();
-          a.play().then(()=>{
-            startedAudible.j1 = true;
-            try{ fadeTo(a, 0.9, 220); }catch(_){}
-          }).catch(()=>{ /* gesture may be required; user will click again soon */ });
+          a.play().then(()=>{ startedAudible.j1 = true; fadeTo(a, 0.9, 220); }).catch(()=>{});
         }
       }catch(_){}
     }
 
-    /* ---------- Player reply (female or male) ---------- */
+    /* ---------- Player reply (female or male) — now using robust detection ---------- */
     function maybePlayPlayerReply(){
       const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       if (speaker!=='YOU') return;
       const t = norm(tipText.textContent);
       if (!/but where do i start\??/.test(t)) return;
 
-      const key = document.body.classList.contains('female') ? 'you_f_2' : 'you_m_2';
+      const key = isFemaleAvatar() ? 'you_f_2' : 'you_m_2';
       if (startedAudible[key]) return;
 
       try{
@@ -2500,20 +2516,20 @@ try{
     }
 
     /* ---------- Wire up ---------- */
-    // New Game gesture: desktop boots muted L1 immediately (mobile skips)
     btnNew.addEventListener('pointerdown', desktopBootLine1, {capture:true, passive:true});
     btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') desktopBootLine1(); }, {capture:true});
 
-    // Observe tutorial bubble and poll to sync VO with typing tokens
+    const tipRoot = document.getElementById('tip');
     const obs = new MutationObserver(()=>{ tryAudibilizeLine1(); maybePlayPlayerReply(); maybePlayJaxAuto(); });
     obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
     (function raf(){ tryAudibilizeLine1(); maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
   }catch(e){
-    console.warn('JAX VO v5 patch error:', e);
+    console.warn('JAX VO v5b patch error:', e);
   }
 })();
 </script>
+
 
 
 
