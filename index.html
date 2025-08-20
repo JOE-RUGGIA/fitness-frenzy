@@ -1397,7 +1397,7 @@ try{
 
 
 <style data-ff-patch>
-  /* ---- Card & tile color (enforced) ////////////////////////////////card color update//////////floaters even when fast////////effects//////etc---- */
+  /* ---- Card & tile color (enforced) ---- */
   .card{
     background:#112036 !important;
     border-color:#0c1a2b !important;
@@ -1471,7 +1471,7 @@ try{
 
 <script type="application/ff-patch">
 /* Fast-click + tile SFX mute + single-shot tile FX (bounce+rays+floating HP)
-   + Reps bounce-on-purchase + auto/coach HP floaters (no speed limit) */
+   + Reps bounce-on-purchase + robust auto/coach floaters (handles ultra-fast cooldowns) */
 (function(){
   try{
     const cards = document.getElementById('cards');
@@ -1592,7 +1592,7 @@ try{
         if(has && !latched){
           tile.setAttribute(LATCH,'1');
           const card = tile.closest('.card');
-          const amt = getTapHP(card) ?? 1;
+          const amt  = getTapHP(card) ?? 1;
           bounce(tile);
           rays(tile);
           floatHPOver(tile, amt);
@@ -1602,43 +1602,60 @@ try{
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
 
-    /* ---------- AUTO/COACH TAPS: floaters with no speed limit ----------
-       Latch per cooldown bar: re-arm when bar grows to >=90%, fire once when it resets to <=5%. */
+    /* ---------- AUTO/COACH TAPS: ultra-fast-safe detection ----------
+       Logic:
+       - A bar is "armed" when it reaches >= ARM% (ready zone).
+       - A reset is detected if either:
+           a) curr <= RESET_ABS%   OR
+           b) (prev - curr) >= RESET_DROP%
+         This catches 100%→20% one-frame drops at super-fast cooldowns.
+       - After firing, we disarm; it will re-arm next time it grows back to >= ARM%.
+    */
+    const ARM = 85;          // ready zone threshold
+    const RESET_ABS = 35;    // absolute "low" after reset
+    const RESET_DROP = 50;   // relative drop to qualify as reset
     const barArmed = new WeakMap();
-    function widthPct(bar){
+    const barPrev  = new WeakMap();
+
+    function pctFromStyle(bar){
       const v = parseFloat(bar.style.width);
       return Number.isFinite(v) ? v : 0;
     }
-    function armIfReady(bar, curr){
-      if(curr >= 90){ barArmed.set(bar, true); }
-    }
+
     function watchBar(bar){
       if(bar.__ff_obs__) return;
       bar.__ff_obs__ = true;
 
-      // seed armed state
-      armIfReady(bar, widthPct(bar));
+      // seed state
+      const start = pctFromStyle(bar);
+      barPrev.set(bar, start);
+      barArmed.set(bar, start >= ARM);
 
       const obs = new MutationObserver(()=>{
-        const curr = widthPct(bar);
-        const armed = barArmed.get(bar) === true;
+        const prev = barPrev.get(bar) ?? 0;
+        const curr = pctFromStyle(bar);
+        barPrev.set(bar, curr);
 
-        // Ready phase → arm
-        if(curr >= 90){ barArmed.set(bar, true); return; }
+        // Arm when sufficiently full
+        if(curr >= ARM){ barArmed.set(bar, true); return; }
 
-        // Reset detected → fire floater once per cycle (no time throttling)
-        if(armed && curr <= 5){
-          barArmed.set(bar, false);
-          const card = bar.closest('.card');
-          const tile = card?.querySelector('.tile');
-          if(tile){
-            const amt = getTapHP(card) ?? 1;
-            floatHPOver(tile, amt);  // auto/coach floater (no bounce/rays)
+        // If armed, detect reset with either absolute low or big drop
+        if(barArmed.get(bar)){
+          if (curr <= RESET_ABS || (prev - curr) >= RESET_DROP){
+            barArmed.set(bar, false);
+            const card = bar.closest('.card');
+            const tile = card?.querySelector('.tile');
+            if(tile){
+              const amt = getTapHP(card) ?? 1;
+              floatHPOver(tile, amt); // auto/coach floater (no bounce/rays)
+            }
           }
         }
       });
+
       obs.observe(bar, {attributes:true, attributeFilter:['style']});
     }
+
     function seedBars(){
       cards.querySelectorAll('.card .cooldown .bar').forEach(watchBar);
     }
@@ -1668,7 +1685,7 @@ try{
     }, true);
 
   }catch(e){
-    console.warn('auto floaters (no limit) + FX patch error:', e);
+    console.warn('auto floaters (ultra-fast) + FX patch error:', e);
   }
 })();
 </script>
