@@ -2333,11 +2333,12 @@ try{
 
 
 <script type="application/ff-patch">
-/* JAX VO mapping v5d — fixes female L1: tolerant tokens + timed female-only fallback */
+/* JAX VO mapping v5e — unified muted-boot for Line 1 (mobile + desktop),
+   robust female detect, mobile unlock, token-synced fade-in, and female fallbacks */
 (function(){
   try{
-    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5D__) return;
-    window.__FF_JAX_TUTORIAL_VO_PATCH_V5D__ = true;
+    if (window.__FF_JAX_TUTORIAL_VO_PATCH_V5E__) return;
+    window.__FF_JAX_TUTORIAL_VO_PATCH_V5E__ = true;
 
     /* ---------- Audio URLs ---------- */
     const URLS = {
@@ -2366,7 +2367,7 @@ try{
       }catch(_){}
       return false;
     }
-    window.BM_IS_FEMALE = isFemaleAvatar; // optional debug
+    window.BM_IS_FEMALE = isFemaleAvatar; // handy for debugging
 
     /* ---------- Player + ducking ---------- */
     const cache = Object.create(null);             // key -> HTMLAudioElement
@@ -2395,7 +2396,9 @@ try{
       const a = new Audio(url);
       a.preload = 'auto';
       a.loop = false;
+      // iOS friendliness
       try{ a.volume = vol; }catch(_){}
+      try{ a.playsInline = true; a.setAttribute('playsinline',''); a.setAttribute('webkit-playsinline',''); }catch(_){}
       a.addEventListener('ended', restoreMusic, {once:true});
       a.addEventListener('pause', restoreMusic, {once:true});
       a.addEventListener('abort', restoreMusic, {once:true});
@@ -2430,19 +2433,43 @@ try{
     const tipRoot = document.getElementById('tip');
     if(!btnNew || !tipHeadName || !tipText || !tipRoot) return;
 
-    /* ---------- Utils (more tolerant) ---------- */
+    /* ---------- Utils (tolerant) ---------- */
     function norm(s){
       return String(s||'')
         .replace(/\u00a0/g,' ')
-        .replace(/[\u2018\u2019]/g,"'")        // curly → straight apostrophe
-        .replace(/['’]/g,'')                  // drop apostrophes for matching
+        .replace(/[\u2018\u2019]/g,"'")    // curly → straight apostrophe
+        .replace(/['’]/g,'')              // drop apostrophes for matching
         .replace(/\s+/g,' ')
         .trim()
         .toLowerCase();
     }
     const hasAll = (t, arr)=> arr.every(x=> t.includes(x));
 
-    /* ---------- MOBILE: unlock all audio elements inside gesture ---------- */
+    /* ---------- Unified muted-boot for Line 1 (mobile + desktop) ---------- */
+    let l1MutedPlaying = false;
+    function bootLine1MutedInsideGesture(){
+      if (window.__FF_JAX_L1_BOOTED__) return;
+      window.__FF_JAX_L1_BOOTED__ = true;
+
+      try{
+        primeAll();
+        const a = getAudio('j1');
+        const prev = a.volume;
+        a.muted = true;
+        a.volume = 0;
+        a.currentTime = 0;
+        a.play().then(()=>{
+          // Keep it silently playing; we’ll rewind/unmute on token
+          l1MutedPlaying = true;
+          // Not ducking yet—no audible audio
+        }).catch(()=>{
+          // If the browser blocks even muted (rare), we’ll still have the mobile unlock + fallbacks below
+          a.muted = false; try{ a.volume = prev; }catch(_){}
+        });
+      }catch(_){}
+    }
+
+    /* ---------- MOBILE: unlock all clips in-gesture (belt + suspenders) ---------- */
     function mobileUnlockAllOnce(){
       if (!isTouch) return;
       if (window.__FF_JAX_MOBILE_UNLOCKED__) return;
@@ -2454,82 +2481,62 @@ try{
           const a = getAudio(k);
           try{
             const oldVol = a.volume;
-            a.volume = 0; a.muted = true; a.currentTime = 0.001;
-            a.play().then(()=>{ setTimeout(()=>{ try{ a.pause(); a.currentTime = 0; a.muted = false; a.volume = oldVol; }catch(_){ } }, 0); })
-                     .catch(()=>{ try{ a.muted = false; a.volume = oldVol; }catch(_){} });
+            a.muted = true; a.volume = 0; a.currentTime = 0.001;
+            a.play().then(()=>{
+              setTimeout(()=>{ try{ a.pause(); a.currentTime = 0; a.muted = false; a.volume = oldVol; }catch(_){ } }, 0);
+            }).catch(()=>{ try{ a.muted = false; a.volume = oldVol; }catch(_){ } });
           }catch(_){}
         });
       }catch(_){}
     }
 
-    /* ---------- DESKTOP: boot JAX #1 muted inside the gesture ---------- */
-    let l1MutedPlaying = false;   // desktop only
-    function desktopBootLine1(){
-      if (isTouch) return;                    // mobile uses unlock path
-      if (window.__FF_JAX_L1_BOOTED__) return;
-      window.__FF_JAX_L1_BOOTED__ = true;
-
-      try{
-        primeAll();
-        const a = getAudio('j1');
-        const prev = a.volume;
-        a.volume = 0;
-        a.currentTime = 0;
-        a.play().then(()=>{ l1MutedPlaying = true; }).catch(()=>{ a.volume = prev; });
-      }catch(_){}
-    }
-
-    /* ---------- L1: token-detected play + FEMALE FALLBACK ---------- */
+    /* ---------- Audibilize (rewind → unmute → fade-in) ---------- */
     function audibilizeLine1Now(){
       if (startedAudible.j1) return true;
       const a = getAudio('j1'); if(!a) return false;
       try{
-        a.currentTime = 0;
         duckMusic();
-        // If desktop muted-boot succeeded, just fade in; else play+fade.
-        if (!isTouch && l1MutedPlaying){
+        // Ensure playback is running, then rewind & unmute
+        if (!l1MutedPlaying){
+          // In case muted-boot failed, start now
+          a.muted = false; a.volume = 0;
+          a.currentTime = 0;
+          return a.play().then(()=>{
+            startedAudible.j1 = true;
+            fadeTo(a, 0.9, 220);
+            return true;
+          }).catch(()=> false);
+        }else{
+          a.currentTime = 0;
+          a.muted = false; // flip audible
+          // Already “playing” in background; just fade volume up
           fadeTo(a, 0.9, 260);
           startedAudible.j1 = true;
           return true;
-        }else{
-          return a.play().then(()=>{ startedAudible.j1 = true; fadeTo(a, 0.9, 220); return true; })
-                          .catch(()=> false);
         }
       }catch(_){ return false; }
     }
 
+    /* ---------- L1 token detection + female fallbacks ---------- */
     let femaleL1FallbackTimer1 = null, femaleL1FallbackTimer2 = null;
     function scheduleFemaleL1Fallbacks(){
-      // Only schedule if avatar is female at start
       if (!isFemaleAvatar()) return;
       try{ clearTimeout(femaleL1FallbackTimer1); clearTimeout(femaleL1FallbackTimer2); }catch(_){}
-
-      // First nudge (~0.9s after New Game)
-      femaleL1FallbackTimer1 = setTimeout(()=>{
-        if (!startedAudible.j1) audibilizeLine1Now();
-      }, 900);
-
-      // Second nudge (~1.9s after New Game) as a safety net
-      femaleL1FallbackTimer2 = setTimeout(()=>{
-        if (!startedAudible.j1) audibilizeLine1Now();
-      }, 1900);
+      femaleL1FallbackTimer1 = setTimeout(()=>{ if(!startedAudible.j1) audibilizeLine1Now(); }, 900);
+      femaleL1FallbackTimer2 = setTimeout(()=>{ if(!startedAudible.j1) audibilizeLine1Now(); }, 1900);
     }
 
     function tryAudibilizeLine1(){
       if (startedAudible.j1) return;
-
       const speaker = (tipHeadName.textContent||'').trim().toUpperCase();
       const t = norm(tipText.textContent);
-      // Accept multiple early anchors to be extra tolerant
       const hasIntroTokens =
         (speaker==='JAX') && (
           hasAll(t, ['low on energy']) ||
           hasAll(t, ['fix that fast']) ||
-          hasAll(t, ['you look a bit']) // early chars during typing
+          hasAll(t, ['you look a bit'])
         );
-
       if(!hasIntroTokens) return;
-      // Once tokens are seen, cancel fallbacks and play now
       try{ clearTimeout(femaleL1FallbackTimer1); clearTimeout(femaleL1FallbackTimer2); }catch(_){}
       audibilizeLine1Now();
     }
@@ -2566,17 +2573,18 @@ try{
     }
 
     /* ---------- Wire up ---------- */
-    const startGesture = (e)=>{ mobileUnlockAllOnce(); desktopBootLine1(); scheduleFemaleL1Fallbacks(); };
-    btnNew.addEventListener('touchstart', startGesture, {capture:true, passive:true}); // iOS
+    const startGesture = ()=>{ mobileUnlockAllOnce(); bootLine1MutedInsideGesture(); scheduleFemaleL1Fallbacks(); };
+    // iOS friendliness: listen to touchstart explicitly, plus pointerdown/keydown
+    btnNew.addEventListener('touchstart', startGesture, {capture:true, passive:true});
     btnNew.addEventListener('pointerdown', startGesture, {capture:true, passive:true});
-    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') startGesture(e); }, {capture:true});
+    btnNew.addEventListener('keydown', e=>{ if(e.code==='Enter'||e.code==='Space') startGesture(); }, {capture:true});
 
     const obs = new MutationObserver(()=>{ tryAudibilizeLine1(); maybePlayPlayerReply(); maybePlayJaxAuto(); });
     obs.observe(tipRoot, {subtree:true, childList:true, characterData:true, attributes:true});
     (function raf(){ tryAudibilizeLine1(); maybePlayPlayerReply(); maybePlayJaxAuto(); requestAnimationFrame(raf); })();
 
   }catch(e){
-    console.warn('JAX VO v5d patch error:', e);
+    console.warn('JAX VO v5e patch error:', e);
   }
 })();
 </script>
