@@ -1390,129 +1390,17 @@ try{
 
   
 
-<style data-ff-patch>
-  /* --- Exercise card & tile color update ---//////////////////////////////NEW HP FLOATING FOR OVER TILE AND TILE COLOR CHANGE */
-  .card{
-    background:#112036 !important;
-    border-color:#0c1a2b !important;
-  }
-  .tile{
-    background:#112036 !important;
-    border-color:#0c1a2b !important;
-  }
-
-  /* --- Floating +HP overlay (above tiles, below menu) --- */
-  :root{
-    --float-male:#41b0ff;
-    --float-female:#ff76b5;
-  }
-
-  /* Hide any older in-tile float variants */
-  .tile > .ff-floathp{ display:none !important; }
-
-  /* Global overlay version */
-  .ff-floathp{
-    position:fixed !important;   /* attach to viewport */
-    left:0; top:0;               /* exact px set inline */
-    transform:translate(-50%, 0);
-    z-index:35;                  /* > topbar (30), < menu (40) */
-    font-weight:900;
-    font-size:18px;
-    color:var(--float-male);
-    text-shadow:
-      0 1px 0 rgba(0,0,0,.35),
-      0 2px 6px rgba(0,0,0,.35);
-    pointer-events:none;
-    user-select:none;
-    opacity:0;
-    animation: ff-floatHP 800ms ease-out forwards;
-    will-change: transform, opacity;
-  }
-  body.female .ff-floathp{ color:var(--float-female); }
-
-  @keyframes ff-floatHP{
-    0%   { transform:translate(-50%, 6px)  scale(.92); opacity:0; }
-    15%  { opacity:1; }
-    60%  { transform:translate(-50%, -16px) scale(1.0); opacity:1; }
-    100% { transform:translate(-50%, -32px) scale(1.02); opacity:0; }
-  }
-</style>
-
-<script type="application/ff-patch">
-/* Global floating +HP (overlay above tile). Replacement patch. */
-(function(){
-  try{
-    const cards = document.getElementById('cards');
-    if(!cards) return;
-
-    // Read tap gain from "123 HP / tap"
-    function getTapHP(card){
-      try{
-        const left = card.querySelector('.meta .muted');
-        if(!left) return null;
-        const m = (left.textContent||'').match(/([\d,.]+)\s*HP\s*\/\s*tap/i);
-        if(!m) return null;
-        const n = Math.floor(Number(m[1].replace(/,/g,'')));
-        return Number.isFinite(n) ? n : null;
-      }catch(_){ return null; }
-    }
-
-    function addFloatHPOver(tile, amount){
-      const rect = tile.getBoundingClientRect();
-      const x = rect.left + rect.width/2;
-      const y = rect.top + 10; // start near tile top
-
-      const el = document.createElement('div');
-      el.className = 'ff-floathp';
-      el.textContent = '+' + (amount ?? 1);
-      el.style.left = x + 'px';
-      el.style.top  = y + 'px';
-      document.body.appendChild(el);
-
-      const cleanup = ()=> el.remove();
-      el.addEventListener('animationend', cleanup, {once:true});
-      setTimeout(cleanup, 1200);
-    }
-
-    // Emit exactly one overlay float per tap (watch for your "burst-on" tap marker)
-    const FLAG='data-ff-float-global';
-    new MutationObserver(muts=>{
-      for(const m of muts){
-        if(m.type!=='attributes') continue;
-        const tile = m.target;
-        if(!tile.classList || !tile.classList.contains('tile')) continue;
-        if(!tile.classList.contains('burst-on')) continue;
-
-        const now = performance.now();
-        const last = Number(tile.getAttribute(FLAG) || 0);
-        if(now - last < 80) continue; // skip rapid duplicate fires
-        tile.setAttribute(FLAG, String(now));
-
-        const card = tile.closest('.card');
-        const hpAmt = getTapHP(card) ?? 1;
-        addFloatHPOver(tile, hpAmt);
-      }
-    }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
-  }catch(e){
-    console.warn('Global +HP overlay replacement patch error:', e);
-  }
-})();
-</script>
-
-  
 
 
 
 
-
-  
 
 
 <style data-ff-patch>
-  /* --- Low-latency polish --- */
+  /* Low-latency polish ///////////////////////////////////////HP FLOAT EFFECT/////////BUTTON EFFECTS AND SFX//////REMOVE CLICK SFX////////////*/
   .tile, .btn, .btn-reps{ will-change: transform; }
 
-  /* --- Bounce (generic; used by tiles & buttons) --- */
+  /* Bounce (used by tiles & buttons) */
   @keyframes ff-bounce {
     0% { transform: scale(0.98); }
     40%{ transform: scale(1.07); }
@@ -1523,7 +1411,7 @@ try{
     animation: ff-bounce 420ms cubic-bezier(.2,.8,.2,1);
   }
 
-  /* --- Tiny line burst (rays) inside the tile --- */
+  /* Tiny line burst (rays) inside the tile */
   .ff-rays{
     position:absolute; left:50%; top:50%;
     width:0; height:0; pointer-events:none;
@@ -1541,40 +1429,53 @@ try{
     20%  { opacity:1; }
     100% { transform: rotate(var(--deg)) translateY(-18px) scale(1); opacity:0; }
   }
+
+  /* Floating +HP overlay (above tiles, below menu) */
+  :root{
+    --float-male:#41b0ff;
+    --float-female:#ff76b5;
+  }
+  .ff-floathp{
+    position:fixed !important;   /* attach to viewport */
+    left:0; top:0;               /* exact px set inline */
+    transform:translate(-50%, 0);
+    z-index:35;                  /* > topbar (30), < menu (40+) */
+    font-weight:900;
+    font-size:18px;
+    color:var(--float-male);
+    text-shadow:0 1px 0 rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.35);
+    pointer-events:none;
+    user-select:none;
+    opacity:0;
+    animation: ff-floatHP 800ms ease-out forwards;
+    will-change: transform, opacity;
+  }
+  body.female .ff-floathp{ color:var(--float-female); }
+  @keyframes ff-floatHP{
+    0%   { transform:translate(-50%, 6px)  scale(.92); opacity:0; }
+    15%  { opacity:1; }
+    60%  { transform:translate(-50%, -16px) scale(1.0); opacity:1; }
+    100% { transform:translate(-50%, -32px) scale(1.02); opacity:0; }
+  }
 </style>
 
 <script type="application/ff-patch">
-/* Fast-click + tile FX + Reps bounce-on-purchase + MUTE SFX for tile taps only */
+/* Fast-click + tile SFX mute + single-shot tile FX (bounce+rays+floating HP) + Reps bounce-on-purchase */
 (function(){
   try{
     const cards = document.getElementById('cards');
     if(!cards) return;
 
-    /* -------------------- TILE-SFX MUTE SHIM --------------------
-       We temporarily mark tile taps, then mute the *next* WebAudio
-       beep by zeroing the GainNode at connect-time.
-       Reps button clicks are not marked -> their SFX still plays. */
+    /* ---------- TILE-SFX MUTE (leaves Reps SFX intact) ---------- */
     (function installMuteShim(){
       const MUTE_WIN_MS = 160;
       const markMute = ()=> { window.__FF_MUTE_TILE_SFX__ = performance.now(); };
 
-      // Mark on pointerdown/touchstart for tiles (before handlers run)
       const TILE_SEL = '.tile';
-      window.addEventListener('pointerdown', (e)=>{
-        const t = e.target.closest(TILE_SEL); if(t) markMute();
-      }, {capture:true, passive:true});
-      window.addEventListener('touchstart', (e)=>{
-        const t = e.target.closest(TILE_SEL); if(t) markMute();
-      }, {capture:true, passive:true});
-      // Keyboard taps (Space/Enter)
-      window.addEventListener('keydown', (e)=>{
-        if(e.code!=='Space' && e.code!=='Enter') return;
-        const t = e.target && e.target.closest && e.target.closest(TILE_SEL);
-        if(t) markMute();
-      }, {capture:true});
+      window.addEventListener('pointerdown', (e)=>{ if(e.target.closest(TILE_SEL)) markMute(); }, {capture:true, passive:true});
+      window.addEventListener('touchstart',  (e)=>{ if(e.target.closest(TILE_SEL)) markMute(); }, {capture:true, passive:true});
+      window.addEventListener('keydown',     (e)=>{ if((e.code==='Space'||e.code==='Enter') && e.target.closest && e.target.closest(TILE_SEL)) markMute(); }, {capture:true});
 
-      // Patch AudioContext/webkitAudioContext createGain to zero gain
-      // during the mute window (per-beep; no global audio impact)
       function patchCtx(Ctor){
         if(!Ctor || !Ctor.prototype) return;
         const orig = Ctor.prototype.createGain;
@@ -1584,10 +1485,8 @@ try{
           const origConnect = g.connect;
           g.connect = function(){
             try{
-              const stamp = window.__FF_MUTE_TILE_SFX__ || 0;
-              if (stamp && (performance.now() - stamp) < MUTE_WIN_MS){
-                try{ g.gain.value = 0; }catch(_){}
-              }
+              const t = window.__FF_MUTE_TILE_SFX__ || 0;
+              if(t && (performance.now() - t) < MUTE_WIN_MS){ try{ g.gain.value = 0; }catch(_){ } }
             }catch(_){}
             return origConnect.apply(this, arguments);
           };
@@ -1599,53 +1498,35 @@ try{
       patchCtx(window.webkitAudioContext);
     })();
 
-    /* -------------------- Fast-click accelerator -------------------- */
+    /* ---------- FAST CLICK (touch/pen) ---------- */
     (function fastClick(){
       const SELECTOR = '.tile, .btn, .ava, .tab, .menu-close, .bulk button, #avatar';
-
       function triggerFastClick(target){
         const stamp = Date.now();
         target.setAttribute('data-ff-fast-stamp', stamp);
-
-        // Fire synthetic click immediately
-        const ev = new MouseEvent('click', {bubbles:true, cancelable:true, view:window});
-        target.dispatchEvent(ev);
-
-        // Swallow the next trusted/native click within a short window
+        target.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true, view:window}));
         const swallow = (e)=>{
           const recent = (Date.now() - stamp) < 280;
           if(recent && e.isTrusted && (e.target===target || target.contains(e.target))){
-            e.stopImmediatePropagation();
-            e.preventDefault();
+            e.stopImmediatePropagation(); e.preventDefault();
             document.removeEventListener('click', swallow, true);
           }
         };
         document.addEventListener('click', swallow, true);
       }
-
-      // Pointer Events path
       window.addEventListener('pointerdown', (e)=>{
-        if(e.pointerType==='mouse') return;                 // mouse is already instant
-        const t = e.target.closest(SELECTOR);
-        if(!t) return;
-        triggerFastClick(t);
+        if(e.pointerType==='mouse') return;
+        const t = e.target.closest(SELECTOR); if(!t) return; triggerFastClick(t);
       }, {passive:true, capture:true});
-
-      // Touch fallback (older iOS)
       window.addEventListener('touchstart', (e)=>{
-        const t = e.target.closest(SELECTOR);
-        if(!t) return;
-        triggerFastClick(t);
+        const t = e.target.closest(SELECTOR); if(!t) return; triggerFastClick(t);
       }, {passive:true, capture:true});
     })();
 
-    /* -------------------- Visual helpers -------------------- */
+    /* ---------- Visual helpers ---------- */
     function bounce(el){
       if(!el) return;
-      el.classList.remove('ff-bounce');
-      // force reflow to restart animation
-      // eslint-disable-next-line no-unused-expressions
-      el.offsetHeight;
+      el.classList.remove('ff-bounce'); el.offsetHeight; // reflow
       el.classList.add('ff-bounce');
       el.addEventListener('animationend', ()=> el.classList.remove('ff-bounce'), {once:true});
     }
@@ -1662,36 +1543,64 @@ try{
       }
       setTimeout(()=> wrap.remove(), 420);
     }
+    function getTapHP(card){
+      try{
+        const left = card.querySelector('.meta .muted'); if(!left) return null;
+        const m = (left.textContent||'').match(/([\d,.]+)\s*HP\s*\/\s*tap/i);
+        if(!m) return null;
+        const n = Math.floor(Number(m[1].replace(/,/g,'')));
+        return Number.isFinite(n) ? n : null;
+      }catch(_){ return null; }
+    }
+    function floatHPOver(tile, amount){
+      const rect = tile.getBoundingClientRect();
+      const x = rect.left + rect.width/2;
+      const y = rect.top + 10;
+      const el = document.createElement('div');
+      el.className = 'ff-floathp';
+      el.textContent = '+' + (amount ?? 1);
+      el.style.left = x + 'px';
+      el.style.top  = y + 'px';
+      document.body.appendChild(el);
+      const cleanup = ()=> el.remove();
+      el.addEventListener('animationend', cleanup, {once:true});
+      setTimeout(cleanup, 1200);
+    }
 
-    /* -------------------- 1) Tile effects on tap -------------------- */
-    const TILE_FLAG='data-ff-lastfx';
+    /* ---------- SINGLE-SHOT TILE FX ---------- 
+       Fires exactly once when 'burst-on' is ADDED and won’t re-fire until it’s REMOVED. */
+    const LATCH = 'data-ff-fx-latch';
     new MutationObserver(muts=>{
       for(const m of muts){
         if(m.type!=='attributes') continue;
         const tile = m.target;
         if(!tile.classList || !tile.classList.contains('tile')) continue;
-        if(!tile.classList.contains('burst-on')) continue;
 
-        const now = performance.now();
-        const last = Number(tile.getAttribute(TILE_FLAG) || 0);
-        if(now - last < 60) continue; // ignore duplicates in same frame
-        tile.setAttribute(TILE_FLAG, String(now));
+        const has = tile.classList.contains('burst-on');
+        const latched = tile.getAttribute(LATCH)==='1';
 
-        bounce(tile);
-        rays(tile);
+        if(has && !latched){
+          // Latch + fire once
+          tile.setAttribute(LATCH,'1');
+          const card = tile.closest('.card');
+          const amt = getTapHP(card) ?? 1;
+          bounce(tile);
+          rays(tile);
+          floatHPOver(tile, amt);
+        } else if(!has && latched){
+          // Reset latch when burst-on is removed
+          tile.removeAttribute(LATCH);
+        }
       }
     }).observe(cards, {attributes:true, attributeFilter:['class'], subtree:true});
 
-    /* -------------------- 2) Reps button: bounce ONLY on confirmed purchase -------------------- */
+    /* ---------- REPS BUTTON: bounce ONLY on confirmed purchase ---------- */
     document.addEventListener('click', (e)=>{
-      const btn = e.target.closest('.card .meta .btn');
-      if(!btn) return;
-      const txt = (btn.textContent||'').trim();
-      if(!/^Reps\b/i.test(txt)) return;            // only Reps buttons
+      const btn = e.target.closest('.card .meta .btn'); if(!btn) return;
+      const txt = (btn.textContent||'').trim(); if(!/^Reps\b/i.test(txt)) return;
 
       const card = btn.closest('.card');
-      const repEl = card?.querySelector('.repband .reptext');
-      if(!repEl) return;
+      const repEl = card?.querySelector('.repband .reptext'); if(!repEl) return;
 
       const parseRep = (s)=> parseInt(String(s||'0').split('/')[0].replace(/\D/g,''), 10) || 0;
       const before = parseRep(repEl.textContent);
@@ -1700,23 +1609,18 @@ try{
       const obs = new MutationObserver(()=>{
         const after = parseRep(repEl.textContent);
         if(!bounced && after > before){
-          bounced = true;
-          obs.disconnect();
-          bounce(btn);
+          bounced = true; obs.disconnect(); bounce(btn);
         }
       });
       obs.observe(repEl, {characterData:true, childList:true, subtree:true});
       setTimeout(()=> obs.disconnect(), 600); // fail-safe
-    }, true); // capture so observer starts before core handler runs
+    }, true);
 
   }catch(e){
-    console.warn('fast-click + tile/reps FX + tile SFX mute patch error:', e);
+    console.warn('single-shot FX patch error:', e);
   }
 })();
 </script>
-
-
-
 
 
 
