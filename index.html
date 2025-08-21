@@ -4003,33 +4003,35 @@ try{
 
 
 <script type="application/ff-patch">
-/* Coach Offered Affordable SFX (adds to existing Coach Available VO) */
+/* ===== Coach SFX Fix v8 — gesture-gated "Available/Offered" + solid "Hired" =====
+   Keep your v7 SFX patch. REMOVE any earlier "Coach Offered Affordable" add-on.
+   This patch only handles: Available (male), Offered, Hired — reliably on mobile & desktop.
+=============================================================================== */
 (function(){
   try{
-    if (window.__FF_COACH_OFFER_SFX_V1__) return;
-    window.__FF_COACH_OFFER_SFX_V1__ = true;
+    if (window.__FF_COACH_SFX_V8__) return;
+    window.__FF_COACH_SFX_V8__ = true;
 
     const $  = (s, r=document)=> r.querySelector(s);
     const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
     const RAW = (u)=> u.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,
                                 'https://raw.githubusercontent.com/$1/$2/$3');
 
-    /* small, gesture-safe audio pool */
-    function makePool(url, n=3, vol=1.0){
+    /* --- tiny gesture-safe pools (local, independent of v7) --- */
+    function pool(url, n=3, vol=1.0){
       const src = RAW(url);
       const arr = Array.from({length:n}, ()=>{
         const a=new Audio(src);
-        a.preload='auto';
-        a.crossOrigin='anonymous';
-        a.volume=vol;
+        a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol;
         try{ a.load(); }catch(_){}
         return a;
       });
       let i=0;
       function next(){ return arr[i++%arr.length]; }
       return {
-        playSafe(target=document){
-          const a=next(); try{a.currentTime=0;}catch(_){}
+        play(){ const a=next(); try{a.currentTime=0;}catch(_){}
+          const p=a.play(); if(p&&p.catch) p.catch(()=>{}); },
+        playSafe(target=document){ const a=next(); try{a.currentTime=0;}catch(_){}
           const p=a.play();
           if(p && p.catch){
             p.catch(()=>{
@@ -4044,79 +4046,133 @@ try{
       };
     }
 
-    /* your new sting */
-    const SFX_COACH_OFFER = makePool(
-      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-offered-affordable.mp3",
-      3, 1.0
-    );
+    /* --- assets --- */
+    const SFX_AVAIL  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",4,1.0);
+    const SFX_OFFER  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-offered-affordable.mp3",4,1.0);
+    const SFX_HIRED  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3",3,1.0);
 
     const menu = $('#menu');
+    const tabs = $('.menu-tabs', menu);
     const body = $('#menu-body');
-    if(!menu || !body) return;
+    const avatarDot = $('#avatar-dot');
 
-    const offeredPlayed = new Set(); // key by exercise name
+    if(!menu || !tabs || !body) return;
+
+    /* --- helpers --- */
+    let sessionId = 0;
+    let sessionPlayedAvail = false;                 // once per Coaches tab session
+    const playedKeys = new Set();                   // exercise-name keys per session
 
     function coachesTabActive(){
       const t = $('.menu-tabs .tab[data-tab="coaches"]', menu);
       return menu.classList.contains('show') && t && t.classList.contains('active');
     }
-
+    function anyGlowInMenu(){ return !!$('.coach-row .btn.glow', body); }
+    function avatarDotOn(){
+      if(!avatarDot) return false;
+      const s = getComputedStyle(avatarDot);
+      return s && s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+    }
     function rowKey(row){
       const sub=row.querySelector('.coach-sub'); if(!sub) return null;
       const m=(sub.textContent||'').match(/Works on:\s*(.+)\s*$/i);
-      return m ? m[1].trim() : null; // use exercise name as stable key
+      return m ? m[1].trim() : null;
+    }
+    function layerAvailableOffer(target){
+      // layer the two; VO first, sting slightly after
+      SFX_AVAIL.play(); setTimeout(()=> SFX_OFFER.playSafe(target||menu), 90);
+    }
+    function resetSession(){
+      sessionId++; sessionPlayedAvail = false; playedKeys.clear();
     }
 
-    function maybePlayOffer(row){
+    /* --- 1) Fire on Coaches tab pointerdown if affordable is implied (gesture path) --- */
+    tabs.addEventListener('pointerdown', (e)=>{
+      const t = e.target.closest && e.target.closest('.tab[data-tab="coaches"]');
+      if(!t || t.classList.contains('active')) return;
+      // We’re still handling the gesture here. If the green dot is on (global afford)
+      // or the current DOM already has a glowing Hire (tab may already be rendered),
+      // play immediately inside the gesture.
+      if(!sessionPlayedAvail && (avatarDotOn() || anyGlowInMenu())){
+        sessionPlayedAvail = true;
+        layerAvailableOffer(tabs);
+      }
+      // After the tab actually activates, start a fresh session scope
+      setTimeout(()=>{ if(coachesTabActive()) resetSession(); }, 0);
+    }, {capture:true, passive:true});
+
+    /* --- 2) When menu opens on Coaches (e.g., returning to that tab), seed session --- */
+    new MutationObserver(()=>{ if(coachesTabActive()) resetSession(); })
+      .observe(menu, {attributes:true, attributeFilter:['class']});
+
+    /* --- 3) DOM-based detection while on Coaches: initial glow & new glow --- */
+    function scanRow(row, initial=false){
       if(!coachesTabActive()) return;
       const key = rowKey(row); if(!key) return;
-      const btn = row.querySelector('button.btn'); if(!btn) return;
-      if(btn.classList.contains('glow') && !offeredPlayed.has(key)){
-        offeredPlayed.add(key);
-        // slight stagger under the VO so they layer nicely
-        setTimeout(()=> SFX_COACH_OFFER.playSafe(menu), 80);
+      const btn = row.querySelector('button.btn');
+      const hiredNow = !!row.querySelector('.hired');
+
+      // Initial glow (first time we see this row affordable this session)
+      if(btn && btn.classList.contains('glow') && !playedKeys.has(key)){
+        playedKeys.add(key);
+        // If we haven’t played a session-level “available” yet, layer it now
+        if(!sessionPlayedAvail){
+          sessionPlayedAvail = true;
+          layerAvailableOffer(menu);
+        }else{
+          // otherwise still play the sting for this new affordable row
+          SFX_OFFER.playSafe(menu);
+        }
+      }
+
+      // Hired: only when user taps a glowing button; we also add fallback on flip
+      // (Handled below on pointerdown; here’s the flip fallback)
+      if(hiredNow && !row.hasAttribute('data-ff-hire-seen')){
+        row.setAttribute('data-ff-hire-seen','1');
+        SFX_HIRED.play();
+      }
+      if(!hiredNow && row.hasAttribute('data-ff-hire-seen')){
+        row.removeAttribute('data-ff-hire-seen'); // allow future hires if UI reuses row
       }
     }
+    function scanAll(initial=false){ $$('.coach-row', body).forEach(r=> scanRow(r, initial)); }
 
-    function scanAll(){ $$('.coach-row', body).forEach(maybePlayOffer); }
-
-    // Observe glow flips + new rows
     const mo = new MutationObserver((muts)=>{
       if(!coachesTabActive()) return;
       muts.forEach(m=>{
         if(m.type==='childList'){
           m.addedNodes.forEach(n=>{
             if(!(n instanceof HTMLElement)) return;
-            if(n.classList.contains('coach-row')) maybePlayOffer(n);
-            $$('.coach-row', n).forEach(maybePlayOffer);
+            if(n.classList.contains('coach-row')) scanRow(n, true);
+            $$('.coach-row', n).forEach(r=> scanRow(r, true));
           });
         }
         if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
-          if(m.target.matches('.coach-row .btn')) maybePlayOffer(m.target.closest('.coach-row'));
+          if(m.target.matches('.coach-row .btn')) scanRow(m.target.closest('.coach-row'));
         }
       });
     });
     mo.observe(body, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
 
-    // Kick scans when opening menu and on tab switches
-    new MutationObserver(()=>{ if(coachesTabActive()) setTimeout(scanAll, 0); })
-      .observe(menu, {attributes:true, attributeFilter:['class']});
-    const tabsWrap = $('.menu-tabs', menu);
-    if(tabsWrap){
-      ['pointerdown','click'].forEach(t=>{
-        tabsWrap.addEventListener(t, ()=> setTimeout(()=>{ if(coachesTabActive()) scanAll(); }, 0),
-                                  {capture:true, passive:true});
-      });
-    }
-    // initial check
-    setTimeout(()=>{ if(coachesTabActive()) scanAll(); }, 0);
+    // Also poll lightly while the Coaches tab is active to catch silent DOM swaps
+    setInterval(()=>{ if(coachesTabActive()) scanAll(); }, 700);
+
+    /* --- 4) Immediate "Hire" on press (gesture path; affordable only) --- */
+    body.addEventListener('pointerdown', (e)=>{
+      if(!coachesTabActive()) return;
+      const btn = e.target.closest && e.target.closest('.coach-row .btn');
+      if(!btn) return;
+      if(!btn.classList.contains('glow')) return;
+      // gesture-safe hire SFX
+      SFX_HIRED.play();
+    }, {capture:true, passive:true});
 
   }catch(e){
-    console.warn('Coach Offer SFX patch error:', e);
+    console.warn('Coach SFX Fix v8 error:', e);
   }
 })();
 </script>
-  
+
 
 
 
