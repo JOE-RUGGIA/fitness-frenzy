@@ -4061,6 +4061,158 @@ try{
 
   
 
+
+
+
+<script type="application/ff-patch">
+/* SFX reliability booster — Exercise Tap / Reps Purchase / Unlock / Level Up */
+(function(){
+  try{
+    if (window.__FF_SFX_RELIABILITY_V1__) return;
+    window.__FF_SFX_RELIABILITY_V1__ = true;
+
+    const cardsRoot = document.getElementById('cards');
+    if(!cardsRoot) return;
+
+    const play = (k,g)=>{ try{ window.FFSFX && FFSFX.play && FFSFX.play(k,g); }catch(_){} };
+
+    /* ---------- Exercise Tap: fire on pointerdown + click, with readiness check ---------- */
+    function exIndexFromCard(card){
+      const title = card.querySelector('.title')?.textContent?.trim();
+      if(!title || typeof Exercises==='undefined') return -1;
+      return Exercises.findIndex(x=> x && x.name === title);
+    }
+    function isTileReady(idx){
+      try{
+        if(typeof get!=='function') return false;
+        const s = get();
+        const ex = s.exercises[idx];
+        if(!ex || !ex.unlocked) return false;
+        if(!ex.lastTapAt) return true;
+        return performance.now() >= (ex.lastTapAt + (ex.cooldown||0));
+      }catch(_){ return false; }
+    }
+    function onTilePress(e){
+      const tile = e.target && e.target.closest && e.target.closest('.tile');
+      if(!tile) return;
+      const card = tile.parentElement;
+      const idx = exIndexFromCard(card);
+      if(idx<0) { play('exercise_tap', 25); return; } // best effort
+
+      if(isTileReady(idx)) play('exercise_tap', 25);
+      else                 play('error_ping',   160);
+    }
+    cardsRoot.addEventListener('pointerdown', onTilePress, {capture:true, passive:true});
+    cardsRoot.addEventListener('click',       onTilePress, {capture:true});
+
+    /* ---------- Reps Purchase / Unlock / Level Up: compare state before/after ---------- */
+    cardsRoot.addEventListener('pointerdown', (e)=>{
+      const btn = e.target && e.target.closest && e.target.closest('.card .btn');
+      if(!btn) return;
+      const card = btn.closest('.card'); if(!card) return;
+      const idx  = exIndexFromCard(card); if(idx<0) return;
+
+      const isReps   = /reps/i.test(btn.textContent||'');
+      const isUnlock = /unlock/i.test(btn.textContent||'');
+
+      let ex0=null, s0=null;
+      try{ s0=get(); ex0=s0.exercises[idx]; }catch(_){}
+
+      const check = ()=>{
+        try{
+          const s1=get(), ex1=s1.exercises[idx];
+          if(!ex0 || !ex1) return;
+
+          // Unlock
+          if(isUnlock && !ex0.unlocked && ex1.unlocked){
+            play('unlock_exercise', 90);
+            return;
+          }
+
+          // Reps purchase (+ chained cues)
+          if(isReps && (ex1.repHP > ex0.repHP)){
+            play('reps_purchase_ok', 50);
+
+            if((ex1.level|0) > (ex0.level|0)){
+              setTimeout(()=> play('level_up', 40), 60);
+            }
+            if((ex1.cooldown||0) < (ex0.cooldown||0)){
+              setTimeout(()=> play('cooldown_halved', 40), 110);
+            }
+          }
+        }catch(_){}
+      };
+      requestAnimationFrame(check);   // main path
+      setTimeout(check, 90);          // Safari/low-FPS safety
+    }, {capture:true, passive:true});
+
+    /* ---------- Extra safety: react to DOM changes too ---------- */
+
+    // A) Unlock when tile loses .locked
+    const seenUnlocked = new WeakSet();
+    const tileClassObs = new MutationObserver((muts)=>{
+      for(const m of muts){
+        if(m.type==='attributes' && m.attributeName==='class'){
+          const tile = m.target;
+          if(!(tile instanceof HTMLElement)) continue;
+          if(!tile.classList.contains('tile')) continue;
+          if(!tile.classList.contains('locked') && !seenUnlocked.has(tile)){
+            seenUnlocked.add(tile);
+            play('unlock_exercise', 120);
+          }
+        }
+      }
+    });
+    // watch all tiles (existing + future)
+    cardsRoot.querySelectorAll('.tile').forEach(t=> tileClassObs.observe(t,{attributes:true, attributeFilter:['class']}));
+    new MutationObserver((muts)=>{
+      muts.forEach(mu=>{
+        mu.addedNodes && mu.addedNodes.forEach(n=>{
+          if(!(n instanceof HTMLElement)) return;
+          n.querySelectorAll?.('.tile').forEach(t=> tileClassObs.observe(t,{attributes:true, attributeFilter:['class']}));
+        });
+      });
+    }).observe(cardsRoot, {childList:true, subtree:true});
+
+    // B) Level-up when .lvl text increments
+    const lastLvl = new WeakMap();
+    const lvlObs = new MutationObserver((muts)=>{
+      for(const m of muts){
+        const el = (m.target.nodeType===3 ? m.target.parentElement : m.target);
+        if(!el) continue;
+        const row = el.closest && el.closest('.card'); if(!row) continue;
+        const lvlEl = row.querySelector('.lvl'); if(!lvlEl) continue;
+        const cur = parseInt((lvlEl.textContent||'').replace(/\D+/g,''))||1;
+        const prev = lastLvl.get(lvlEl);
+        if(prev!=null && cur>prev) play('level_up', 60);
+        lastLvl.set(lvlEl, cur);
+      }
+    });
+    // seed + observe existing
+    cardsRoot.querySelectorAll('.card .lvl').forEach(l=>{
+      const n = parseInt((l.textContent||'').replace(/\D+/g,''))||1;
+      lastLvl.set(l,n);
+      lvlObs.observe(l, {childList:true, characterData:true, subtree:true});
+    });
+    // watch future cards
+    new MutationObserver((muts)=>{
+      muts.forEach(mu=>{
+        mu.addedNodes && mu.addedNodes.forEach(n=>{
+          if(!(n instanceof HTMLElement)) return;
+          n.querySelectorAll?.('.card .lvl').forEach(l=>{
+            const nval = parseInt((l.textContent||'').replace(/\D+/g,''))||1;
+            lastLvl.set(l,nval);
+            lvlObs.observe(l, {childList:true, characterData:true, subtree:true});
+          });
+        });
+      });
+    }).observe(cardsRoot, {childList:true, subtree:true});
+
+  }catch(e){
+    console.warn('SFX reliability booster error:', e);
+  }
+})();
+</script>
   
   
 
