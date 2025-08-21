@@ -3670,32 +3670,29 @@ try{
 
 
 <script type="application/ff-patch">
-/* ================= SFX Patch v5 — mobile-fast, tab-gated, no legacy bleeps =================
-   - Reps SFX: pointerdown (instant), quieter on mobile, purchase de-duped on click
-   - Menu/Avatar SFX: de-duped (no doubles)
-   - Tabs SFX: always plays on tab switch
-   - Bulk SFX: reliable; legacy bleeps fully muted
-   - Coach Available: MALE-ONLY, fires on glow+initial scan, ONLY when Coaches tab is active
-   - Coach Hired: fires on real row flip to "Hired" (+poll fallback), ONLY in Coaches tab
-   - Level Up: robust (mutation + 250ms poll)
-   - Unlock Exercise: single-fire on locked→unlocked
-============================================================================================= */
+/* ================= SFX Patch v6 — mobile-solid, no false hires, reliable avail =================
+   Fixes:
+   - Mobile: coach hire SFX when selecting Coaches tab (removed)
+   - Coach available SFX (male only) now plays reliably (initial glow + new glow)
+   - Reps SFX volume reduced (mobile & desktop), faster response
+   - Menu close SFX de-duped (no double/triple on mobile)
+   - Start/Menu SFX clean; Level Up robust
+============================================================================================== */
 (function(){
   try{
-    if (window.__FF_SFX_V5__) return;
-    window.__FF_SFX_V5__ = true;
+    if (window.__FF_SFX_V6__) return;
+    window.__FF_SFX_V6__ = true;
 
     const $  = (s, r=document)=> r.querySelector(s);
     const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
     const RAW = (u)=> u.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,'https://raw.githubusercontent.com/$1/$2/$3');
     const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
 
-    /* ---------- 0) Global legacy bleep silencer (covers web-audio beeps during UI) ---------- */
+    /* ---------- 0) Kill legacy bleeps during UI interactions ---------- */
     (function(){
       const AC = window.AudioContext || window.webkitAudioContext;
-      if(!AC || AC.prototype.__ffMutePatchedV5) return;
-      AC.prototype.__ffMutePatchedV5 = true;
-
+      if(!AC || AC.prototype.__ffMutePatchedV6) return;
+      AC.prototype.__ffMutePatchedV6 = true;
       const origCreateGain = AC.prototype.createGain;
       AC.prototype.createGain = function(){
         const g = origCreateGain.call(this);
@@ -3710,28 +3707,25 @@ try{
         };
         return g;
       };
+      // Safety: also neuter old helpers if they exist
+      try{ if(window.SFX){ SFX.ok=()=>{}; SFX.click=()=>{}; } }catch(_){}
     })();
-
-    function muteBleeps(ms=320){ window.__FF_MUTE_BLEEPNOW_UNTIL = performance.now()+ms; }
+    function muteBleeps(ms=340){ window.__FF_MUTE_BLEEPNOW_UNTIL = performance.now()+ms; }
     function armBleepMute(rootSel, sel){
       const root = $(rootSel); if(!root) return;
-      // Mute on both pointerdown & click (capture), before game SFX runs
       ['pointerdown','click'].forEach(type=>{
         root.addEventListener(type, (e)=>{
           if(e.target?.closest && e.target.closest(sel)) muteBleeps(360);
         }, {capture:true});
       });
     }
-    armBleepMute('#cards', '.card .btn');       // Reps/Unlock
-    armBleepMute('#bulk',  'button');           // ×1 ×10 ×100
+    armBleepMute('#cards', '.card .btn');               // Reps/Unlock
+    armBleepMute('#bulk',  'button');                   // ×1/×10/×100
     armBleepMute('#menu',  '.tab, .menu-close, [data-close]');
-    armBleepMute('#menu-body', '.coach-row .btn'); // Hire
+    armBleepMute('#menu-body', '.coach-row .btn');      // Hire
 
-    // Also explicitly neuter the old helpers if present
-    try{ if(window.SFX){ SFX.ok=()=>{}; SFX.click=()=>{}; } }catch(_){}
-
-    /* ---------- 1) Fast HTML5 audio pools ---------- */
-    function pool(url, n=3, vol=1.0){
+    /* ---------- 1) Fast audio pools + gesture-safe play ---------- */
+    function makePool(url, n=3, vol=1.0){
       const src = RAW(url);
       const arr = Array.from({length:n}, ()=>{
         const a=new Audio(src);
@@ -3740,63 +3734,85 @@ try{
         return a;
       });
       let i=0;
-      return { play(){ const a=arr[i++%arr.length]; try{a.currentTime=0;}catch(_){}
-        const p=a.play(); if(p&&p.catch) p.catch(()=>{}); } };
+      function next(){ return arr[i++%arr.length]; }
+      return {
+        play(){
+          const a=next(); try{a.currentTime=0;}catch(_){}
+          const p=a.play(); if(p&&p.catch) p.catch(()=>{});
+        },
+        playSafe(target=document){
+          const a=next(); try{a.currentTime=0;}catch(_){}
+          const p=a.play();
+          if(p && typeof p.then==='function'){
+            p.catch(()=>{
+              const once=()=>{ target.removeEventListener('pointerdown', once, true);
+                               target.removeEventListener('touchstart', once, true);
+                               a.play().catch(()=>{}); };
+              target.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+              target.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+            });
+          }
+        }
+      };
     }
 
-    /* ---------- 2) SFX assets (mobile volumes tuned) ---------- */
-    const VOL_REPS = IS_TOUCH ? 0.55 : 0.80;
-    const SFX_START_BTN     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0);
-    const SFX_OPEN_MENU     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0);
-    const SFX_SWITCH_TABS   = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",3,1.0);
-    const SFX_CLOSE_MENU    = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",2,1.0);
-    const SFX_COACH_AVAIL_M = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",3,1.0); // male only per request
-    const SFX_COACH_HIRED   = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3",2,1.0);
-    const SFX_REPS          = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",3,VOL_REPS);
-    const SFX_UNLOCK        = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",2,1.0);
-    const SFX_LEVEL_UP      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",3,1.0);
-    const SFX_BULK          = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",2,1.0);
-    const SFX_OFF_OPEN      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",2,1.0);
-    const SFX_OFF_CLAIM     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0);
-    const SFX_ACH           = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0);
+    /* ---------- 2) Assets (volumes tuned) ---------- */
+    const VOL_REPS = IS_TOUCH ? 0.28 : 0.45;  // quieter per request
+    const SFX_START_BTN     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0);
+    const SFX_OPEN_MENU     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0);
+    const SFX_SWITCH_TABS   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",3,1.0);
+    const SFX_CLOSE_MENU    = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",2,1.0);
+    const SFX_COACH_AVAIL_M = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",3,1.0); // male only
+    const SFX_COACH_HIRED   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3",2,1.0);
+    const SFX_REPS          = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",5,VOL_REPS);
+    const SFX_UNLOCK        = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",2,1.0);
+    const SFX_LEVEL_UP      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",3,1.0);
+    const SFX_BULK          = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",2,1.0);
+    const SFX_OFF_OPEN      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",2,1.0);
+    const SFX_OFF_CLAIM     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0);
+    const SFX_ACH           = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0);
 
-    /* ---------- 3) Tiny per-element de-duper ---------- */
-    function dedupe(el, win=250){
+    /* ---------- 3) Per-element de-duper ---------- */
+    function dedupe(el, win=220){
       const K='data-ff-lastpd';
       const now=performance.now(), last=+(el.getAttribute(K)||0);
       if(now-last<win) return true;
-      el.setAttribute(K,String(now)); return false;
+      el.setAttribute(K,String(now));
+      return false;
     }
 
     /* ---------- 4) Start buttons ---------- */
     (function(){
-      const n = $('#btn-new'), c=$('#btn-continue');
+      const n=$('#btn-new'), c=$('#btn-continue');
       [n,c].forEach(b=>{
         if(!b) return;
-        b.addEventListener('pointerdown', ()=>{ if(dedupe(b,220)) return; SFX_START_BTN.play(); }, {capture:true, passive:true});
+        b.addEventListener('pointerdown', ()=>{ if(dedupe(b,200)) return; SFX_START_BTN.play(); }, {capture:true, passive:true});
       });
     })();
 
-    /* ---------- 5) Menu open/close ---------- */
+    /* ---------- 5) Menu open/close (close de-duped globally) ---------- */
     (function(){
-      const avatar = $('#avatar'), menu=$('#menu');
+      const avatar=$('#avatar'), menu=$('#menu');
       if(avatar){
-        avatar.addEventListener('pointerdown', ()=>{ if(dedupe(avatar,240)) return; SFX_OPEN_MENU.play(); }, {capture:true, passive:true});
+        avatar.addEventListener('pointerdown', ()=>{ if(dedupe(avatar,220)) return; SFX_OPEN_MENU.play(); }, {capture:true, passive:true});
       }
       if(menu){
-        menu.addEventListener('click', (e)=>{
-          const close = e.target.closest?.('[data-close], .menu-close');
-          if(close) SFX_CLOSE_MENU.play();
-        }, {capture:true});
+        let lastCloseTs=0;
+        menu.addEventListener('pointerdown', (e)=>{
+          const close = e.target.closest?.('[data-close], .menu-close, .menu-backdrop');
+          if(!close) return;
+          const now=performance.now(); if(now-lastCloseTs<260) return;
+          lastCloseTs=now; SFX_CLOSE_MENU.play();
+        }, {capture:true, passive:true});
       }
     })();
 
-    /* ---------- 6) Tabs & Toggles (always fires on switch) ---------- */
+    /* ---------- 6) Tabs & Toggles ---------- */
     (function(){
-      const menu = $('#menu'), body=$('#menu-body');
+      const menu=$('#menu'), body=$('#menu-body');
       if(menu){
         menu.addEventListener('pointerdown', (e)=>{
-          const tab = e.target.closest?.('.tab'); if(!tab) return;
+          const tab=e.target.closest?.('.tab'); if(!tab) return;
           if(tab.classList.contains('active')) return;
           if(dedupe(tab,150)) return;
           SFX_SWITCH_TABS.play();
@@ -3810,71 +3826,69 @@ try{
       }
     })();
 
-    /* ---------- 7) Bulk selector (no lag, no old bleep) ---------- */
+    /* ---------- 7) Bulk selector ---------- */
     (function(){
-      const bulk = $('#bulk'); if(!bulk) return;
+      const bulk=$('#bulk'); if(!bulk) return;
       let last = bulk.querySelector('button.active')?.dataset.q || null;
       bulk.addEventListener('pointerdown', (e)=>{
         const btn=e.target.closest?.('button'); if(!btn) return;
-        if(dedupe(btn,160)) return;
-        setTimeout(()=>{ // allow active flip
-          const cur = bulk.querySelector('button.active')?.dataset.q || null;
+        if(dedupe(btn,120)) return;
+        setTimeout(()=>{
+          const cur=bulk.querySelector('button.active')?.dataset.q || null;
           if(cur && cur!==last){ last=cur; SFX_BULK.play(); }
         },0);
       }, {capture:true, passive:true});
     })();
 
-    /* ---------- 8) Reps / Unlock: instant SFX on pointerdown, purchase de-dupe on click ---------- */
+    /* ---------- 8) Reps / Unlock (instant, quiet, sensitive) ---------- */
     (function(){
-      const cards = $('#cards'); if(!cards) return;
+      const cards=$('#cards'); if(!cards) return;
 
-      // Instant SFX on pointerdown for responsiveness
+      // Instant SFX on pointerdown, very small dedupe window for mobile
       cards.addEventListener('pointerdown', (e)=>{
-        const btn = e.target.closest?.('.card .btn'); if(!btn) return;
-        if(dedupe(btn,60)) return; // avoid multi-fires on touch
-        const card = btn.closest('.card'); const tile=card?.querySelector('.tile');
-        const isLocked = tile?.classList.contains('locked');
-        if(!isLocked){
-          if(btn.classList.contains('glow')) SFX_REPS.play();
-        }
+        const btn=e.target.closest?.('.card .btn'); if(!btn) return;
+        if(dedupe(btn,30)) return;
+        const card=btn.closest('.card'); const tile=card?.querySelector('.tile');
+        const isLocked=tile?.classList.contains('locked');
+        if(!isLocked && btn.classList.contains('glow')) SFX_REPS.play();
       }, {capture:true, passive:true});
 
-      // Prevent double purchases from touch/click blend, but allow true fast taps
-      const WIN = 30; // very small window; just eats the synthesized second click
+      // Click de-dupe just to eat synthesized second click from touch
       cards.addEventListener('click', (e)=>{
-        const btn = e.target.closest?.('.card .btn'); if(!btn) return;
+        const btn=e.target.closest?.('.card .btn'); if(!btn) return;
         const K='data-ff-lastclick'; const now=performance.now(); const last=+(btn.getAttribute(K)||0);
-        if(now-last<WIN){ e.stopImmediatePropagation(); e.preventDefault(); return; }
+        if(now-last<20){ e.stopImmediatePropagation(); e.preventDefault(); return; }
         btn.setAttribute(K,String(now));
       }, true);
     })();
 
-    /* ---------- 9) Unlock Exercise: single-fire on locked→unlocked ---------- */
+    /* ---------- 9) Unlock Exercise: locked→unlocked ---------- */
     (function(){
       const cards=$('#cards'); if(!cards) return;
-      const mo = new MutationObserver((muts)=>{
+      new MutationObserver((muts)=>{
         muts.forEach(m=>{
           if(m.type==='attributes' && m.attributeName==='class'){
             const el=m.target; if(!(el instanceof HTMLElement)) return;
             if(!el.classList.contains('tile')) return;
-            const was=m.oldValue||''; const nowLocked=el.classList.contains('locked');
-            if(/\blocked\b/.test(was) && !nowLocked && !el.hasAttribute('data-ff-unlocked')){
-              el.setAttribute('data-ff-unlocked','1'); SFX_UNLOCK.play();
+            const was=m.oldValue||'';
+            if(/\blocked\b/.test(was) && !el.classList.contains('locked') && !el.hasAttribute('data-ff-unlocked')){
+              el.setAttribute('data-ff-unlocked','1');
+              SFX_UNLOCK.play();
             }
           }
         });
-      });
-      mo.observe(cards,{subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
+      }).observe(cards,{subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
     })();
 
-    /* ---------- 10) Level Up (mutation + 250ms poll) ---------- */
+    /* ---------- 10) Level Up: mutation + poll ---------- */
     (function(){
       const cards=$('#cards'); if(!cards) return;
-      const last = new WeakMap();
-      function level(el){ const m=(el.textContent||'').match(/Lvl\s+(\d+)/i); return m?+m[1]:null; }
+      const last=new WeakMap();
+      function lvl(el){ const m=(el.textContent||'').match(/Lvl\s+(\d+)/i); return m?+m[1]:null; }
       function scan(el){
-        const cur=level(el); if(cur==null) return;
-        const prev=last.get(el); if(prev!=null && cur>prev) SFX_LEVEL_UP.play();
+        const cur=lvl(el); if(cur==null) return;
+        const prev=last.get(el);
+        if(prev!=null && cur>prev) SFX_LEVEL_UP.play();
         last.set(el, cur);
       }
       $$('.card .lvl', cards).forEach(scan);
@@ -3895,18 +3909,16 @@ try{
       setInterval(()=> $$('.card .lvl', cards).forEach(scan), 250);
     })();
 
-    /* ---------- 11) Coaches (tab-gated): Available (male-only) + Hired ---------- */
+    /* ---------- 11) Coaches: MALE-ONLY Available + true Hire transitions ---------- */
     (function(){
-      const menu = $('#menu'), body = $('#menu-body'); if(!menu || !body) return;
+      const menu=$('#menu'), body=$('#menu-body'); if(!menu || !body) return;
 
-      function coachesTabActive(){
-        return menu.classList.contains('show') &&
-               !!$('.menu-tabs .tab[data-tab="coaches"].active', menu);
-      }
+      function menuOpen(){ return menu.classList.contains('show'); }
 
-      const nameToIdx = new Map();
+      // Build ExerciseName -> idx map
+      const nameToIdx=new Map();
       try{
-        if (Array.isArray(window.Exercises)) Exercises.forEach((ex,i)=> nameToIdx.set(ex.name,i));
+        if(Array.isArray(window.Exercises)) Exercises.forEach((ex,i)=> nameToIdx.set(ex.name,i));
         else [
           'Walking','Jogging','Sit-ups','Push-ups','Jumping Jacks','Pull-ups','Jump Rope','Plank',
           'Mountain Climbers','Kettlebell','Burpees','Bench Press','Back Squat','Deadlift',
@@ -3917,87 +3929,84 @@ try{
       function idxFromRow(row){
         const sub=row.querySelector('.coach-sub'); if(!sub) return null;
         const m=(sub.textContent||'').match(/Works on:\s*(.+)\s*$/i);
-        const name=m?m[1].trim():null; const idx=nameToIdx.get(name);
+        const name=m?m[1].trim():null;
+        const idx=nameToIdx.get(name);
         return (idx==null? null: idx);
       }
 
-      const availPlayed = new Set();    // by idx
-      const hiredFlag   = new WeakMap(); // row -> boolean
+      const availPlayed = new Set();      // per exercise idx
+      const rowHired    = new WeakMap();  // row -> boolean (seeded!)
+      const rowInited   = new WeakMap();  // row -> true once scanned (prevents initial false "hire")
 
-      function scanRow(row){
-        if(!coachesTabActive()) return;  // hard gate to Coaches tab
+      function scanRow(row, opts={initial:false}){
+        if(!menuOpen()) return; // only when menu visible
         const idx = idxFromRow(row); if(idx==null) return;
-        const btn = row.querySelector('button.btn');
+
+        const btn   = row.querySelector('button.btn');
         const hired = !!row.querySelector('.hired');
 
-        // Available: first time we see glow on this idx
+        // Seed hire state on first-ever see, so we DON'T play hire on initial render
+        if(!rowInited.get(row)){
+          rowInited.set(row, true);
+          rowHired.set(row, hired);
+          // But DO allow "available" to speak if glow is already present
+          if(btn && btn.classList.contains('glow') && !availPlayed.has(idx)){
+            availPlayed.add(idx);
+            SFX_COACH_AVAIL_M.playSafe(menu);
+          }
+          return;
+        }
+
+        // Available: when glow appears and hasn't spoken for this exercise yet
         if(btn && btn.classList.contains('glow') && !availPlayed.has(idx)){
           availPlayed.add(idx);
-          SFX_COACH_AVAIL_M.play(); // male only per request
+          SFX_COACH_AVAIL_M.playSafe(menu);
         }
 
-        // Hired: transition detection per row
-        const wasHired = !!hiredFlag.get(row);
+        // Hire: only on transition from not-hired → hired
+        const wasHired = !!rowHired.get(row);
         if(!wasHired && hired){
-          hiredFlag.set(row, true);
+          rowHired.set(row, true);
           SFX_COACH_HIRED.play();
         }else if(!hired){
-          hiredFlag.set(row, false);
+          rowHired.set(row, false);
         }
       }
 
-      function scanAll(){ $$('.coach-row', body).forEach(scanRow); }
+      function scanAll(initial=false){ $$('.coach-row', body).forEach(r=> scanRow(r,{initial})); }
 
-      // Observe only while Coaches tab is active (prevents false triggers from Achievements)
-      let observing = false;
-      let mo = null;
-      function startObserve(){
-        if(observing) return;
-        observing = true;
-        mo = new MutationObserver((muts)=>{
-          muts.forEach(m=>{
-            if(m.type==='childList'){
-              m.addedNodes.forEach(n=>{
-                if(n instanceof HTMLElement){
-                  if(n.classList.contains('coach-row')) scanRow(n);
-                  $$('.coach-row', n).forEach(scanRow);
-                }
-              });
-            }
-            if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
-              // glow flip
-              if(m.target.matches('.coach-row .btn')) scanRow(m.target.closest('.coach-row'));
-            }
-          });
+      // Observe changes (button glow flips, rows added/re-rendered)
+      const mo = new MutationObserver((muts)=>{
+        if(!menuOpen()) return;
+        muts.forEach(m=>{
+          if(m.type==='childList'){
+            m.addedNodes.forEach(n=>{
+              if(n instanceof HTMLElement){
+                if(n.classList.contains('coach-row')) scanRow(n,{initial:true});
+                $$('.coach-row', n).forEach(r=> scanRow(r,{initial:true}));
+              }
+            });
+          }
+          if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
+            if(m.target.matches('.coach-row .btn')) scanRow(m.target.closest('.coach-row'));
+          }
         });
-        mo.observe(body, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
-        // Initial pass
-        scanAll();
-        // Poll fallback (Safari DOM misses)
-        window.__ffCoachPoll = setInterval(()=>{ if(coachesTabActive()) scanAll(); }, 600);
-      }
-      function stopObserve(){
-        if(!observing) return;
-        observing = false;
-        try{ mo && mo.disconnect(); }catch(_){}
-        mo = null;
-        clearInterval(window.__ffCoachPoll);
-      }
+      });
+      mo.observe(body,{subtree:true, childList:true, attributes:true, attributeFilter:['class']});
 
-      // Toggle observation when menu/tab state changes
-      function updateObserver(){
-        if(coachesTabActive()) startObserve(); else stopObserve();
-      }
-      // Menu open/close
-      new MutationObserver(updateObserver).observe(menu, {attributes:true, attributeFilter:['class']});
-      // Tab switch
+      // Kick scans when menu opens and on tab clicks (render cycles)
+      new MutationObserver(()=>{ if(menuOpen()) setTimeout(()=>scanAll(true), 0); })
+        .observe(menu,{attributes:true, attributeFilter:['class']});
+
       const tabsWrap = $('.menu-tabs', menu);
       if(tabsWrap){
-        tabsWrap.addEventListener('click', ()=> setTimeout(updateObserver, 0), {capture:true});
-        tabsWrap.addEventListener('pointerdown', ()=> setTimeout(updateObserver, 0), {capture:true, passive:true});
+        ['pointerdown','click'].forEach(t=>{
+          tabsWrap.addEventListener(t, ()=> setTimeout(()=> scanAll(true), 0), {capture:true, passive:true});
+        });
       }
-      // One initial check
-      setTimeout(updateObserver, 0);
+
+      // Poll fallback in case of DOM swaps without mutations firing
+      setInterval(()=>{ if(menuOpen()) scanAll(); }, 700);
     })();
 
     /* ---------- 12) Offline + Achievements ---------- */
@@ -4006,8 +4015,7 @@ try{
       if(off){ new MutationObserver(()=>{ if(off.classList.contains('show')) SFX_OFF_OPEN.play(); })
         .observe(off,{attributes:true, attributeFilter:['class']}); }
       if(claim){ claim.addEventListener('click', ()=> SFX_OFF_CLAIM.play(), {capture:true}); }
-
-      const ach = $('#ach');
+      const ach=$('#ach');
       if(ach){
         new MutationObserver((muts)=>{
           muts.forEach(m=>{
@@ -4021,10 +4029,11 @@ try{
     })();
 
   }catch(e){
-    console.warn('SFX Patch v5 error:', e);
+    console.warn('SFX Patch v6 error:', e);
   }
 })();
 </script>
+
 
 
 
