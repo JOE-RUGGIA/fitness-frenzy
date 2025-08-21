@@ -3999,6 +3999,127 @@ try{
 
 
 
+
+
+
+<script type="application/ff-patch">
+/* Coach Offered Affordable SFX (adds to existing Coach Available VO) */
+(function(){
+  try{
+    if (window.__FF_COACH_OFFER_SFX_V1__) return;
+    window.__FF_COACH_OFFER_SFX_V1__ = true;
+
+    const $  = (s, r=document)=> r.querySelector(s);
+    const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
+    const RAW = (u)=> u.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,
+                                'https://raw.githubusercontent.com/$1/$2/$3');
+
+    /* small, gesture-safe audio pool */
+    function makePool(url, n=3, vol=1.0){
+      const src = RAW(url);
+      const arr = Array.from({length:n}, ()=>{
+        const a=new Audio(src);
+        a.preload='auto';
+        a.crossOrigin='anonymous';
+        a.volume=vol;
+        try{ a.load(); }catch(_){}
+        return a;
+      });
+      let i=0;
+      function next(){ return arr[i++%arr.length]; }
+      return {
+        playSafe(target=document){
+          const a=next(); try{a.currentTime=0;}catch(_){}
+          const p=a.play();
+          if(p && p.catch){
+            p.catch(()=>{
+              const once=()=>{ target.removeEventListener('pointerdown', once, true);
+                               target.removeEventListener('touchstart',  once, true);
+                               a.play().catch(()=>{}); };
+              target.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+              target.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+            });
+          }
+        }
+      };
+    }
+
+    /* your new sting */
+    const SFX_COACH_OFFER = makePool(
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-offered-affordable.mp3",
+      3, 1.0
+    );
+
+    const menu = $('#menu');
+    const body = $('#menu-body');
+    if(!menu || !body) return;
+
+    const offeredPlayed = new Set(); // key by exercise name
+
+    function coachesTabActive(){
+      const t = $('.menu-tabs .tab[data-tab="coaches"]', menu);
+      return menu.classList.contains('show') && t && t.classList.contains('active');
+    }
+
+    function rowKey(row){
+      const sub=row.querySelector('.coach-sub'); if(!sub) return null;
+      const m=(sub.textContent||'').match(/Works on:\s*(.+)\s*$/i);
+      return m ? m[1].trim() : null; // use exercise name as stable key
+    }
+
+    function maybePlayOffer(row){
+      if(!coachesTabActive()) return;
+      const key = rowKey(row); if(!key) return;
+      const btn = row.querySelector('button.btn'); if(!btn) return;
+      if(btn.classList.contains('glow') && !offeredPlayed.has(key)){
+        offeredPlayed.add(key);
+        // slight stagger under the VO so they layer nicely
+        setTimeout(()=> SFX_COACH_OFFER.playSafe(menu), 80);
+      }
+    }
+
+    function scanAll(){ $$('.coach-row', body).forEach(maybePlayOffer); }
+
+    // Observe glow flips + new rows
+    const mo = new MutationObserver((muts)=>{
+      if(!coachesTabActive()) return;
+      muts.forEach(m=>{
+        if(m.type==='childList'){
+          m.addedNodes.forEach(n=>{
+            if(!(n instanceof HTMLElement)) return;
+            if(n.classList.contains('coach-row')) maybePlayOffer(n);
+            $$('.coach-row', n).forEach(maybePlayOffer);
+          });
+        }
+        if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
+          if(m.target.matches('.coach-row .btn')) maybePlayOffer(m.target.closest('.coach-row'));
+        }
+      });
+    });
+    mo.observe(body, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
+
+    // Kick scans when opening menu and on tab switches
+    new MutationObserver(()=>{ if(coachesTabActive()) setTimeout(scanAll, 0); })
+      .observe(menu, {attributes:true, attributeFilter:['class']});
+    const tabsWrap = $('.menu-tabs', menu);
+    if(tabsWrap){
+      ['pointerdown','click'].forEach(t=>{
+        tabsWrap.addEventListener(t, ()=> setTimeout(()=>{ if(coachesTabActive()) scanAll(); }, 0),
+                                  {capture:true, passive:true});
+      });
+    }
+    // initial check
+    setTimeout(()=>{ if(coachesTabActive()) scanAll(); }, 0);
+
+  }catch(e){
+    console.warn('Coach Offer SFX patch error:', e);
+  }
+})();
+</script>
+  
+
+
+
   
   
 
