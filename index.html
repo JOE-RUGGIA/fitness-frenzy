@@ -3663,448 +3663,403 @@ try{
 
 
 
+
+
 <script type="application/ff-patch">
-/* =========================  FITNESS FRENZY — GLOBAL SFX ROUTER  =========================
-   - Registers all SFX (auto converts github.com/.../blob/main/... → raw.githubusercontent.com/...)
-   - Wires DOM hooks for common UI/game events (no core code edits)
-   - Mobile-safe, duplicate-gesture hardened
-========================================================================================= */
+/* =======================
+   Fitness Frenzy — Global SFX Router (append-only)
+   - raw.githubusercontent.com URLs
+   - capture-phase hooks (no core code edits)
+   - de-dupe + light rate limits
+   ======================= */
 (function(){
   try{
     if (window.__FF_SFX_ROUTER__) return;
     window.__FF_SFX_ROUTER__ = true;
 
-    /* ---------- 1) Registry ---------- */
-    const RAW = (u)=> u.replace('github.com/','raw.githubusercontent.com/')
-                      .replace('/blob/','/');
+    /* ---------- Helpers ---------- */
+    const $ = (sel,root=document)=>root.querySelector(sel);
+    const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
 
-    const S = {
-      start_avatar_pick: RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3"),
-      new_game:          RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-New-Game.mp3"),
-      continue_game:     RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-continue-game.mp3"),
-      skip_splash:       RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-continue-game.mp3"),
-      open_menu:         RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3"),
-      close_menu:        RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-close-menu.mp3"),
-      switch_tabs:       RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3"),
-      exercise_manual:   RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-exercise-tile-manual.mp3"),
-      reps_purchase_ok:  RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3"),
-      unlock_exercise:   RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3"),
-      level_up:          RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up.mp3"),
-      cooldown_halved:   RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-cooldown-halved.mp3"),
-      cooldown_ready:    RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-cooldown-ready-ping.mp3"),
-      button_afford:     RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Button-Becomes-Affordable-(glow-on).mp3"),
-      bulk_change:       RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3"),
-      coach_hired:       RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3"),
-      coach_afford:      RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-offered-affordable.mp3"),
-      fitcoin_earn:      RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-fitcoin-earn.mp3"),
-      fitcoin_spend:     RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-fitcoin-spend.mp3"),
-      offline_open:      RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-model-open.mp3"),
-      offline_claim:     RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-claim.mp3"),
-      toast_appear:      RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-toast-appear.mp3"),
-      ach_1:             RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-1.mp3"),
-      ach_2:             RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3"),
-      sidequest_accept:  RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-side-quest-accepted.mp3"),
-      sidequest_done:    RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-side-quest-completed.mp3"),
-      upgrade_buy:       RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-upgrade-purchase.mp3"),
-      stats_milestone:   RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-stats-milestone-reached.mp3"),
-      settings_toggle:   RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3"),
-      settings_volume:   RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3"),
-      error:             RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-error-invalid-action.mp3"),
-      asset_retry:       RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-asset-fallback.mp3"),
-      menu_backdrop_tap: RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3"),
-      tut_bubble_pop:    RAW("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-tutorial-bubble-pop.mp3"),
+    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints>0);
+
+    function toRaw(url){
+      if(!url) return url;
+      if(url.includes('raw.githubusercontent.com')) return url;
+      return url.replace('https://github.com/','https://raw.githubusercontent.com/').replace('/blob/','/');
+    }
+
+    /* ---------- SFX registry ---------- */
+    function makeAudio(url){
+      const a = new Audio(toRaw(url));
+      a.preload = 'auto';
+      a.crossOrigin = 'anonymous';
+      try{ a.load(); }catch(_){}
+      return a;
+    }
+
+    const SFX = {
+      start_avatar_pick: makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3"),
+      new_game:          makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-New-Game.mp3"),
+      continue_game:     makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-continue-game.mp3"),
+      skip_splash:       makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-continue-game.mp3"),
+      open_menu:         makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3"),
+      close_menu:        makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-close-menu.mp3"),
+      switch_tabs:       makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3"),
+      exercise_tap:      makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-exercise-tap.mp3"),
+      reps_purchase_ok:  makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3"),
+      unlock_exercise:   makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3"),
+      level_up:          makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up%20(2).mp3"),
+      cooldown_halved:   makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-cooldown-halved.mp3"),
+      affordable_glow:   makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Button-Becomes-Affordable-(glow-on).mp3"),
+      bulk_change:       makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3"),
+      coach_hired:       makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3"),
+      coach_aff_male:    makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-affordable-male.mp3"),
+      coach_aff_female:  makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-affordable-female.mp3"),
+      fitcoin_earn:      makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-fitcoin-earn.mp3"),
+      fitcoin_spend:     makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-fitcoin-spend.mp3"),
+      offline_open:      makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3"),
+      offline_claim:     makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-claim.mp3"),
+      achieve_1:         makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-1.mp3"),
+      achieve_2:         makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3"),
+      sidequest_accept:  makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-side-quest-accepted.mp3"),
+      sidequest_done:    makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-side-quest-completed.mp3"),
+      upgrade_purchase:  makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-upgrade-purchase.mp3"),
+      settings_toggle:   makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3"),
+      settings_volume:   makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3"),
+      error_ping:        makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-cooldown-ready-ping.mp3"),
+      asset_fallback:    makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-asset-fallback.mp3"),
+      menu_backdrop_tap: makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3"),
+      tutorial_pop:      makeAudio("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-cooldown-ready-ping.mp3")
     };
 
-    /* ---------- 2) Engine ---------- */
-    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints>0);
-    const lastPlay = new Map(); // throttle same key spam
-    function play(key, opt){
-      const src = S[key]; if(!src) return;
-      const now = performance.now();
-      const gate = (opt && opt.gateMs!=null) ? opt.gateMs : 40;
-      const last = lastPlay.get(key)||0;
-      if(now - last < gate) return;
-      lastPlay.set(key, now);
+    // If any sound errors, try playing the generic fallback so user gets feedback.
+    Object.values(SFX).forEach(a=>{
+      a.addEventListener('error', ()=>{ try{ SFX.asset_fallback.currentTime=0; SFX.asset_fallback.play().catch(()=>{});}catch(_){ } });
+    });
 
+    // Simple play with optional rate-limit per key
+    const lastPlay = new Map();
+    function play(key, minGapMs=40){
+      const a = SFX[key]; if(!a) return;
+      const now = performance.now();
+      const last = lastPlay.get(key)||0;
+      if(now - last < minGapMs) return;
+      lastPlay.set(key, now);
       try{
-        const a = new Audio(src);
-        a.crossOrigin = "anonymous";
-        a.volume = Math.max(0, Math.min(1, (opt && opt.volume!=null) ? opt.volume : 1));
-        if (opt && opt.rate) try{ a.playbackRate = opt.rate; }catch(_){}
-        const p = a.play();
-        if(p && typeof p.then === 'function'){
-          p.catch(()=> {
-            // If blocked (pre-gesture), retry on next gesture once
-            const once = ()=>{ 
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('keydown',     once, true);
-              a.play().catch(()=>{});
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
+        // allow overlap: clone for concurrent play
+        const node = a.cloneNode();
+        node.volume = a.volume;
+        node.crossOrigin = a.crossOrigin;
+        node.play().catch(()=>{ /* ignore */ });
       }catch(_){}
     }
-    window.FFSFX = { play, S }; // expose for manual triggers if needed
 
-    /* ---------- 3) De-dupe helper (per element) ---------- */
-    const ATTR_CLICK_TS = 'data-ff-sfx-lastpd';
-    function dedup(el, ms=260){
-      const now = performance.now();
-      const last = Number(el.getAttribute(ATTR_CLICK_TS) || 0);
-      if (now - last < ms) return true;
-      el.setAttribute(ATTR_CLICK_TS, String(now));
+    // Public API if you want to trigger manually elsewhere
+    window.FFSFX = { play };
+
+    /* ---------- Hooks: Start screen ---------- */
+    const startAvatars = $('#start-avatars');
+    if(startAvatars){
+      startAvatars.addEventListener('pointerdown', e=>{
+        const ava = e.target && e.target.closest && e.target.closest('.ava');
+        if(!ava) return;
+        play('start_avatar_pick', 100);
+      }, {capture:true, passive:true});
+    }
+    const btnNew = $('#btn-new');
+    const btnContinue = $('#btn-continue');
+    const splashSkip = $('#splash-skip');
+    btnNew && btnNew.addEventListener('pointerdown', ()=> play('new_game', 120), {capture:true, passive:true});
+    btnContinue && btnContinue.addEventListener('pointerdown', ()=> play('continue_game', 120), {capture:true, passive:true});
+    splashSkip && splashSkip.addEventListener('pointerdown', ()=> play('skip_splash', 120), {capture:true, passive:true});
+
+    /* ---------- Hooks: Top bar / Menu ---------- */
+    const avatarBtn = $('#avatar');
+    const menu = $('#menu');
+    avatarBtn && avatarBtn.addEventListener('pointerdown', ()=>{
+      // only if menu is currently closed
+      if(!menu || !menu.classList.contains('show')) play('open_menu', 150);
+    }, {capture:true, passive:true});
+
+    // Close buttons + backdrop
+    menu && menu.addEventListener('pointerdown', (e)=>{
+      const closeBtn = e.target && e.target.closest && e.target.closest('.menu-close');
+      const backdrop = e.target && e.target.closest && e.target.closest('.menu-backdrop');
+      if(closeBtn) play('close_menu', 120);
+      if(backdrop) play('menu_backdrop_tap', 120);
+    }, {capture:true, passive:true});
+
+    // Tab switches
+    menu && menu.addEventListener('pointerdown', (e)=>{
+      const tab = e.target && e.target.closest && e.target.closest('.tab');
+      if(!tab) return;
+      play('switch_tabs', 80);
+    }, {capture:true, passive:true});
+
+    /* ---------- Hooks: Bulk selector ---------- */
+    const bulk = $('#bulk');
+    bulk && bulk.addEventListener('pointerdown', (e)=>{
+      const b = e.target && e.target.closest && e.target.closest('button');
+      if(!b) return;
+      play('bulk_change', 100);
+    }, {capture:true, passive:true});
+
+    /* ---------- Hooks: Exercise tiles, buttons, affordability ---------- */
+    const cardsRoot = $('#cards');
+
+    // Manual tile tap: only when unlocked and ready; else error ping.
+    function exIndexFromCard(card){
+      // Use the title text -> map to Exercises by name if available
+      const title = $('.title', card)?.textContent?.trim();
+      if(!title) return null;
+      if (typeof Exercises !== 'undefined' && Array.isArray(Exercises)){
+        const idx = Exercises.findIndex(x=> x && x.name === title);
+        return idx >=0 ? idx : null;
+      }
+      return null;
+    }
+    function isTileReady(idx){
+      try{
+        const s = (typeof get==='function') ? get() : null;
+        if(!s) return false;
+        const ex = s.exercises[idx]; if(!ex || !ex.unlocked) return false;
+        if(!ex.lastTapAt) return true;
+        const now = performance.now();
+        return now >= (ex.lastTapAt + (ex.cooldown||0));
+      }catch(_){}
       return false;
     }
 
-    /* ---------- 4) Hooks ---------- */
+    cardsRoot && cardsRoot.addEventListener('pointerdown', (e)=>{
+      const tile = e.target && e.target.closest && e.target.closest('.tile');
+      if(!tile) return;
+      const card = tile.parentElement;
+      const idx = exIndexFromCard(card);
+      if(idx==null) return;
 
-    // Start: avatar pick + buttons
-    (function(){
-      const avatars = document.getElementById('start-avatars');
-      const btnNew  = document.getElementById('btn-new');
-      const btnCont = document.getElementById('btn-continue');
-      const skip    = document.getElementById('splash-skip');
-      if(avatars){
-        avatars.addEventListener('pointerdown', (e)=>{
-          const ava = e.target && e.target.closest && e.target.closest('.ava'); if(!ava) return;
-          if(dedup(ava)) return;
-          play('start_avatar_pick', {volume:0.9});
-        }, {capture:true, passive:true});
-      }
-      if(btnNew)  btnNew.addEventListener('pointerdown', ()=> play('new_game'), {capture:true, passive:true});
-      if(btnCont) btnCont.addEventListener('pointerdown', ()=> play('continue_game'), {capture:true, passive:true});
-      if(skip)    skip.addEventListener('pointerdown', ()=> play('skip_splash'), {capture:true, passive:true});
-    })();
+      if(isTileReady(idx)) play('exercise_tap', 40);
+      else play('error_ping', 200);
+    }, {capture:true, passive:true});
 
-    // Menu open/close + tab switch + backdrop tap
-    (function(){
-      const menu = document.getElementById('menu');
-      if(!menu) return;
+    // Card right button: detect reps purchase / unlock / insufficient funds
+    cardsRoot && cardsRoot.addEventListener('pointerdown', (e)=>{
+      const btn = e.target && e.target.closest && e.target.closest('.card .btn');
+      if(!btn) return;
+      const card = btn.closest('.card'); if(!card) return;
+      const idx = exIndexFromCard(card); if(idx==null) return;
 
-      // Open/close based on class toggles
-      let wasOpen = menu.classList.contains('show');
-      new MutationObserver(()=>{
-        const open = menu.classList.contains('show');
-        if(open && !wasOpen) play('open_menu');
-        if(!open && wasOpen) play('close_menu');
-        wasOpen = open;
-      }).observe(menu, {attributes:true, attributeFilter:['class']});
+      // Snapshot before click
+      const s0 = (typeof get==='function') ? get() : null;
+      if(!s0) return;
+      const ex0 = (s0.exercises||[])[idx];
+      const hp0 = s0.hp;
 
-      // Backdrop tap
-      menu.addEventListener('click', (e)=>{
-        if(e.target && e.target.closest && e.target.closest('.menu-backdrop')){
-          play('menu_backdrop_tap', {gateMs:120});
+      // After state mutates, check what happened
+      requestAnimationFrame(()=>{
+        const s1 = (typeof get==='function') ? get() : null;
+        if(!s1) return;
+        const ex1 = (s1.exercises||[])[idx];
+
+        // Not enough HP (no change)
+        if(s1.hp === hp0 && ex1.repHP === ex0.repHP && !!ex1.unlocked === !!ex0.unlocked){
+          play('error_ping', 150);
+          return;
         }
-      }, true);
 
-      // Tab switches
-      menu.addEventListener('click', (e)=>{
-        const tab = e.target && e.target.closest && e.target.closest('.tab');
-        if(tab) play('switch_tabs', {gateMs:120});
-      }, true);
-    })();
-
-    // Bulk selector change
-    (function(){
-      const bulk = document.getElementById('bulk');
-      if(!bulk) return;
-      bulk.addEventListener('click', (e)=>{
-        const b = e.target && e.target.closest && e.target.closest('button'); if(!b) return;
-        play('bulk_change', {gateMs:140});
-      }, true);
-    })();
-
-    // Cards root hooks: manual exercise tap, reps purchase, unlock, cooldown ready ping, button affordable glow
-    (function(){
-      const root = document.getElementById('cards');
-      if(!root) return;
-
-      // Manual tile tap
-      root.addEventListener('click', (e)=>{
-        const tile = e.target && e.target.closest && e.target.closest('.tile');
-        if(!tile) return;
-        // Only count user clicks (coaches' auto taps do not dispatch clicks)
-        play('exercise_manual', {gateMs:60, volume:0.8});
-      }, true);
-
-      // Reps purchase (when affordable)
-      root.addEventListener('click', (e)=>{
-        const btn = e.target && e.target.closest && e.target.closest('.btn');
-        if(!btn) return;
-        const txt = (btn.textContent||'').trim();
-        if(/^Reps\s*•/i.test(txt) && btn.classList.contains('glow')){
-          play('reps_purchase_ok');
+        // Unlock happened
+        if(!ex0.unlocked && ex1.unlocked){
+          play('unlock_exercise', 100);
+          return;
         }
-        if(/^Unlock\s*•/i.test(txt) && btn.classList.contains('glow')){
-          play('unlock_exercise');
-        }
-      }, true);
 
-      // Cooldown "Ready" ping (per card)
-      const readyState = new WeakMap(); // element -> wasReady
-      const lvlState   = new WeakMap(); // .lvl -> last level number
-      const repState   = new WeakMap(); // reptext -> last "a/b"
-      new MutationObserver((muts)=>{
-        for(const m of muts){
-          if(!(m.target instanceof HTMLElement)) continue;
-
-          // Ready ping
-          if(m.target.classList && m.target.classList.contains('t')){
-            const tEl = m.target;
-            const was = readyState.get(tEl) || false;
-            const isReady = (tEl.textContent||'').trim().toLowerCase()==='ready';
-            if(isReady && !was) play('cooldown_ready', {gateMs:200, volume:0.7});
-            readyState.set(tEl, isReady);
+        // Reps purchased
+        if(ex1.repHP > ex0.repHP){
+          play('reps_purchase_ok', 60);
+          // Level up?
+          if((ex1.level||1) > (ex0.level||1)){
+            setTimeout(()=> play('level_up', 40), 60);
           }
-
-          // Level up (Lvl N)
-          if(m.target.classList && m.target.classList.contains('lvl')){
-            const el = m.target;
-            const mN = (el.textContent||'').match(/Lvl\s+(\d+)/i);
-            const n  = mN ? parseInt(mN[1],10) : null;
-            const prev = lvlState.get(el);
-            if(n!=null && prev!=null && n>prev) play('level_up', {gateMs:250});
-            if(n!=null) lvlState.set(el, n);
+          // Cooldown halved?
+          if((ex1.cooldown||0) < (ex0.cooldown||0)){
+            setTimeout(()=> play('cooldown_halved', 40), 120);
           }
-
-          // Rep target crossed ⇒ cooldown halved
-          if(m.target.classList && m.target.classList.contains('reptext')){
-            const el = m.target;
-            const cur = (el.textContent||'').trim(); // "x / y"
-            const prev = repState.get(el);
-            if(prev){
-              const p = prev.split('/').map(s=>parseInt(s.trim(),10));
-              const c = cur.split('/').map(s=>parseInt(s.trim(),10));
-              if(p.length===2 && c.length===2){
-                // If target doubled and progress reset small → level crossed
-                if(c[1]===p[1]*2 && c[0] <= Math.max(1, Math.floor(c[1]*0.15))){
-                  play('cooldown_halved', {gateMs:400});
-                }
-              }
-            }
-            repState.set(el, cur);
-          }
+          return;
         }
-      }).observe(root, {subtree:true, characterData:true, childList:true});
+      });
+    }, {capture:true, passive:true});
 
-      // Any button glow turning on (affordable)
-      new MutationObserver((muts)=>{
-        for(const m of muts){
-          if(m.type!=='attributes') continue;
+    // Reps/Unlock button becomes affordable (glow on) — observe class changes
+    const glowSeen = new WeakSet();
+    const btnObserver = new MutationObserver(muts=>{
+      for(const m of muts){
+        if(m.type==='attributes' && m.attributeName==='class'){
           const el = m.target;
           if(!(el instanceof HTMLElement)) continue;
-          if(!el.classList || !el.classList.contains('btn')) continue;
-          const becameGlow = el.classList.contains('glow') && !el.hasAttribute('data-ff-hadglow');
-          if(becameGlow){
-            const label = (el.textContent||'').trim();
-            if(/^Hire\s*•/i.test(label)) play('coach_afford', {gateMs:600});
-            else if(/^Reps\s*•/i.test(label) || /^Unlock\s*•/i.test(label)) play('button_afford', {gateMs:350});
-            el.setAttribute('data-ff-hadglow','1');
-          }
-          if(!el.classList.contains('glow') && el.hasAttribute('data-ff-hadglow')){
-            el.removeAttribute('data-ff-hadglow');
+          if(!el.classList.contains('btn')) continue;
+          if(!el.closest('.card')) continue; // limit to exercise cards
+          if(el.classList.contains('glow') && !glowSeen.has(el)){
+            glowSeen.add(el);
+            play('affordable_glow', 250);
           }
         }
-      }).observe(root, {subtree:true, attributes:true, attributeFilter:['class']});
+      }
+    });
+    // Watch buttons under cards
+    const watchButtons = ()=>{
+      $$('.card .btn').forEach(btn=> btnObserver.observe(btn, {attributes:true, attributeFilter:['class']}));
+    };
+    watchButtons();
+    // Re-run when cards rebuild
+    new MutationObserver(()=> watchButtons()).observe(cardsRoot||document.body, {childList:true, subtree:true});
 
-    })();
+    /* ---------- Hooks: Coaches (menu) ---------- */
+    const menuBody = $('#menu-body');
+    // Coach Hired: button replaced by "Hired" label
+    menuBody && menuBody.addEventListener('pointerdown', (e)=>{
+      const hireBtn = e.target && e.target.closest && e.target.closest('.coach-row .btn');
+      if(!hireBtn) return;
+      const row = hireBtn.closest('.coach-row'); if(!row) return;
+      // After DOM update, see if button disappeared
+      requestAnimationFrame(()=>{
+        if(!row.querySelector('.btn')) play('coach_hired', 120);
+      });
+    }, {capture:true, passive:true});
 
-    // Coaches menu: hired + offer affordable + tab switches (already handled)
-    (function(){
-      const body = document.getElementById('menu-body');
-      if(!body) return;
-
-      new MutationObserver((muts)=>{
-        for(const m of muts){
-          m.addedNodes && m.addedNodes.forEach(n=>{
-            if(!(n instanceof HTMLElement)) return;
-            // "Hired" badge inserted
-            const hired = n.matches?.('.coach-row .hired') ? [n] : n.querySelectorAll?.('.coach-row .hired');
-            if(hired && hired.length){
-              play('coach_hired', {gateMs:600});
-            }
-            // Any new Hire button with glow
-            n.querySelectorAll?.('.coach-row .btn.glow').forEach(btn=>{
-              const txt=(btn.textContent||'').trim();
-              if(/^Hire\s*•/i.test(txt)) play('coach_afford', {gateMs:800});
-            });
+    // Coach Offer Affordable (male/female) when Hire button gets glow
+    const coachGlowSeen = new WeakSet();
+    const coachObserver = new MutationObserver(muts=>{
+      for(const m of muts){
+        if(m.type!=='childList') continue;
+        m.addedNodes.forEach(n=>{
+          if(!(n instanceof HTMLElement)) return;
+          n.querySelectorAll?.('.coach-row .btn').forEach(btn=>{
+            // watch each new coach button
+            new MutationObserver(m2=>{
+              for(const x of m2){
+                if(x.type==='attributes' && x.attributeName==='class'){
+                  if(btn.classList.contains('glow') && !coachGlowSeen.has(btn)){
+                    coachGlowSeen.add(btn);
+                    // Determine index parity (F/M alternating, starting F at idx 0)
+                    const exName = n.querySelector?.('.coach-sub')?.textContent||'';
+                    let idx = -1;
+                    if(typeof Exercises!=='undefined'){
+                      idx = Exercises.findIndex(ex=> exName.includes(ex.name));
+                    }
+                    const isFemale = (idx>=0) ? (idx % 2 === 0) : true;
+                    play(isFemale ? 'coach_aff_female' : 'coach_aff_male', 600);
+                  }
+                }
+              }
+            }).observe(btn, {attributes:true, attributeFilter:['class']});
           });
-        }
-      }).observe(body, {childList:true, subtree:true});
-
-      // Click hire button (success path)
-      body.addEventListener('click', (e)=>{
-        const b = e.target && e.target.closest && e.target.closest('.coach-row .btn');
-        if(!b) return;
-        const txt=(b.textContent||'').trim();
-        if(/^Hire\s*•/i.test(txt) && b.classList.contains('glow')){
-          play('coach_hired'); // optimistic; DOM observer above will also catch final state
-        }
-      }, true);
-    })();
-
-    // Fitcoins pill detect & earnings/spend
-    (function(){
-      const ids = ['fc-readout','fitcoins-readout','fitcoins'];
-      const el = ids.map(id=>document.getElementById(id)).filter(Boolean)[0];
-      if(!el) return;
-      let lastVal = parseFloat(el.textContent.replace(/[^\d.]/g,'')) || 0;
-      new MutationObserver(()=>{
-        const cur = parseFloat((el.textContent||'').replace(/[^\d.]/g,'')) || 0;
-        if(cur>lastVal) play('fitcoin_earn', {gateMs:80, volume:0.8});
-        else if(cur<lastVal) play('fitcoin_spend', {gateMs:120});
-        lastVal = cur;
-      }).observe(el, {characterData:true, childList:true, subtree:true});
-    })();
-
-    // Offline modal open/claim
-    (function(){
-      const off = document.getElementById('offline');
-      const claim = document.getElementById('offline-claim');
-      if(off){
-        let wasShown = off.classList.contains('show');
-        new MutationObserver(()=>{
-          const shown = off.classList.contains('show');
-          if(shown && !wasShown) play('offline_open');
-          wasShown = shown;
-        }).observe(off, {attributes:true, attributeFilter:['class']});
+        });
       }
-      if(claim){
-        claim.addEventListener('pointerdown', ()=> play('offline_claim'), {capture:true, passive:true});
+    });
+    menuBody && coachObserver.observe(menuBody, {childList:true, subtree:true});
+
+    /* ---------- Hooks: Fitcoins (auto-detect readout) ---------- */
+    (function initFitcoinWatch(){
+      function locate(){
+        // Try common ids first
+        let num = $('#fitcoins-readout') || $('#fitcoin-readout') || $('#fc-readout');
+        if(num) return num;
+        // Fallback: find pill with label "Fitcoins"
+        const pills = $$('.topbar .hp-pill, .topbar .fitcoins-pill');
+        for(const pill of pills){
+          const spans = pill.querySelectorAll('span');
+          if(spans.length>=2 && /fitcoins/i.test(spans[0].textContent||'')) return spans[1];
+        }
+        return null;
       }
-    })();
+      const numEl = locate();
+      if(!numEl) return; // safe no-op if pill not present yet
 
-    // Toast appear
-    (function(){
-      const toast = document.getElementById('toast');
-      if(!toast) return;
-      let wasShown = (toast.style.display!=='none' && toast.style.display!=='');
+      let lastVal = parseFloat(numEl.textContent||'0')||0;
       new MutationObserver(()=>{
-        const shown = toast.style.display!=='none' && toast.style.display!=='';
-        if(shown && !wasShown) play('toast_appear', {gateMs:400});
-        wasShown = shown;
-      }).observe(toast, {attributes:true, attributeFilter:['style']});
+        const v = parseFloat(numEl.textContent||'0')||0;
+        if(v > lastVal) play('fitcoin_earn', 40);
+        else if(v < lastVal) play('fitcoin_spend', 40);
+        lastVal = v;
+      }).observe(numEl, {characterData:true, childList:true, subtree:true});
     })();
 
-    // Achievements: play pair (1 + 2) slightly staggered
-    (function(){
-      const achRoot = document.getElementById('ach');
-      if(!achRoot) return;
+    /* ---------- Hooks: Offline gains ---------- */
+    const offline = $('#offline');
+    const offlineClaim = $('#offline-claim');
+    if(offline){
+      new MutationObserver(()=>{
+        if(offline.classList.contains('show')) play('offline_open', 150);
+      }).observe(offline, {attributes:true, attributeFilter:['class']});
+    }
+    offlineClaim && offlineClaim.addEventListener('pointerdown', ()=> play('offline_claim', 120), {capture:true, passive:true});
+
+    /* ---------- Hooks: Achievements ---------- */
+    const achRoot = $('#ach');
+    if(achRoot){
       new MutationObserver((muts)=>{
         for(const m of muts){
           if(m.type!=='childList') continue;
-          m.addedNodes && m.addedNodes.forEach(n=>{
-            if(!(n instanceof HTMLElement)) return;
-            const banner = n.matches?.('.banner') ? n : n.querySelector?.('.banner');
-            if(banner){
-              play('ach_1', {gateMs:800});
-              setTimeout(()=> play('ach_2', {gateMs:800}), 90);
+          for(const n of m.addedNodes){
+            if(!(n instanceof HTMLElement)) continue;
+            if(n.classList.contains('banner') || n.querySelector?.('.banner')){
+              play('achieve_1', 10);
+              setTimeout(()=> play('achieve_2', 10), 110);
             }
-          });
+          }
         }
       }).observe(achRoot, {childList:true, subtree:true});
-    })();
+    }
 
-    // Settings toggles
-    (function(){
-      const menu = document.getElementById('menu');
-      if(!menu) return;
-      menu.addEventListener('change', (e)=>{
-        const t = e.target;
-        if(!(t instanceof HTMLInputElement)) return;
-        if(t.id==='music-on') play('settings_toggle');
-        if(t.id==='music-vol'){
-          // volume confirm on release (change)
-          play('settings_volume', {gateMs:200});
-        }
-      }, true);
-      menu.addEventListener('input', (e)=>{
-        const t = e.target;
-        if(!(t instanceof HTMLInputElement)) return;
-        if(t.id==='music-vol'){
-          // inline feedback is noisy; we keep SFX for change only
-        }
-      }, true);
-    })();
-
-    // Error + asset fallback
-    (function(){
-      const errBar = document.getElementById('err');
-      if(errBar){
-        let shown = errBar.style.display==='block';
-        new MutationObserver(()=>{
-          const cur = errBar.style.display==='block';
-          if(cur && !shown) play('error');
-          shown = cur;
-        }).observe(errBar, {attributes:true, attributeFilter:['style']});
+    /* ---------- Hooks: Settings ---------- */
+    // These controls are rendered lazily; attach on capture and check ids.
+    document.addEventListener('change', (e)=>{
+      const tgt = e.target;
+      if(!(tgt instanceof HTMLElement)) return;
+      if(tgt.id === 'music-on'){
+        play('settings_toggle', 100);
       }
-      // network/asset errors (very conservative)
-      window.addEventListener('error', (e)=>{
-        const tgt = e.target;
-        if(tgt && (tgt.tagName==='IMG' || tgt.tagName==='AUDIO')){
-          play('asset_retry', {gateMs:500});
-        }
-      }, true);
-      window.addEventListener('unhandledrejection', ()=> play('asset_retry', {gateMs:500}));
-    })();
+    }, true);
+    document.addEventListener('pointerup', (e)=>{
+      const tgt = e.target;
+      if(!(tgt instanceof HTMLElement)) return;
+      if(tgt.id === 'music-vol'){
+        play('settings_volume', 100);
+      }
+    }, true);
 
-    // Tutorial bubble pop (uses your provided file; plays in addition to any synth pop you already have)
-    (function(){
-      const bubble = document.getElementById('tip-bubble');
-      const tipText= document.getElementById('tip-text');
-      const tipHead= document.getElementById('tip-head-name');
-      const tip    = document.getElementById('tip');
-      if(!bubble||!tipText||!tipHead||!tip) return;
+    /* ---------- Generic error / invalid actions ---------- */
+    // Card buttons: if not affordable at press time, ping
+    cardsRoot && cardsRoot.addEventListener('pointerdown', (e)=>{
+      const btn = e.target && e.target.closest && e.target.closest('.card .btn');
+      if(!btn) return;
+      const card = btn.closest('.card'); if(!card) return;
+      const idx = exIndexFromCard(card); if(idx==null) return;
 
-      let lastStamp = 0;
-      const ok = ()=> {
-        const now = performance.now();
-        if(now - lastStamp < 180) return false;
-        lastStamp = now; return true;
-      };
+      const s = (typeof get==='function') ? get() : null;
+      if(!s) return;
+      const ex = s.exercises[idx];
+      const label = btn.textContent||'';
+      // If contains 'Unlock' or 'Reps', recompute affordability using CSS glow (already computed by game)
+      if(/unlock|reps/i.test(label) && !btn.classList.contains('glow')){
+        play('error_ping', 200);
+      }
+    }, {capture:true, passive:true});
 
-      new MutationObserver(()=>{
-        if(tip.classList.contains('show') && ok()) play('tut_bubble_pop', {volume:0.85});
-      }).observe(tip, {attributes:true, attributeFilter:['class']});
-
-      new MutationObserver(()=>{
-        if(ok()) play('tut_bubble_pop', {volume:0.85});
-      }).observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-      new MutationObserver((muts)=>{
-        // when a new step begins, text often resets to very short length
-        const len = (tipText.textContent||'').length;
-        if(len<=2 && ok()) play('tut_bubble_pop', {volume:0.85});
-      }).observe(tipText, {characterData:true, childList:true, subtree:true});
-
-      new MutationObserver(()=>{
-        const cs = getComputedStyle(bubble);
-        const visible = cs.display!=='none' && cs.visibility!=='hidden' && cs.opacity!=='0';
-        if(visible && ok()) play('tut_bubble_pop', {volume:0.85});
-      }).observe(bubble, {attributes:true, attributeFilter:['style','class']});
-    })();
-
-    // Utility triggers you can call manually if needed:
-    window.SFXTriggers = {
-      sideQuestAccepted(){ play('sidequest_accept'); },
-      sideQuestCompleted(){ play('sidequest_done'); },
-      upgradePurchased(){ play('upgrade_buy'); },
-      statsMilestone(){ play('stats_milestone'); },
-      fitcoinEarn(){ play('fitcoin_earn'); },
-      fitcoinSpend(){ play('fitcoin_spend'); },
-      error(){ play('error'); },
-      assetRetry(){ play('asset_retry'); }
-    };
+    /* ---------- Utility: expose convenience hooks for future code ---------- */
+    window.FFSFX.sideQuestAccepted = ()=> play('sidequest_accept', 80);
+    window.FFSFX.sideQuestCompleted = ()=> play('sidequest_done', 80);
+    window.FFSFX.upgradePurchased = ()=> play('upgrade_purchase', 80);
 
   }catch(e){
-    console.warn('FF SFX Router error:', e);
+    console.warn('Global SFX Router error:', e);
   }
 })();
 </script>
+
+
+
+  
 
   
   
