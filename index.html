@@ -3668,58 +3668,145 @@ try{
 
 
 <script type="application/ff-patch">
-/* ================= SFX Patch v7 — Coach SFX guaranteed + quieter Reps =================
-   - Coach Available (male-only) when Coaches tab is active: initial glow + glow changes
-   - Coach Hired: on Hire press (glow only) + on real row flip to "Hired"
-   - Reps SFX even quieter (mobile/desktop)
-   - Keeps legacy bleep mute & prior fixes stable
-====================================================================================== */
+/* ===================== Fitness Frenzy — SFX Engine v8 =====================
+   One engine for all SFX with mobile-safe playback, de-dupe, and zero legacy bleeps.
+
+   Covers:
+   - Start/Continue, Menu open/close, Tabs, Bulk selector
+   - Reps purchase (quiet, instant, only when affordable)
+   - Exercise Unlock, Level Up
+   - Offline modal open/claim
+   - Achievements
+   - Coaches: "Available" (male only) + "Hired" (press + real row flip), reliable and de-duped
+   - Global mobile audio unlock + play() retry if autoplay blocked
+   - Kills old oscillator "bleep" SFX
+
+   INSTALL: Remove prior SFX patches (v6/v7/v7.1/etc). Keep only this script.
+============================================================================ */
 (function(){
   try{
-    if (window.__FF_SFX_V7__) return;
-    window.__FF_SFX_V7__ = true;
+    if (window.__FF_SFX_V8__) return;
+    window.__FF_SFX_V8__ = true;
 
+    /* ========== Small helpers ========== */
     const $  = (s, r=document)=> r.querySelector(s);
     const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
-    const RAW = (u)=> u.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,'https://raw.githubusercontent.com/$1/$2/$3');
     const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
 
-    /* ---------- Keep legacy “bleep” fully muted on UI clicks ---------- */
-    (function(){
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if(!AC || AC.prototype.__ffMutePatchedV7) return;
-      AC.prototype.__ffMutePatchedV7 = true;
-      const origCreateGain = AC.prototype.createGain;
-      AC.prototype.createGain = function(){
-        const g = origCreateGain.call(this);
-        const origConnect = g.connect;
-        g.connect = function(dest){
+    // Convert github "blob" URLs to raw
+    const RAW = (u)=> u.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,'https://raw.githubusercontent.com/$1/$2/$3');
+
+    // Micro de-duper per element
+    function dedupe(el, win=220){
+      const K='data-ff-lastpd';
+      const now=performance.now(), last=+(el.getAttribute(K)||0);
+      if(now-last<win) return true;
+      el.setAttribute(K,String(now)); return false;
+    }
+
+    /* ========== Mobile audio unlock + global play() retry if blocked ========== */
+    (function audioUnlock(){
+      if (window.__FF_AUDIO_UNLOCK_V3__) return;
+      window.__FF_AUDIO_UNLOCK_V3__ = true;
+
+      // 1) Retry any blocked HTML5 audio play() on next gesture
+      const HME = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+      if (HME && !HME.__ffPlayPatchedV3){
+        HME.__ffPlayPatchedV3 = true;
+        const orig = HME.play;
+        HME.play = function(){
+          const res = (()=>{ try{ return orig.apply(this, arguments); }catch(e){ return Promise.reject(e); } })();
+          if (res && typeof res.catch === 'function'){
+            res.catch((err)=>{
+              const name = (err && err.name) || '';
+              const msg  = (err && err.message) || '';
+              if (/NotAllowedError/i.test(name) || /(gesture|user).*(play|start)/i.test(msg)){
+                const el = this;
+                const once = ()=>{
+                  document.removeEventListener('pointerdown', once, true);
+                  document.removeEventListener('touchstart',  once, true);
+                  document.removeEventListener('click',       once, true);
+                  try{ orig.call(el); }catch(_){}
+                };
+                document.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+                document.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+                document.addEventListener('click',       once, {capture:true, passive:true, once:true});
+              }
+            });
+          }
+          return res;
+        };
+      }
+
+      // 2) First-gesture unlock for WebAudio + HTML5 audio priming
+      if (!window.__FF_AUDIO_GESTURE_ARMed__){
+        window.__FF_AUDIO_GESTURE_ARMed__ = true;
+        const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+        const prim = new Audio(SILENT); prim.preload='auto'; prim.muted=true;
+
+        function unlock(){
           try{
-            if (window.__FF_MUTE_BLEEPNOW_UNTIL && performance.now() < window.__FF_MUTE_BLEEPNOW_UNTIL){
-              try{ g.gain.value = 0; }catch(_){}
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if(AC){
+              if(!window.__ff_ac__) window.__ff_ac__ = new AC();
+              const ac = window.__ff_ac__;
+              if(ac.state==='suspended' && ac.resume) ac.resume();
             }
           }catch(_){}
-          return origConnect.call(this, dest);
+          try{
+            prim.currentTime=0; const p=prim.play();
+            (p && p.finally) ? p.finally(()=>{ try{ prim.pause(); }catch(_){}}) : prim.pause();
+          }catch(_){}
+        }
+        const once = ()=>{
+          document.removeEventListener('pointerdown', once, true);
+          document.removeEventListener('touchstart',  once, true);
+          document.removeEventListener('click',       once, true);
+          unlock();
         };
-        return g;
-      };
-      try{ if(window.SFX){ SFX.ok=()=>{}; SFX.click=()=>{}; } }catch(_){}
+        document.addEventListener('pointerdown', once, {capture:true, passive:true});
+        document.addEventListener('touchstart',  once, {capture:true, passive:true});
+        document.addEventListener('click',       once, {capture:true, passive:true});
+      }
     })();
-    function muteBleeps(ms=340){ window.__FF_MUTE_BLEEPNOW_UNTIL = performance.now()+ms; }
-    function armBleepMute(rootSel, sel){
-      const root = $(rootSel); if(!root) return;
-      ['pointerdown','click'].forEach(type=>{
-        root.addEventListener(type, (e)=>{
-          if(e.target?.closest && e.target.closest(sel)) muteBleeps(360);
-        }, {capture:true});
-      });
-    }
-    armBleepMute('#cards', '.card .btn');
-    armBleepMute('#bulk',  'button');
-    armBleepMute('#menu',  '.tab, .menu-close, [data-close]');
-    armBleepMute('#menu-body', '.coach-row .btn');
 
-    /* ---------- Tiny audio pool (gesture-safe) ---------- */
+    /* ========== Kill legacy oscillator "bleeps" ========== */
+    (function muteLegacyBleeps(){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC && !AC.prototype.__ffMutePatchedV8){
+        AC.prototype.__ffMutePatchedV8 = true;
+        const origCreateGain = AC.prototype.createGain;
+        AC.prototype.createGain = function(){
+          const g = origCreateGain.call(this);
+          const origConnect = g.connect;
+          g.connect = function(dest){
+            try{
+              if (window.__FF_MUTE_BLEEPNOW_UNTIL && performance.now() < window.__FF_MUTE_BLEEPNOW_UNTIL){
+                try{ g.gain.value = 0; }catch(_){}
+              }
+            }catch(_){}
+            return origConnect.call(this, dest);
+          };
+          return g;
+        };
+      }
+      try{ if(window.SFX){ SFX.ok=()=>{}; SFX.click=()=>{}; } }catch(_){}
+      function muteBleeps(ms=360){ window.__FF_MUTE_BLEEPNOW_UNTIL = performance.now()+ms; }
+      function arm(rootSel, sel){
+        const root = $(rootSel); if(!root) return;
+        ['pointerdown','click'].forEach(type=>{
+          root.addEventListener(type, (e)=>{
+            if(e.target?.closest && e.target.closest(sel)) muteBleeps(360);
+          }, {capture:true});
+        });
+      }
+      arm('#cards','.card .btn');     // reps/unlock
+      arm('#bulk','button');          // bulk
+      arm('#menu','.tab, .menu-close, [data-close]');
+      arm('#menu-body','.coach-row .btn'); // hire
+    })();
+
+    /* ========== Audio pool ========== */
     function makePool(url, n=3, vol=1.0){
       const src = RAW(url);
       const arr = Array.from({length:n}, ()=>{
@@ -3741,26 +3828,24 @@ try{
           if(p && p.catch){
             p.catch(()=>{
               const once=()=>{ target.removeEventListener('pointerdown', once, true);
-                               target.removeEventListener('touchstart', once, true);
+                               target.removeEventListener('touchstart',  once, true);
                                a.play().catch(()=>{}); };
               target.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
               target.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
             });
           }
-        }
+        },
+        setVolume(v){ arr.forEach(a=>{ try{ a.volume=v; }catch(_){} }); }
       };
     }
 
-    /* ---------- Volumes (Reps even quieter) ---------- */
-    const VOL_REPS = IS_TOUCH ? 0.20 : 0.32;
+    /* ========== Assets (volumes tuned) ========== */
+    const VOL_REPS = IS_TOUCH ? 0.20 : 0.32;    // quieter per your request
 
-    /* ---------- SFX assets ---------- */
     const SFX_START_BTN     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0);
     const SFX_OPEN_MENU     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0);
     const SFX_SWITCH_TABS   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",3,1.0);
     const SFX_CLOSE_MENU    = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",2,1.0);
-    const SFX_COACH_AVAIL_M = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",4,1.0); // male only
-    const SFX_COACH_HIRED   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3",3,1.0);
     const SFX_REPS          = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",5,VOL_REPS);
     const SFX_UNLOCK        = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",2,1.0);
     const SFX_LEVEL_UP      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",3,1.0);
@@ -3769,20 +3854,21 @@ try{
     const SFX_OFF_CLAIM     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0);
     const SFX_ACH           = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0);
 
-    /* ---------- Helpers ---------- */
-    function dedupe(el, win=220){
-      const K='data-ff-lastpd';
-      const now=performance.now(), last=+(el.getAttribute(K)||0);
-      if(now-last<win) return true;
-      el.setAttribute(K,String(now)); return false;
-    }
+    // Coaches (male-only available VO)
+    const SFX_COACH_AVAIL_M = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",4,1.0);
+    const SFX_COACH_HIRED   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3",3,1.0);
 
-    /* ---------- Start/Menu basics (unchanged behavior) ---------- */
+    /* ========== Wire UI events (pointerdown for snappiness) ========== */
+    // Start buttons
     (function(){
       const n=$('#btn-new'), c=$('#btn-continue');
-      [n,c].forEach(b=> b && b.addEventListener('pointerdown', ()=>{ if(dedupe(b,200)) return; SFX_START_BTN.play(); }, {capture:true, passive:true}));
+      [n,c].forEach(b=> b && b.addEventListener('pointerdown', ()=>{ if(dedupe(b,180)) return; SFX_START_BTN.play(); }, {capture:true, passive:true}));
+    })();
+
+    // Menu open/close
+    (function(){
       const avatar=$('#avatar'), menu=$('#menu');
-      if(avatar) avatar.addEventListener('pointerdown', ()=>{ if(dedupe(avatar,220)) return; SFX_OPEN_MENU.play(); }, {capture:true, passive:true});
+      if(avatar) avatar.addEventListener('pointerdown', ()=>{ if(dedupe(avatar,200)) return; SFX_OPEN_MENU.play(); }, {capture:true, passive:true});
       if(menu){
         let lastCloseTs=0;
         menu.addEventListener('pointerdown', (e)=>{
@@ -3803,35 +3889,41 @@ try{
       }
     })();
 
-    /* ---------- Bulk selector ---------- */
+    // Bulk selector
     (function(){
       const bulk=$('#bulk'); if(!bulk) return;
       let last = bulk.querySelector('button.active')?.dataset.q || null;
       bulk.addEventListener('pointerdown', (e)=>{
         const btn=e.target.closest?.('button'); if(!btn) return;
         if(dedupe(btn,120)) return;
+        // Wait a tick to let active class move
         setTimeout(()=>{ const cur=bulk.querySelector('button.active')?.dataset.q || null;
           if(cur && cur!==last){ last=cur; SFX_BULK.play(); } },0);
       }, {capture:true, passive:true});
     })();
 
-    /* ---------- Reps / Unlock (quieter + snappy) ---------- */
+    // Reps / Unlock within cards
     (function(){
       const cards=$('#cards'); if(!cards) return;
+
+      // Reps: instant, quiet, only when affordable (btn.glow)
       cards.addEventListener('pointerdown', (e)=>{
         const btn=e.target.closest?.('.card .btn'); if(!btn) return;
-        if(dedupe(btn,30)) return;
+        if(dedupe(btn,30)) return;  // tiny window so taps feel immediate
         const card=btn.closest('.card'); const tile=card?.querySelector('.tile');
         const isLocked=tile?.classList.contains('locked');
         if(!isLocked && btn.classList.contains('glow')) SFX_REPS.play();
       }, {capture:true, passive:true});
+
+      // Eat synthesized second click from touch
       cards.addEventListener('click', (e)=>{
         const btn=e.target.closest?.('.card .btn'); if(!btn) return;
         const K='data-ff-lastclick'; const now=performance.now(); const last=+(btn.getAttribute(K)||0);
         if(now-last<20){ e.stopImmediatePropagation(); e.preventDefault(); return; }
         btn.setAttribute(K,String(now));
       }, true);
-      // Unlock on locked→unlocked
+
+      // Unlock: watch tile class flip locked→unlocked
       new MutationObserver((muts)=>{
         muts.forEach(m=>{
           if(m.type==='attributes' && m.attributeName==='class'){
@@ -3844,7 +3936,8 @@ try{
           }
         });
       }).observe(cards,{subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
-      // Level up (mutation + poll)
+
+      // Level up: detect Lvl N increments
       const lastLvl=new WeakMap();
       function lvl(el){ const m=(el.textContent||'').match(/Lvl\s+(\d+)/i); return m?+m[1]:null; }
       function scan(el){ const cur=lvl(el); if(cur==null) return; const prev=lastLvl.get(el);
@@ -3866,107 +3959,7 @@ try{
       setInterval(()=> $$('.card .lvl', cards).forEach(scan), 250);
     })();
 
-    /* ---------- COACHES: Available (male-only) + Hired, only in Coaches tab ---------- */
-    (function(){
-      const menu=$('#menu'), body=$('#menu-body'); if(!menu || !body) return;
-
-      function coachesTabActive(){
-        const t = $('.menu-tabs .tab[data-tab="coaches"]', menu);
-        return menu.classList.contains('show') && t && t.classList.contains('active');
-      }
-      function rowKey(row){
-        const sub=row.querySelector('.coach-sub'); if(!sub) return null;
-        const m=(sub.textContent||'').match(/Works on:\s*(.+)\s*$/i);
-        return m ? m[1].trim() : null; // use exercise name as stable key
-      }
-
-      const availPlayed = new Set();        // keys by exercise name
-      const seededRows  = new WeakMap();    // row -> { hired:boolean }
-      let coachPoll = null;
-
-      function scanRow(row, {initial=false}={}){
-        if(!coachesTabActive()) return;
-
-        const key = rowKey(row); if(!key) return;
-        const btn = row.querySelector('button.btn');
-        const hiredNow = !!row.querySelector('.hired');
-
-        // Seed once per DOM instance (prevents false "hire" on first render)
-        if(!seededRows.has(row)){
-          seededRows.set(row, {hired:hiredNow});
-          // BUT still speak "available" if already glowing on initial render
-          if(btn && btn.classList.contains('glow') && !availPlayed.has(key)){
-            availPlayed.add(key);
-            SFX_COACH_AVAIL_M.playSafe(menu);
-          }
-          return;
-        }
-
-        // Available when glow appears for this exercise
-        if(btn && btn.classList.contains('glow') && !availPlayed.has(key)){
-          availPlayed.add(key);
-          SFX_COACH_AVAIL_M.playSafe(menu);
-        }
-
-        // Hired only when this specific row transitions to hired
-        const st = seededRows.get(row);
-        if(!st.hired && hiredNow){
-          st.hired = true;
-          SFX_COACH_HIRED.play();
-        } else if(!hiredNow){
-          st.hired = false;
-        }
-      }
-
-      function scanAll(initial=false){ $$('.coach-row', body).forEach(r=> scanRow(r,{initial})); }
-
-      // Immediate Hire feedback on press (only when affordable & tab active)
-      body.addEventListener('pointerdown', (e)=>{
-        if(!coachesTabActive()) return;
-        const btn = e.target.closest?.('.coach-row .btn'); if(!btn) return;
-        if(!btn.classList.contains('glow')) return;
-        SFX_COACH_HIRED.play(); // instant gratification
-      }, {capture:true, passive:true});
-
-      // Observe DOM changes within coaches list
-      const mo = new MutationObserver((muts)=>{
-        if(!coachesTabActive()) return;
-        muts.forEach(m=>{
-          if(m.type==='childList'){
-            m.addedNodes.forEach(n=>{
-              if(n instanceof HTMLElement){
-                if(n.classList.contains('coach-row')) scanRow(n,{initial:true});
-                $$('.coach-row', n).forEach(r=> scanRow(r,{initial:true}));
-              }
-            });
-          }
-          if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
-            if(m.target.matches('.coach-row .btn')) scanRow(m.target.closest('.coach-row'));
-          }
-        });
-      });
-      mo.observe(body,{subtree:true, childList:true, attributes:true, attributeFilter:['class']});
-
-      // Start/stop scanning when Coaches tab becomes active/inactive
-      function handleMenuState(){
-        if(coachesTabActive()){
-          scanAll(true);
-          if(!coachPoll) coachPoll = setInterval(()=> scanAll(), 600); // catch silent DOM swaps
-        }else{
-          if(coachPoll){ clearInterval(coachPoll); coachPoll=null; }
-        }
-      }
-      new MutationObserver(handleMenuState).observe(menu,{attributes:true, attributeFilter:['class']});
-      const tabsWrap = $('.menu-tabs', menu);
-      if(tabsWrap){
-        ['pointerdown','click'].forEach(t=>{
-          tabsWrap.addEventListener(t, ()=> setTimeout(handleMenuState,0), {capture:true, passive:true});
-        });
-      }
-      setTimeout(handleMenuState,0);
-    })();
-
-    /* ---------- Offline / Achievements (unchanged) ---------- */
+    // Offline & Achievements
     (function(){
       const off=$('#offline'), claim=$('#offline-claim');
       if(off){ new MutationObserver(()=>{ if(off.classList.contains('show')) SFX_OFF_OPEN.play(); })
@@ -3985,257 +3978,117 @@ try{
       }
     })();
 
-  }catch(e){
-    console.warn('SFX Patch v7 error:', e);
-  }
-})();
-</script>
+    /* ========== Coaches — Available (male-only) + Hired (press + flip) ========== */
+    (function(){
+      const menu=$('#menu'), body=$('#menu-body'); if(!menu || !body) return;
 
+      function coachesTabActive(){
+        const t = $('.menu-tabs .tab[data-tab="coaches"]', menu);
+        return menu.classList.contains('show') && t && t.classList.contains('active');
+      }
 
+      // Use exercise name as stable key across DOM re-renders
+      function rowKey(row){
+        const sub=row.querySelector('.coach-sub'); if(!sub) return null;
+        const m=(sub.textContent||'').match(/Works on:\s*(.+)\s*$/i);
+        return m ? m[1].trim() : null;
+      }
 
+      const availPlayed = new Set();     // per exercise name
+      const seededState = new WeakMap(); // row -> { hired:boolean }
+      const AV_TAG   = 'data-ff-av-sounded';
+      const HI_TAG   = 'data-ff-hire-sounded';
+      let poll = null;
 
+      function scanRow(row, initial=false){
+        if(!coachesTabActive()) return;
+        const key = rowKey(row); if(!key) return;
+        const btn = row.querySelector('button.btn');
+        const glow= !!(btn && btn.classList.contains('glow'));
+        const hiredNow = !!row.querySelector('.hired');
 
+        // Seed state to avoid false "hired" on first render
+        if(!seededState.has(row)){
+          seededState.set(row, {hired:hiredNow});
+          // Speak "available" if we open into an already-glowing row (once per exercise name)
+          if(glow && !availPlayed.has(key) && !row.hasAttribute(AV_TAG)){
+            availPlayed.add(key); row.setAttribute(AV_TAG,'1');
+            SFX_COACH_AVAIL_M.playSafe(menu);
+          }
+          return;
+        }
 
-  
-  
+        // Available: speak when glow appears (once per exercise name)
+        if(glow && !availPlayed.has(key) && !row.hasAttribute(AV_TAG)){
+          availPlayed.add(key); row.setAttribute(AV_TAG,'1');
+          SFX_COACH_AVAIL_M.playSafe(menu);
+        }
 
+        // Hired: speak only on transition not-hired -> hired
+        const st = seededState.get(row);
+        if(!st.hired && hiredNow && !row.hasAttribute(HI_TAG)){
+          st.hired = true; row.setAttribute(HI_TAG,'1');
+          SFX_COACH_HIRED.play();
+        }else if(!hiredNow){
+          st.hired = false;
+          if(row.hasAttribute(HI_TAG)) row.removeAttribute(HI_TAG);
+        }
+      }
 
+      function scanAll(initial=false){ $$('.coach-row', body).forEach(r=> scanRow(r, initial)); }
 
-<script type="application/ff-patch">
-/* ===== Coach SFX Hardener v7.1 — male-only "available" & reliable "hired" =====
-   - Plays "available" when .coach-row has a .btn.glow (on open + on change)
-   - Plays "hired" on: (a) pressing a glowing Hire button, and (b) real flip to Hired
-   - De-dupes per row so you don't hear repeats
-   - Uses male-only available VO link (raw) as requested
-============================================================================= */
-(function(){
-  try{
-    if (window.__FF_COACH_SFX_HARDENER__) return;
-    window.__FF_COACH_SFX_HARDENER__ = true;
+      // Instant feedback when pressing an affordable (glowing) Hire button
+      body.addEventListener('pointerdown', (e)=>{
+        if(!coachesTabActive()) return;
+        const btn = e.target.closest?.('.coach-row .btn'); if(!btn) return;
+        if(!btn.classList.contains('glow')) return;
+        const row = btn.closest('.coach-row'); if(!row) return;
+        if(!row.hasAttribute(HI_TAG)) SFX_COACH_HIRED.playSafe(menu);
+      }, {capture:true, passive:true});
 
-    const $  = (s, r=document)=> r.querySelector(s);
-    const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
-
-    /* --- simple audio pool with gesture-safe play --- */
-    function pool(url, n=3, vol=1.0){
-      const arr = Array.from({length:n}, ()=>{
-        const a = new Audio(url);
-        a.preload = 'auto';
-        a.crossOrigin = 'anonymous';
-        a.volume = vol;
-        try{ a.load(); }catch(_){}
-        return a;
-      });
-      let i=0;
-      function next(){ return arr[i++ % arr.length]; }
-      return {
-        play(){
-          const a = next(); try{ a.currentTime = 0; }catch(_){}
-          const p = a.play(); if(p && p.catch) p.catch(()=>{});
-        },
-        playSafe(target){
-          const a = next(); try{ a.currentTime = 0; }catch(_){}
-          const p = a.play();
-          if(p && p.catch){
-            p.catch(()=>{
-              const once = ()=>{ target.removeEventListener('pointerdown', once, true);
-                                 target.removeEventListener('touchstart',  once, true);
-                                 a.play().catch(()=>{}); };
-              target.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
-              target.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+      // Observe DOM changes inside coaches list
+      const mo = new MutationObserver((muts)=>{
+        if(!coachesTabActive()) return;
+        muts.forEach(m=>{
+          if(m.type==='childList'){
+            m.addedNodes.forEach(n=>{
+              if(!(n instanceof HTMLElement)) return;
+              if(n.classList.contains('coach-row')) scanRow(n, true);
+              $$('.coach-row', n).forEach(r=> scanRow(r, true));
             });
           }
-        }
-      };
-    }
-
-    /* --- your exact files (male-only for available) --- */
-    const COACH_AVAILABLE = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3", 4, 1.0);
-    const COACH_HIRED     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-hired.mp3", 3, 1.0);
-
-    const menu = document.getElementById('menu');
-    const body = document.getElementById('menu-body');
-    if(!menu || !body) return;
-
-    function coachesTabActive(){
-      const t = menu.querySelector('.menu-tabs .tab[data-tab="coaches"]');
-      return menu.classList.contains('show') && t && t.classList.contains('active');
-    }
-
-    /* De-dupe markers on each row */
-    const AV_TAG   = 'data-ff-av-sounded';
-    const HIRED_TAG= 'data-ff-hire-sounded';
-
-    function scanRow(row, opts={initial:false}){
-      if(!coachesTabActive()) return;
-
-      const btn    = row.querySelector('button.btn');
-      const glow   = !!(btn && btn.classList.contains('glow'));
-      const hired  = !!row.querySelector('.hired');
-
-      // "Available": speak once per row when glow is visible
-      if(glow && !row.hasAttribute(AV_TAG)){
-        row.setAttribute(AV_TAG,'1');
-        COACH_AVAILABLE.playSafe(menu);
-      }
-
-      // "Hired": speak once per row when it actually shows Hired
-      if(hired && !row.hasAttribute(HIRED_TAG)){
-        row.setAttribute(HIRED_TAG,'1');
-        COACH_HIRED.play(); // by now user already interacted; autoplay usually allowed
-      }
-      if(!hired && row.hasAttribute(HIRED_TAG)){
-        // If it ever flips back (shouldn't normally), allow sound again later
-        row.removeAttribute(HIRED_TAG);
-      }
-    }
-
-    function scanAll(initial=false){
-      if(!coachesTabActive()) return;
-      $$('.coach-row', body).forEach(r=> scanRow(r, {initial}));
-    }
-
-    /* Immediate "Hired" feedback on pressing a glowing button (plus de-dupe) */
-    body.addEventListener('pointerdown', (e)=>{
-      if(!coachesTabActive()) return;
-      const btn = e.target.closest && e.target.closest('.coach-row .btn');
-      if(!btn || !btn.classList.contains('glow')) return;
-      const row = btn.closest('.coach-row'); if(!row) return;
-      if(!row.hasAttribute(HIRED_TAG)){ // don't spam if already marked hired
-        COACH_HIRED.playSafe(menu);
-      }
-    }, {capture:true, passive:true});
-
-    /* Observe DOM changes inside Coaches list */
-    const mo = new MutationObserver((muts)=>{
-      if(!coachesTabActive()) return;
-      muts.forEach(m=>{
-        if(m.type==='childList'){
-          m.addedNodes.forEach(n=>{
-            if(!(n instanceof HTMLElement)) return;
-            if(n.classList.contains('coach-row')) scanRow(n, {initial:true});
-            (n.querySelectorAll ? n.querySelectorAll('.coach-row') : []).forEach(r=> scanRow(r, {initial:true}));
-          });
-        }
-        if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
-          // Respond to glow class flips on the Hire button
-          if(m.target.matches('.coach-row .btn')){
-            const row = m.target.closest('.coach-row');
-            if(row) scanRow(row);
-          }
-        }
-      });
-    });
-    mo.observe(body, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
-
-    /* Kick scans on menu open and tab switches */
-    new MutationObserver(()=>{ if(coachesTabActive()) setTimeout(()=> scanAll(true), 0); })
-      .observe(menu, {attributes:true, attributeFilter:['class']});
-    const tabsWrap = menu.querySelector('.menu-tabs');
-    if(tabsWrap){
-      ['pointerdown','click'].forEach(t=>{
-        tabsWrap.addEventListener(t, ()=> setTimeout(()=> scanAll(true), 0), {capture:true, passive:true});
-      });
-    }
-
-    /* Poll fallback in case of silent DOM swaps (Safari quirks) */
-    setInterval(()=> scanAll(false), 700);
-
-  }catch(e){
-    console.warn('Coach SFX Hardener error:', e);
-  }
-})();
-</script>
-
-
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* ===== Mobile Audio Unlocker v2 — fixes first-run SFX on iOS/Android =====
-   - Globally patches HTMLMediaElement.play: if blocked (NotAllowedError), replays on next gesture
-   - Arms a one-time, first-gesture unlock: resumes a dummy AudioContext + plays a tiny silent clip
-   - No app logic changes; safe to add on top of your existing SFX patches
-============================================================================ */
-(function(){
-  if (window.__FF_AUDIO_UNLOCK_V2__) return;
-  window.__FF_AUDIO_UNLOCK_V2__ = true;
-
-  /* 1) Global play() fallback — retries after the NEXT user gesture if autoplay blocks */
-  (function(){
-    const HME = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
-    if (!HME || HME.__ffPlayPatched) return;
-    HME.__ffPlayPatched = true;
-
-    const orig = HME.play;
-    HME.play = function(){
-      const res = (()=>{ try{ return orig.apply(this, arguments); }catch(e){ return Promise.reject(e); } })();
-      if (res && typeof res.catch === 'function'){
-        res.catch((err)=>{
-          const name = (err && err.name) || '';
-          const msg  = (err && err.message) || '';
-          if (/NotAllowedError/i.test(name) || /(gesture|user).*(play|start)/i.test(msg)){
-            const el = this;
-            const once = ()=>{
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('click',       once, true);
-              try{ orig.call(el); }catch(_){}
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
-            document.addEventListener('click',       once, {capture:true, passive:true, once:true});
+          if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
+            if(m.target.matches('.coach-row .btn')){
+              const row = m.target.closest('.coach-row');
+              if(row) scanRow(row);
+            }
           }
         });
-      }
-      return res;
-    };
-  })();
+      });
+      mo.observe(body,{subtree:true, childList:true, attributes:true, attributeFilter:['class']});
 
-  /* 2) First-gesture unlock — resume WebAudio + prime HTML5 audio with a tiny silent clip */
-  (function(){
-    if (window.__FF_AUDIO_GESTURE_ARMed__) return;
-    window.__FF_AUDIO_GESTURE_ARMed__ = true;
-
-    // 0.06s silent WAV data URI (tiny, fast)
-    const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
-    const prim = new Audio(SILENT); prim.preload='auto'; prim.muted=true;
-
-    function unlock(){
-      // Resume/prime WebAudio (even if you don't use it, this satisfies iOS gesture gating)
-      try{
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC){
-          if (!window.__ff_dummy_ac__) window.__ff_dummy_ac__ = new AC();
-          const ac = window.__ff_dummy_ac__;
-          if (ac && ac.state === 'suspended' && ac.resume) ac.resume();
+      // Start/stop scanning when coaches tab opens/closes
+      function handleState(){
+        if(coachesTabActive()){
+          scanAll(true);
+          if(!poll) poll = setInterval(()=> scanAll(false), 600);
+        }else{
+          if(poll){ clearInterval(poll); poll=null; }
         }
-      }catch(_){}
-      // Prime HTML5 audio
-      try{
-        prim.currentTime = 0;
-        const p = prim.play();
-        if (p && p.finally) p.finally(()=>{ try{ prim.pause(); }catch(_){} });
-        else { try{ prim.pause(); }catch(_){} }
-      }catch(_){}
-    }
+      }
+      new MutationObserver(handleState).observe(menu,{attributes:true, attributeFilter:['class']});
+      const tabsWrap = $('.menu-tabs', menu);
+      if(tabsWrap){
+        ['pointerdown','click'].forEach(t=>{
+          tabsWrap.addEventListener(t, ()=> setTimeout(handleState,0), {capture:true, passive:true});
+        });
+      }
+      setTimeout(handleState,0);
+    })();
 
-    const once = ()=>{
-      document.removeEventListener('pointerdown', once, true);
-      document.removeEventListener('touchstart',  once, true);
-      document.removeEventListener('click',       once, true);
-      unlock();
-    };
-
-    // Capture so we run before game handlers; first gesture unlocks audio for everything
-    document.addEventListener('pointerdown', once, {capture:true, passive:true});
-    document.addEventListener('touchstart',  once, {capture:true, passive:true});
-    document.addEventListener('click',       once, {capture:true, passive:true});
-  })();
-
+  }catch(e){
+    console.warn('SFX Engine v8 error:', e);
+  }
 })();
 </script>
 
