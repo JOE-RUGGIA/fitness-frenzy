@@ -3580,11 +3580,11 @@ try{
   
 
 <script type="application/ff-patch">
-/* Tutorial: instant text (mobile-safe, no skipped steps) — /////////////////////NO TYPING TEXT/////////////////v2 */
+/* Tutorial: instant text (no typing, mobile-safe) — v3/////////////////////NO TYPING AND ENSURE FEMALE////MALE////SHOWS */
 (function(){
   try{
-    if (window.__FF_TUTORIAL_INSTANT_TEXT_V2__) return;
-    window.__FF_TUTORIAL_INSTANT_TEXT_V2__ = true;
+    if (window.__FF_TUTORIAL_INSTANT_TEXT_V3__) return;
+    window.__FF_TUTORIAL_INSTANT_TEXT_V3__ = true;
 
     const tip     = document.getElementById('tip');
     const bubble  = document.getElementById('tip-bubble');
@@ -3593,80 +3593,69 @@ try{
     const tipNext = document.getElementById('tip-next');
     if(!tip || !bubble || !tipText || !tipHead || !tipNext) return;
 
-    const isVisible = (el)=>{
+    const visible = (el)=> {
       const cs = getComputedStyle(el);
       return cs.display!=='none' && cs.visibility!=='hidden' && cs.opacity!=='0';
     };
 
-    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints>0);
-    const FILL_DELAY = isTouch ? 90 : 45;  // give mobile a hair more time
+    let stepId = 0;          // increments per step (speaker change / show)
+    let filled = false;      // clicked once to reveal full line
+    let prevLen = 0;
 
-    let stepId = 0;                 // increments per step
-    let filledForStep = false;      // guard so we don't double-press
-    let pendingTimer = null;        // one pending timer per step
-
-    function markNewStep(){
+    function newStep(){
       stepId++;
-      filledForStep = false;
-      if(pendingTimer){ clearTimeout(pendingTimer); pendingTimer=null; }
+      filled = false;
+      prevLen = (tipText.textContent||'').length;
     }
 
-    function looksLikeTypingHasStarted(){
-      // Tutor.lockTextBoxSize() sets explicit width/height, then clears text before typing.
-      // When the first chars appear, we should see short text AND width/height already set.
-      const hasSizeLock = !!(tipText.style.width && tipText.style.height);
-      const len = (tipText.textContent||'').length;
-      return hasSizeLock && len >= 1 && len <= 4;
+    // On first character appearing for a step, click once to fill entire line.
+    function maybeInstantFill(){
+      if(!visible(tip) || !visible(bubble) || filled) return;
+      const curLen = (tipText.textContent||'').length;
+
+      // Detect transition from cleared state (0) to “typing started” (>0)
+      if (prevLen === 0 && curLen > 0){
+        const myStep = stepId;
+        // Micro-delay ensures we’re mid-typing (so click fills, not advance)
+        setTimeout(()=>{
+          if(myStep!==stepId || filled || !visible(tip) || !visible(bubble)) return;
+          // If text is still present (typing in progress), click once to reveal all
+          if ((tipText.textContent||'').length > 0){
+            filled = true;
+            try{ tipNext.click(); }catch(_){}
+          }
+        }, 20);
+      }
+      prevLen = curLen;
     }
 
-    function tryFillSoon(){
-      if(!isVisible(tip) || !isVisible(bubble) || filledForStep) return;
-      if(!looksLikeTypingHasStarted()) return;
-
-      const myStep = stepId;
-      if(pendingTimer) clearTimeout(pendingTimer);
-      pendingTimer = setTimeout(()=>{
-        pendingTimer = null;
-        // Still same step? Still visible? Still typing?
-        if(myStep!==stepId || !isVisible(tip) || !isVisible(bubble)) return;
-        if(!looksLikeTypingHasStarted()) return;
-
-        // Now it's safe: click once to reveal full line (doesn't advance)
-        filledForStep = true;
-        try { tipNext.click(); } catch(_){}
-      }, FILL_DELAY);
-    }
-
-    // 1) Tutorial shown/hidden → new step token
+    // 1) Tutorial overlay shown → new step token
     new MutationObserver(()=>{
-      if(tip.classList.contains('show') && isVisible(bubble)){
-        markNewStep();
-        // Defer so size lock can happen first
-        setTimeout(tryFillSoon, 0);
+      if(tip.classList.contains('show') && visible(bubble)) {
+        newStep();
       }
     }).observe(tip, {attributes:true, attributeFilter:['class']});
 
-    // 2) Speaker change → new step token
-    new MutationObserver(()=>{
-      markNewStep();
-      setTimeout(tryFillSoon, 0);
-    }).observe(tipHead, {characterData:true, childList:true, subtree:true});
+    // 2) Speaker changes → new step token
+    new MutationObserver(()=>{ newStep(); }).observe(tipHead, {characterData:true, childList:true, subtree:true});
 
-    // 3) Text typing changes → schedule safe fill
-    new MutationObserver(()=>{
-      tryFillSoon();
-    }).observe(tipText, {characterData:true, childList:true, subtree:true});
+    // 3) Text is being typed → pounce on first char
+    new MutationObserver(()=>{ maybeInstantFill(); })
+      .observe(tipText, {characterData:true, childList:true, subtree:true});
 
-    // 4) Bubble visibility flip → re-arm
-    new MutationObserver(()=>{
-      setTimeout(tryFillSoon, 0);
-    }).observe(bubble, {attributes:true, attributeFilter:['style','class']});
+    // 4) Bubble visibility flips → re-arm
+    new MutationObserver(()=>{ setTimeout(()=>{ prevLen=(tipText.textContent||'').length; },0); })
+      .observe(bubble, {attributes:true, attributeFilter:['style','class']});
+
+    // Kick once (in case we land mid-step)
+    setTimeout(()=>{ prevLen=(tipText.textContent||'').length; maybeInstantFill(); },0);
 
   }catch(e){
-    console.warn('Instant tutorial text v2 error:', e);
+    console.warn('Instant tutorial text v3 error:', e);
   }
 })();
 </script>
+
 
   
   
