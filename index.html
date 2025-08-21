@@ -3667,46 +3667,50 @@ try{
 
   
 
+
+
 <script type="application/ff-patch">
-/* ========= Brush Masters — Fitness Frenzy: Global UI SFX Patch =========
-   - New Game / Continue
-   - Open Menu (avatar)
-   - Menu Tabs & Toggles
-   - Close Menu
-   - Coach Available (gendered, F/M alternating by coach index)
-   - Coach Hired
-   - Reps purchase (success)
-   - Unlock Exercise
-   - Level Up (cooldown halves)
-   - Bulk selector change
-   - Offline gains (open + claim)
-   - Achievements
-   - NO SFX on exercise tile taps (kept off)
-========================================================================= */
+/* ========= SFX Patch v3 (mobile-safe, deduped, no legacy bleeps) =========
+   Fixes:
+   - Double Reps purchases on mobile (click de-dupe)
+   - Removes old SFX.ok/SFX.click bleeps everywhere
+   - Reliable Coach Available (F/M alternating) on "glow" appear
+   - Coach Hired always plays (press + fallback on "Hired" flip)
+   - Bulk selector SFX on mobile (after active changes)
+   - Menu tabs/toggles SFX via click (mobile-friendly)
+   - Unlock Exercise SFX single-fire
+   - Level Up SFX on "Lvl N" increments
+=========================================================================== */
 (function(){
   try{
-    if (window.__FF_SFX_GLOBAL__) return;
-    window.__FF_SFX_GLOBAL__ = true;
+    if (window.__FF_SFX_GLOBAL_V3__) return;
+    window.__FF_SFX_GLOBAL_V3__ = true;
 
-    /* ---------- Helpers ---------- */
-    const q  = (sel)=> document.querySelector(sel);
-    const qa = (sel,root=document)=> Array.from(root.querySelectorAll(sel));
-
-    // Convert github.com/.../blob/... to raw.githubusercontent.com/...
+    const q  = (s, r=document)=> r.querySelector(s);
+    const qa = (s, r=document)=> Array.from(r.querySelectorAll(s));
     const toRaw = (url)=> url.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^]+)$/i,
                                       'https://raw.githubusercontent.com/$1/$2/$3');
 
-    // Simple small audio pool so rapid taps don't cut off audio
+    /* ---------- Kill legacy bleeps (global) ---------- */
+    try{
+      if (window.SFX){
+        SFX.ok    = function(){};  // mute old "bleep"
+        SFX.click = function(){};  // mute old "click"
+        // Leave SFX.tick alone (typing is off anyway)
+      }
+    }catch(_){}
+
+    /* ---------- Small audio pool (rapid taps safe) ---------- */
     function makePool(url, size=3, volume=1.0){
       const src = toRaw(url);
-      const pool = new Array(size).fill(0).map(()=> {
+      const pool = new Array(size).fill(0).map(()=>{
         const a = new Audio(src);
         a.preload = 'auto';
         a.crossOrigin = 'anonymous';
         a.volume = volume;
         return a;
       });
-      let i = 0;
+      let i=0;
       return {
         play(){
           const a = pool[i++ % pool.length];
@@ -3717,19 +3721,7 @@ try{
       };
     }
 
-    // Per-element click de-dupe (avoid touch/pointer double-fires)
-    function dedupeOn(el, ms=260){
-      const KEY = 'data-ff-last-ts';
-      return function(){
-        const now = performance.now();
-        const last = Number(el.getAttribute(KEY)||0);
-        if(now - last < ms) return true;
-        el.setAttribute(KEY, String(now));
-        return false;
-      };
-    }
-
-    /* ---------- SFX pools (raw URLs) ---------- */
+    /* ---------- SFX pools ---------- */
     const SFX_START_BTN      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3", 2, 1.0);
     const SFX_OPEN_MENU      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3", 3, 1.0);
     const SFX_SWITCH_TABS    = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3", 3, 1.0);
@@ -3747,16 +3739,11 @@ try{
 
     /* ---------- New Game / Continue ---------- */
     (function(){
-      const btnNew = q('#btn-new');
-      const btnCont= q('#btn-continue');
-      if(btnNew){
-        const isDup = dedupeOn(btnNew);
-        btnNew.addEventListener('pointerdown', (e)=>{ if(isDup()) return; SFX_START_BTN.play(); }, {capture:true, passive:true});
-      }
-      if(btnCont){
-        const isDup = dedupeOn(btnCont);
-        btnCont.addEventListener('pointerdown', (e)=>{ if(isDup()) return; SFX_START_BTN.play(); }, {capture:true, passive:true});
-      }
+      const btnNew = q('#btn-new'), btnCont = q('#btn-continue');
+      [btnNew, btnCont].forEach(btn=>{
+        if(!btn) return;
+        btn.addEventListener('click', ()=> SFX_START_BTN.play(), {capture:true});
+      });
     })();
 
     /* ---------- Open / Close Menu ---------- */
@@ -3764,130 +3751,165 @@ try{
       const avatar = q('#avatar');
       const menu   = q('#menu');
       if(avatar){
-        const isDup = dedupeOn(avatar);
-        avatar.addEventListener('pointerdown', (e)=>{ if(isDup()) return; SFX_OPEN_MENU.play(); }, {capture:true, passive:true});
+        avatar.addEventListener('click', ()=> SFX_OPEN_MENU.play(), {capture:true});
       }
       if(menu){
-        // Close via backdrop or close button
-        menu.addEventListener('pointerdown', (e)=>{
+        // Close via backdrop or explicit close button
+        menu.addEventListener('click', (e)=>{
           const close = e.target.closest && e.target.closest('[data-close], .menu-close');
-          if(!close) return;
-          SFX_CLOSE_MENU.play();
-        }, {capture:true, passive:true});
+          if(close) SFX_CLOSE_MENU.play();
+        }, {capture:true});
       }
     })();
 
-    /* ---------- Tabs & Toggles (Settings etc.) ---------- */
+    /* ---------- Tabs & Toggles (mobile-safe via click) ---------- */
     (function(){
       const menu = q('#menu');
       const body = q('#menu-body');
       if(menu){
-        // Tabs
-        menu.addEventListener('pointerdown', (e)=>{
+        menu.addEventListener('click', (e)=>{
           const tab = e.target.closest && e.target.closest('.tab');
           if(!tab) return;
-          if(tab.classList.contains('active')) return; // no sound if already active
-          SFX_SWITCH_TABS.play();
-        }, {capture:true, passive:true});
+          if(tab.classList.contains('active')) return;
+          // Wait one tick so active class can flip
+          setTimeout(()=> SFX_SWITCH_TABS.play(), 0);
+        }, {capture:true});
       }
       if(body){
-        // Toggles (checkbox, select, etc.) — play on change
         body.addEventListener('change', (e)=>{
           const el = e.target;
           if(!el) return;
-          if(el.matches('input[type="checkbox"], input[type="radio"], select')) SFX_SWITCH_TABS.play();
-          if(el.matches('input[type="range"]')) SFX_SWITCH_TABS.play();
+          if(el.matches('input[type="checkbox"], input[type="radio"], select, input[type="range"]')){
+            SFX_SWITCH_TABS.play();
+          }
         }, true);
       }
     })();
 
-    /* ---------- Bulk selector change (×1/×10/×100) ---------- */
+    /* ---------- Bulk selector: play AFTER active changes ---------- */
     (function(){
       const bulk = q('#bulk');
       if(!bulk) return;
-      bulk.addEventListener('pointerdown', (e)=>{
+      let lastActive = bulk.querySelector('button.active')?.dataset.q || null;
+      bulk.addEventListener('click', (e)=>{
         const btn = e.target.closest && e.target.closest('button');
         if(!btn) return;
-        // Only play if changing selection
-        if(btn.classList.contains('active')) return;
-        SFX_BULK_CHANGE.play();
-      }, {capture:true, passive:true});
+        setTimeout(()=>{
+          const curActive = bulk.querySelector('button.active')?.dataset.q || null;
+          if(curActive && curActive !== lastActive){
+            lastActive = curActive;
+            SFX_BULK_CHANGE.play();
+          }
+        },0);
+      }, {capture:true});
     })();
 
-    /* ---------- Reps & Unlock & Level Up (card right button + mutations) ---------- */
+    /* ---------- Reps/Unlock buttons: SFX + click de-dupe ---------- */
     (function(){
       const root = q('#cards');
       if(!root) return;
 
-      // On click of the right button in a card...
-      root.addEventListener('pointerdown', (e)=>{
+      // 1) De-dupe 'click' on card .btn to prevent double purchases on mobile
+      const CLICK_WIN = 180; // ms
+      root.addEventListener('click', (e)=>{
+        const btn = e.target.closest && e.target.closest('.card .btn');
+        if(!btn) return;
+        const KEY = 'data-ff-lastclick-ts';
+        const now = performance.now();
+        const last = Number(btn.getAttribute(KEY)||0);
+        if(now - last < CLICK_WIN){
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return;
+        }
+        btn.setAttribute(KEY, String(now));
+      }, true); // capture: intercept before game handler
+
+      // 2) Custom SFX — only once, no legacy bleeps
+      root.addEventListener('click', (e)=>{
         const btn = e.target.closest && e.target.closest('.card .btn');
         if(!btn) return;
 
-        const card = e.target.closest('.card');
-        if(!card) return;
+        const card = btn.closest('.card');
+        const tile = card?.querySelector('.tile');
+        const isLocked = tile?.classList.contains('locked');
 
-        const tile = card.querySelector('.tile');
-        const isLocked = tile && tile.classList.contains('locked');
-
-        // If locked -> attempting unlock; only play if looks affordable (button glowing)
         if(isLocked){
-          if(btn.classList.contains('glow')) SFX_UNLOCK_EX.play();
+          // Do not play here; wait for actual unlock (class flip) to avoid double
           return;
-        }
-        // Otherwise this is the Reps button; only play when affordable (glow)
-        if(btn.classList.contains('glow')){
-          SFX_REPS_PURCHASE.play();
-        }
-      }, {capture:true, passive:true});
-
-      // Watch for Lvl increases to play Level Up heartbeat
-      const lvlMap = new WeakMap(); // element -> last numeric level
-      function scanLevel(el){
-        const txt = (el.textContent||'').match(/Lvl\s+(\d+)/i);
-        const cur = txt ? parseInt(txt[1],10) : NaN;
-        const prev= lvlMap.get(el);
-        if(Number.isFinite(cur)){
-          if(Number.isFinite(prev) && cur>prev){
-            SFX_LEVEL_UP.play();
+        } else {
+          // Reps purchase: only when affordable (glow)
+          if(btn.classList.contains('glow')){
+            SFX_REPS_PURCHASE.play();
           }
-          lvlMap.set(el, cur);
         }
-      }
-      // Seed existing levels
-      qa('.card .lvl', root).forEach(scanLevel);
+      }, {capture:false});
+    })();
 
+    /* ---------- Unlock Exercise: only on actual unlock (no double) ---------- */
+    (function(){
+      const root = q('#cards');
+      if(!root) return;
       const mo = new MutationObserver((muts)=>{
-        muts.forEach(m=>{
-          if(m.type==='characterData'){
-            const el = m.target.parentElement;
-            if(el && el.classList && el.classList.contains('lvl')) scanLevel(el);
-          }else if(m.type==='childList'){
-            m.addedNodes.forEach(n=>{
-              if(n.nodeType===1){
-                if(n.classList.contains('lvl')) scanLevel(n);
-                qa('.lvl', n).forEach(scanLevel);
-              }
-            });
-          }
-          // Unlock detection: tile locked -> unlocked
-          if(m.type==='attributes' && m.attributeName==='class' && m.target.classList && m.target.classList.contains('tile')){
-            const tile = m.target;
-            if(!tile.classList.contains('locked') && m.oldValue && /(^|\s)locked(\s|$)/.test(m.oldValue)){
+        for(const m of muts){
+          if(m.type==='attributes' && m.attributeName==='class' &&
+             m.target.classList && m.target.classList.contains('tile')){
+            const was = m.oldValue || '';
+            const nowLocked = m.target.classList.contains('locked');
+            if(/\blocked\b/.test(was) && !nowLocked){
+              // locked -> unlocked
               SFX_UNLOCK_EX.play();
             }
           }
-        });
+        }
       });
-      mo.observe(root, {subtree:true, childList:true, characterData:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
+      mo.observe(root, {subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
     })();
 
-    /* ---------- Coaches: Available (gendered) + Hired ---------- */
+    /* ---------- Level Up SFX: detect Lvl text increments robustly ---------- */
     (function(){
-      const menuBody = q('#menu-body');
-      if(!menuBody) return;
+      const root = q('#cards'); if(!root) return;
+      const lastLevelByEl = new WeakMap();
 
-      // Map "Works on: <Exercise>" => index (0..19)
+      function readLevel(el){
+        const m = (el.textContent||'').match(/Lvl\s+(\d+)/i);
+        return m ? parseInt(m[1],10) : null;
+        }
+      function scan(el){
+        const cur = readLevel(el);
+        if(cur==null) return;
+        const prev = lastLevelByEl.get(el);
+        if(prev!=null && cur>prev){
+          SFX_LEVEL_UP.play();
+        }
+        lastLevelByEl.set(el, cur);
+      }
+
+      // Seed existing .lvl nodes
+      qa('.card .lvl', root).forEach(scan);
+
+      const mo = new MutationObserver((muts)=>{
+        for(const m of muts){
+          if(m.type==='characterData'){
+            const el = m.target.parentElement;
+            if(el && el.classList && el.classList.contains('lvl')) scan(el);
+          }else if(m.type==='childList'){
+            m.addedNodes.forEach(n=>{
+              if(!(n instanceof HTMLElement)) return;
+              if(n.classList && n.classList.contains('lvl')) scan(n);
+              qa('.lvl', n).forEach(scan);
+            });
+          }
+        }
+      });
+      mo.observe(root, {subtree:true, childList:true, characterData:true});
+    })();
+
+    /* ---------- Coaches: Available (gendered) + Hired (reliable) ---------- */
+    (function(){
+      const menuBody = q('#menu-body'); if(!menuBody) return;
+
+      // Build ExerciseName -> index map (0..19)
       const nameToIndex = new Map();
       try{
         if (typeof Exercises !== 'undefined' && Array.isArray(Exercises)){
@@ -3901,105 +3923,104 @@ try{
         }
       }catch(_){}
 
-      // Remember which coach index we've already sounded as "available"
-      const sounded = new Set();
+      const soundedAvailIdx = new Set();
 
-      function genderForIndex(idx){ return (idx % 2 === 0) ? 'F' : 'M'; } // 0=Walking=female
-
-      function checkRow(row){
+      function idxFromRow(row){
         const sub = row.querySelector('.coach-sub');
-        const btn = row.querySelector('.btn');
-        if(!sub || !btn) return;
-
-        // Parse "Works on: <Exercise>"
+        if(!sub) return null;
         const m = (sub.textContent||'').match(/Works on:\s*(.+)\s*$/i);
-        const exName = m ? m[1].trim() : '';
+        const exName = m ? m[1].trim() : null;
+        if(!exName) return null;
         const idx = nameToIndex.get(exName);
-        if(idx == null) return;
-
-        // Coach Hired
-        if(btn.tagName !== 'BUTTON'){ // no button = already hired
-          return;
-        }
-
-        // Available SFX: first time we see this button glowing (affordable)
-        if(btn.classList.contains('glow') && !sounded.has(idx)){
-          sounded.add(idx);
-          if(genderForIndex(idx)==='F') SFX_COACH_AVAIL_F.play();
-          else SFX_COACH_AVAIL_M.play();
-        }
-
-        // Hired SFX: on click of a glowing "Hire" button
-        const isDup = dedupeOn(btn, 220);
-        btn.addEventListener('pointerdown', (e)=>{
-          if(isDup()) return;
-          if(!btn.classList.contains('glow')) return; // not affordable → no sound
-          SFX_COACH_HIRED.play();
-        }, {capture:true, passive:true});
+        return (idx==null ? null : idx);
       }
+      const genderForIndex = (idx)=> (idx % 2 === 0) ? 'F' : 'M'; // 0=Walking=female
 
-      function scanAll(){
-        qa('.coach-row', menuBody).forEach(checkRow);
-      }
-      scanAll();
+      // Observe button glow flips + hired flips
+      const mo = new MutationObserver((muts)=>{
+        for(const m of muts){
+          if(!(m.target instanceof HTMLElement)) continue;
 
-      // Re-run when Coaches tab renders/changes
-      new MutationObserver((muts)=>{
-        muts.forEach(m=>{
+          // 1) Button glow added => Available
+          if(m.type==='attributes' && m.attributeName==='class' &&
+             m.target.matches && m.target.matches('.coach-row .btn')){
+            const hadGlow = /\bglow\b/.test(m.oldValue||'');
+            const hasGlow = m.target.classList.contains('glow');
+            if(!hadGlow && hasGlow){
+              const row = m.target.closest('.coach-row');
+              const idx = idxFromRow(row);
+              if(idx!=null && !soundedAvailIdx.has(idx)){
+                soundedAvailIdx.add(idx);
+                (genderForIndex(idx)==='F'? SFX_COACH_AVAIL_F : SFX_COACH_AVAIL_M).play();
+              }
+            }
+          }
+
+          // 2) Row flips to Hired
           if(m.type==='childList'){
             m.addedNodes.forEach(n=>{
-              if(n.nodeType===1){
-                if(n.classList.contains('coach-row')) checkRow(n);
-                qa('.coach-row', n).forEach(checkRow);
+              if(!(n instanceof HTMLElement)) return;
+              const row = n.closest?.('.coach-row') || (n.classList?.contains('coach-row') ? n : null);
+              if(!row) return;
+              const hired = row.querySelector('.hired');
+              if(hired && !row.getAttribute('data-ff-hire-sounded')){
+                row.setAttribute('data-ff-hire-sounded','1');
+                SFX_COACH_HIRED.play();
               }
             });
           }
-        });
-      }).observe(menuBody, {childList:true, subtree:true});
+        }
+      });
+      mo.observe(menuBody, {subtree:true, childList:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
+
+      // Also play on pressing the Hire button (immediate feedback; deduped by row flag)
+      menuBody.addEventListener('click', (e)=>{
+        const btn = e.target.closest && e.target.closest('.coach-row .btn');
+        if(!btn) return;
+        if(!btn.classList.contains('glow')) return;
+        const row = btn.closest('.coach-row');
+        if(row && !row.getAttribute('data-ff-hire-sounded')){
+          row.setAttribute('data-ff-hire-sounded','1');
+          SFX_COACH_HIRED.play();
+        }
+      }, {capture:true});
     })();
 
-    /* ---------- Offline gains (open + claim) ---------- */
+    /* ---------- Offline gains ---------- */
     (function(){
-      const modal  = q('#offline');
-      const claim  = q('#offline-claim');
+      const modal = q('#offline');
+      const claim = q('#offline-claim');
       if(modal){
-        // play when modal appears
         new MutationObserver(()=>{
           if(modal.classList.contains('show')) SFX_OFFLINE_OPEN.play();
         }).observe(modal, {attributes:true, attributeFilter:['class']});
       }
       if(claim){
-        const isDup = dedupeOn(claim);
-        claim.addEventListener('pointerdown', (e)=>{ if(isDup()) return; SFX_OFFLINE_CLAIM.play(); }, {capture:true, passive:true});
+        claim.addEventListener('click', ()=> SFX_OFFLINE_CLAIM.play(), {capture:true});
       }
     })();
 
     /* ---------- Achievements ---------- */
     (function(){
-      const achRoot = q('#ach');
-      if(!achRoot) return;
+      const achRoot = q('#ach'); if(!achRoot) return;
       new MutationObserver((muts)=>{
         for(const m of muts){
           if(m.type!=='childList') continue;
           for(const n of m.addedNodes){
-            if(!(n instanceof HTMLElement)) continue;
-            const banner = n.matches?.('.banner') ? n : n.querySelector?.('.banner');
-            if(!banner) continue;
-            // Play your achievement SFX (this may layer with the earlier chime; tell me if you want that muted)
-            SFX_ACHIEVE.play();
+            const banner = (n instanceof HTMLElement && (n.matches('.banner') ? n : n.querySelector?.('.banner')));
+            if(banner) { SFX_ACHIEVE.play(); }
           }
         }
       }).observe(achRoot, {childList:true, subtree:true});
     })();
 
-    /* ---------- Ensure exercise tile SFX stays OFF ---------- */
-    // (No listeners added here; your tile SFX remains removed.)
-
   }catch(e){
-    console.warn('Global SFX patch error:', e);
+    console.warn('SFX Patch v3 error:', e);
   }
 })();
 </script>
+
+
 
 
 
