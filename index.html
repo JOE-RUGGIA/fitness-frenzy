@@ -3667,19 +3667,21 @@ try{
 
 <script type="application/ff-patch">
 /* ============================================================
-   Fitness Frenzy — SFX Pack (UI + Gameplay hooks)
-   - Uses raw.githubusercontent.com URLs (reliable streaming)
-   - Tiny audio pool per sound for rapid replays
-   - Gestures auto-unblock non-gesture plays (achievements, etc.)
+   Fitness Frenzy — SFX Pack v2 (dedupe + fixes)
+   - No "error/invalid" ping (silent on invalid)
+   - Correct Skip Splash SFX
+   - Desktop: lower Reps purchase volume
+   - Mobile: de-dupe SFX + temporarily mute legacy WebAudio "ui beep" on Reps
    ============================================================ */
 (function(){
   try{
-    if (window.__FF_SFX_PACK__) return;
-    window.__FF_SFX_PACK__ = true;
+    if (window.__FF_SFX_PACK_V2__) return;
+    window.__FF_SFX_PACK_V2__ = true;
 
-    /* --------------------------- SFX Engine --------------------------- */
+    /* --------------------------- Helpers --------------------------- */
+    const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints>0);
+
     function toRaw(url){
-      // Convert github.com/.../blob/main/... → raw.githubusercontent.com/.../main/...
       try{
         if(!url) return url;
         if(url.includes('raw.githubusercontent.com')) return url;
@@ -3688,68 +3690,82 @@ try{
             .replace('https://github.com/','https://raw.githubusercontent.com/')
             .replace('/blob/','/');
         }
+        if(url.includes('github.com/') && url.includes('/raw/refs/heads/')){
+          // Convert old /raw/refs/heads/ form:
+          return url
+            .replace('https://github.com/','https://raw.githubusercontent.com/')
+            .replace('/raw/refs/heads/','/'); // -> /main/...
+        }
         return url;
       }catch(_){ return url; }
     }
 
+    /* --------------------------- SFX Engine --------------------------- */
     const SFX = (function(){
       const pools = new Map();  // name -> [{audio, busyUntil}]
-      const volume = 1.0;       // master sfx volume (0..1)
-      const MAX_POOL = 3;       // per-sound pool size
-      const gestureWaiters = new Map(); // name -> function to retry
+      const master = 1.0;
+      const MAX_POOL = 3;
+      const recent = new Map(); // name -> ts (ms) for anti-double
+      const DEDUPE_MS = 160;
+
+      // Per-sound volume overrides
+      const perVol = Object.create(null);
+      // Desktop-only quieter Reps purchase
+      if(!isTouch) perVol['reps_purchase_ok'] = 0.55;
 
       function make(url){
         const a = new Audio(url);
         a.preload = 'auto';
         a.crossOrigin = 'anonymous';
-        a.volume = volume;
+        a.volume = master;
         try{ a.load(); }catch(_){}
         return a;
       }
       function getSlot(name, url){
+        const raw = toRaw(url);
         let arr = pools.get(name);
         const now = performance.now();
-        if(!arr){
-          arr = [];
-          pools.set(name, arr);
-        }
-        // find a free/old slot
+        if(!arr){ arr = []; pools.set(name, arr); }
         for(const item of arr){
-          if(item.audio.paused || item.busyUntil < now){
-            return item;
-          }
+          if(item.audio.paused || item.busyUntil < now) return item;
         }
         if(arr.length < MAX_POOL){
-          const audio = make(url);
+          const audio = make(raw);
           const item = {audio, busyUntil:0};
           arr.push(item);
           return item;
         }
-        // last resort: recycle the first
         return arr[0];
       }
 
       function play(name, url){
         try{
           if(!name || !url) return;
-          const raw = toRaw(url);
-          const slot = getSlot(name, raw);
+
+          // De-dupe rapid double fires by name
+          const now = performance.now();
+          const last = recent.get(name) || 0;
+          if(now - last < DEDUPE_MS) return;
+          recent.set(name, now);
+
+          const slot = getSlot(name, url);
           const a = slot.audio;
+
+          // Apply per-sound volume (if any)
+          const v = (perVol[name] ?? 1.0);
+          a.volume = Math.max(0, Math.min(1, master * v));
+
           try{ a.currentTime = 0; }catch(_){}
           const p = a.play();
-          slot.busyUntil = performance.now() + 1000;
+          slot.busyUntil = now + 1000;
           if(p && typeof p.then === 'function'){
             p.catch(()=>{
-              // If blocked (autoplay), retry on the next user gesture (once).
-              if (gestureWaiters.has(name)) return;
-              const once = ()=>{
+              const once = ()=>{ 
                 document.removeEventListener('pointerdown', once, true);
                 document.removeEventListener('touchstart',  once, true);
                 document.removeEventListener('keydown',     once, true);
                 try{ a.currentTime = 0; a.play().catch(()=>{}); }catch(_){}
-                gestureWaiters.delete(name);
               };
-              gestureWaiters.set(name, once);
               document.addEventListener('pointerdown', once, {capture:true, passive:true});
               document.addEventListener('touchstart',  once, {capture:true, passive:true});
               document.addEventListener('keydown',     once, {capture:true});
@@ -3757,7 +3773,6 @@ try{
           }
         }catch(_){}
       }
-
       return { play };
     })();
 
@@ -3766,7 +3781,7 @@ try{
       start_avatar_pick: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",
       new_game_confirm:  "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-New-Game.mp3",
       continue_game:     "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-continue-game.mp3",
-      skip_splash:       "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-continue-game.mp3",
+      skip_splash:       "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/ff-sfx-skip-splash.mp3", /* FIXED */
 
       menu_open:         "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",
       menu_close:        "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-close-menu.mp3",
@@ -3792,8 +3807,8 @@ try{
       offline_open:      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",
       offline_claim:     "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-claim.mp3",
 
-      ach_1:            "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-1.mp3",
-      ach_2:            "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",
+      ach_1:             "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-1.mp3",
+      ach_2:             "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",
 
       quest_accept:      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-side-quest-accepted.mp3",
       quest_complete:    "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-side-quest-completed.mp3",
@@ -3803,13 +3818,11 @@ try{
       settings_toggle:   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",
       settings_volume:   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",
 
-      error_invalid:     "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-cooldown-ready-ping.mp3",
-      asset_fallback:    "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-asset-fallback.mp3",
-
-      tutorial_pop:      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-cooldown-ready-ping.mp3"
+      /* intentionally no error_invalid / tutorial_pop in v2 */
+      asset_fallback:    "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-asset-fallback.mp3"
     };
 
-    /* --------------------------- DOM/Env --------------------------- */
+    /* --------------------------- DOM refs --------------------------- */
     const $ = (id)=>document.getElementById(id);
     const startAvatars = $('start-avatars');
     const btnNew       = $('btn-new');
@@ -3823,36 +3836,36 @@ try{
     const avatarDot    = $('avatar-dot');
     const offlineModal = $('offline');
     const offlineClaim = $('offline-claim');
+    const achRoot      = $('ach');
+    const errBar       = $('err');
     const tip          = $('tip');
     const tipBubble    = $('tip-bubble');
 
     /* --------------------------- Event Hooks --------------------------- */
 
-    // Start screen: avatar pick (works with your existing voice intro)
+    // Start avatars
     if(startAvatars){
       startAvatars.addEventListener('pointerdown', (e)=>{
-        const ava = e.target.closest?.('.ava');
-        if(!ava) return;
+        if(!e.target.closest?.('.ava')) return;
         SFX.play('start_avatar_pick', LIB.start_avatar_pick);
       }, {capture:true, passive:true});
     }
 
     // Start buttons
     if(btnNew)   btnNew.addEventListener('pointerdown', ()=>SFX.play('new_game_confirm', LIB.new_game_confirm), {capture:true});
-    if(btnCont)  btnCont.addEventListener('pointerdown', ()=>SFX.play('continue_game', LIB.continue_game), {capture:true});
+    if(btnCont)  btnCont.addEventListener('pointerdown', ()=>SFX.play('continue_game',  LIB.continue_game), {capture:true});
     if(splashSkip) splashSkip.addEventListener('pointerdown', ()=>SFX.play('skip_splash', LIB.skip_splash), {capture:true});
 
-    // Menu open/close + backdrop
+    // Menu + tabs
     if(avatarBtn) avatarBtn.addEventListener('pointerdown', ()=>SFX.play('menu_open', LIB.menu_open), {capture:true});
     if(menu){
       menu.addEventListener('pointerdown', (e)=>{
         const closeBtn = e.target.closest?.('.menu-close');
-        if(closeBtn) { SFX.play('menu_close', LIB.menu_close); return; }
+        if(closeBtn){ SFX.play('menu_close', LIB.menu_close); return; }
         const backdrop = e.target.closest?.('.menu-backdrop');
         if(backdrop){ SFX.play('menu_backdrop_tap', LIB.menu_backdrop_tap); }
       }, {capture:true});
 
-      // Tabs
       menu.addEventListener('click', (e)=>{
         const tab = e.target.closest?.('.tab');
         if(tab) SFX.play('switch_tabs', LIB.switch_tabs);
@@ -3861,35 +3874,55 @@ try{
 
     // Bulk selector change (×1/×10/×100)
     if(bulk) bulk.addEventListener('click', (e)=>{
-      const b = e.target.closest?.('button');
-      if(!b) return;
+      if(!e.target.closest?.('button')) return;
       SFX.play('bulk_change', LIB.bulk_change);
     }, true);
 
-    // Exercise tile tap (manual only): play when tile is Ready and not locked
+    // Exercise tile tap (manual only): play if Ready; silent on invalid
     if(cardsRoot){
       cardsRoot.addEventListener('pointerdown', (e)=>{
         const tile = e.target.closest?.('.tile');
-        if(!tile) return;
-        if(tile.classList.contains('locked')) return;
+        if(!tile || tile.classList.contains('locked')) return;
         const tEl = tile.parentElement?.querySelector?.('.cooldown .t');
         const ready = tEl && (tEl.textContent||'').trim().toLowerCase()==='ready';
-        if(ready){
-          SFX.play('exercise_tap', LIB.exercise_tap);
-        }else{
-          // invalid action (tapping during cooldown)
-          SFX.play('error_invalid', LIB.error_invalid);
-        }
+        if(ready) SFX.play('exercise_tap', LIB.exercise_tap);
+        // else: invalid → no sound (by request)
       }, {capture:true});
     }
 
-    // Reps / Unlock button in each card (detect success after DOM updates)
+    // --- Mobile-only: mute legacy WebAudio "ui beep" around Reps click ---
+    (function(){
+      if(!isTouch || !cardsRoot) return;
+      const NativeAC  = window.AudioContext || window.webkitAudioContext;
+      const NativeWAC = window.webkitAudioContext || null;
+      function muteWebAudio(ms=180){
+        if(!NativeAC && !NativeWAC) return;
+        const DummyCtx = function(){ return {
+          createOscillator(){ return { type:'sine', frequency:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}}, connect(){return this;}, start(){}, stop(){} }; },
+          createGain(){ return { gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}}, connect(){return this;} }; },
+          destination:{}, currentTime:0
+        }; };
+        const oldAC  = window.AudioContext;
+        const oldWAC = window.webkitAudioContext;
+        window.AudioContext = DummyCtx;
+        window.webkitAudioContext = DummyCtx;
+        setTimeout(()=>{ window.AudioContext = oldAC; window.webkitAudioContext = oldWAC; }, ms);
+      }
+      // Capture click on any .card .btn right before game handler runs
+      cardsRoot.addEventListener('click', (e)=>{
+        const btn = e.target.closest?.('.card .btn');
+        if(!btn) return;
+        // Mute the legacy beep just for a brief window; our MP3 uses <audio>, unaffected
+        muteWebAudio(220);
+      }, {capture:true});
+    })();
+
+    // Reps / Unlock button success detectors
     if(cardsRoot){
       cardsRoot.addEventListener('click', (e)=>{
         const btn = e.target.closest?.('.btn');
         if(!btn) return;
 
-        // locate card parts
         const card = btn.closest('.card');
         const tile = card?.querySelector('.tile');
         const lvlEl = card?.querySelector('.lvl');
@@ -3898,23 +3931,18 @@ try{
         const prevRep = repTextEl ? parseInt((repTextEl.textContent||'').split('/')[0])||0 : 0;
         const prevLvl = lvlEl ? parseInt((lvlEl.textContent||'').replace(/\D/g,''))||1 : 1;
 
-        // after UI updates
         setTimeout(()=>{
           const nowLocked = tile?.classList.contains('locked');
           const nowRep = repTextEl ? parseInt((repTextEl.textContent||'').split('/')[0])||0 : prevRep;
           const nowLvl = lvlEl ? parseInt((lvlEl.textContent||'').replace(/\D/g,''))||prevLvl : prevLvl;
 
-          // Unlock success
           if(wasLocked && nowLocked===false){
             SFX.play('unlock_exercise', LIB.unlock_exercise);
             return;
           }
-          // Reps purchase success (rep count increased)
           if(nowRep > prevRep){
-            SFX.play('reps_purchase_ok', LIB.reps_purchase_ok);
+            SFX.play('reps_purchase_ok', LIB.reps_purchase_ok); // desktop volume reduced in engine
           }
-
-          // Level up + cooldown halved cascade
           if(nowLvl > prevLvl){
             SFX.play('level_up', LIB.level_up);
             setTimeout(()=> SFX.play('cooldown_halved', LIB.cooldown_halved), 90);
@@ -3923,7 +3951,7 @@ try{
       }, true);
     }
 
-    // Affordable glow: when any .btn gains .glow for the first time
+    // Affordable glow cue (first time a button gets .glow)
     const glowSeen = new WeakMap();
     const cardsObs = new MutationObserver((muts)=>{
       for(const m of muts){
@@ -3932,12 +3960,8 @@ try{
           if(el.classList.contains('btn')){
             const had = glowSeen.get(el)===true;
             const has = el.classList.contains('glow');
-            if(!had && has){
-              glowSeen.set(el, true);
-              SFX.play('affordable_glow', LIB.affordable_glow);
-            } else if(had && !has){
-              glowSeen.set(el, false);
-            }
+            if(!had && has){ glowSeen.set(el, true); SFX.play('affordable_glow', LIB.affordable_glow); }
+            else if(had && !has){ glowSeen.set(el, false); }
           }
         }else if(m.type==='childList'){
           m.addedNodes.forEach(n=>{
@@ -3947,19 +3971,18 @@ try{
         }
       }
     });
-    if(cardsRoot){
-      cardsObs.observe(cardsRoot, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
-      // prime initial states
-      cardsRoot.querySelectorAll('.btn').forEach(b=> glowSeen.set(b, b.classList.contains('glow')));
+    const cardsRootEl = $('cards');
+    if(cardsRootEl){
+      cardsObs.observe(cardsRootEl, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
+      cardsRootEl.querySelectorAll('.btn').forEach(b=> glowSeen.set(b, b.classList.contains('glow')));
     }
 
-    // Coach hired + coach affordable indicator (avatar dot)
+    // Coach hired + affordable (green dot)
     if(menuBody){
       menuBody.addEventListener('click', (e)=>{
         const hire = e.target.closest?.('.coach-row .btn');
         if(!hire) return;
         if(/hire/i.test(hire.textContent||'')){
-          // after DOM updates
           setTimeout(()=>{
             const row = hire.closest('.coach-row');
             if(row && row.querySelector('.hired')) SFX.play('coach_hired', LIB.coach_hired);
@@ -3968,7 +3991,6 @@ try{
       }, true);
     }
     if(avatarDot){
-      // fire when the green dot first appears (affordable coaches exist)
       let prevVisible = getComputedStyle(avatarDot).display !== 'none';
       const dotObs = new MutationObserver(()=>{
         const vis = getComputedStyle(avatarDot).display !== 'none';
@@ -3981,11 +4003,11 @@ try{
       dotObs.observe(avatarDot, {attributes:true, attributeFilter:['style','class']});
     }
 
-    // Fitcoins earn/spend — listen for custom events (emit these from your logic)
+    // Fitcoins earn/spend (custom events)
     document.addEventListener('fitcoins:earn', ()=> SFX.play('fitcoin_earn', LIB.fitcoin_earn));
     document.addEventListener('fitcoins:spend',()=> SFX.play('fitcoin_spend', LIB.fitcoin_spend));
 
-    // Offline modal
+    // Offline modal + claim
     if(offlineModal){
       const offObs = new MutationObserver(()=>{
         if(offlineModal.classList.contains('show')) SFX.play('offline_open', LIB.offline_open);
@@ -3997,7 +4019,6 @@ try{
     }
 
     // Achievements: play both files when a banner appears
-    const achRoot = $('ach');
     if(achRoot){
       new MutationObserver((muts)=>{
         for(const m of muts){
@@ -4013,75 +4034,36 @@ try{
       }).observe(achRoot, {childList:true, subtree:true});
     }
 
-    // Side quests / upgrades — custom events for when you wire them
-    document.addEventListener('quest:accepted', ()=> SFX.play('quest_accept',   LIB.quest_accept));
-    document.addEventListener('quest:completed',()=> SFX.play('quest_complete', LIB.quest_complete));
-    document.addEventListener('upgrade:purchase',()=> SFX.play('upgrade_purchase', LIB.upgrade_purchase));
-
     // Settings toggles
     const musicOn = $('music-on'), musicVol = $('music-vol');
     if(musicOn){
-      musicOn.addEventListener('change', ()=>{
-        SFX.play('settings_toggle', LIB.settings_toggle);
-      }, true);
+      musicOn.addEventListener('change', ()=> SFX.play('settings_toggle', LIB.settings_toggle), true);
     }
     if(musicVol){
-      // fire on release (pointerup) and on change for keyboard
       musicVol.addEventListener('pointerup', ()=> SFX.play('settings_volume', LIB.settings_volume), {capture:true});
       musicVol.addEventListener('change',    ()=> SFX.play('settings_volume', LIB.settings_volume), true);
     }
 
-    // Errors / asset fallbacks
-    const errBar = $('err');
-    if(errBar){
-      // showErr in your code flips display to 'block'
-      const errObs = new MutationObserver(()=>{
-        if(getComputedStyle(errBar).display!=='none'){
-          SFX.play('error_invalid', LIB.error_invalid);
-        }
-      });
-      errObs.observe(errBar, {attributes:true, attributeFilter:['style','class']});
-    }
-    // Global asset load error → fallback SFX (rate-limited)
+    // Remove prior "error/invalid" and tutorial ping behavior:
+    // - We do NOT play any sound when err bar shows.
+    // - We do NOT layer a tutorial_pop asset; your WebAudio POP patch still handles bubble pops.
+
+    // Still keep a light asset fallback cue (rare network issues), rate-limited
     let lastAssetPing = 0;
     window.addEventListener('error', (e)=>{
       const now = performance.now();
-      if(now - lastAssetPing > 600){
+      if(now - lastAssetPing > 700){
         lastAssetPing = now;
         SFX.play('asset_fallback', LIB.asset_fallback);
       }
     }, true);
 
-    // Tutorial bubble pop (appear only) — layer your provided ping on the same trigger
-    if(tip && tipBubble){
-      let wasShown = tip.classList.contains('show');
-      new MutationObserver(()=>{
-        const shown = tip.classList.contains('show');
-        if(shown && !wasShown){
-          SFX.play('tutorial_pop', LIB.tutorial_pop);
-        }
-        wasShown = shown;
-      }).observe(tip, {attributes:true, attributeFilter:['class']});
-
-      // Also when speaker changes (advance)
-      const tipHead = document.getElementById('tip-head-name');
-      if(tipHead){
-        let lastTxt = tipHead.textContent||'';
-        new MutationObserver(()=>{
-          const cur = tipHead.textContent||'';
-          if(cur !== lastTxt && tip.classList.contains('show')){
-            SFX.play('tutorial_pop', LIB.tutorial_pop);
-          }
-          lastTxt = cur;
-        }).observe(tipHead, {characterData:true, childList:true, subtree:true});
-      }
-    }
-
   }catch(e){
-    console.warn('FF SFX pack error:', e);
+    console.warn('FF SFX pack v2 error:', e);
   }
 })();
 </script>
+
 
   
   
