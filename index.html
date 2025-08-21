@@ -3665,20 +3665,25 @@ try{
 
 
 
+  
+
+
 <script type="application/ff-patch">
 /* ============================================================
-   Fitness Frenzy — SFX Pack v2 (dedupe + fixes)
-   - No "error/invalid" ping (silent on invalid)
+   Fitness Frenzy — SFX Pack v3
+   - Remove legacy "ui beep" on Reps (both desktop & mobile)
+   - Stronger de-dupe to prevent double SFX on mobile
    - Correct Skip Splash SFX
-   - Desktop: lower Reps purchase volume
-   - Mobile: de-dupe SFX + temporarily mute legacy WebAudio "ui beep" on Reps
+   - Desktop: quieter Reps purchase
+   - Mobile: quieter Exercise Tap; steadier Settings SFX
+   - No error/invalid SFX
    ============================================================ */
 (function(){
   try{
-    if (window.__FF_SFX_PACK_V2__) return;
-    window.__FF_SFX_PACK_V2__ = true;
+    if (window.__FF_SFX_PACK_V3__) return;
+    window.__FF_SFX_PACK_V3__ = true;
 
-    /* --------------------------- Helpers --------------------------- */
+    /* --------------------------- Env & Utils --------------------------- */
     const isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints>0);
 
     function toRaw(url){
@@ -3686,35 +3691,70 @@ try{
         if(!url) return url;
         if(url.includes('raw.githubusercontent.com')) return url;
         if(url.includes('github.com/') && url.includes('/blob/')){
-          return url
-            .replace('https://github.com/','https://raw.githubusercontent.com/')
-            .replace('/blob/','/');
+          return url.replace('https://github.com/','https://raw.githubusercontent.com/').replace('/blob/','/');
         }
         if(url.includes('github.com/') && url.includes('/raw/refs/heads/')){
-          // Convert old /raw/refs/heads/ form:
-          return url
-            .replace('https://github.com/','https://raw.githubusercontent.com/')
-            .replace('/raw/refs/heads/','/'); // -> /main/...
+          return url.replace('https://github.com/','https://raw.githubusercontent.com/').replace('/raw/refs/heads/','/');
         }
         return url;
       }catch(_){ return url; }
     }
 
+    /* --------------------------- Legacy beep suppression --------------------------- */
+    // Global guard the legacy WebAudio beeps honor
+    (function(){
+      const g = window;
+      if (g.SFX && !g.SFX.__ff_wrapped){
+        ['ok','click','tick'].forEach(k=>{
+          const fn = g.SFX[k];
+          if(typeof fn === 'function'){
+            g.SFX[k] = function(...args){
+              if (g.__FF_SUPPRESS_LEGACY_BEEP__) return; // swallow
+              return fn.apply(this,args);
+            };
+          }
+        });
+        g.SFX.__ff_wrapped = true;
+      }
+    })();
+
+    function suppressLegacyBeep(ms=260){
+      const g = window;
+      g.__FF_SUPPRESS_LEGACY_BEEP__ = true;
+
+      // Sandbox AudioContext briefly (catches any raw-oscillator beep fallback)
+      const OldAC  = g.AudioContext;
+      const OldWAC = g.webkitAudioContext;
+      const DummyCtx = function(){ return {
+        createOscillator(){ return { type:'sine', frequency:{value:0,setValueAtTime(){}, exponentialRampToValueAtTime(){}}, connect(){return this;}, start(){}, stop(){} }; },
+        createGain(){ return { gain:{value:0,setValueAtTime(){}, exponentialRampToValueAtTime(){}}, connect(){return this;} }; },
+        destination:{}, currentTime:0, resume(){}, suspend(){}, close(){}
+      }; };
+      g.AudioContext = DummyCtx;
+      g.webkitAudioContext = DummyCtx;
+
+      setTimeout(()=>{
+        g.AudioContext = OldAC;
+        g.webkitAudioContext = OldWAC;
+        g.__FF_SUPPRESS_LEGACY_BEEP__ = false;
+      }, ms);
+    }
+
     /* --------------------------- SFX Engine --------------------------- */
     const SFX = (function(){
-      const pools = new Map();  // name -> [{audio, busyUntil}]
+      const pools = new Map();             // name -> [{audio, busyUntil}]
       const master = 1.0;
       const MAX_POOL = 3;
-      const recent = new Map(); // name -> ts (ms) for anti-double
-      const DEDUPE_MS = 160;
+      const recent = new Map();            // name -> ts (ms) for global de-dupe
+      const DEDUPE_MS = isTouch ? 200 : 140;
 
-      // Per-sound volume overrides
+      // Per-sound volume
       const perVol = Object.create(null);
-      // Desktop-only quieter Reps purchase
-      if(!isTouch) perVol['reps_purchase_ok'] = 0.55;
+      if(!isTouch) perVol['reps_purchase_ok'] = 0.55;  // desktop quieter
+      if(isTouch)  perVol['exercise_tap']     = 0.28;  // mobile quieter
 
       function make(url){
-        const a = new Audio(url);
+        const a = new Audio(toRaw(url));
         a.preload = 'auto';
         a.crossOrigin = 'anonymous';
         a.volume = master;
@@ -3722,27 +3762,23 @@ try{
         return a;
       }
       function getSlot(name, url){
-        const raw = toRaw(url);
         let arr = pools.get(name);
         const now = performance.now();
-        if(!arr){ arr = []; pools.set(name, arr); }
-        for(const item of arr){
-          if(item.audio.paused || item.busyUntil < now) return item;
+        if(!arr){ arr=[]; pools.set(name,arr); }
+        for(const it of arr){
+          if(it.audio.paused || it.busyUntil < now) return it;
         }
         if(arr.length < MAX_POOL){
-          const audio = make(raw);
-          const item = {audio, busyUntil:0};
+          const item = {audio:make(url), busyUntil:0};
           arr.push(item);
           return item;
         }
         return arr[0];
       }
-
       function play(name, url){
         try{
           if(!name || !url) return;
-
-          // De-dupe rapid double fires by name
+          // global de-dupe by name
           const now = performance.now();
           const last = recent.get(name) || 0;
           if(now - last < DEDUPE_MS) return;
@@ -3750,17 +3786,13 @@ try{
 
           const slot = getSlot(name, url);
           const a = slot.audio;
-
-          // Apply per-sound volume (if any)
-          const v = (perVol[name] ?? 1.0);
-          a.volume = Math.max(0, Math.min(1, master * v));
-
+          a.volume = Math.max(0, Math.min(1, (perVol[name] ?? 1) * master));
           try{ a.currentTime = 0; }catch(_){}
           const p = a.play();
           slot.busyUntil = now + 1000;
-          if(p && typeof p.then === 'function'){
+          if(p && typeof p.then==='function'){
             p.catch(()=>{
-              const once = ()=>{ 
+              const once = ()=>{
                 document.removeEventListener('pointerdown', once, true);
                 document.removeEventListener('touchstart',  once, true);
                 document.removeEventListener('keydown',     once, true);
@@ -3818,8 +3850,8 @@ try{
       settings_toggle:   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",
       settings_volume:   "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",
 
-      /* intentionally no error_invalid / tutorial_pop in v2 */
       asset_fallback:    "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-asset-fallback.mp3"
+      // intentionally no error/invalid + no tutorial_pop here
     };
 
     /* --------------------------- DOM refs --------------------------- */
@@ -3837,7 +3869,6 @@ try{
     const offlineModal = $('offline');
     const offlineClaim = $('offline-claim');
     const achRoot      = $('ach');
-    const errBar       = $('err');
     const tip          = $('tip');
     const tipBubble    = $('tip-bubble');
 
@@ -3865,7 +3896,6 @@ try{
         const backdrop = e.target.closest?.('.menu-backdrop');
         if(backdrop){ SFX.play('menu_backdrop_tap', LIB.menu_backdrop_tap); }
       }, {capture:true});
-
       menu.addEventListener('click', (e)=>{
         const tab = e.target.closest?.('.tab');
         if(tab) SFX.play('switch_tabs', LIB.switch_tabs);
@@ -3878,51 +3908,28 @@ try{
       SFX.play('bulk_change', LIB.bulk_change);
     }, true);
 
-    // Exercise tile tap (manual only): play if Ready; silent on invalid
+    // Exercise tile tap (manual only). Also suppress any legacy beep just in case.
     if(cardsRoot){
       cardsRoot.addEventListener('pointerdown', (e)=>{
         const tile = e.target.closest?.('.tile');
         if(!tile || tile.classList.contains('locked')) return;
         const tEl = tile.parentElement?.querySelector?.('.cooldown .t');
         const ready = tEl && (tEl.textContent||'').trim().toLowerCase()==='ready';
+        suppressLegacyBeep(140); // brief guard in case any old beep tries to fire
         if(ready) SFX.play('exercise_tap', LIB.exercise_tap);
-        // else: invalid → no sound (by request)
       }, {capture:true});
     }
 
-    // --- Mobile-only: mute legacy WebAudio "ui beep" around Reps click ---
-    (function(){
-      if(!isTouch || !cardsRoot) return;
-      const NativeAC  = window.AudioContext || window.webkitAudioContext;
-      const NativeWAC = window.webkitAudioContext || null;
-      function muteWebAudio(ms=180){
-        if(!NativeAC && !NativeWAC) return;
-        const DummyCtx = function(){ return {
-          createOscillator(){ return { type:'sine', frequency:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}}, connect(){return this;}, start(){}, stop(){} }; },
-          createGain(){ return { gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}}, connect(){return this;} }; },
-          destination:{}, currentTime:0
-        }; };
-        const oldAC  = window.AudioContext;
-        const oldWAC = window.webkitAudioContext;
-        window.AudioContext = DummyCtx;
-        window.webkitAudioContext = DummyCtx;
-        setTimeout(()=>{ window.AudioContext = oldAC; window.webkitAudioContext = oldWAC; }, ms);
-      }
-      // Capture click on any .card .btn right before game handler runs
-      cardsRoot.addEventListener('click', (e)=>{
-        const btn = e.target.closest?.('.card .btn');
-        if(!btn) return;
-        // Mute the legacy beep just for a brief window; our MP3 uses <audio>, unaffected
-        muteWebAudio(220);
-      }, {capture:true});
-    })();
-
-    // Reps / Unlock button success detectors
+    // Reps / Unlock button — suppress legacy beep around the click, then play our SFX
     if(cardsRoot){
       cardsRoot.addEventListener('click', (e)=>{
         const btn = e.target.closest?.('.btn');
         if(!btn) return;
 
+        // BEFORE game handler effects process, silence any old beep for a window
+        suppressLegacyBeep(300);
+
+        // Snapshot before state
         const card = btn.closest('.card');
         const tile = card?.querySelector('.tile');
         const lvlEl = card?.querySelector('.lvl');
@@ -3931,6 +3938,7 @@ try{
         const prevRep = repTextEl ? parseInt((repTextEl.textContent||'').split('/')[0])||0 : 0;
         const prevLvl = lvlEl ? parseInt((lvlEl.textContent||'').replace(/\D/g,''))||1 : 1;
 
+        // After UI updates, decide which SFX to play
         setTimeout(()=>{
           const nowLocked = tile?.classList.contains('locked');
           const nowRep = repTextEl ? parseInt((repTextEl.textContent||'').split('/')[0])||0 : prevRep;
@@ -3941,7 +3949,7 @@ try{
             return;
           }
           if(nowRep > prevRep){
-            SFX.play('reps_purchase_ok', LIB.reps_purchase_ok); // desktop volume reduced in engine
+            SFX.play('reps_purchase_ok', LIB.reps_purchase_ok); // desktop lower vol handled in engine
           }
           if(nowLvl > prevLvl){
             SFX.play('level_up', LIB.level_up);
@@ -3971,10 +3979,9 @@ try{
         }
       }
     });
-    const cardsRootEl = $('cards');
-    if(cardsRootEl){
-      cardsObs.observe(cardsRootEl, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
-      cardsRootEl.querySelectorAll('.btn').forEach(b=> glowSeen.set(b, b.classList.contains('glow')));
+    if(cardsRoot){
+      cardsObs.observe(cardsRoot, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
+      cardsRoot.querySelectorAll('.btn').forEach(b=> glowSeen.set(b, b.classList.contains('glow')));
     }
 
     // Coach hired + affordable (green dot)
@@ -4003,8 +4010,8 @@ try{
       dotObs.observe(avatarDot, {attributes:true, attributeFilter:['style','class']});
     }
 
-    // Fitcoins earn/spend (custom events)
-    document.addEventListener('fitcoins:earn', ()=> SFX.play('fitcoin_earn', LIB.fitcoin_earn));
+    // Fitcoins earn/spend (custom events you can dispatch)
+    document.addEventListener('fitcoins:earn', ()=> SFX.play('fitcoin_earn',  LIB.fitcoin_earn));
     document.addEventListener('fitcoins:spend',()=> SFX.play('fitcoin_spend', LIB.fitcoin_spend));
 
     // Offline modal + claim
@@ -4019,6 +4026,7 @@ try{
     }
 
     // Achievements: play both files when a banner appears
+    const achRoot = $('ach');
     if(achRoot){
       new MutationObserver((muts)=>{
         for(const m of muts){
@@ -4034,23 +4042,20 @@ try{
       }).observe(achRoot, {childList:true, subtree:true});
     }
 
-    // Settings toggles
+    // Settings SFX — stabilize for mobile (gesture-friendly)
     const musicOn = $('music-on'), musicVol = $('music-vol');
     if(musicOn){
-      musicOn.addEventListener('change', ()=> SFX.play('settings_toggle', LIB.settings_toggle), true);
+      musicOn.addEventListener('click', ()=> SFX.play('settings_toggle', LIB.settings_toggle), {capture:true});
     }
     if(musicVol){
+      // Only on pointerup/change to avoid repeats; rely on de-dupe too
       musicVol.addEventListener('pointerup', ()=> SFX.play('settings_volume', LIB.settings_volume), {capture:true});
       musicVol.addEventListener('change',    ()=> SFX.play('settings_volume', LIB.settings_volume), true);
     }
 
-    // Remove prior "error/invalid" and tutorial ping behavior:
-    // - We do NOT play any sound when err bar shows.
-    // - We do NOT layer a tutorial_pop asset; your WebAudio POP patch still handles bubble pops.
-
-    // Still keep a light asset fallback cue (rare network issues), rate-limited
+    // Asset fallback cue (rare net issues), light rate limit
     let lastAssetPing = 0;
-    window.addEventListener('error', (e)=>{
+    window.addEventListener('error', ()=>{
       const now = performance.now();
       if(now - lastAssetPing > 700){
         lastAssetPing = now;
@@ -4059,10 +4064,11 @@ try{
     }, true);
 
   }catch(e){
-    console.warn('FF SFX pack v2 error:', e);
+    console.warn('FF SFX pack v3 error:', e);
   }
 })();
 </script>
+
 
 
   
