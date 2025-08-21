@@ -3670,358 +3670,329 @@ try{
 
 
 <script type="application/ff-patch">
-/* ========= SFX Patch v3 (mobile-safe, deduped, no legacy bleeps) =========
-   Fixes:
-   - Double Reps purchases on mobile (click de-dupe)
-   - Removes old SFX.ok/SFX.click bleeps everywhere
-   - Reliable Coach Available (F/M alternating) on "glow" appear
-   - Coach Hired always plays (press + fallback on "Hired" flip)
-   - Bulk selector SFX on mobile (after active changes)
-   - Menu tabs/toggles SFX via click (mobile-friendly)
-   - Unlock Exercise SFX single-fire
-   - Level Up SFX on "Lvl N" increments
-=========================================================================== */
+/* ================= SFX Patch v4 — mobile-solid, no legacy bleeps =================
+   Fixes: double Reps + old bleeps, bulk/tab SFX on mobile, coach available/hired reliability,
+   level-up detection, single-fire unlock.
+============================================================================== */
 (function(){
   try{
-    if (window.__FF_SFX_GLOBAL_V3__) return;
-    window.__FF_SFX_GLOBAL_V3__ = true;
+    if (window.__FF_SFX_V4__) return;
+    window.__FF_SFX_V4__ = true;
 
-    const q  = (s, r=document)=> r.querySelector(s);
-    const qa = (s, r=document)=> Array.from(r.querySelectorAll(s));
-    const toRaw = (url)=> url.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^]+)$/i,
-                                      'https://raw.githubusercontent.com/$1/$2/$3');
+    const $  = (s, r=document)=> r.querySelector(s);
+    const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
+    const toRaw = (u)=> u.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,'https://raw.githubusercontent.com/$1/$2/$3');
 
-    /* ---------- Kill legacy bleeps (global) ---------- */
-    try{
-      if (window.SFX){
-        SFX.ok    = function(){};  // mute old "bleep"
-        SFX.click = function(){};  // mute old "click"
-        // Leave SFX.tick alone (typing is off anyway)
-      }
-    }catch(_){}
+    /* ---------- 0) Global “bleep” silencer (mutes WebAudio beeps during UI clicks) ---------- */
+    (function(){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      if(AC.prototype.__ffMutePatched) return;
+      AC.prototype.__ffMutePatched = true;
 
-    /* ---------- Small audio pool (rapid taps safe) ---------- */
-    function makePool(url, size=3, volume=1.0){
-      const src = toRaw(url);
-      const pool = new Array(size).fill(0).map(()=>{
-        const a = new Audio(src);
-        a.preload = 'auto';
-        a.crossOrigin = 'anonymous';
-        a.volume = volume;
-        return a;
-      });
-      let i=0;
-      return {
-        play(){
-          const a = pool[i++ % pool.length];
-          try{ a.currentTime = 0; }catch(_){}
-          const p = a.play();
-          if(p && typeof p.then==='function'){ p.catch(()=>{}); }
-        }
+      const origCreateGain = AC.prototype.createGain;
+      AC.prototype.createGain = function(){
+        const g = origCreateGain.call(this);
+        const origConnect = g.connect;
+        g.connect = function(dest){
+          try{
+            // If a UI handler marked this window, zero the beep's gain
+            if (window.__FF_MUTE_BLEEPS_UNTIL && performance.now() < window.__FF_MUTE_BLEEPS_UNTIL){
+              try{ g.gain.value = 0; }catch(_){}
+            }
+          }catch(_){}
+          return origConnect.call(this, dest);
+        };
+        return g;
       };
+    })();
+    function muteBleepsFor(ms=220){ window.__FF_MUTE_BLEEPS_UNTIL = performance.now()+ms; }
+
+    // Mark all known UI hotspots so legacy beeps (SFX.ok/click) are silenced
+    function installBleepMutes(){
+      const hotspots = [
+        ['#cards', '.card .btn'],           // Reps / Unlock
+        ['#bulk',  'button'],               // ×1/×10/×100
+        ['#menu',  '.tab, .menu-close, [data-close]'],
+        ['#menu-body', '.coach-row .btn'],  // Hire
+      ];
+      hotspots.forEach(([rootSel, sel])=>{
+        const root = $(rootSel); if(!root) return;
+        root.addEventListener('click', (e)=>{
+          if(e.target.closest && e.target.closest(sel)) muteBleepsFor(260);
+        }, true); // capture before game handler
+      });
+    }
+    installBleepMutes();
+
+    /* ---------- 1) Small HTML5 <audio> pools (fast mobile-safe playback) ---------- */
+    function pool(url, n=3, vol=1.0){
+      const src = toRaw(url);
+      const arr = Array.from({length:n}, ()=>{ const a=new Audio(src); a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol; return a; });
+      let i=0;
+      return { play(){ const a = arr[i++ % arr.length]; try{a.currentTime=0;}catch(_){} const p=a.play(); if(p&&p.catch) p.catch(()=>{}); } };
     }
 
-    /* ---------- SFX pools ---------- */
-    const SFX_START_BTN      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3", 2, 1.0);
-    const SFX_OPEN_MENU      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3", 3, 1.0);
-    const SFX_SWITCH_TABS    = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3", 3, 1.0);
-    const SFX_CLOSE_MENU     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3", 2, 1.0);
-    const SFX_COACH_AVAIL_M  = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3", 3, 1.0);
-    const SFX_COACH_AVAIL_F  = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-female.mp3", 3, 1.0);
-    const SFX_COACH_HIRED    = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3", 2, 1.0);
-    const SFX_REPS_PURCHASE  = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3", 3, 1.0);
-    const SFX_UNLOCK_EX      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3", 2, 1.0);
-    const SFX_LEVEL_UP       = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3", 3, 1.0);
-    const SFX_BULK_CHANGE    = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3", 2, 1.0);
-    const SFX_OFFLINE_OPEN   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3", 2, 1.0);
-    const SFX_OFFLINE_CLAIM  = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3", 2, 1.0);
-    const SFX_ACHIEVE        = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3", 2, 1.0);
+    /* ---------- 2) SFX assets ---------- */
+    const SFX_START_BTN      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0);
+    const SFX_OPEN_MENU      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0);
+    const SFX_SWITCH_TABS    = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",3,1.0);
+    const SFX_CLOSE_MENU     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",2,1.0);
+    const SFX_COACH_AVAIL_M  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",3,1.0);
+    const SFX_COACH_AVAIL_F  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-female.mp3",3,1.0);
+    const SFX_COACH_HIRED    = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3",2,1.0);
+    const SFX_REPS_PURCHASE  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",3,1.0);
+    const SFX_UNLOCK_EX      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",2,1.0);
+    const SFX_LEVEL_UP       = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",3,1.0);
+    const SFX_BULK_CHANGE    = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",2,1.0);
+    const SFX_OFFLINE_OPEN   = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",2,1.0);
+    const SFX_OFFLINE_CLAIM  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0);
+    const SFX_ACHIEVE        = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0);
 
-    /* ---------- New Game / Continue ---------- */
+    /* ---------- 3) Start buttons ---------- */
     (function(){
-      const btnNew = q('#btn-new'), btnCont = q('#btn-continue');
-      [btnNew, btnCont].forEach(btn=>{
-        if(!btn) return;
-        btn.addEventListener('click', ()=> SFX_START_BTN.play(), {capture:true});
-      });
+      const n = $('#btn-new'), c=$('#btn-continue');
+      [n,c].forEach(b=> b && b.addEventListener('click', ()=> SFX_START_BTN.play(), {capture:true}));
     })();
 
-    /* ---------- Open / Close Menu ---------- */
+    /* ---------- 4) Menu open/close ---------- */
     (function(){
-      const avatar = q('#avatar');
-      const menu   = q('#menu');
-      if(avatar){
-        avatar.addEventListener('click', ()=> SFX_OPEN_MENU.play(), {capture:true});
-      }
+      const avatar = $('#avatar'), menu = $('#menu');
+      if(avatar) avatar.addEventListener('click', ()=> SFX_OPEN_MENU.play(), {capture:true});
       if(menu){
-        // Close via backdrop or explicit close button
         menu.addEventListener('click', (e)=>{
-          const close = e.target.closest && e.target.closest('[data-close], .menu-close');
+          const close = e.target.closest?.('[data-close], .menu-close');
           if(close) SFX_CLOSE_MENU.play();
         }, {capture:true});
       }
     })();
 
-    /* ---------- Tabs & Toggles (mobile-safe via click) ---------- */
+    /* ---------- 5) Tabs & Toggles (always fires when you switch) ---------- */
     (function(){
-      const menu = q('#menu');
-      const body = q('#menu-body');
+      const menu = $('#menu'), body = $('#menu-body');
       if(menu){
         menu.addEventListener('click', (e)=>{
-          const tab = e.target.closest && e.target.closest('.tab');
+          const tab = e.target.closest?.('.tab');
           if(!tab) return;
           if(tab.classList.contains('active')) return;
-          // Wait one tick so active class can flip
-          setTimeout(()=> SFX_SWITCH_TABS.play(), 0);
+          // Play right away on the intent to switch
+          SFX_SWITCH_TABS.play();
         }, {capture:true});
       }
       if(body){
         body.addEventListener('change', (e)=>{
           const el = e.target;
           if(!el) return;
-          if(el.matches('input[type="checkbox"], input[type="radio"], select, input[type="range"]')){
-            SFX_SWITCH_TABS.play();
-          }
+          if(el.matches('input[type="checkbox"], input[type="radio"], select, input[type="range"]')) SFX_SWITCH_TABS.play();
         }, true);
       }
     })();
 
-    /* ---------- Bulk selector: play AFTER active changes ---------- */
+    /* ---------- 6) Bulk selector (no old bleep; guaranteed play after change) ---------- */
     (function(){
-      const bulk = q('#bulk');
-      if(!bulk) return;
-      let lastActive = bulk.querySelector('button.active')?.dataset.q || null;
+      const bulk = $('#bulk'); if(!bulk) return;
+      let last = bulk.querySelector('button.active')?.dataset.q || null;
       bulk.addEventListener('click', (e)=>{
-        const btn = e.target.closest && e.target.closest('button');
-        if(!btn) return;
-        setTimeout(()=>{
-          const curActive = bulk.querySelector('button.active')?.dataset.q || null;
-          if(curActive && curActive !== lastActive){
-            lastActive = curActive;
-            SFX_BULK_CHANGE.play();
-          }
-        },0);
+        if(!e.target.closest) return;
+        const btn = e.target.closest('button'); if(!btn) return;
+        setTimeout(()=>{ // let the active class move first
+          const cur = bulk.querySelector('button.active')?.dataset.q || null;
+          if(cur && cur !== last){ last = cur; SFX_BULK_CHANGE.play(); }
+        }, 0);
       }, {capture:true});
     })();
 
-    /* ---------- Reps/Unlock buttons: SFX + click de-dupe ---------- */
+    /* ---------- 7) Reps / Unlock (fast, deduped; no legacy bleeps) ---------- */
     (function(){
-      const root = q('#cards');
-      if(!root) return;
+      const cards = $('#cards'); if(!cards) return;
 
-      // 1) De-dupe 'click' on card .btn to prevent double purchases on mobile
-      const CLICK_WIN = 180; // ms
-      root.addEventListener('click', (e)=>{
-        const btn = e.target.closest && e.target.closest('.card .btn');
-        if(!btn) return;
-        const KEY = 'data-ff-lastclick-ts';
-        const now = performance.now();
-        const last = Number(btn.getAttribute(KEY)||0);
-        if(now - last < CLICK_WIN){
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          return;
-        }
-        btn.setAttribute(KEY, String(now));
-      }, true); // capture: intercept before game handler
+      // Dedup only hard doubles (touch/click blend). Keep it low to allow honest spam.
+      const WIN = 60;
+      cards.addEventListener('click', (e)=>{
+        const btn = e.target.closest?.('.card .btn'); if(!btn) return;
+        const k='data-ff-last-click'; const now=performance.now(); const last=+btn.getAttribute(k)||0;
+        if(now-last<WIN){ e.stopImmediatePropagation(); e.preventDefault(); return; }
+        btn.setAttribute(k,String(now));
+      }, true);
 
-      // 2) Custom SFX — only once, no legacy bleeps
-      root.addEventListener('click', (e)=>{
-        const btn = e.target.closest && e.target.closest('.card .btn');
-        if(!btn) return;
-
+      // Play our SFX on actual purchase intent
+      cards.addEventListener('click', (e)=>{
+        const btn = e.target.closest?.('.card .btn'); if(!btn) return;
         const card = btn.closest('.card');
         const tile = card?.querySelector('.tile');
         const isLocked = tile?.classList.contains('locked');
 
         if(isLocked){
-          // Do not play here; wait for actual unlock (class flip) to avoid double
+          // Don't play now; wait for the real unlock (class flip) to avoid double
           return;
-        } else {
-          // Reps purchase: only when affordable (glow)
-          if(btn.classList.contains('glow')){
-            SFX_REPS_PURCHASE.play();
-          }
+        }else{
+          if(btn.classList.contains('glow')) SFX_REPS_PURCHASE.play();
         }
       }, {capture:false});
     })();
 
-    /* ---------- Unlock Exercise: only on actual unlock (no double) ---------- */
+    /* ---------- 8) Exercise Unlock (single-fire) ---------- */
     (function(){
-      const root = q('#cards');
-      if(!root) return;
+      const cards = $('#cards'); if(!cards) return;
       const mo = new MutationObserver((muts)=>{
-        for(const m of muts){
-          if(m.type==='attributes' && m.attributeName==='class' &&
-             m.target.classList && m.target.classList.contains('tile')){
-            const was = m.oldValue || '';
-            const nowLocked = m.target.classList.contains('locked');
+        muts.forEach(m=>{
+          if(m.type==='attributes' && m.attributeName==='class'){
+            const el = m.target;
+            if(!(el instanceof HTMLElement)) return;
+            if(!el.classList.contains('tile')) return;
+            const was = m.oldValue||'';
+            const nowLocked = el.classList.contains('locked');
             if(/\blocked\b/.test(was) && !nowLocked){
-              // locked -> unlocked
-              SFX_UNLOCK_EX.play();
+              if(!el.hasAttribute('data-ff-unlock-sounded')){
+                el.setAttribute('data-ff-unlock-sounded','1');
+                SFX_UNLOCK_EX.play();
+              }
             }
           }
-        }
+        });
       });
-      mo.observe(root, {subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
+      mo.observe(cards,{subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
     })();
 
-    /* ---------- Level Up SFX: detect Lvl text increments robustly ---------- */
+    /* ---------- 9) Level Up (DOM + poll fallback) ---------- */
     (function(){
-      const root = q('#cards'); if(!root) return;
-      const lastLevelByEl = new WeakMap();
+      const cards = $('#cards'); if(!cards) return;
+      const last = new WeakMap();
 
-      function readLevel(el){
+      function parseLvl(el){
         const m = (el.textContent||'').match(/Lvl\s+(\d+)/i);
-        return m ? parseInt(m[1],10) : null;
-        }
-      function scan(el){
-        const cur = readLevel(el);
-        if(cur==null) return;
-        const prev = lastLevelByEl.get(el);
-        if(prev!=null && cur>prev){
-          SFX_LEVEL_UP.play();
-        }
-        lastLevelByEl.set(el, cur);
+        return m ? +m[1] : null;
       }
-
-      // Seed existing .lvl nodes
-      qa('.card .lvl', root).forEach(scan);
+      function scan(el){
+        const cur = parseLvl(el);
+        if(cur==null) return;
+        const prev = last.get(el);
+        if(prev!=null && cur>prev) SFX_LEVEL_UP.play();
+        last.set(el, cur);
+      }
+      // seed
+      $$('.card .lvl', cards).forEach(scan);
 
       const mo = new MutationObserver((muts)=>{
-        for(const m of muts){
+        muts.forEach(m=>{
           if(m.type==='characterData'){
             const el = m.target.parentElement;
-            if(el && el.classList && el.classList.contains('lvl')) scan(el);
+            if(el && el.classList.contains('lvl')) scan(el);
           }else if(m.type==='childList'){
             m.addedNodes.forEach(n=>{
               if(!(n instanceof HTMLElement)) return;
-              if(n.classList && n.classList.contains('lvl')) scan(n);
-              qa('.lvl', n).forEach(scan);
+              if(n.classList.contains?.('lvl')) scan(n);
+              $$('.lvl', n).forEach(scan);
             });
           }
-        }
+        });
       });
-      mo.observe(root, {subtree:true, childList:true, characterData:true});
+      mo.observe(cards, {subtree:true, childList:true, characterData:true});
+
+      // tiny poll to catch any missed frames (mobile reflows)
+      setInterval(()=> $$('.card .lvl', cards).forEach(scan), 400);
     })();
 
-    /* ---------- Coaches: Available (gendered) + Hired (reliable) ---------- */
+    /* ---------- 10) Coaches (Available F/M + Hired) ---------- */
     (function(){
-      const menuBody = q('#menu-body'); if(!menuBody) return;
+      const body = $('#menu-body'); if(!body) return;
 
-      // Build ExerciseName -> index map (0..19)
-      const nameToIndex = new Map();
+      const nameToIdx = new Map();
       try{
-        if (typeof Exercises !== 'undefined' && Array.isArray(Exercises)){
-          Exercises.forEach((ex, idx)=> nameToIndex.set(ex.name, idx));
-        } else {
-          [
-            'Walking','Jogging','Sit-ups','Push-ups','Jumping Jacks','Pull-ups','Jump Rope','Plank',
-            'Mountain Climbers','Kettlebell','Burpees','Bench Press','Back Squat','Deadlift',
-            'Handstands','Handstand Push-ups','Muscle-ups','Front Lever','Iron Cross','Victorian Cross'
-          ].forEach((n, idx)=> nameToIndex.set(n, idx));
-        }
+        if (Array.isArray(window.Exercises)) Exercises.forEach((ex,i)=> nameToIdx.set(ex.name,i));
+        else [
+          'Walking','Jogging','Sit-ups','Push-ups','Jumping Jacks','Pull-ups','Jump Rope','Plank',
+          'Mountain Climbers','Kettlebell','Burpees','Bench Press','Back Squat','Deadlift',
+          'Handstands','Handstand Push-ups','Muscle-ups','Front Lever','Iron Cross','Victorian Cross'
+        ].forEach((n,i)=> nameToIdx.set(n,i));
       }catch(_){}
 
-      const soundedAvailIdx = new Set();
+      const availPlayed = new Set();                 // by exercise index
+      const rowState = new WeakMap();                // row -> {hadBtn:boolean, hadHired:boolean}
+      const sexFor = (i)=> (i%2===0 ? 'F' : 'M');
 
-      function idxFromRow(row){
+      function indexFromRow(row){
         const sub = row.querySelector('.coach-sub');
         if(!sub) return null;
         const m = (sub.textContent||'').match(/Works on:\s*(.+)\s*$/i);
-        const exName = m ? m[1].trim() : null;
-        if(!exName) return null;
-        const idx = nameToIndex.get(exName);
-        return (idx==null ? null : idx);
+        const name = m? m[1].trim(): null;
+        const idx = nameToIdx.get(name);
+        return (idx==null? null: idx);
       }
-      const genderForIndex = (idx)=> (idx % 2 === 0) ? 'F' : 'M'; // 0=Walking=female
 
-      // Observe button glow flips + hired flips
+      function inspectRow(row){
+        const idx = indexFromRow(row); if(idx==null) return;
+        const btn = row.querySelector('button.btn');
+        const hired = !!row.querySelector('.hired');
+
+        const st = rowState.get(row) || {hadBtn: !!btn, hadHired: hired};
+        // Available (glow now visible)
+        if(btn && btn.classList.contains('glow') && !availPlayed.has(idx)){
+          availPlayed.add(idx);
+          (sexFor(idx)==='F'? SFX_COACH_AVAIL_F : SFX_COACH_AVAIL_M).play();
+        }
+        // Hired transition (had button before, now shows hired)
+        if(st.hadBtn && hired && !st.hadHired){
+          SFX_COACH_HIRED.play();
+        }
+        rowState.set(row, {hadBtn: !!btn, hadHired: hired});
+      }
+
+      function scanAll(){ $$('.coach-row', body).forEach(inspectRow); }
+      // initial + on changes
+      scanAll();
       const mo = new MutationObserver((muts)=>{
-        for(const m of muts){
-          if(!(m.target instanceof HTMLElement)) continue;
-
-          // 1) Button glow added => Available
-          if(m.type==='attributes' && m.attributeName==='class' &&
-             m.target.matches && m.target.matches('.coach-row .btn')){
-            const hadGlow = /\bglow\b/.test(m.oldValue||'');
-            const hasGlow = m.target.classList.contains('glow');
-            if(!hadGlow && hasGlow){
-              const row = m.target.closest('.coach-row');
-              const idx = idxFromRow(row);
-              if(idx!=null && !soundedAvailIdx.has(idx)){
-                soundedAvailIdx.add(idx);
-                (genderForIndex(idx)==='F'? SFX_COACH_AVAIL_F : SFX_COACH_AVAIL_M).play();
-              }
-            }
-          }
-
-          // 2) Row flips to Hired
+        muts.forEach(m=>{
           if(m.type==='childList'){
             m.addedNodes.forEach(n=>{
-              if(!(n instanceof HTMLElement)) return;
-              const row = n.closest?.('.coach-row') || (n.classList?.contains('coach-row') ? n : null);
-              if(!row) return;
-              const hired = row.querySelector('.hired');
-              if(hired && !row.getAttribute('data-ff-hire-sounded')){
-                row.setAttribute('data-ff-hire-sounded','1');
-                SFX_COACH_HIRED.play();
+              if(n instanceof HTMLElement){
+                if(n.classList.contains('coach-row')) inspectRow(n);
+                $$('.coach-row', n).forEach(inspectRow);
               }
             });
           }
-        }
+          if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
+            // glow flip on buttons
+            if(m.target.matches('.coach-row .btn')) inspectRow(m.target.closest('.coach-row'));
+          }
+        });
       });
-      mo.observe(menuBody, {subtree:true, childList:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
+      mo.observe(body, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
 
-      // Also play on pressing the Hire button (immediate feedback; deduped by row flag)
-      menuBody.addEventListener('click', (e)=>{
-        const btn = e.target.closest && e.target.closest('.coach-row .btn');
-        if(!btn) return;
-        if(!btn.classList.contains('glow')) return;
-        const row = btn.closest('.coach-row');
-        if(row && !row.getAttribute('data-ff-hire-sounded')){
-          row.setAttribute('data-ff-hire-sounded','1');
-          SFX_COACH_HIRED.play();
-        }
+      // Also play on actual click to hire (immediate), but only if affordable (glow)
+      body.addEventListener('click', (e)=>{
+        const btn = e.target.closest?.('.coach-row .btn'); if(!btn) return;
+        if(btn.classList.contains('glow')) SFX_COACH_HIRED.play();
       }, {capture:true});
     })();
 
-    /* ---------- Offline gains ---------- */
+    /* ---------- 11) Offline gains + achievements ---------- */
     (function(){
-      const modal = q('#offline');
-      const claim = q('#offline-claim');
-      if(modal){
-        new MutationObserver(()=>{
-          if(modal.classList.contains('show')) SFX_OFFLINE_OPEN.play();
-        }).observe(modal, {attributes:true, attributeFilter:['class']});
+      const off = $('#offline'), claim = $('#offline-claim');
+      if(off){
+        new MutationObserver(()=>{ if(off.classList.contains('show')) SFX_OFFLINE_OPEN.play(); })
+          .observe(off, {attributes:true, attributeFilter:['class']});
       }
-      if(claim){
-        claim.addEventListener('click', ()=> SFX_OFFLINE_CLAIM.play(), {capture:true});
-      }
-    })();
+      if(claim) claim.addEventListener('click', ()=> SFX_OFFLINE_CLAIM.play(), {capture:true});
 
-    /* ---------- Achievements ---------- */
-    (function(){
-      const achRoot = q('#ach'); if(!achRoot) return;
-      new MutationObserver((muts)=>{
-        for(const m of muts){
-          if(m.type!=='childList') continue;
-          for(const n of m.addedNodes){
-            const banner = (n instanceof HTMLElement && (n.matches('.banner') ? n : n.querySelector?.('.banner')));
-            if(banner) { SFX_ACHIEVE.play(); }
-          }
-        }
-      }).observe(achRoot, {childList:true, subtree:true});
+      const ach = $('#ach');
+      if(ach){
+        new MutationObserver((muts)=>{
+          muts.forEach(m=>{
+            m.addedNodes.forEach(n=>{
+              const banner = (n instanceof HTMLElement && (n.matches('.banner')? n : n.querySelector?.('.banner')));
+              if(banner) SFX_ACHIEVE.play();
+            });
+          });
+        }).observe(ach, {childList:true, subtree:true});
+      }
     })();
 
   }catch(e){
-    console.warn('SFX Patch v3 error:', e);
+    console.warn('SFX Patch v4 error:', e);
   }
 })();
 </script>
-
-
-
 
 
 
