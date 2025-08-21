@@ -4150,6 +4150,97 @@ try{
 
 
 
+
+
+
+
+<script type="application/ff-patch">
+/* ===== Mobile Audio Unlocker v2 — fixes first-run SFX on iOS/Android =====
+   - Globally patches HTMLMediaElement.play: if blocked (NotAllowedError), replays on next gesture
+   - Arms a one-time, first-gesture unlock: resumes a dummy AudioContext + plays a tiny silent clip
+   - No app logic changes; safe to add on top of your existing SFX patches
+============================================================================ */
+(function(){
+  if (window.__FF_AUDIO_UNLOCK_V2__) return;
+  window.__FF_AUDIO_UNLOCK_V2__ = true;
+
+  /* 1) Global play() fallback — retries after the NEXT user gesture if autoplay blocks */
+  (function(){
+    const HME = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+    if (!HME || HME.__ffPlayPatched) return;
+    HME.__ffPlayPatched = true;
+
+    const orig = HME.play;
+    HME.play = function(){
+      const res = (()=>{ try{ return orig.apply(this, arguments); }catch(e){ return Promise.reject(e); } })();
+      if (res && typeof res.catch === 'function'){
+        res.catch((err)=>{
+          const name = (err && err.name) || '';
+          const msg  = (err && err.message) || '';
+          if (/NotAllowedError/i.test(name) || /(gesture|user).*(play|start)/i.test(msg)){
+            const el = this;
+            const once = ()=>{
+              document.removeEventListener('pointerdown', once, true);
+              document.removeEventListener('touchstart',  once, true);
+              document.removeEventListener('click',       once, true);
+              try{ orig.call(el); }catch(_){}
+            };
+            document.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+            document.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+            document.addEventListener('click',       once, {capture:true, passive:true, once:true});
+          }
+        });
+      }
+      return res;
+    };
+  })();
+
+  /* 2) First-gesture unlock — resume WebAudio + prime HTML5 audio with a tiny silent clip */
+  (function(){
+    if (window.__FF_AUDIO_GESTURE_ARMed__) return;
+    window.__FF_AUDIO_GESTURE_ARMed__ = true;
+
+    // 0.06s silent WAV data URI (tiny, fast)
+    const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+    const prim = new Audio(SILENT); prim.preload='auto'; prim.muted=true;
+
+    function unlock(){
+      // Resume/prime WebAudio (even if you don't use it, this satisfies iOS gesture gating)
+      try{
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC){
+          if (!window.__ff_dummy_ac__) window.__ff_dummy_ac__ = new AC();
+          const ac = window.__ff_dummy_ac__;
+          if (ac && ac.state === 'suspended' && ac.resume) ac.resume();
+        }
+      }catch(_){}
+      // Prime HTML5 audio
+      try{
+        prim.currentTime = 0;
+        const p = prim.play();
+        if (p && p.finally) p.finally(()=>{ try{ prim.pause(); }catch(_){} });
+        else { try{ prim.pause(); }catch(_){} }
+      }catch(_){}
+    }
+
+    const once = ()=>{
+      document.removeEventListener('pointerdown', once, true);
+      document.removeEventListener('touchstart',  once, true);
+      document.removeEventListener('click',       once, true);
+      unlock();
+    };
+
+    // Capture so we run before game handlers; first gesture unlocks audio for everything
+    document.addEventListener('pointerdown', once, {capture:true, passive:true});
+    document.addEventListener('touchstart',  once, {capture:true, passive:true});
+    document.addEventListener('click',       once, {capture:true, passive:true});
+  })();
+
+})();
+</script>
+
+
+
   
   
 
