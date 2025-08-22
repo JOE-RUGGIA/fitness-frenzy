@@ -1,35 +1,30 @@
 <script>
 /* ==========================================================
-   Fitness Frenzy — CORE (Steps 1–3) with Fitcoins earn hooks
-   - Bars & unlock glow intact
-   - Fitcoins: earn on unlock + level milestones; saved; pill updates
+   Fitness Frenzy — CLEAN CORE (Steps 1–3) + Fitcoins scaffold
+   - DOM-safe, matches your IDs, no backwards bars, unlock glow
+   - Seeds: Walking L4, Jogging L3, Sit-ups L2, Push-ups L1
+   - Minimal Fitcoins earn; pill auto-created if missing
    ========================================================== */
 (function(){
   "use strict";
 
-  /* ---------- Config: Fitcoins economy (v1 minimal) ---------- */
+  // ---------- Config ----------
+  const SAVE_KEY = 'ff-core-v6';       // bump schema; isolated from old save
+  const BULK_CHOICES = [1,10,100];
+
+  // Minimal Fitcoins earn for now (can tune later)
   const FC_RULES = {
-    UNLOCK_FLAT: 1, // FC on first-time unlock
-    // Milestone rewards per exact level reached
+    UNLOCK_FLAT: 1,
     LEVEL_MILESTONES: new Map([
-      [2, 1],
-      [5, 1],
-      [10, 2],
-      [20, 2],
-      [30, 3],
-      [40, 3],
-      [50, 3],
+      [2,1],[5,1],[10,2],[20,2],[30,3],[40,3],[50,3]
     ])
   };
-  function fcRewardForLevel(level){
-    return FC_RULES.LEVEL_MILESTONES.get(level) || 0;
-  }
 
-  /* ---------- Step 1: Data model + math ---------- */
+  // ---------- Data model + math ----------
   const Exercises = [
-    { id:'walk',   name:'Walking',           baseCooldownMs:1000 },
-    { id:'jog',    name:'Jogging',           baseCooldownMs:3000 },
-    { id:'sit',    name:'Sit-ups',           baseCooldownMs:6000 },
+    { id:'walk',   name:'Walking',           baseCooldownMs:1000  },
+    { id:'jog',    name:'Jogging',           baseCooldownMs:3000  },
+    { id:'sit',    name:'Sit-ups',           baseCooldownMs:6000  },
     { id:'push',   name:'Push-ups',          baseCooldownMs:12000 },
     { id:'jacks',  name:'Jumping Jacks',     baseCooldownMs:24000 },
     { id:'pull',   name:'Pull-ups',          baseCooldownMs:48000 },
@@ -59,47 +54,40 @@
     return String(Math.floor(n));
   };
 
-  const baseHP    = (idx,ms)=> (idx===0? 1 : Math.round(20*Math.pow(ms/1000,1.10)));
-  const perTapHP  = (base, reps)=> base + reps;
-  const unlockCost= (base,ms)=> Math.round(base * Math.pow(ms/1000,0.60) * 1.15);
-  const repBaseCost = (base)=> Math.max(4, Math.round(base * 0.05));
-  const repGrowth = (level)=> Math.max(1.07, Math.min(1.15, 1.07 + 0.01 * Math.log2(Math.max(1,level))));
-  const repCostSingle = (rb,g,rep)=> rb * Math.pow(g, rep);
-  const repCostBulk   = (rb,g,rep,n)=> rb * Math.pow(g, rep) * ((Math.pow(g,n)-1)/(g-1));
-  const nextCooldown  = (ms)=> Math.max(100, Math.floor(ms/2));
+  const baseHP       = (idx,ms)=> (idx===0 ? 1 : Math.round(20*Math.pow(ms/1000,1.10)));
+  const perTapHP     = (base,reps)=> base + reps;
+  const unlockCost   = (base,ms)=> Math.round(base * Math.pow(ms/1000,0.60) * 1.15);
+  const repBaseCost  = (base)=> Math.max(4, Math.round(base*0.05));
+  const repGrowth    = (lvl)=> Math.max(1.07, Math.min(1.15, 1.07 + 0.01*Math.log2(Math.max(1,lvl))));
+  const repCostSingle= (rb,g,rep)=> rb*Math.pow(g,rep);
+  const repCostBulk  = (rb,g,rep,n)=> rb*Math.pow(g,rep)*((Math.pow(g,n)-1)/(g-1));
+  const nextCooldown = (ms)=> Math.max(100, Math.floor(ms/2));
 
-  /* ---------- Step 3: State + save ---------- */
-  const SAVE_KEY = 'ff-core-v5'; // bump schema after adding FC logic
-
+  // ---------- State / Save ----------
   function defaultExercises(){
     return Exercises.map((ex,idx)=>({
       id:ex.id, unlocked:(idx===0), rep:0, repTarget:10, level:1,
       cooldown:ex.baseCooldownMs, lastTapAt:0
     }));
   }
-
   function levelTo(ex, target){
-    // Seed helper; DOES NOT award FC (we only award on live level-ups).
     ex.level = Math.max(1, ex.level|0);
-    while (ex.level < target) {
+    while (ex.level < target){
       ex.level += 1;
       ex.cooldown = nextCooldown(ex.cooldown);
       ex.repTarget *= 2;
     }
   }
-
   function defaults(){
-    // Baseline: first 4 unlocked & leveled 4/3/2/1, Fitcoins=0
-    const s = { schema:5, hp:0, fc:0, qty:1, exercises: defaultExercises() };
+    const s = { schema:6, hp:0, fc:0, qty:1, exercises: defaultExercises() };
     for (let i=0;i<4;i++) s.exercises[i].unlocked = true;
-    levelTo(s.exercises[0], 4);
-    levelTo(s.exercises[1], 3);
-    levelTo(s.exercises[2], 2);
-    levelTo(s.exercises[3], 1);
-    s.exercises.forEach(e=> e.lastTapAt = 0);
+    levelTo(s.exercises[0],4);
+    levelTo(s.exercises[1],3);
+    levelTo(s.exercises[2],2);
+    levelTo(s.exercises[3],1);
+    s.exercises.forEach(e=> e.lastTapAt=0);
     return s;
   }
-
   function ensureIntegrity(d){
     const byId = new Map((d.exercises||[]).map(e=>[e.id,e]));
     d.exercises = Exercises.map((ex,idx)=>{
@@ -107,7 +95,7 @@
       const unlockedDefault = idx<4;
       return {
         id:ex.id,
-        unlocked: prev.unlocked ?? unlockedDefault,
+        unlocked: (typeof prev.unlocked==='boolean') ? prev.unlocked : unlockedDefault,
         rep: (prev.rep|0)||0,
         repTarget: (prev.repTarget|0)||10,
         level: (prev.level|0)||1,
@@ -116,320 +104,305 @@
       };
     });
     d.hp = Number(d.hp)||0;
-    d.fc = Number(d.fc)||0; // Fitcoins
-    d.qty = [1,10,100].includes(d.qty)? d.qty : 1;
-    d.schema = 5;
+    d.fc = Number(d.fc)||0;
+    d.qty = BULK_CHOICES.includes(d.qty) ? d.qty : 1;
+    d.schema = 6;
 
-    // Normalize timebase so bars never count “backwards”
+    // Normalize lastTapAt to perf-timebase so bars never count backwards
     const nowPerf = performance.now();
-    for (const ex of d.exercises) {
+    for (const ex of d.exercises){
       const t = Number(ex.lastTapAt)||0;
-      if (t > 1e9 || t < 0 || (t > 0 && t > nowPerf + (ex.cooldown||0)*4)) ex.lastTapAt = 0;
+      if (t > 1e9 || t < 0 || (t && t > nowPerf + (ex.cooldown||0)*4)) ex.lastTapAt = 0;
     }
     return d;
   }
-
   function load(){
     try{
       const raw = localStorage.getItem(SAVE_KEY);
       return raw ? ensureIntegrity(JSON.parse(raw)) : defaults();
     }catch{ return defaults(); }
   }
-
   function save(state){
     try{
       const copy = JSON.parse(JSON.stringify(state));
-      copy.exercises.forEach(e=> e.lastTapAt = 0); // volatile
+      copy.exercises.forEach(e=> e.lastTapAt=0); // don’t persist perf clocks
       localStorage.setItem(SAVE_KEY, JSON.stringify(copy));
     }catch{}
   }
 
   let S = ensureIntegrity(load());
 
-  /* ---------- Fitcoins helpers ---------- */
-  function grantFC(amount/*, reason */){
-    const n = Math.max(0, Math.floor(Number(amount)||0));
-    if(n<=0) return 0;
-    S.fc += n;
-    renderTop(); // update pill immediately
-    return n;
+  // ---------- DOM ready ----------
+  onReady(init);
+  function onReady(fn){
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, {once:true});
+    else fn();
   }
-  function spendFC(amount){
-    const n = Math.max(0, Math.floor(Number(amount)||0));
-    if(n<=0) return true;
-    if(S.fc < n) return false;
-    S.fc -= n;
+
+  // ---------- DOM refs (match your page) ----------
+  let hpEl, fcEl, cardsEl, bulkEl;
+
+  // Ensure a Fitcoins pill exists (next to HP) if you haven’t injected one yet
+  function ensureFitcoinsPill(){
+    fcEl = document.getElementById('fc-readout');
+    if (fcEl) return;
+    const topbar = document.querySelector('.topbar .wrap') || document;
+    const hpPill = topbar.querySelector('.hp-pill');
+    if (!hpPill) return;
+
+    // If a top-pills grid exists, use it; else create a simple sibling pill
+    let holder = topbar.querySelector('.top-pills');
+    if (!holder){
+      holder = document.createElement('div');
+      holder.className = 'top-pills';
+      hpPill.parentNode.insertBefore(holder, hpPill);
+      holder.appendChild(hpPill); // move HP pill inside
+    }
+    const fit = document.createElement('div');
+    fit.className = 'fit-pill hp-pill'; // reuse hp-pill styling if .fit-pill CSS is absent
+    fit.innerHTML = '<span>Fitcoins</span><span id="fc-readout">0</span>';
+    holder.appendChild(fit);
+    fcEl = fit.querySelector('#fc-readout');
+  }
+
+  // ---------- Fitcoins helpers ----------
+  function fcRewardForLevel(level){ return FC_RULES.LEVEL_MILESTONES.get(level)||0; }
+  function grantFC(n){
+    const add = Math.max(0, Math.floor(Number(n)||0));
+    if(!add) return 0;
+    S.fc += add;
     renderTop();
-    save(S);
-    return true;
+    return add;
   }
 
-  /* ---------- Step 2: UI ---------- */
-  const hpEl   = document.getElementById('hp');
-  const fcEl   = document.getElementById('fc');     // Fitcoins readout
-  const cards  = document.getElementById('cards');
-  const bulk   = document.getElementById('bulk');
+  // ---------- Build UI ----------
+  const refs = new Map(); // id -> elements per card
 
-  const refs = new Map(); // id -> {els}
+  function build(){
+    hpEl   = document.getElementById('hp-readout');
+    ensureFitcoinsPill();
+    cardsEl= document.getElementById('cards');
+    bulkEl = document.getElementById('bulk');
 
-  function createCard(idx){
-    const meta = Exercises[idx];
-    const ex   = S.exercises[idx];
-
-    const card   = document.createElement('div'); card.className='card';
-    const tile   = document.createElement('div'); tile.className='tile';
-    const lvl    = document.createElement('div'); lvl.className='lvl';
-    const repband= document.createElement('div'); repband.className='repband';
-    const repfill= document.createElement('div'); repfill.className='repfill';
-    const reptext= document.createElement('div'); reptext.className='reptext';
-    repband.append(repfill, reptext);
-    tile.append(lvl, repband);
-
-    const right  = document.createElement('div');
-    const title  = document.createElement('div'); title.className='title';
-    const cdWrap = document.createElement('div'); cdWrap.className='cooldown';
-    const bar    = document.createElement('div'); bar.className='bar';
-    const t      = document.createElement('div'); t.className='t';
-    cdWrap.append(bar,t);
-    const metaRow= document.createElement('div'); metaRow.className='meta';
-    const left   = document.createElement('div'); left.className='muted';
-    const btn    = document.createElement('button'); btn.className='btn';
-
-    metaRow.append(left, btn);
-    right.append(title, cdWrap, metaRow);
-    card.append(tile, right);
-    cards.append(card);
-
-    // First-frame bar state
-    if (ex.unlocked && (!ex.lastTapAt || ex.lastTapAt===0)) {
-      bar.style.width = '100%';
-      t.textContent = 'Ready';
-    } else if (!ex.unlocked) {
-      bar.style.width = '0%';
-      t.textContent = '—';
+    if (!cardsEl) {
+      console.error('[FF] Missing #cards in DOM.');
+      return;
     }
 
-    // interactions
-    tile.addEventListener('click', ()=> {
-      const ex = S.exercises[idx];
-      if(!ex || !ex.unlocked) return;
-      const now = performance.now();
-      if(ex.lastTapAt>0 && now < ex.lastTapAt + ex.cooldown) return;
-      const gain = perTapHP(baseHP(idx, meta.baseCooldownMs), ex.rep);
-      S.hp += gain;
-      ex.lastTapAt = now;
-      renderExercise(idx);
-      renderTop();
-      updateAffordances();
-      save(S);
-    });
+    cardsEl.innerHTML='';
+    refs.clear();
 
-    btn.addEventListener('click', ()=>{
-      const ex = S.exercises[idx];
-      const base = baseHP(idx, meta.baseCooldownMs);
-      if(!ex.unlocked){
-        const price = unlockCost(base, meta.baseCooldownMs);
-        if(S.hp < price) return;
-        S.hp -= price;
-        ex.unlocked = true;
-        ex.lastTapAt = 0;
-        // FC: award on first unlock
-        grantFC(FC_RULES.UNLOCK_FLAT /*, 'unlock:'+meta.id */);
-      } else {
-        const rb = repBaseCost(base);
-        const g  = repGrowth(ex.level);
-        const q  = S.qty;
-        const price = Math.ceil(q===1 ? repCostSingle(rb,g,ex.rep) : repCostBulk(rb,g,ex.rep,q));
-        if(S.hp < price) return;
-        S.hp -= price;
-        ex.rep += q;
-        // Level loop (award FC on milestones)
-        while(ex.rep >= ex.repTarget){
-          ex.level += 1;
-          ex.repTarget *= 2;
-          ex.cooldown = nextCooldown(ex.cooldown);
-          const fc = fcRewardForLevel(ex.level);
-          if(fc) grantFC(fc /*, 'level:'+meta.id+':'+ex.level */);
-        }
+    for (let i=0;i<Exercises.length;i++){
+      const meta = Exercises[i];
+      const ex   = S.exercises[i];
+
+      const card   = document.createElement('div'); card.className='card';
+      const tile   = document.createElement('div'); tile.className='tile';
+      const lvl    = document.createElement('div'); lvl.className='lvl';
+      lvl.textContent = 'Lvl ' + (ex.level||1);
+
+      const repband= document.createElement('div'); repband.className='repband';
+      const repfill= document.createElement('div'); repfill.className='repfill';
+      const reptext= document.createElement('div'); reptext.className='reptext';
+      repband.append(repfill, reptext);
+      tile.append(lvl, repband);
+
+      const right  = document.createElement('div');
+      const title  = document.createElement('div'); title.className='title'; title.textContent = meta.name;
+      const cdWrap = document.createElement('div'); cdWrap.className='cooldown';
+      const bar    = document.createElement('div'); bar.className='bar';
+      const t      = document.createElement('div'); t.className='t';
+      cdWrap.append(bar,t);
+
+      const metaRow= document.createElement('div'); metaRow.className='meta';
+      const left   = document.createElement('div'); left.className='muted';
+      const btn    = document.createElement('button'); btn.className='btn';
+      metaRow.append(left, btn);
+      right.append(title, cdWrap, metaRow);
+      card.append(tile, right);
+      cardsEl.append(card);
+
+      // first frame bars (avoid backwards)
+      if (!ex.unlocked){
+        bar.style.width='0%'; t.textContent='—';
+      } else if (!ex.lastTapAt){
+        bar.style.width='100%'; t.textContent='Ready';
       }
-      renderExercise(idx);
-      renderTop();
-      updateAffordances();
-      save(S);
-    });
 
-    refs.set(meta.id, {idx, card, tile, lvl, repfill, reptext, bar, t, left, btn, title});
-    renderExercise(idx);
+      // interactions
+      tile.addEventListener('click', ()=>{
+        const ex = S.exercises[i];
+        if(!ex || !ex.unlocked) return;
+        const now = performance.now();
+        if(ex.lastTapAt>0 && now < ex.lastTapAt + ex.cooldown) return;
+        const gain = perTapHP(baseHP(i, meta.baseCooldownMs), ex.rep);
+        S.hp += gain;
+        ex.lastTapAt = now;
+        renderExercise(i);
+        renderTop();
+        updateAffordances();
+        save(S);
+      });
+
+      btn.addEventListener('click', ()=>{
+        const ex = S.exercises[i];
+        const base = baseHP(i, meta.baseCooldownMs);
+        if(!ex.unlocked){
+          const price = unlockCost(base, meta.baseCooldownMs);
+          if(S.hp < price) return;
+          S.hp -= price;
+          ex.unlocked = true;
+          ex.lastTapAt = 0;
+          grantFC(FC_RULES.UNLOCK_FLAT);
+        } else {
+          const rb=repBaseCost(base), g=repGrowth(ex.level), q=S.qty;
+          const price = Math.ceil(q===1 ? repCostSingle(rb,g,ex.rep) : repCostBulk(rb,g,ex.rep,q));
+          if(S.hp < price) return;
+          S.hp -= price;
+          ex.rep += q;
+          // level loop
+          while(ex.rep >= ex.repTarget){
+            ex.level += 1;
+            ex.repTarget *= 2;
+            ex.cooldown = nextCooldown(ex.cooldown);
+            const fc = fcRewardForLevel(ex.level);
+            if(fc) grantFC(fc);
+          }
+        }
+        renderExercise(i);
+        renderTop();
+        updateAffordances();
+        save(S);
+      });
+
+      refs.set(meta.id, {idx:i, card,tile,lvl,repfill,reptext,bar,t,left,btn,title});
+      renderExercise(i);
+    }
+
+    // bulk
+    if (bulkEl){
+      bulkEl.addEventListener('click', (e)=>{
+        const b = e.target.closest('button'); if(!b) return;
+        const q = parseInt(b.dataset.q,10); if(!BULK_CHOICES.includes(q)) return;
+        S.qty = q;
+        [...bulkEl.children].forEach(x=> x.classList.toggle('active', x===b));
+        for (let i=0;i<Exercises.length;i++) renderExercise(i);
+        updateAffordances();
+        save(S);
+      });
+    }
+
+    renderTop();
+    updateAffordances();
   }
 
   function renderTop(){
-    hpEl.textContent = fmt(S.hp);
-    // Fitcoins: show as plain integer for now (no K/M rounding)
-    fcEl.textContent = (Number.isFinite(S.fc) ? Math.max(0, Math.floor(S.fc)) : 0).toLocaleString();
+    if (hpEl) hpEl.textContent = fmt(S.hp);
+    if (fcEl) fcEl.textContent = (Number.isFinite(S.fc)? Math.max(0,Math.floor(S.fc)) : 0).toLocaleString();
   }
 
-  function renderExercise(idx){
-    const meta = Exercises[idx];
-    const ex   = S.exercises[idx];
-    const r    = refs.get(meta.id);
+  function renderExercise(i){
+    const meta = Exercises[i], ex=S.exercises[i], r=refs.get(meta.id);
     if(!r) return;
 
-    r.title.textContent = meta.name;
-    r.lvl.textContent   = 'Lvl ' + (ex.level||1);
+    r.lvl.textContent = 'Lvl ' + (ex.level||1);
 
     if(!ex.unlocked){
       r.tile.classList.add('locked');
-      const base = baseHP(idx, meta.baseCooldownMs);
-      const price= unlockCost(base, meta.baseCooldownMs);
-      r.left.textContent = '—';
-      r.btn.textContent  = 'Unlock • ' + fmt(price) + ' HP';
+      const base=baseHP(i, meta.baseCooldownMs);
+      const price=unlockCost(base, meta.baseCooldownMs);
+      r.left.textContent='—';
+      r.btn.textContent = 'Unlock • ' + fmt(price) + ' HP';
       r.btn.classList.toggle('glow', S.hp>=price);
       r.card.classList.toggle('afford', S.hp>=price);
-      r.reptext.textContent = '—';
-      r.repfill.style.width = '0%';
-      r.bar.style.width     = '0%';
-      r.t.textContent       = '—';
+      r.reptext.textContent='—';
+      r.repfill.style.width='0%';
+      r.bar.style.width='0%';
+      r.t.textContent='—';
       return;
     }
 
     r.tile.classList.remove('locked');
-    r.card.classList.remove('afford');
-
-    const base = baseHP(idx, meta.baseCooldownMs);
-    const tap  = perTapHP(base, ex.rep);
+    const base=baseHP(i, meta.baseCooldownMs);
+    const tap = perTapHP(base, ex.rep);
     r.left.textContent = tap + ' HP / tap';
 
-    const rb = repBaseCost(base);
-    const g  = repGrowth(ex.level||1);
-    const q  = S.qty;
+    const rb=repBaseCost(base), g=repGrowth(ex.level||1), q=S.qty;
     const price = Math.ceil(q===1 ? repCostSingle(rb,g,ex.rep||0) : repCostBulk(rb,g,ex.rep||0,q));
-    r.btn.textContent = 'Reps ×' + q + ' • ' + fmt(price) + ' HP';
+    r.btn.textContent = 'Reps ×'+q+' • ' + fmt(price) + ' HP';
     r.btn.classList.toggle('glow', S.hp>=price);
+    r.card.classList.remove('afford');
 
     const pct = Math.max(0, Math.min(100, 100*((ex.rep||0)/(ex.repTarget||10))));
     r.reptext.textContent = (ex.rep||0) + ' / ' + (ex.repTarget||10);
     r.repfill.style.width = pct + '%';
 
-    if (!ex.lastTapAt || ex.lastTapAt===0){
-      r.bar.style.width = '100%';
-      r.t.textContent = 'Ready';
+    if (!ex.lastTapAt){
+      r.bar.style.width='100%';
+      r.t.textContent='Ready';
     }
   }
 
   function updateAffordances(){
     for (let i=0;i<Exercises.length;i++){
-      const meta = Exercises[i];
-      const ex   = S.exercises[i];
-      const r    = refs.get(meta.id);
+      const meta=Exercises[i], ex=S.exercises[i], r=refs.get(meta.id);
       if(!r) continue;
-      const base = baseHP(i, meta.baseCooldownMs);
+      const base=baseHP(i, meta.baseCooldownMs);
       if(!ex.unlocked){
-        const price = unlockCost(base, meta.baseCooldownMs);
+        const price=unlockCost(base, meta.baseCooldownMs);
         r.btn.classList.toggle('glow', S.hp>=price);
         r.card.classList.toggle('afford', S.hp>=price);
       }else{
-        const rb = repBaseCost(base);
-        const g  = repGrowth(ex.level||1);
-        const q  = S.qty;
-        const price = Math.ceil(q===1 ? repCostSingle(rb,g,ex.rep||0) : repCostBulk(rb,g,ex.rep||0,q));
+        const rb=repBaseCost(base), g=repGrowth(ex.level||1), q=S.qty;
+        const price=Math.ceil(q===1 ? repCostSingle(rb,g,ex.rep||0) : repCostBulk(rb,g,ex.rep||0,q));
         r.btn.classList.toggle('glow', S.hp>=price);
         r.card.classList.remove('afford');
       }
     }
   }
 
-  function build(){
-    cards.innerHTML = '';
-    refs.clear();
-    for(let i=0;i<Exercises.length;i++) createCard(i);
-    renderTop();
-    updateAffordances();
-  }
-
-  /* ---------- Engine loop (bars) ---------- */
+  // ---------- Bars engine ----------
   function tick(){
     const now = performance.now();
-    for(let i=0;i<Exercises.length;i++){
-      const ex = S.exercises[i];
-      const r  = refs.get(Exercises[i].id);
+    for (let i=0;i<Exercises.length;i++){
+      const ex=S.exercises[i], r=refs.get(Exercises[i].id);
       if(!r) continue;
 
       if(!ex || !ex.unlocked){
-        r.bar.style.width = '0%';
-        r.t.textContent   = '—';
-        continue;
+        r.bar.style.width='0%'; r.t.textContent='—'; continue;
       }
-
-      if(!ex.lastTapAt || ex.lastTapAt===0){
-        r.bar.style.width = '100%';
-        r.t.textContent   = 'Ready';
-        continue;
+      if(!ex.lastTapAt){
+        r.bar.style.width='100%'; r.t.textContent='Ready'; continue;
       }
-
       const dt = Math.max(0, now - ex.lastTapAt);
       const remain = Math.max(0, ex.cooldown - dt);
-      if (remain <= 0){
-        r.bar.style.width = '100%';
-        r.t.textContent   = 'Ready';
+      if (remain<=0){
+        r.bar.style.width='100%'; r.t.textContent='Ready';
       } else {
         const pct = 100 * (dt / Math.max(1, ex.cooldown));
         r.bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
-        r.t.textContent   = (remain/1000).toFixed(2) + 's';
+        r.t.textContent   = (remain/1000).toFixed(2)+'s';
       }
     }
     requestAnimationFrame(tick);
   }
 
-  /* ---------- Bulk selector ---------- */
-  const bulkHandler = (e)=>{
-    const b = e.target.closest('button');
-    if(!b) return;
-    const q = parseInt(b.dataset.q, 10);
-    if(![1,10,100].includes(q)) return;
-    S.qty = q;
-    [...bulk.children].forEach(x=> x.classList.toggle('active', x===b));
-    save(S);
-    for(let i=0;i<Exercises.length;i++) renderExercise(i);
-    updateAffordances();
+  // ---------- Tiny test API ----------
+  window.ff = {
+    addHP(n){ S.hp += Math.max(0,Math.floor(Number(n)||0)); renderTop(); updateAffordances(); save(S); },
+    addFC(n){ S.fc += Math.max(0,Math.floor(Number(n)||0)); renderTop(); save(S); },
+    reset(){ try{ localStorage.removeItem(SAVE_KEY);}catch{}; location.reload(); },
+    seed(){ S = ensureIntegrity(defaults()); save(S); location.reload(); },
+    fresh(){ S = ensureIntegrity({schema:6,hp:0,fc:0,qty:1,exercises:defaultExercises()}); S.exercises[0].unlocked=true; save(S); location.reload(); },
+    log(){ console.log(JSON.parse(JSON.stringify(S))); }
   };
-  bulk.addEventListener('click', bulkHandler);
 
-  /* ---------- Dev: Reset / Fresh / Seed ---------- */
-  const resetBtn = document.getElementById('dev-reset');
-  const freshBtn = document.getElementById('dev-fresh');
-  const seedBtn  = document.getElementById('dev-seed');
-
-  resetBtn?.addEventListener('click', ()=>{
-    try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
-    location.reload();
-  });
-
-  freshBtn?.addEventListener('click', ()=>{
-    const s = { schema:5, hp:0, fc:0, qty:1, exercises: defaultExercises() };
-    s.exercises[0].unlocked = true;
-    s.exercises.forEach(e=> e.lastTapAt=0);
-    S = ensureIntegrity(s);
-    save(S);
+  // ---------- Boot ----------
+  function init(){
     build();
-  });
-
-  seedBtn?.addEventListener('click', ()=>{
-    S = ensureIntegrity(defaults()); // L4/L3/L2/L1 seed + fc=0
-    save(S);
-    build();
-  });
-
-  /* ---------- Public hooks ---------- */
-  window.setFitcoins = function(n){
-    const v = Math.max(0, Math.floor(Number(n)||0));
-    S.fc = v;
     renderTop();
-    save(S);
-  };
-  window.spendFitcoins = spendFC;
+    requestAnimationFrame(tick);
+  }
 
-  /* ---------- Boot ---------- */
-  build();
-  requestAnimationFrame(tick);
 })();
 </script>
