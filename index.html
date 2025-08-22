@@ -961,157 +961,158 @@
   })();
   </script>
 
-  <script>
-  /* ===== SFX Core v1.0 (single source of truth) ===== */
-  (function(){
-    if(window.__FF_SFX_CORE__) return; window.__FF_SFX_CORE__=true;
 
-    const $=(s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-    const IS_TOUCH=('ontouchstart'in window)||navigator.maxTouchPoints>0;
-    const BUILD=(document.querySelector('meta[name="ff-build"]')?.content||'dev').trim();
-    const withVer=url=>{ try{ if(!url||/^data:|^blob:/i.test(url)) return url; const u=new URL(url,location.href); u.searchParams.set('v',BUILD); return u.href; }catch(_){return url;} };
 
-    /* Mute legacy bleeps routed through WebAudio */
-    (function(){
-      const AC=window.AudioContext||window.webkitAudioContext;
-      if(AC && !AC.prototype.__ffMutePatched){
-        AC.prototype.__ffMutePatched=true;
-        const orig=AC.prototype.createGain;
-        AC.prototype.createGain=function(){ const g=orig.call(this); const oc=g.connect; g.connect=function(){ try{ if(window.__FF_MUTE_BLEEPNOW_UNTIL && performance.now()<window.__FF_MUTE_BLEEPNOW_UNTIL){ g.gain.value=0; } }catch(_){} return oc.apply(this,arguments); }; return g; };
-      }
-      function arm(rootSel, sel){ const root=$(rootSel); if(!root) return; ['pointerdown','click'].forEach(t=> root.addEventListener(t,(e)=>{ if(e.target?.closest(sel)) window.__FF_MUTE_BLEEPNOW_UNTIL=performance.now()+360; },{capture:true})); }
-      arm('#cards','.card .btn'); arm('#bulk','button'); arm('#menu','.tab, .menu-close, [data-close]'); arm('#menu-body','.coach-row .btn');
-    })();
 
-    function pool(url, n=3, vol=1.0){
-      url=withVer(url);
-      const arr=Array.from({length:n},()=>{ const a=new Audio(url); a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol; try{a.load()}catch(_){} return a; });
-      let i=0; const next=()=>arr[i++%arr.length];
-      return { play(){ const a=next(); try{a.currentTime=0}catch(_){} const p=a.play(); if(p&&p.catch) p.catch(()=>{}); },
-               playSafe(target=document){ const a=next(); try{a.currentTime=0}catch(_){} const p=a.play(); if(p&&p.catch){ p.catch(()=>{ const once=()=>{target.removeEventListener('pointerdown',once,true);target.removeEventListener('touchstart',once,true);a.play().catch(()=>{});}; target.addEventListener('pointerdown',once,{capture:true,passive:true,once:true}); target.addEventListener('touchstart',once,{capture:true,passive:true,once:true}); }); } },
-               setVolume(v){ arr.forEach(a=>{try{a.volume=v}catch(_){}}); } };
-    }
 
-    /* Assets */
-    const VOL_REPS=IS_TOUCH?0.20:0.32;
-    const SFX_START     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0);
-    const SFX_OPEN      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0);
-    const SFX_TABS      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",3,1.0);
-    const SFX_CLOSE     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",2,1.0);
-    const SFX_REPS      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",5,VOL_REPS);
-    const SFX_UNLOCK    = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",2,1.0);
-    const SFX_LEVEL     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",3,1.0);
-    const SFX_BULK      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",2,1.0);
-    const SFX_OFF_OPEN  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",2,1.0);
-    const SFX_OFF_CLAIM = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0);
-    const SFX_ACH       = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0);
+  
+<script>
+/* ===== SFX Core v1.1 (raw audio URLs) ===== */
+(function(){
+  if(window.__FF_SFX_CORE__) return; window.__FF_SFX_CORE__=true;
 
-    const SFX_COACH_AVL = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",4,1.0);
-    const SFX_COACH_HI  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-hired.mp3",3,1.0);
+  const $=(s,r=document)=>r.querySelector(s);
+  const IS_TOUCH=('ontouchstart'in window)||navigator.maxTouchPoints>0;
+  const BUILD=(document.querySelector('meta[name="ff-build"]')?.content||'dev').trim();
+  const withVer=url=>{ try{ const u=new URL(url,location.href); u.searchParams.set('v',BUILD); return u.href; }catch(_){ return url; } };
 
-    const VO_AVA_MALE   = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20male%20audio%20intro%20(start%20menu).mp3",2,1.0);
-    const VO_AVA_FEM    = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20female%20audio%20intro%20(start%20screen).mp3",2,1.0);
+  // ✅ Helper: always use raw.githubusercontent.com
+  const GH=(file)=>withVer(`https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/${encodeURIComponent(file).replace(/%2F/g,'/')}`);
 
-    const VO = {
-      jax1: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3",2,1.0),
-      plyM: VO_AVA_MALE, plyF: VO_AVA_FEM,
-      jax2: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3",2,1.0),
-      jax3: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3",2,1.0),
-      jax4: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3",2,1.0),
-      jax5: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3",2,1.0),
-      jax6: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3",2,1.0)
+  function pool(url, n=3, vol=1.0){
+    url=withVer(url);
+    const arr=Array.from({length:n},()=>{ const a=new Audio(url); a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol; try{a.load()}catch(_){ } return a; });
+    let i=0; const next=()=>arr[i++%arr.length];
+    return {
+      play(){ const a=next(); try{ a.currentTime=0; }catch(_){} const p=a.play(); if(p&&p.catch) p.catch(()=>{}); },
+      playSafe(target=document){ const a=next(); try{ a.currentTime=0; }catch(_){} const p=a.play(); if(p&&p.catch){ p.catch(()=>{ const once=()=>{ target.removeEventListener('pointerdown',once,true); target.removeEventListener('touchstart',once,true); a.play().catch(()=>{}); }; target.addEventListener('pointerdown',once,{capture:true,passive:true,once:true}); target.addEventListener('touchstart',once,{capture:true,passive:true,once:true}); }); } },
+      setVolume(v){ arr.forEach(a=>{ try{ a.volume=v; }catch(_){ } }); }
     };
+  }
 
-    /* Start / Menu */
-    const startNew=$('#btn-new'), startCont=$('#btn-continue'), avatar=$('#avatar'), menu=$('#menu'), tabsWrap=$('.menu-tabs'), menuBody=$('#menu-body'), bulk=$('#bulk'), cards=$('#cards');
-    startNew?.addEventListener('pointerdown', ()=>SFX_START.play(), {capture:true,passive:true});
-    startCont?.addEventListener('pointerdown', ()=>SFX_START.play(), {capture:true,passive:true});
-    avatar?.addEventListener('pointerdown', ()=>SFX_OPEN.play(), {capture:true,passive:true});
-    menu?.addEventListener('pointerdown', (e)=>{ const c=e.target.closest?.('[data-close], .menu-close, .menu-backdrop'); if(c) SFX_CLOSE.play(); }, {capture:true,passive:true});
-    tabsWrap?.addEventListener('pointerdown', (e)=>{ const tab=e.target.closest?.('.tab'); if(!tab||tab.classList.contains('active')) return; SFX_TABS.play(); }, {capture:true,passive:true});
-    bulk?.addEventListener('pointerdown', (e)=>{ const btn=e.target.closest?.('button'); if(!btn) return; setTimeout(()=>{ if(btn.classList.contains('active')) SFX_BULK.play(); },0); }, {capture:true,passive:true});
+  /* Assets (all via GH helper) */
+  const VOL_REPS = IS_TOUCH?0.20:0.32;
 
-    /* Reps & Unlock */
-    cards?.addEventListener('pointerdown', (e)=>{
-      const btn=e.target.closest?.('.card .btn'); if(!btn) return;
-      const card=btn.closest('.card'); const tile=card?.querySelector('.tile'); const isLocked=tile?.classList.contains('locked');
-      if(isLocked){ SFX_UNLOCK.play(); return; }
-      if(btn.classList.contains('btn-reps') && btn.classList.contains('glow')) SFX_REPS.play();
-    }, {capture:true,passive:true});
+  const SFX_START     = pool(GH("ff-sfx-Start-Avatar-Pick.mp3"),2,1.0);
+  const SFX_OPEN      = pool(GH("ff-sfx-open-menu.mp3"),3,1.0);
+  const SFX_TABS      = pool(GH("ff-sfx-switch-tabs.mp3"),3,1.0);
+  const SFX_CLOSE     = pool(GH("ff-sfx-menu-backdrop-tap.mp3"),2,1.0);
+  const SFX_REPS      = pool(GH("ff-sfx-reps-purchase-success.mp3"),5,VOL_REPS);
+  const SFX_UNLOCK    = pool(GH("ff-sfx-unlock-exercise.mp3"),2,1.0);
+  const SFX_LEVEL     = pool(GH("ff-sfx-level-up-heartbeat.mp3"),3,1.0);
+  const SFX_BULK      = pool(GH("ff-sfx-bulk-selector-change.mp3"),2,1.0);
+  const SFX_OFF_OPEN  = pool(GH("ff-sfx-offline-gains-window.mp3"),2,1.0);
+  const SFX_OFF_CLAIM = pool(GH("ff-sfx-offline-gains.mp3"),2,1.0);
+  const SFX_ACH       = pool(GH("ff-sfx-achievement-unlocked-2.mp3"),2,1.0);
 
-    /* Level up detector (watch .lvl text increases) */
-    const lastLvl=new WeakMap();
-    function scanLvl(el){ const m=(el.textContent||'').match(/Lvl\s+(\d+)/i); const cur=m?+m[1]:null; if(cur==null) return; const prev=lastLvl.get(el); if(prev!=null && cur>prev) SFX_LEVEL.play(); lastLvl.set(el,cur); }
-    document.querySelectorAll('.card .lvl').forEach(scanLvl);
-    new MutationObserver(muts=>{
-      muts.forEach(m=>{
-        if(m.type==='characterData'){ const el=m.target.parentElement; if(el?.classList.contains('lvl')) scanLvl(el); }
-        else if(m.type==='childList'){ m.addedNodes.forEach(n=>{ if(!(n instanceof HTMLElement)) return; if(n.classList?.contains('lvl')) scanLvl(n); n.querySelectorAll?.('.lvl')?.forEach(scanLvl); }); }
-      });
-    }).observe(cards,{subtree:true, childList:true, characterData:true});
+  const SFX_COACH_AVL = pool(GH("ff-sfx-coach-affordable-male.mp3"),4,1.0);
+  const SFX_COACH_HI  = pool(GH("ff-sfx-coach-hired.mp3"),3,1.0);
 
-    /* Offline / Achievements */
-    const offline=$('#offline'), offClaim=$('#offline-claim'), ach=$('#ach');
-    new MutationObserver(()=>{ if(offline?.classList.contains('show')) SFX_OFF_OPEN.play(); }).observe(offline||document.body,{attributes:true, attributeFilter:['class']});
-    offClaim?.addEventListener('click', ()=> SFX_OFF_CLAIM.play(), {capture:true});
-    new MutationObserver(muts=>{ muts.forEach(m=> m.addedNodes.forEach(n=>{ const b=(n instanceof HTMLElement && (n.matches('.banner')?n:n.querySelector?.('.banner'))); if(b) SFX_ACH.play(); })); }).observe(ach||document.body,{childList:true, subtree:true});
+  const VO_AVA_MALE   = pool(GH("player male audio intro (start menu).mp3"),2,1.0);
+  const VO_AVA_FEMALE = pool(GH("player female audio intro (start screen).mp3"),2,1.0);
 
-    /* Coaches: available + hired, only in Coaches tab */
-    function coachesTabActive(){ const t=document.querySelector('#menu .menu-tabs .tab[data-tab="coaches"]'); return document.getElementById('menu')?.classList.contains('show') && t && t.classList.contains('active'); }
-    const availPlayed = new WeakSet();
-    function scanCoachRow(row, initial=false){
-      if(!coachesTabActive()) return;
-      const btn=row.querySelector('button.btn'); const glow=!!(btn && btn.classList.contains('glow')); const hired=!!row.querySelector('.hired');
-      if(glow && !availPlayed.has(row)){ availPlayed.add(row); SFX_COACH_AVL.playSafe(document.getElementById('menu')||document); }
-      if(hired && !row.__ffHired__){ row.__ffHired__=true; SFX_COACH_HI.play(); }
-      if(!hired && row.__ffHired__) row.__ffHired__=false;
+  const VO = {
+    jax1: pool(GH("Jax Audio 1.mp3"),2,1.0),
+    plyM: VO_AVA_MALE, plyF: VO_AVA_FEMALE,
+    jax2: pool(GH("Jax audio 3 (walking hp).mp3"),2,1.0),
+    jax3: pool(GH("Jax audio REPS.mp3"),2,1.0),
+    jax4: pool(GH("Jax audio COOLDOWN.mp3"),2,1.0),
+    jax5: pool(GH("Jax audio 6 (jogging).mp3"),2,1.0),
+    jax6: pool(GH("Jax audio 9 (coach).mp3"),2,1.0)
+  };
+
+  /* === Wiring (unchanged) === */
+  const startNew=$('#btn-new'), startCont=$('#btn-continue'),
+        avatar=$('#avatar'), menu=$('#menu'),
+        tabsWrap=$('.menu-tabs'), menuBody=$('#menu-body'),
+        bulk=$('#bulk'), cards=$('#cards'), offline=$('#offline'),
+        offClaim=$('#offline-claim'), ach=$('#ach'),
+        tip=$('#tip'), tipName=$('#tip-head-name'), tipText=$('#tip-text'),
+        startAvatars=document.getElementById('start-avatars');
+
+  startNew?.addEventListener('pointerdown', ()=>SFX_START.play(), {capture:true,passive:true});
+  startCont?.addEventListener('pointerdown', ()=>SFX_START.play(), {capture:true,passive:true});
+  avatar?.addEventListener('pointerdown', ()=>SFX_OPEN.play(), {capture:true,passive:true});
+  menu?.addEventListener('pointerdown', (e)=>{ const c=e.target.closest?.('[data-close], .menu-close, .menu-backdrop'); if(c) SFX_CLOSE.play(); }, {capture:true,passive:true});
+  tabsWrap?.addEventListener('pointerdown', (e)=>{ const tab=e.target.closest?.('.tab'); if(!tab||tab.classList.contains('active')) return; SFX_TABS.play(); }, {capture:true,passive:true});
+  bulk?.addEventListener('pointerdown', (e)=>{ const btn=e.target.closest?.('button'); if(!btn) return; setTimeout(()=>{ if(btn.classList.contains('active')) SFX_BULK.play(); },0); }, {capture:true,passive:true});
+
+  cards?.addEventListener('pointerdown', (e)=>{
+    const btn=e.target.closest?.('.card .btn'); if(!btn) return;
+    const tile=btn.closest('.card')?.querySelector('.tile');
+    if(tile?.classList.contains('locked')) { SFX_UNLOCK.play(); return; }
+    if(btn.classList.contains('btn-reps') && btn.classList.contains('glow')) SFX_REPS.play();
+  }, {capture:true,passive:true});
+
+  // Level-up detector
+  const lastLvl=new WeakMap();
+  function scanLvl(el){ const m=(el.textContent||'').match(/Lvl\s+(\d+)/i); const cur=m?+m[1]:null; if(cur==null) return; const prev=lastLvl.get(el); if(prev!=null && cur>prev) SFX_LEVEL.play(); lastLvl.set(el,cur); }
+  document.querySelectorAll('.card .lvl').forEach(scanLvl);
+  new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      if(m.type==='characterData'){ const el=m.target.parentElement; if(el?.classList.contains('lvl')) scanLvl(el); }
+      else if(m.type==='childList'){ m.addedNodes.forEach(n=>{ if(!(n instanceof HTMLElement)) return; if(n.classList?.contains('lvl')) scanLvl(n); n.querySelectorAll?.('.lvl')?.forEach(scanLvl); }); }
+    });
+  }).observe(cards||document.body,{subtree:true, childList:true, characterData:true});
+
+  // Offline & achievements
+  new MutationObserver(()=>{ if(offline?.classList.contains('show')) SFX_OFF_OPEN.play(); }).observe(offline||document.body,{attributes:true, attributeFilter:['class']});
+  offClaim?.addEventListener('click', ()=> SFX_OFF_CLAIM.play(), {capture:true});
+  new MutationObserver(muts=>{ muts.forEach(m=> m.addedNodes.forEach(n=>{ const b=(n instanceof HTMLElement && (n.matches('.banner')?n:n.querySelector?.('.banner'))); if(b) SFX_ACH.play(); })); }).observe(ach||document.body,{childList:true, subtree:true});
+
+  // Coaches
+  function coachesTabActive(){ const t=document.querySelector('#menu .menu-tabs .tab[data-tab="coaches"]'); return document.getElementById('menu')?.classList.contains('show') && t && t.classList.contains('active'); }
+  const availPlayed = new WeakSet();
+  function scanCoachRow(row){
+    if(!coachesTabActive()) return;
+    const btn=row.querySelector('button.btn'); const glow=!!(btn && btn.classList.contains('glow')); const hired=!!row.querySelector('.hired');
+    if(glow && !availPlayed.has(row)){ availPlayed.add(row); SFX_COACH_AVL.playSafe(document.getElementById('menu')||document); }
+    if(hired && !row.__ffHired__){ row.__ffHired__=true; SFX_COACH_HI.play(); }
+    if(!hired && row.__ffHired__) row.__ffHired__=false;
+  }
+  function scanAllCoachRows(){ if(!coachesTabActive()) return; document.querySelectorAll('#menu-body .coach-row').forEach(scanCoachRow); }
+  const bodyEl=document.getElementById('menu-body');
+  new MutationObserver(m=>{ if(!coachesTabActive()) return; m.forEach(x=>{ x.addedNodes.forEach(n=>{ if(!(n instanceof HTMLElement)) return; if(n.classList.contains('coach-row')) scanCoachRow(n); n.querySelectorAll?.('.coach-row')?.forEach(scanCoachRow); }); }); }).observe(bodyEl||document.body,{subtree:true, childList:true});
+  document.getElementById('menu')?.addEventListener('click', (e)=>{ const tab=e.target.closest?.('.tab[data-tab="coaches"]'); if(tab) setTimeout(scanAllCoachRows,0); }, true);
+  bodyEl?.addEventListener('pointerdown', (e)=>{ if(!coachesTabActive()) return; const btn=e.target.closest?.('.coach-row .btn'); if(!btn||!btn.classList.contains('glow')) return; const row=btn.closest('.coach-row'); if(row && !row.__ffHired__) SFX_COACH_HI.playSafe(document.getElementById('menu')||document); }, {capture:true,passive:true});
+
+  // Tutorial VO
+  const tipBubble=$('#tip-bubble');
+  const playBubble=()=>SFX_START.play();
+  new MutationObserver(m=>{ m.forEach(x=>{ x.addedNodes.forEach(n=>{ const b=(n instanceof HTMLElement && (n.matches('.bubble')?n:n.querySelector?.('.bubble'))); if(b && tip?.classList.contains('show')) playBubble(); }); }); }).observe(tip||document.body,{childList:true,subtree:true});
+  let lastLine='';
+  function tryPlayVO(){
+    if(!tip || !tip.classList.contains('show')) return;
+    const who=(tipName?.textContent||'').trim().toLowerCase();
+    const line=(tipText?.textContent||'').trim(); if(!line || line===lastLine) return; lastLine=line;
+    if(who==='jax'){
+      if(/low on energy/i.test(line)) VO.jax1.play();
+      else if(/Tap Walking/i.test(line)) VO.jax2.play();
+      else if(/Use Reps/i.test(line)) VO.jax3.play();
+      else if(/green bar/i.test(line)|/cooldown halves/i.test(line)) VO.jax4.play();
+      else if(/Unlock Jogging/i.test(line)) VO.jax5.play();
+      else if(/hire a coach/i.test(line)) VO.jax6.play();
+    } else {
+      if(/where do i start/i.test(line)) ((window.FF?.S?.avatar==='female')?VO.plyF:VO.plyM).play();
     }
-    function scanAllCoachRows(){ if(!coachesTabActive()) return; document.querySelectorAll('#menu-body .coach-row').forEach(r=>scanCoachRow(r,true)); }
-    const menuBodyObs=new MutationObserver(m=>{ if(!coachesTabActive()) return; m.forEach(x=>{ x.addedNodes.forEach(n=>{ if(!(n instanceof HTMLElement)) return; if(n.classList.contains('coach-row')) scanCoachRow(n,true); n.querySelectorAll?.('.coach-row')?.forEach(r=>scanCoachRow(r,true)); }); if(x.type==='attributes' && x.attributeName==='class' && (x.target instanceof HTMLElement) && x.target.matches('.coach-row .btn')) scanCoachRow(x.target.closest('.coach-row')); }); });
-    const bodyEl=document.getElementById('menu-body'); if(bodyEl) menuBodyObs.observe(bodyEl,{subtree:true, childList:true, attributes:true, attributeFilter:['class']});
-    document.getElementById('menu')?.addEventListener('click', (e)=>{ const tab=e.target.closest?.('.tab[data-tab="coaches"]'); if(tab) setTimeout(scanAllCoachRows,0); }, true);
-    setInterval(scanAllCoachRows, 900);
+  }
+  setInterval(tryPlayVO,120);
 
-    // Immediate hired feedback on pressing a glowing button
-    bodyEl?.addEventListener('pointerdown', (e)=>{ if(!coachesTabActive()) return; const btn=e.target.closest?.('.coach-row .btn'); if(!btn||!btn.classList.contains('glow')) return; const row=btn.closest('.coach-row'); if(row && !row.__ffHired__) SFX_COACH_HI.playSafe(document.getElementById('menu')||document); }, {capture:true,passive:true});
+  // Start-screen avatar VO on pick
+  const startAvatars=document.getElementById('start-avatars');
+  startAvatars?.addEventListener('pointerdown', (e)=>{
+    const a=e.target.closest?.('.ava'); if(!a) return;
+    (a.dataset.sex==='female'?VO_AVA_FEMALE:VO_AVA_MALE).play();
+  }, {capture:true,passive:true});
+})();
+</script>
 
-    /* Tutorial VO + bubble pop */
-    const tip=$('#tip'), tipName=$('#tip-head-name'), tipText=$('#tip-text'), tipBubble=$('#tip-bubble');
-    function playBubble(){ SFX_START.play(); }
-    new MutationObserver(m=>{ m.forEach(x=>{ x.addedNodes.forEach(n=>{ const b=(n instanceof HTMLElement && (n.matches('.bubble')?n:n.querySelector?.('.bubble'))); if(b && tip?.classList.contains('show')) playBubble(); }); }); }).observe(tip||document.body,{childList:true,subtree:true});
-    let lastLine='';
-    function tryPlayVO(){
-      if(!tip || !tip.classList.contains('show')) return;
-      const who=(tipName?.textContent||'').trim().toLowerCase();
-      const line=(tipText?.textContent||'').trim(); if(!line || line===lastLine) return; lastLine=line;
 
-      if(who==='jax'){
-        if(/low on energy/i.test(line)) VO.jax1.play();
-        else if(/Tap Walking/i.test(line)) VO.jax2.play();
-        else if(/Use Reps/i.test(line)) VO.jax3.play();
-        else if(/green bar/i.test(line)||/cooldown halves/i.test(line)) VO.jax4.play();
-        else if(/Unlock Jogging/i.test(line)) VO.jax5.play();
-        else if(/hire a coach/i.test(line)) VO.jax6.play();
-      } else {
-        if(/where do i start/i.test(line)) {
-          const sex = (window.FF?.S?.avatar==='female')?'f':'m';
-          (sex==='f'?VO.plyF:VO.plyM).play();
-        }
-      }
-    }
-    setInterval(tryPlayVO,120);
 
-    /* Start-screen avatar VO on click */
-    const startAvatars=document.getElementById('start-avatars');
-    startAvatars?.addEventListener('pointerdown', (e)=>{
-      const a=e.target.closest?.('.ava'); if(!a) return;
-      if(a.dataset.sex==='female') VO_AVA_FEM.play(); else VO_AVA_MALE.play();
-    }, {capture:true,passive:true});
 
-    /* Reps/Unlock & Level events are already handled above */
-    /* Offline & Ach handled above */
 
-  })();
-  </script>
+
+
+  
 </body>
 </html>
