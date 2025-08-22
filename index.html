@@ -1,93 +1,29 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
-<title>Fitness Frenzy — Core (Steps 1–3)</title>
-<style>
-  :root{
-    --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --text:#f5f7ff; --muted:#aab1d6;
-    --accent:#3aa6ff; --accent-2:#7ac6ff; --good:#27c93f; --warn:#ffb84d;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0; background:var(--bg); color:var(--text);
-       font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  .wrap{max-width:900px; margin:0 auto; padding:14px}
-  .topbar{position:sticky; top:0; z-index:10; background:#16183a; border-bottom:1px solid #242756}
-  .row{display:flex; align-items:center; justify-content:space-between; gap:12px}
-  .logo{font-weight:900; letter-spacing:.3px}
-  .bulk{display:inline-flex; background:#20244a; border:1px solid #2a2e5e; border-radius:10px; overflow:hidden}
-  .bulk button{background:transparent; color:#fff; border:0; padding:8px 12px; cursor:pointer; min-width:52px}
-  .bulk button.active{background:var(--accent); color:#061222; font-weight:800}
-  .pill{margin-top:10px; background:#182047; border:1px solid #2a2e5e;
-        padding:10px 12px; border-radius:12px; font-variant-numeric:tabular-nums; display:flex; justify-content:space-between}
-  .devbar{margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-  .devbar .tag{color:#aab1d6; font-size:12px; opacity:.9}
-  .cards{display:grid; gap:12px; margin-top:14px}
-  .card{display:grid; grid-template-columns:120px 1fr; gap:14px; padding:12px;
-        background:var(--panel); border:1px solid #262a58; border-radius:14px; transition:transform .14s ease, box-shadow .14s ease}
-  .card.afford{ box-shadow:0 0 0 2px rgba(58,166,255,.18) inset, 0 0 22px rgba(58,166,255,.18); transform:translateY(-2px) }
-  .tile{background:var(--panel-2); border-radius:12px; height:120px; user-select:none; cursor:pointer; position:relative}
-  .tile.locked{filter:grayscale(100%); opacity:.9; cursor:default}
-  .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 7px; border-radius:8px; font-size:13px}
-  .repband{position:absolute; left:6px; right:6px; bottom:6px; height:18px; border-radius:9px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden}
-  .repfill{height:100%; width:0%; background:linear-gradient(90deg,#17b34c,#27c93f)}
-  .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:13px; color:#cfead6}
-  .title{font-weight:800; margin-top:2px; font-size:16px}
-  .cooldown{margin-top:8px; height:22px; background:#141739; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden; position:relative}
-  .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#2f6df3,#41b0ff)}
-  .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric:tabular-nums; color:#a6b0d8; font-size:14px}
-  .meta{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px; flex-wrap:wrap}
-  .muted{color:var(--muted); font-size:15px}
-  .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:10px 12px; border-radius:12px; min-width:160px; cursor:pointer; font-weight:700}
-  .btn.glow{
-    background:linear-gradient(180deg,var(--accent),var(--accent-2));
-    border-color:var(--accent-2);
-    color:#061222;
-    box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 14px rgba(58,166,255,.35)
-  }
-  @media (max-width:480px){
-    .card{grid-template-columns:96px 1fr; padding:10px}
-    .tile{height:96px}
-    .btn{min-width:140px}
-  }
-</style>
-</head>
-<body>
-  <div class="topbar">
-    <div class="wrap">
-      <div class="row">
-        <div class="logo">Fitness Frenzy — Core</div>
-        <div id="bulk" class="bulk" role="group" aria-label="Bulk selector">
-          <button data-q="1" class="active">×1</button>
-          <button data-q="10">×10</button>
-          <button data-q="100">×100</button>
-        </div>
-      </div>
-      <div class="pill"><span>HP</span><span id="hp">0</span></div>
-      <!-- Dev toolbar -->
-      <div class="devbar">
-        <button id="dev-reset" class="btn" style="min-width:auto">Reset Save</button>
-        <button id="dev-fresh" class="btn" style="min-width:auto">Fresh: Walk only</button>
-        <button id="dev-seed"  class="btn" style="min-width:auto">Seed L4/L3/L2/L1</button>
-        <span class="tag">DEV</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="wrap">
-    <div id="cards" class="cards" aria-live="polite"></div>
-  </div>
-
 <script>
 /* ==========================================================
-   Fitness Frenzy — CORE (Steps 1–3)
-   Fix: unlock glow now updates on every HP change.
-   Bars are correct from frame 1.
+   Fitness Frenzy — CORE (Steps 1–3) with Fitcoins earn hooks
+   - Bars & unlock glow intact
+   - Fitcoins: earn on unlock + level milestones; saved; pill updates
    ========================================================== */
 (function(){
   "use strict";
+
+  /* ---------- Config: Fitcoins economy (v1 minimal) ---------- */
+  const FC_RULES = {
+    UNLOCK_FLAT: 1, // FC on first-time unlock
+    // Milestone rewards per exact level reached
+    LEVEL_MILESTONES: new Map([
+      [2, 1],
+      [5, 1],
+      [10, 2],
+      [20, 2],
+      [30, 3],
+      [40, 3],
+      [50, 3],
+    ])
+  };
+  function fcRewardForLevel(level){
+    return FC_RULES.LEVEL_MILESTONES.get(level) || 0;
+  }
 
   /* ---------- Step 1: Data model + math ---------- */
   const Exercises = [
@@ -133,7 +69,7 @@
   const nextCooldown  = (ms)=> Math.max(100, Math.floor(ms/2));
 
   /* ---------- Step 3: State + save ---------- */
-  const SAVE_KEY = 'ff-core-v3';
+  const SAVE_KEY = 'ff-core-v5'; // bump schema after adding FC logic
 
   function defaultExercises(){
     return Exercises.map((ex,idx)=>({
@@ -143,6 +79,7 @@
   }
 
   function levelTo(ex, target){
+    // Seed helper; DOES NOT award FC (we only award on live level-ups).
     ex.level = Math.max(1, ex.level|0);
     while (ex.level < target) {
       ex.level += 1;
@@ -152,8 +89,8 @@
   }
 
   function defaults(){
-    // Start with your baseline: first 4 unlocked & leveled 4/3/2/1
-    const s = { schema:3, hp:0, qty:1, exercises: defaultExercises() };
+    // Baseline: first 4 unlocked & leveled 4/3/2/1, Fitcoins=0
+    const s = { schema:5, hp:0, fc:0, qty:1, exercises: defaultExercises() };
     for (let i=0;i<4;i++) s.exercises[i].unlocked = true;
     levelTo(s.exercises[0], 4);
     levelTo(s.exercises[1], 3);
@@ -167,7 +104,7 @@
     const byId = new Map((d.exercises||[]).map(e=>[e.id,e]));
     d.exercises = Exercises.map((ex,idx)=>{
       const prev = byId.get(ex.id)||{};
-      const unlockedDefault = idx<4; // keep first 4 unlocked by default
+      const unlockedDefault = idx<4;
       return {
         id:ex.id,
         unlocked: prev.unlocked ?? unlockedDefault,
@@ -179,8 +116,9 @@
       };
     });
     d.hp = Number(d.hp)||0;
+    d.fc = Number(d.fc)||0; // Fitcoins
     d.qty = [1,10,100].includes(d.qty)? d.qty : 1;
-    d.schema = 3;
+    d.schema = 5;
 
     // Normalize timebase so bars never count “backwards”
     const nowPerf = performance.now();
@@ -208,8 +146,27 @@
 
   let S = ensureIntegrity(load());
 
+  /* ---------- Fitcoins helpers ---------- */
+  function grantFC(amount/*, reason */){
+    const n = Math.max(0, Math.floor(Number(amount)||0));
+    if(n<=0) return 0;
+    S.fc += n;
+    renderTop(); // update pill immediately
+    return n;
+  }
+  function spendFC(amount){
+    const n = Math.max(0, Math.floor(Number(amount)||0));
+    if(n<=0) return true;
+    if(S.fc < n) return false;
+    S.fc -= n;
+    renderTop();
+    save(S);
+    return true;
+  }
+
   /* ---------- Step 2: UI ---------- */
   const hpEl   = document.getElementById('hp');
+  const fcEl   = document.getElementById('fc');     // Fitcoins readout
   const cards  = document.getElementById('cards');
   const bulk   = document.getElementById('bulk');
 
@@ -243,7 +200,7 @@
     card.append(tile, right);
     cards.append(card);
 
-    // First-frame bar state: avoid flicker
+    // First-frame bar state
     if (ex.unlocked && (!ex.lastTapAt || ex.lastTapAt===0)) {
       bar.style.width = '100%';
       t.textContent = 'Ready';
@@ -263,7 +220,7 @@
       ex.lastTapAt = now;
       renderExercise(idx);
       renderTop();
-      updateAffordances(); // <<< ensure glow state across ALL cards after HP change
+      updateAffordances();
       save(S);
     });
 
@@ -273,8 +230,11 @@
       if(!ex.unlocked){
         const price = unlockCost(base, meta.baseCooldownMs);
         if(S.hp < price) return;
-        S.hp -= price; ex.unlocked = true;
-        ex.lastTapAt = 0; // show Ready immediately
+        S.hp -= price;
+        ex.unlocked = true;
+        ex.lastTapAt = 0;
+        // FC: award on first unlock
+        grantFC(FC_RULES.UNLOCK_FLAT /*, 'unlock:'+meta.id */);
       } else {
         const rb = repBaseCost(base);
         const g  = repGrowth(ex.level);
@@ -283,16 +243,18 @@
         if(S.hp < price) return;
         S.hp -= price;
         ex.rep += q;
-        // Level-ups & cooldown shrink
+        // Level loop (award FC on milestones)
         while(ex.rep >= ex.repTarget){
           ex.level += 1;
           ex.repTarget *= 2;
           ex.cooldown = nextCooldown(ex.cooldown);
+          const fc = fcRewardForLevel(ex.level);
+          if(fc) grantFC(fc /*, 'level:'+meta.id+':'+ex.level */);
         }
       }
       renderExercise(idx);
       renderTop();
-      updateAffordances(); // <<< keep everyone in sync after spending
+      updateAffordances();
       save(S);
     });
 
@@ -302,6 +264,8 @@
 
   function renderTop(){
     hpEl.textContent = fmt(S.hp);
+    // Fitcoins: show as plain integer for now (no K/M rounding)
+    fcEl.textContent = (Number.isFinite(S.fc) ? Math.max(0, Math.floor(S.fc)) : 0).toLocaleString();
   }
 
   function renderExercise(idx){
@@ -353,7 +317,6 @@
   }
 
   function updateAffordances(){
-    // Recompute glow/pulse for ALL cards based on current HP & qty
     for (let i=0;i<Exercises.length;i++){
       const meta = Exercises[i];
       const ex   = S.exercises[i];
@@ -380,7 +343,7 @@
     refs.clear();
     for(let i=0;i<Exercises.length;i++) createCard(i);
     renderTop();
-    updateAffordances(); // <<< initial pass
+    updateAffordances();
   }
 
   /* ---------- Engine loop (bars) ---------- */
@@ -418,7 +381,7 @@
   }
 
   /* ---------- Bulk selector ---------- */
-  bulk.addEventListener('click', (e)=>{
+  const bulkHandler = (e)=>{
     const b = e.target.closest('button');
     if(!b) return;
     const q = parseInt(b.dataset.q, 10);
@@ -426,20 +389,23 @@
     S.qty = q;
     [...bulk.children].forEach(x=> x.classList.toggle('active', x===b));
     save(S);
-    // Qty affects rep prices → update all buttons/glow
     for(let i=0;i<Exercises.length;i++) renderExercise(i);
     updateAffordances();
-  });
+  };
+  bulk.addEventListener('click', bulkHandler);
 
   /* ---------- Dev: Reset / Fresh / Seed ---------- */
-  document.getElementById('dev-reset').addEventListener('click', ()=>{
+  const resetBtn = document.getElementById('dev-reset');
+  const freshBtn = document.getElementById('dev-fresh');
+  const seedBtn  = document.getElementById('dev-seed');
+
+  resetBtn?.addEventListener('click', ()=>{
     try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
     location.reload();
   });
 
-  document.getElementById('dev-fresh').addEventListener('click', ()=>{
-    // Walk-only clean start
-    const s = { schema:3, hp:0, qty:1, exercises: defaultExercises() };
+  freshBtn?.addEventListener('click', ()=>{
+    const s = { schema:5, hp:0, fc:0, qty:1, exercises: defaultExercises() };
     s.exercises[0].unlocked = true;
     s.exercises.forEach(e=> e.lastTapAt=0);
     S = ensureIntegrity(s);
@@ -447,16 +413,23 @@
     build();
   });
 
-  document.getElementById('dev-seed').addEventListener('click', ()=>{
-    S = ensureIntegrity(defaults()); // L4/L3/L2/L1 seed
+  seedBtn?.addEventListener('click', ()=>{
+    S = ensureIntegrity(defaults()); // L4/L3/L2/L1 seed + fc=0
     save(S);
     build();
   });
+
+  /* ---------- Public hooks ---------- */
+  window.setFitcoins = function(n){
+    const v = Math.max(0, Math.floor(Number(n)||0));
+    S.fc = v;
+    renderTop();
+    save(S);
+  };
+  window.spendFitcoins = spendFC;
 
   /* ---------- Boot ---------- */
   build();
   requestAnimationFrame(tick);
 })();
 </script>
-</body>
-</html>
