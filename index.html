@@ -8,7 +8,7 @@
 
 
 <!-- Put these at the very top of <head>, before any other <script> or <link> ////////////////NEWEST//////////-->
-<meta name="ff-build" content="2025-08-21f">
+<meta name="ff-build" content="2025-08-21h">
 
 <script>
 /* ===== Fitness Frenzy • Version Gate (reads <meta name="ff-build">) =========
@@ -2387,1326 +2387,570 @@ try{
 
 
 <script type="application/ff-patch">
-/* Tutorial VO — STEP 1 only (JAX intro), with gesture-gated play + music ducking ////////////////JAX 1////////////////JAX 1////////////////////*/
+/* ================= Fitness Frenzy — Unified SFX + Coach Glow + Tutorial VO v8.3 ==============
+   What’s in here (single script):
+   - Build-versioned audio loader (auto adds ?v=<ff-build> and converts GitHub blob→raw)
+   - Mobile-safe audio unlock + global play() retry
+   - Mutes legacy oscillator “bleeps”
+   - Start/Continue/Menu/Tabs/Close/Bulk/Reps/Unlock/LevelUp/Offline/Achievement SFX
+   - Live coach “Hire” glow + SFX (Available + Hired), avatar-dot sync
+   - Start-screen avatar voices (male/female intros)
+   - Tutorial bubble POP SFX + 7 tutorial VO lines (Jax + player sex-aware)
+   ---------------------------------------------------------------------------------------------
+   Place AFTER your main game script, BEFORE </body>. Remove older SFX patches first.
+================================================================================================ */
 (function(){
   try{
-    // Guard to avoid double-install
-    if (window.__FF_TUTORIAL_VO_STEP1__) return;
-    window.__FF_TUTORIAL_VO_STEP1__ = true;
+    if (window.__FF_SFX_V83__) return;
+    window.__FF_SFX_V83__ = true;
 
-    const tipText   = document.getElementById('tip-text');
-    const tipHead   = document.getElementById('tip-head-name');
-    const tipBubble = document.getElementById('tip-bubble');
-    if(!tipText || !tipHead || !tipBubble) return;
+    /* ---------- Utils ---------- */
+    const $  = (s, r=document)=> r.querySelector(s);
+    const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
+    const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+    const KEY_MAIN = 'ff-v1';  // your save key
 
-    // Use RAW GitHub (blob pages won't play)
-    const JAX_INTRO_URL = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/Jax%20Audio%201.mp3";
+    function getBuild(){ return (document.querySelector('meta[name="ff-build"]')?.content||'').trim()||'dev'; }
+    const BUILD = getBuild();
 
-    // Build audio element
-    const vo = new Audio(JAX_INTRO_URL);
-    vo.preload   = "auto";
-    vo.crossOrigin = "anonymous"; // harmless here
-    vo.volume    = 1.0;           // full VO; we’ll duck music instead
-
-    // Global one-time gesture gate (some browsers need a real gesture)
-    let gestureOk = false;
-    function markGesture(){
-      gestureOk = true;
-      // No need to keep listeners after first gesture
-      removeGestureListeners();
+    function toRaw(u){
+      return String(u||'').replace(
+        /https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,
+        'https://raw.githubusercontent.com/$1/$2/$3'
+      );
     }
-    function addGestureListeners(){
-      document.addEventListener('pointerdown', markGesture, {capture:true, passive:true});
-      document.addEventListener('touchstart',  markGesture, {capture:true, passive:true});
-      document.addEventListener('keydown',     (e)=>{ if(e.code==='Enter'||e.code==='Space') markGesture(); }, {capture:true});
-    }
-    function removeGestureListeners(){
-      document.removeEventListener('pointerdown', markGesture, true);
-      document.removeEventListener('touchstart',  markGesture, true);
-      document.removeEventListener('keydown',     markGesture, true);
-    }
-    addGestureListeners();
-
-    // Music ducking around VO
-    let prevVol = null, ducked = false, duckTimer = null;
-    function duckMusic(){
+    function withVer(url){
       try{
-        if (typeof Music !== 'undefined' && Music){
-          if (prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.35));
-          Music.setVol(target);
-          ducked = true;
-        }
-      }catch(_){}
+        if(!url || /^data:|^blob:/i.test(url)) return url;
+        url = toRaw(url);
+        const u = new URL(url, location.href);
+        u.searchParams.set('v', BUILD);
+        return u.href;
+      }catch(_){ return url; }
     }
-    function restoreMusic(){
-      try{
-        if (!ducked) return;
-        if (typeof Music !== 'undefined' && Music && prevVol != null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      ducked = false; prevVol = null;
+    function dedupe(el, win=220){
+      const K='data-ff-lastpd';
+      const now=performance.now(), last=+(el.getAttribute(K)||0);
+      if(now-last<win) return true;
+      el.setAttribute(K,String(now)); return false;
     }
 
-    // Safe play with retry-on-gesture
-    function playVO(){
-      try{
-        duckMusic();
-        const p = vo.play();
-        if (p && typeof p.then==='function'){
-          p.then(()=>{}).catch(()=>{
-            // If blocked: wait for next gesture, then retry once
-            const once = ()=>{ document.removeEventListener('pointerdown', once, true);
-                               document.removeEventListener('touchstart',  once, true);
-                               document.removeEventListener('keydown',     once, true);
-                               vo.play().catch(()=>{}); };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
-      }catch(_){}
-    }
-    vo.addEventListener('ended', ()=> {
-      // small delay before restoring, so the tail feels natural
-      clearTimeout(duckTimer);
-      duckTimer = setTimeout(restoreMusic, 120);
-    });
-    vo.addEventListener('error', ()=> {
-      // If raw GH hiccups, just restore music and move on
-      clearTimeout(duckTimer);
-      duckTimer = setTimeout(restoreMusic, 60);
-    });
-
-    // Normalize text for robust step detection
-    function norm(s){
-      return String(s||'')
-        .toLowerCase()
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // strip emoji
-        .replace(/[^a-z0-9\s]/g,'')            // punctuation
-        .replace(/\s+/g,' ')
-        .trim();
-    }
-    // We’ll match any variant of the first line
-    function isIntroLine(txt){
-      const n = norm(txt);
-      // Allow partial match as it types, but ensure we’re on that sentence
-      return n.includes("you look a bit low on energy") && n.includes("lets fix that fast");
-    }
-
-    // Ensure we only play once per appearance
-    function keyForBubble(){ return 'data-vo-jax-intro-played'; }
-
-    function maybePlayForThisStep(){
-      const speaker = (tipHead.textContent||'').trim().toUpperCase();
-      if (speaker !== 'JAX') {
-        tipBubble.removeAttribute(keyForBubble());
-        return;
-      }
-      // If already played for this bubble instance, bail
-      if (tipBubble.getAttribute(keyForBubble()) === '1') return;
-
-      const raw = tipText.textContent || '';
-      if (!raw) return;
-
-      if (isIntroLine(raw)){
-        // Mark played to avoid doubles on DOM reflows
-        tipBubble.setAttribute(keyForBubble(),'1');
-
-        // If we haven't had a gesture yet, try anyway; the retry-on-gesture will catch it
-        playVO();
-      }
-    }
-
-    // Observe the typing and speaker changes
-    const obs1 = new MutationObserver(muts=> { for(const _ of muts){ maybePlayForThisStep(); break; } });
-    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
-
-    const obs2 = new MutationObserver(muts=> {
-      for(const _ of muts){
-        // Speaker changed → reset marker and re-check
-        tipBubble.removeAttribute(keyForBubble());
-        maybePlayForThisStep();
-        break;
-      }
-    });
-    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-    // Kick in case step already visible
-    setTimeout(maybePlayForThisStep, 0);
-
-  }catch(e){
-    console.warn('Tutorial VO (JAX step 1) init error:', e);
-  }
-})();
-</script>
-
-
-
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* Tutorial VO — STEP 2: Player "But where do I start?" (gender-aware) //////////////////////////MALE//////FEMALE///////////////////VOICES///////////*/
-(function(){
-  try{
-    if (window.__FF_TUTORIAL_VO_STEP2__) return;
-    window.__FF_TUTORIAL_VO_STEP2__ = true;
-
-    const tipText   = document.getElementById('tip-text');
-    const tipHead   = document.getElementById('tip-head-name');
-    const tipBubble = document.getElementById('tip-bubble');
-    if(!tipText || !tipHead || !tipBubble) return;
-
-    // RAW GitHub MP3s
-    const URL_F = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/female%20player%20audio%201.mp3";
-    const URL_M = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/male%20player%20audio%201.mp3";
-
-    function makeAudio(url){
-      const a = new Audio(url);
-      a.preload = "auto";
-      a.crossOrigin = "anonymous";
-      a.volume = 1.0;
-      return a;
-    }
-    const voF = makeAudio(URL_F);
-    const voM = makeAudio(URL_M);
-
-    // Gesture gate (retry if autoplay blocked)
-    function playSafe(a){
-      try{
-        const p = a.play();
-        if(p && typeof p.then === 'function'){
-          p.catch(()=> {
-            const once = ()=>{ 
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('keydown',     once, true);
-              a.play().catch(()=>{});
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
-      }catch(_){}
-    }
-
-    // Light music ducking for VO
-    let prevVol = null, ducked = false, timer = null;
-    function duck(){
-      try{
-        if (typeof Music !== 'undefined' && Music){
-          if(prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
-          Music.setVol(target);
-          ducked = true;
-        }
-      }catch(_){}
-    }
-    function restore(){
-      try{
-        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      ducked = false; prevVol = null;
-    }
-    [voF, voM].forEach(a=>{
-      a.addEventListener('ended', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 120); });
-      a.addEventListener('error', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 60); });
-    });
-
-    // Helpers
-    function norm(s){
-      return String(s||'')
-        .toLowerCase()
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
-        .replace(/[^a-z0-9\s]/g,'')            // punctuation
-        .replace(/\s+/g,' ')
-        .trim();
-    }
-    function isPlayerLine(txt){
-      const n = norm(txt);
-      return n.includes("but where do i start");
-    }
-    function key(){ return 'data-vo-player1-played'; }
-
-    function maybePlay(){
-      // Only when the speaker is the player
-      const speaker = (tipHead.textContent||'').trim().toUpperCase();
-      if(speaker !== 'YOU'){
-        tipBubble.removeAttribute(key());
-        return;
-      }
-      if (tipBubble.getAttribute(key()) === '1') return;
-
-      const raw = tipText.textContent || '';
-      if(!raw) return;
-
-      if(isPlayerLine(raw)){
-        tipBubble.setAttribute(key(),'1');
-
-        // Choose gender by body class
-        const isFemale = document.body.classList.contains('female');
-        const a = isFemale ? voF : voM;
-
-        try{ a.currentTime = 0; }catch(_){}
-        duck();
-        playSafe(a);
-      }
-    }
-
-    // Observe tutorial text and speaker changes
-    const obs1 = new MutationObserver(()=> maybePlay());
-    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
-
-    const obs2 = new MutationObserver(()=>{
-      tipBubble.removeAttribute(key());
-      maybePlay();
-    });
-    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-    // Kick in case step already visible
-    setTimeout(maybePlay, 0);
-
-  }catch(e){
-    console.warn('Tutorial VO (player step 1) init error:', e);
-  }
-})();
-</script>
-  
-
-
-
-
-
-  <script type="application/ff-patch">
-/* Tutorial VO — STEP 3: JAX "Walking to earn 1 HP. Then we’ll power up." ///////////////////////////WALKING HP//////////VOICEOVER////////////JAX/////*/
-(function(){
-  try{
-    if (window.__FF_TUTORIAL_VO_STEP3__) return;
-    window.__FF_TUTORIAL_VO_STEP3__ = true;
-
-    const tipText   = document.getElementById('tip-text');
-    const tipHead   = document.getElementById('tip-head-name');
-    const tipBubble = document.getElementById('tip-bubble');
-    if(!tipText || !tipHead || !tipBubble) return;
-
-    // Raw GitHub audio
-    const URL_JAX_WALK = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/Jax%20audio%203%20(walking%20hp).mp3";
-
-    function makeAudio(url){
-      const a = new Audio(url);
-      a.preload = "auto";
-      a.crossOrigin = "anonymous";
-      a.volume = 1.0;
-      return a;
-    }
-    const vo = makeAudio(URL_JAX_WALK);
-
-    // Play with gesture fallback (for mobile autoplay)
-    function playSafe(a){
-      try{
-        const p = a.play();
-        if(p && typeof p.then === 'function'){
-          p.catch(()=>{
-            const once = ()=>{ 
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('keydown',     once, true);
-              a.play().catch(()=>{});
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
-      }catch(_){}
-    }
-
-    // Light music ducking during VO
-    let prevVol = null, ducked = false, timer = null;
-    function duck(){
-      try{
-        if (typeof Music !== 'undefined' && Music){
-          if(prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
-          Music.setVol(target);
-          ducked = true;
-        }
-      }catch(_){}
-    }
-    function restore(){
-      try{
-        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      ducked = false; prevVol = null;
-    }
-    vo.addEventListener('ended', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 120); });
-    vo.addEventListener('error', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 60); });
-
-    // Detection helpers
-    function norm(s){
-      return String(s||'')
-        .toLowerCase()
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
-        .replace(/[^a-z0-9\s]/g,'')            // punctuation/apostrophes
-        .replace(/\s+/g,' ')
-        .trim();
-    }
-    // Match both “Walking to earn 1 HP…” and “Tap Walking to earn 1 HP…”
-    function isTargetLine(txt){
-      const n = norm(txt);
-      return n.includes("walking to earn 1 hp") && n.includes("then well power up");
-    }
-
-    const FLAG = 'data-vo-jax-walking-played';
-
-    function maybePlay(){
-      const speaker = (tipHead.textContent||'').trim().toUpperCase();
-      if (speaker !== 'JAX'){
-        tipBubble.removeAttribute(FLAG);
-        return;
-      }
-      if (tipBubble.getAttribute(FLAG) === '1') return;
-
-      const raw = tipText.textContent || '';
-      if(!raw) return;
-
-      if (isTargetLine(raw)){
-        tipBubble.setAttribute(FLAG, '1');
-        try{ vo.currentTime = 0; }catch(_){}
-        duck();
-        playSafe(vo);
-      }
-    }
-
-    // Observe tutorial typing and speaker changes
-    const obs1 = new MutationObserver(()=> maybePlay());
-    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
-
-    const obs2 = new MutationObserver(()=>{
-      tipBubble.removeAttribute(FLAG);
-      maybePlay();
-    });
-    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-    // If already on that step
-    setTimeout(maybePlay, 0);
-
-  }catch(e){
-    console.warn('Tutorial VO (JAX step 3) init error:', e);
-  }
-})();
-</script>
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* Tutorial VO — STEP 4: JAX "Great start! Use Reps to hit harder each tap." */
-(function(){
-  try{
-    if (window.__FF_TUTORIAL_VO_STEP4__) return;
-    window.__FF_TUTORIAL_VO_STEP4__ = true;
-
-    const tipText   = document.getElementById('tip-text');
-    const tipHead   = document.getElementById('tip-head-name');
-    const tipBubble = document.getElementById('tip-bubble');
-    if(!tipText || !tipHead || !tipBubble) return;
-
-    // Raw GitHub audio for this line
-    const URL = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/Jax%20audio%20REPS.mp3";
-
-    function makeAudio(url){
-      const a = new Audio(url);
-      a.preload = "auto";
-      a.crossOrigin = "anonymous";
-      a.volume = 1.0;
-      return a;
-    }
-    const vo = makeAudio(URL);
-
-    // Gesture-safe play (autoplay fallback)
-    function playSafe(a){
-      try{
-        const p = a.play();
-        if(p && typeof p.then === 'function'){
-          p.catch(()=>{
-            const once = ()=>{ 
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('keydown',     once, true);
-              a.play().catch(()=>{});
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
-      }catch(_){}
-    }
-
-    // Light music ducking
-    let prevVol = null, ducked = false, timer = null;
-    function duck(){
-      try{
-        if (typeof Music !== 'undefined' && Music){
-          if(prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
-          Music.setVol(target);
-          ducked = true;
-        }
-      }catch(_){}
-    }
-    function restore(){
-      try{
-        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      ducked = false; prevVol = null;
-    }
-    vo.addEventListener('ended', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 120); });
-    vo.addEventListener('error', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 60); });
-
-    // Detection helpers
-    function norm(s){
-      return String(s||'')
-        .toLowerCase()
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
-        .replace(/[^a-z0-9\s]/g,'')            // punctuation
-        .replace(/\s+/g,' ')
-        .trim();
-    }
-    function isTargetLine(txt){
-      const n = norm(txt);
-      // robust to minor text tweaks
-      return n.includes("great start") && n.includes("use reps to hit harder each tap");
-    }
-
-    const FLAG = 'data-vo-jax-reps-played';
-
-    function maybePlay(){
-      const speaker = (tipHead.textContent||'').trim().toUpperCase();
-      if (speaker !== 'JAX'){
-        tipBubble.removeAttribute(FLAG);
-        return;
-      }
-      if (tipBubble.getAttribute(FLAG) === '1') return;
-
-      const raw = tipText.textContent || '';
-      if (!raw) return;
-
-      if (isTargetLine(raw)){
-        tipBubble.setAttribute(FLAG,'1');
-        try{ vo.currentTime = 0; }catch(_){}
-        duck();
-        playSafe(vo);
-      }
-    }
-
-    // Observe tutorial typing and speaker changes
-    const obs1 = new MutationObserver(()=> maybePlay());
-    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
-
-    const obs2 = new MutationObserver(()=>{
-      tipBubble.removeAttribute(FLAG);
-      maybePlay();
-    });
-    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-    // In case the step is already visible
-    setTimeout(maybePlay, 0);
-
-  }catch(e){
-    console.warn('Tutorial VO (JAX step 4) init error:', e);
-  }
-})();
-</script>
-
-
-
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* Tutorial VO — STEP 5: JAX "When the green bar fills, your cooldown halves." /////////////////////COOOOOOOOL DOWNNNNNNN/////////////VO/////////*/
-(function(){
-  try{
-    if (window.__FF_TUTORIAL_VO_STEP5__) return;
-    window.__FF_TUTORIAL_VO_STEP5__ = true;
-
-    const tipText   = document.getElementById('tip-text');
-    const tipHead   = document.getElementById('tip-head-name');
-    const tipBubble = document.getElementById('tip-bubble');
-    if(!tipText || !tipHead || !tipBubble) return;
-
-    // Raw GitHub audio
-    const URL = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/Jax%20audio%20COOLDOWN.mp3";
-
-    function makeAudio(url){
-      const a = new Audio(url);
-      a.preload = "auto";
-      a.crossOrigin = "anonymous";
-      a.volume = 1.0;
-      return a;
-    }
-    const vo = makeAudio(URL);
-
-    // Gesture-safe play
-    function playSafe(a){
-      try{
-        const p = a.play();
-        if(p && typeof p.then === 'function'){
-          p.catch(()=>{
-            const once = ()=>{ 
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('keydown',     once, true);
-              a.play().catch(()=>{});
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
-      }catch(_){}
-    }
-
-    // Music ducking
-    let prevVol = null, ducked = false, timer = null;
-    function duck(){
-      try{
-        if (typeof Music !== 'undefined' && Music){
-          if(prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
-          Music.setVol(target);
-          ducked = true;
-        }
-      }catch(_){}
-    }
-    function restore(){
-      try{
-        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      ducked = false; prevVol = null;
-    }
-    vo.addEventListener('ended', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 120); });
-    vo.addEventListener('error', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 60); });
-
-    // Detect this exact tutorial line
-    function norm(s){
-      return String(s||'')
-        .toLowerCase()
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
-        .replace(/[^a-z0-9\s]/g,'')            // punctuation
-        .replace(/\s+/g,' ')
-        .trim();
-    }
-    function isTargetLine(txt){
-      const n = norm(txt);
-      // robust to small copy tweaks
-      return n.includes("green bar fills") && n.includes("cooldown halves");
-    }
-
-    const FLAG = 'data-vo-jax-cooldown-played';
-
-    function maybePlay(){
-      const speaker = (tipHead.textContent||'').trim().toUpperCase();
-      if (speaker !== 'JAX'){
-        tipBubble.removeAttribute(FLAG);
-        return;
-      }
-      if (tipBubble.getAttribute(FLAG) === '1') return;
-
-      const raw = tipText.textContent || '';
-      if(!raw) return;
-
-      if (isTargetLine(raw)){
-        tipBubble.setAttribute(FLAG,'1');
-        try{ vo.currentTime = 0; }catch(_){}
-        duck();
-        playSafe(vo);
-      }
-    }
-
-    // Observe changes
-    const obs1 = new MutationObserver(()=> maybePlay());
-    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
-
-    const obs2 = new MutationObserver(()=>{
-      tipBubble.removeAttribute(FLAG);
-      maybePlay();
-    });
-    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-    // If already on that step
-    setTimeout(maybePlay, 0);
-
-  }catch(e){
-    console.warn('Tutorial VO (JAX step 5) init error:', e);
-  }
-})();
-</script>
-
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* Tutorial VO — STEP 6: JAX "Add to your routine… unlock Jogging when the button lights up." */
-(function(){
-  try{
-    if (window.__FF_TUTORIAL_VO_STEP6__) return;
-    window.__FF_TUTORIAL_VO_STEP6__ = true;
-
-    const tipText   = document.getElementById('tip-text');
-    const tipHead   = document.getElementById('tip-head-name');
-    const tipBubble = document.getElementById('tip-bubble');
-    if(!tipText || !tipHead || !tipBubble) return;
-
-    // Raw GitHub audio
-    const URL = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/Jax%20audio%206%20(jogging).mp3";
-
-    function makeAudio(url){
-      const a = new Audio(url);
-      a.preload = "auto";
-      a.crossOrigin = "anonymous";
-      a.volume = 1.0;
-      return a;
-    }
-    const vo = makeAudio(URL);
-
-    // Gesture-safe play
-    function playSafe(a){
-      try{
-        const p = a.play();
-        if(p && typeof p.then === 'function'){
-          p.catch(()=>{
-            const once = ()=>{ 
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('keydown',     once, true);
-              a.play().catch(()=>{});
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
-      }catch(_){}
-    }
-
-    // Music ducking
-    let prevVol = null, ducked = false, timer = null;
-    function duck(){
-      try{
-        if (typeof Music !== 'undefined' && Music){
-          if(prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
-          Music.setVol(target);
-          ducked = true;
-        }
-      }catch(_){}
-    }
-    function restore(){
-      try{
-        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      ducked = false; prevVol = null;
-    }
-    vo.addEventListener('ended', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 120); });
-    vo.addEventListener('error', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 60); });
-
-    // Detect target line
-    function norm(s){
-      return String(s||'')
-        .toLowerCase()
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
-        .replace(/[^a-z0-9\s]/g,'')            // punctuation
-        .replace(/\s+/g,' ')
-        .trim();
-    }
-    function isTargetLine(txt){
-      const n = norm(txt);
-      // Accept both updated and legacy phrasing
-      const mentionsRoutine = n.includes("add to your routine");
-      const mentionsJogging = n.includes("unlock jogging");
-      const lightsUp        = n.includes("button lights up") || n.includes("pill turns orange");
-      return (mentionsRoutine && mentionsJogging && lightsUp);
-    }
-
-    const FLAG = 'data-vo-jax-jogging-played';
-
-    function maybePlay(){
-      const speaker = (tipHead.textContent||'').trim().toUpperCase();
-      if (speaker !== 'JAX'){
-        tipBubble.removeAttribute(FLAG);
-        return;
-      }
-      if (tipBubble.getAttribute(FLAG) === '1') return;
-
-      const raw = tipText.textContent || '';
-      if(!raw) return;
-
-      if (isTargetLine(raw)){
-        tipBubble.setAttribute(FLAG,'1');
-        try{ vo.currentTime = 0; }catch(_){}
-        duck();
-        playSafe(vo);
-      }
-    }
-
-    // Observe changes
-    const obs1 = new MutationObserver(()=> maybePlay());
-    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
-
-    const obs2 = new MutationObserver(()=>{
-      tipBubble.removeAttribute(FLAG);
-      maybePlay();
-    });
-    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-    // If already on that step
-    setTimeout(maybePlay, 0);
-
-  }catch(e){
-    console.warn('Tutorial VO (JAX step 6) init error:', e);
-  }
-})();
-</script>
-  
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* Tutorial VO — STEP 7: JAX "Ready to scale? Open the Menu (tap your avatar) and hire a coach." */
-(function(){
-  try{
-    if (window.__FF_TUTORIAL_VO_STEP7__) return;
-    window.__FF_TUTORIAL_VO_STEP7__ = true;
-
-    const tipText   = document.getElementById('tip-text');
-    const tipHead   = document.getElementById('tip-head-name');
-    const tipBubble = document.getElementById('tip-bubble');
-    if(!tipText || !tipHead || !tipBubble) return;
-
-    // Raw GitHub audio
-    const URL = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/Jax%20audio%209%20(coach).mp3";
-
-    function makeAudio(url){
-      const a = new Audio(url);
-      a.preload = "auto";
-      a.crossOrigin = "anonymous";
-      a.volume = 1.0;
-      return a;
-    }
-    const vo = makeAudio(URL);
-
-    // Gesture-safe play (retry if blocked)
-    function playSafe(a){
-      try{
-        const p = a.play();
-        if(p && typeof p.then === 'function'){
-          p.catch(()=>{
-            const once = ()=>{ 
-              document.removeEventListener('pointerdown', once, true);
-              document.removeEventListener('touchstart',  once, true);
-              document.removeEventListener('keydown',     once, true);
-              a.play().catch(()=>{});
-            };
-            document.addEventListener('pointerdown', once, {capture:true, passive:true});
-            document.addEventListener('touchstart',  once, {capture:true, passive:true});
-            document.addEventListener('keydown',     once, {capture:true});
-          });
-        }
-      }catch(_){}
-    }
-
-    // Light music ducking during VO
-    let prevVol = null, ducked = false, timer = null;
-    function duck(){
-      try{
-        if (typeof Music !== 'undefined' && Music){
-          if(prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.45));
-          Music.setVol(target);
-          ducked = true;
-        }
-      }catch(_){}
-    }
-    function restore(){
-      try{
-        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      ducked = false; prevVol = null;
-    }
-    vo.addEventListener('ended', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 120); });
-    vo.addEventListener('error', ()=>{ clearTimeout(timer); timer = setTimeout(restore, 60); });
-
-    // Detect target line (robust to small text tweaks)
-    function norm(s){
-      return String(s||'')
-        .toLowerCase()
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu,'') // emoji
-        .replace(/[^a-z0-9\s]/g,'')            // punctuation
-        .replace(/\s+/g,' ')
-        .trim();
-    }
-    function isTargetLine(txt){
-      const n = norm(txt);
-      const hasIntro   = n.includes("ready to scale");
-      const hasMenu    = n.includes("open the menu");
-      const hasAvatar  = n.includes("tap your avatar") || n.includes("your avatar");
-      const hasHire    = n.includes("hire a coach") || n.includes("hire coach");
-      return hasIntro && hasMenu && hasAvatar && hasHire;
-    }
-
-    const FLAG = 'data-vo-jax-coach-played';
-
-    function maybePlay(){
-      const speaker = (tipHead.textContent||'').trim().toUpperCase();
-      if (speaker !== 'JAX'){
-        tipBubble.removeAttribute(FLAG);
-        return;
-      }
-      if (tipBubble.getAttribute(FLAG) === '1') return;
-
-      const raw = tipText.textContent || '';
-      if(!raw) return;
-
-      if (isTargetLine(raw)){
-        tipBubble.setAttribute(FLAG,'1');
-        try{ vo.currentTime = 0; }catch(_){}
-        duck();
-        playSafe(vo);
-      }
-    }
-
-    // Observe tutorial typing and speaker changes
-    const obs1 = new MutationObserver(()=> maybePlay());
-    obs1.observe(tipText, {characterData:true, childList:true, subtree:true});
-
-    const obs2 = new MutationObserver(()=>{
-      tipBubble.removeAttribute(FLAG);
-      maybePlay();
-    });
-    obs2.observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-    // If already on that step
-    setTimeout(maybePlay, 0);
-
-  }catch(e){
-    console.warn('Tutorial VO (JAX step 7) init error:', e);
-  }
-})();
-</script>
-  
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* Tutorial bubble POP SFX on appear/advance //////////////////////////////TUTORIAL SFX POP BUBBLES/////////////////////*/
-(function(){
-  try{
-    if (window.__FF_TUTORIAL_POP_SFX__) return;
-    window.__FF_TUTORIAL_POP_SFX__ = true;
-
-    const tip  = document.getElementById('tip');
-    const bubble = document.getElementById('tip-bubble');
-    const tipText = document.getElementById('tip-text');
-    const tipHead = document.getElementById('tip-head-name');
-    if(!tip || !bubble || !tipText || !tipHead) return;
-
-    /* --- Minimal pop SFX (Web Audio), gentle volume --- */
-    const PopSFX = (function(){
-      let ctx = null;
-      function ensureCtx(){
-        if(ctx) return ctx;
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if(!AC) return null;
-        ctx = new AC();
-        return ctx;
-      }
-      function play(){
-        const c = ensureCtx(); if(!c) return;
-        const t = c.currentTime;
-
-        // short, percussive "pop": sine sweep + click transient
-        const o = c.createOscillator();
-        o.type = 'sine';
-        o.frequency.setValueAtTime(240, t);
-        o.frequency.exponentialRampToValueAtTime(720, t + 0.06);
-
-        const g = c.createGain();
-        g.gain.setValueAtTime(0.0004, t);
-        g.gain.exponentialRampToValueAtTime(0.035, t + 0.012);
-        g.gain.exponentialRampToValueAtTime(0.0004, t + 0.10);
-
-        // tiny click layer
-        const n = c.createBuffer(1, 220, c.sampleRate);
-        const ch = n.getChannelData(0);
-        for(let i=0;i<ch.length;i++) ch[i] = (Math.random()*2-1) * Math.exp(-i/80);
-        const nb = c.createBufferSource(); nb.buffer = n;
-        const gn = c.createGain(); gn.gain.setValueAtTime(0.025, t); gn.gain.exponentialRampToValueAtTime(0.0005, t+0.07);
-
-        o.connect(g).connect(c.destination);
-        nb.connect(gn).connect(c.destination);
-        o.start(t); o.stop(t + 0.11);
-        nb.start(t); nb.stop(t + 0.08);
-      }
-      return { play };
-    })();
-
-    // Resume context after first user gesture (if needed)
-    ['pointerdown','touchstart','keydown'].forEach(ev=>{
-      document.addEventListener(ev, ()=>{
-        try{
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if(AC && PopSFX && PopSFX._ctx && PopSFX._ctx.state === 'suspended'){
-            PopSFX._ctx.resume().catch(()=>{});
-          }
-        }catch(_){}
-      }, {once:true, capture:true});
-    });
-
-    /* --- When to pop --- */
-    let lastPlay = 0;
-    function tryPop(){
-      const now = performance.now();
-      if (now - lastPlay < 200) return; // rate-limit (avoid double on quick reflows)
-      lastPlay = now;
-      PopSFX.play();
-    }
-
-    function isVisible(el){
-      const cs = getComputedStyle(el);
-      return cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
-    }
-
-    // 1) Pop when the tutorial overlay is shown (first time)
-    let wasTipShown = tip.classList.contains('show');
-    new MutationObserver(()=>{
-      const cur = tip.classList.contains('show');
-      if(cur && !wasTipShown && isVisible(bubble)) tryPop();
-      wasTipShown = cur;
-    }).observe(tip, {attributes:true, attributeFilter:['class']});
-
-    // 2) Pop when the bubble switches speaker/anchor (new step cue)
-    let lastSpeaker = tipHead.textContent || '';
-    new MutationObserver(()=>{
-      const cur = tipHead.textContent || '';
-      if(cur !== lastSpeaker && isVisible(bubble)) tryPop();
-      lastSpeaker = cur;
-    }).observe(tipHead, {characterData:true, childList:true, subtree:true});
-
-    // 3) Pop when the text is reset for a new step (typing restarts)
-    let lastLen = (tipText.textContent||'').length;
-    new MutationObserver(()=>{
-      const curLen = (tipText.textContent||'').length;
-      // A big drop (or to zero) indicates step transition before typing refills
-      if(isVisible(bubble) && lastLen > 6 && curLen <= 2) tryPop();
-      lastLen = curLen;
-    }).observe(tipText, {characterData:true, childList:true, subtree:true});
-
-    // 4) Safety: if bubble visibility toggles from hidden -> visible
-    let wasVis = isVisible(bubble);
-    new MutationObserver(()=>{
-      const v = isVisible(bubble);
-      if(v && !wasVis) tryPop();
-      wasVis = v;
-    }).observe(bubble, {attributes:true, attributeFilter:['style','class']});
-
-  }catch(e){
-    console.warn('Tutorial POP SFX patch error:', e);
-  }
-})();
-</script>
-
-
-
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* REPLACE previous: Start Screen avatar click SFX + gender voice intro (raw.githubusercontent.com URLs) */
-(function(){
-  try{
-    if (window.__FF_START_AVA_SFX_V2__) return;
-    window.__FF_START_AVA_SFX_V2__ = true;
-
-    const root = document.getElementById('start-avatars');
-    if(!root) return;
-
-    /* ---------- Click SFX (short pop) ---------- */
-    const ClickSFX = (function(){
-      let ctx = null;
-      function ensureCtx(){
-        if(ctx) return ctx;
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if(!AC) return null;
-        ctx = new AC();
-        return ctx;
-      }
-      function play(){
-        const c = ensureCtx(); if(!c) return;
-        const t = c.currentTime;
-
-        const o = c.createOscillator();
-        o.type = 'sine';
-        o.frequency.setValueAtTime(340, t);
-        o.frequency.exponentialRampToValueAtTime(760, t + 0.05);
-
-        const g = c.createGain();
-        g.gain.setValueAtTime(0.0008, t);
-        g.gain.exponentialRampToValueAtTime(0.03, t + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0006, t + 0.09);
-
-        // subtle noise click
-        const n = c.createBuffer(1, 200, c.sampleRate);
-        const ch = n.getChannelData(0);
-        for(let i=0;i<ch.length;i++) ch[i] = (Math.random()*2-1) * Math.exp(-i/70);
-        const ns = c.createBufferSource(); ns.buffer = n;
-        const gn = c.createGain(); gn.gain.value = 0.02;
-
-        o.connect(g).connect(c.destination);
-        ns.connect(gn).connect(c.destination);
-        o.start(t); o.stop(t + 0.10);
-        ns.start(t); ns.stop(t + 0.07);
-      }
-      return { play, get _ctx(){ return ctx; } };
-    })();
-
-    // Ensure audio context can resume after first gesture
-    ['pointerdown','touchstart','keydown'].forEach(ev=>{
-      document.addEventListener(ev, ()=>{
-        try{
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if(AC && ClickSFX._ctx && ClickSFX._ctx.state === 'suspended'){
-            ClickSFX._ctx.resume().catch(()=>{});
-          }
-        }catch(_){}
-      }, {once:true, capture:true});
-    });
-
-    /* ---------- Voice SFX (gender-specific) using RAW URLs ---------- */
-    const VO_URL_M = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/player%20male%20audio%20intro%20(start%20menu).mp3";
-    const VO_URL_F = "https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/player%20female%20audio%20intro%20(start%20screen).mp3";
-
-    function makeVO(url){
-      const a = new Audio(url);
-      a.preload = "auto";
-      a.crossOrigin = "anonymous";
-      a.volume = 1.0;
-      // Kick the network pipeline
-      try{ a.load(); }catch(_){}
-      return a;
-    }
-    const voMale   = makeVO(VO_URL_M);
-    const voFemale = makeVO(VO_URL_F);
-
-    let currentVO = null;
-    let prevVol = null, ducked = false, duckTimer = null;
-
-    function duckMusic(){
-      try{
-        if (typeof Music !== 'undefined' && Music){
-          if(prevVol == null) prevVol = Music.vol;
-          const target = Math.max(0, Math.min(1, (prevVol ?? 0.12) * 0.35)); // stronger duck
-          Music.setVol(target);
-          ducked = true;
-        }
-      }catch(_){}
-    }
-    function restoreMusic(){
-      try{
-        if(ducked && typeof Music !== 'undefined' && Music && prevVol!=null){
-          Music.setVol(prevVol);
-        }
-      }catch(_){}
-      ducked = false; prevVol = null;
-    }
-    [voMale, voFemale].forEach(a=>{
-      a.addEventListener('ended', ()=>{ clearTimeout(duckTimer); duckTimer = setTimeout(restoreMusic, 120); });
-      a.addEventListener('error', ()=>{ clearTimeout(duckTimer); duckTimer = setTimeout(restoreMusic, 60); });
-    });
-
-    function playVO(a){
-      try{
-        // Stop any ongoing VO
-        if(currentVO && currentVO !== a){
-          try{ currentVO.pause(); currentVO.currentTime = 0; }catch(_){}
-        }
-        currentVO = a;
-        try{ a.currentTime = 0; }catch(_){}
-        duckMusic();
-
-        // Attempt immediately, then again in a micro-task to survive iOS quirks
-        const attempt = ()=>{
-          const p = a.play();
-          if(p && typeof p.then === 'function'){
-            p.catch(()=>{
-              // if blocked, retry on next gesture
-              const once = ()=>{ 
-                document.removeEventListener('pointerdown', once, true);
-                document.removeEventListener('touchstart',  once, true);
-                document.removeEventListener('keydown',     once, true);
-                a.play().catch(()=>{});
-              };
-              document.addEventListener('pointerdown', once, {capture:true, passive:true});
-              document.addEventListener('touchstart',  once, {capture:true, passive:true});
-              document.addEventListener('keydown',     once, {capture:true});
+    /* ---------- Mobile audio unlock + play() retry ---------- */
+    (function audioUnlock(){
+      if (window.__FF_AUDIO_UNLOCK_V3__) return;
+      window.__FF_AUDIO_UNLOCK_V3__ = true;
+
+      const HME = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+      if (HME && !HME.__ffPlayPatchedV3){
+        HME.__ffPlayPatchedV3 = true;
+        const orig = HME.play;
+        HME.play = function(){
+          const res = (()=>{ try{ return orig.apply(this, arguments); }catch(e){ return Promise.reject(e); } })();
+          if (res && typeof res.catch === 'function'){
+            res.catch((err)=>{
+              const name = (err && err.name) || '';
+              const msg  = (err && err.message) || '';
+              if (/NotAllowedError/i.test(name) || /(gesture|user).*(play|start)/i.test(msg)){
+                const el = this;
+                const once = ()=>{
+                  document.removeEventListener('pointerdown', once, true);
+                  document.removeEventListener('touchstart',  once, true);
+                  document.removeEventListener('click',       once, true);
+                  try{ orig.call(el); }catch(_){}
+                };
+                document.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+                document.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+                document.addEventListener('click',       once, {capture:true, passive:true, once:true});
+              }
             });
           }
+          return res;
         };
-        attempt();
-        setTimeout(attempt, 0); // secondary nudge for Safari
+      }
 
-      }catch(_){}
+      if (!window.__FF_AUDIO_GESTURE_ARMed__){
+        window.__FF_AUDIO_GESTURE_ARMed__ = true;
+        const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+        const prim = new Audio(SILENT); prim.preload='auto'; prim.muted=true;
+        function unlock(){
+          try{
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if(AC){
+              if(!window.__ff_ac__) window.__ff_ac__ = new AC();
+              const ac = window.__ff_ac__;
+              if(ac.state==='suspended' && ac.resume) ac.resume();
+            }
+          }catch(_){}
+          try{
+            prim.currentTime=0; const p=prim.play();
+            (p && p.finally) ? p.finally(()=>{ try{ prim.pause(); }catch(_){}}) : prim.pause();
+          }catch(_){}
+        }
+        const once = ()=>{
+          document.removeEventListener('pointerdown', once, true);
+          document.removeEventListener('touchstart',  once, true);
+          document.removeEventListener('click',       once, true);
+          unlock();
+        };
+        document.addEventListener('pointerdown', once, {capture:true, passive:true});
+        document.addEventListener('touchstart',  once, {capture:true, passive:true});
+        document.addEventListener('click',       once, {capture:true, passive:true});
+      }
+    })();
+
+    /* ---------- Kill legacy oscillator “bleeps” ---------- */
+    (function muteLegacyBleeps(){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC && !AC.prototype.__ffMutePatchedV83){
+        AC.prototype.__ffMutePatchedV83 = true;
+        const origCreateGain = AC.prototype.createGain;
+        AC.prototype.createGain = function(){
+          const g = origCreateGain.call(this);
+          const origConnect = g.connect;
+          g.connect = function(dest){
+            try{
+              if (window.__FF_MUTE_BLEEPNOW_UNTIL && performance.now() < window.__FF_MUTE_BLEEPNOW_UNTIL){
+                try{ g.gain.value = 0; }catch(_){}
+              }
+            }catch(_){}
+            return origConnect.call(this, dest);
+          };
+          return g;
+        };
+      }
+      try{ if(window.SFX){ SFX.ok=()=>{}; SFX.click=()=>{}; } }catch(_){}
+      function muteBleeps(ms=360){ window.__FF_MUTE_BLEEPNOW_UNTIL = performance.now()+ms; }
+      function arm(rootSel, sel){
+        const root = $(rootSel); if(!root) return;
+        ['pointerdown','click'].forEach(type=>{
+          root.addEventListener(type, (e)=>{
+            if(e.target?.closest && e.target.closest(sel)) muteBleeps(360);
+          }, {capture:true});
+        });
+      }
+      arm('#cards','.card .btn');     // reps/unlock
+      arm('#bulk','button');          // bulk
+      arm('#menu','.tab, .menu-close, [data-close]');
+      arm('#menu-body','.coach-row .btn'); // hire
+    })();
+
+    /* ---------- Audio pool ---------- */
+    function makePool(url, n=3, vol=1.0){
+      const src = withVer(url);
+      const arr = Array.from({length:n}, ()=>{
+        const a=new Audio(src);
+        a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol;
+        try{ a.load(); }catch(_){}
+        return a;
+      });
+      let i=0;
+      function next(){ return arr[i++%arr.length]; }
+      return {
+        play(){
+          const a=next(); try{a.currentTime=0;}catch(_){}
+          const p=a.play(); if(p&&p.catch) p.catch(()=>{});
+        },
+        playSafe(target=document){
+          const a=next(); try{a.currentTime=0;}catch(_){}
+          const p=a.play();
+          if(p && p.catch){
+            p.catch(()=>{
+              const once=()=>{ target.removeEventListener('pointerdown', once, true);
+                               target.removeEventListener('touchstart',  once, true);
+                               a.play().catch(()=>{}); };
+              target.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+              target.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+            });
+          }
+        },
+        setVolume(v){ arr.forEach(a=>{ try{ a.volume=v; }catch(_){} }); }
+      };
     }
 
-    /* ---------- Pointer de-dupe on tiles ---------- */
-    const LAST_TS_ATTR = 'data-ff-ava-lastpd';
-    function isDup(el){
-      const now = performance.now();
-      const last = Number(el.getAttribute(LAST_TS_ATTR) || 0);
-      const win = 260; // ms
-      if(now - last < win) return true;
-      el.setAttribute(LAST_TS_ATTR, String(now));
-      return false;
-    }
+    /* ---------- SFX assets ---------- */
+    const VOL_REPS = IS_TOUCH ? 0.20 : 0.32;
 
-    /* ---------- Hook: play click + VO on avatar tile press ---------- */
-    root.addEventListener('pointerdown', (e)=>{
-      const ava = e.target && e.target.closest && e.target.closest('.ava');
-      if(!ava) return;
-      if(isDup(ava)) return;
+    // Core UI
+    const SFX_START_BTN     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0);
+    const SFX_OPEN_MENU     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0);
+    const SFX_SWITCH_TABS   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",3,1.0);
+    const SFX_CLOSE_MENU    = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",2,1.0);
+    const SFX_REPS          = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",5,VOL_REPS);
+    const SFX_UNLOCK        = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",2,1.0);
+    const SFX_LEVEL_UP      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",3,1.0);
+    const SFX_BULK          = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",2,1.0);
+    const SFX_OFF_OPEN      = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",2,1.0);
+    const SFX_OFF_CLAIM     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0);
+    const SFX_ACH           = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0);
 
-      ClickSFX.play(); // tactile click
+    // Coaches
+    const SFX_COACH_AVAIL_M = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",4,1.0);
+    const SFX_COACH_HIRED   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-hired.mp3",3,1.0);
 
-      const sex = (ava.dataset.sex || '').toLowerCase();
-      if(sex === 'male')   playVO(voMale);
-      if(sex === 'female') playVO(voFemale);
-    }, {capture:true, passive:true});
+    // Start screen avatar VO (male/female)
+    const VO_AVA_MALE   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20male%20audio%20intro%20(start%20menu).mp3",2,1.0);
+    const VO_AVA_FEMALE = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20female%20audio%20intro%20(start%20screen).mp3",2,1.0);
 
-  }catch(e){
-    console.warn('Start avatar SFX patch (v2) error:', e);
-  }
-})();
-</script>
+    // Tutorial bubble POP (reuse start SFX – you liked that “bubble” sound)
+    const SFX_TIP_POP   = SFX_START_BTN;
 
-
-
-  
-  
-  
-
-<script type="application/ff-patch">
-/* Tutorial: instant text (no typing, mobile-safe) — v3/////////////////////NO TYPING AND ENSURE FEMALE////MALE////SHOWS */
-(function(){
-  try{
-    if (window.__FF_TUTORIAL_INSTANT_TEXT_V3__) return;
-    window.__FF_TUTORIAL_INSTANT_TEXT_V3__ = true;
-
-    const tip     = document.getElementById('tip');
-    const bubble  = document.getElementById('tip-bubble');
-    const tipText = document.getElementById('tip-text');
-    const tipHead = document.getElementById('tip-head-name');
-    const tipNext = document.getElementById('tip-next');
-    if(!tip || !bubble || !tipText || !tipHead || !tipNext) return;
-
-    const visible = (el)=> {
-      const cs = getComputedStyle(el);
-      return cs.display!=='none' && cs.visibility!=='hidden' && cs.opacity!=='0';
+    // Tutorial VO (7 lines)
+    const VO = {
+      jax_low   : makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3",2,1.0),
+      player_q_m: VO_AVA_MALE,   // reuse pools
+      player_q_f: VO_AVA_FEMALE,
+      jax_walk  : makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3",2,1.0),
+      jax_reps  : makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3",2,1.0),
+      jax_cd    : makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3",2,1.0),
+      jax_jog   : makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3",2,1.0),
+      jax_coach : makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3",2,1.0),
     };
 
-    let stepId = 0;          // increments per step (speaker change / show)
-    let filled = false;      // clicked once to reveal full line
-    let prevLen = 0;
+    /* ---------- Wire UI events ---------- */
+    (function(){
+      const n=$('#btn-new'), c=$('#btn-continue');
+      [n,c].forEach(b=> b && b.addEventListener('pointerdown', ()=>{ if(dedupe(b,180)) return; SFX_START_BTN.play(); }, {capture:true, passive:true}));
+    })();
 
-    function newStep(){
-      stepId++;
-      filled = false;
-      prevLen = (tipText.textContent||'').length;
-    }
+    (function(){
+      const avatar=$('#avatar'), menu=$('#menu');
+      if(avatar) avatar.addEventListener('pointerdown', ()=>{ if(dedupe(avatar,200)) return; SFX_OPEN_MENU.play(); }, {capture:true, passive:true});
+      if(menu){
+        let lastCloseTs=0;
+        menu.addEventListener('pointerdown', (e)=>{
+          const close = e.target.closest?.('[data-close], .menu-close, .menu-backdrop');
+          if(!close) return;
+          const now=performance.now(); if(now-lastCloseTs<260) return;
+          lastCloseTs=now; SFX_CLOSE_MENU.play();
+        }, {capture:true, passive:true});
+      }
+      const tabsWrap = $('.menu-tabs', $('#menu'));
+      if(tabsWrap){
+        tabsWrap.addEventListener('pointerdown', (e)=>{
+          const tab=e.target.closest?.('.tab'); if(!tab) return;
+          if(tab.classList.contains('active')) return;
+          if(dedupe(tab,150)) return;
+          SFX_SWITCH_TABS.play();
+        }, {capture:true, passive:true});
+      }
+    })();
 
-    // On first character appearing for a step, click once to fill entire line.
-    function maybeInstantFill(){
-      if(!visible(tip) || !visible(bubble) || filled) return;
-      const curLen = (tipText.textContent||'').length;
+    (function(){
+      const bulk=$('#bulk'); if(!bulk) return;
+      let last = bulk.querySelector('button.active')?.dataset.q || null;
+      bulk.addEventListener('pointerdown', (e)=>{
+        const btn=e.target.closest?.('button'); if(!btn) return;
+        if(dedupe(btn,120)) return;
+        setTimeout(()=>{ const cur=bulk.querySelector('button.active')?.dataset.q || null;
+          if(cur && cur!==last){ last=cur; SFX_BULK.play(); } },0);
+      }, {capture:true, passive:true});
+    })();
 
-      // Detect transition from cleared state (0) to “typing started” (>0)
-      if (prevLen === 0 && curLen > 0){
-        const myStep = stepId;
-        // Micro-delay ensures we’re mid-typing (so click fills, not advance)
-        setTimeout(()=>{
-          if(myStep!==stepId || filled || !visible(tip) || !visible(bubble)) return;
-          // If text is still present (typing in progress), click once to reveal all
-          if ((tipText.textContent||'').length > 0){
-            filled = true;
-            try{ tipNext.click(); }catch(_){}
+    (function(){
+      const cards=$('#cards'); if(!cards) return;
+      // Reps purchase SFX (only when affordable and not locked)
+      cards.addEventListener('pointerdown', (e)=>{
+        const btn=e.target.closest?.('.card .btn'); if(!btn) return;
+        if(dedupe(btn,30)) return;
+        const card=btn.closest('.card'); const tile=card?.querySelector('.tile');
+        const isLocked=tile?.classList.contains('locked');
+        if(!isLocked && btn.classList.contains('glow')) SFX_REPS.play();
+      }, {capture:true, passive:true});
+      // Drop duplicate click path
+      cards.addEventListener('click', (e)=>{
+        const btn=e.target.closest?.('.card .btn'); if(!btn) return;
+        const K='data-ff-lastclick'; const now=performance.now(); const last=+(btn.getAttribute(K)||0);
+        if(now-last<20){ e.stopImmediatePropagation(); e.preventDefault(); return; }
+        btn.setAttribute(K,String(now));
+      }, true);
+
+      // Unlock SFX on locked -> unlocked
+      new MutationObserver((muts)=>{
+        muts.forEach(m=>{
+          if(m.type==='attributes' && m.attributeName==='class'){
+            const el=m.target; if(!(el instanceof HTMLElement)) return;
+            if(!el.classList.contains('tile')) return;
+            const was=m.oldValue||'';
+            if(/\blocked\b/.test(was) && !el.classList.contains('locked') && !el.hasAttribute('data-ff-unlocked')){
+              el.setAttribute('data-ff-unlocked','1'); SFX_UNLOCK.play();
+            }
           }
-        }, 20);
+        });
+      }).observe(cards,{subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
+
+      // Level-up SFX on Lvl number increase
+      const lastLvl=new WeakMap();
+      function lvl(el){ const m=(el.textContent||'').match(/Lvl\s+(\d+)/i); return m?+m[1]:null; }
+      function scan(el){ const cur=lvl(el); if(cur==null) return; const prev=lastLvl.get(el);
+        if(prev!=null && cur>prev) SFX_LEVEL_UP.play(); lastLvl.set(el, cur); }
+      $$('.card .lvl', cards).forEach(scan);
+      new MutationObserver((muts)=>{
+        muts.forEach(m=>{
+          if(m.type==='characterData'){
+            const el=m.target.parentElement; if(el && el.classList.contains('lvl')) scan(el);
+          }else if(m.type==='childList'){
+            m.addedNodes.forEach(n=>{
+              if(!(n instanceof HTMLElement)) return;
+              if(n.classList?.contains('lvl')) scan(n);
+              $$('.lvl', n).forEach(scan);
+            });
+          }
+        });
+      }).observe(cards,{subtree:true, childList:true, characterData:true});
+      setInterval(()=> $$('.card .lvl', cards).forEach(scan), 250);
+    })();
+
+    (function(){
+      const off=$('#offline'), claim=$('#offline-claim');
+      if(off){ new MutationObserver(()=>{ if(off.classList.contains('show')) SFX_OFF_OPEN.play(); })
+        .observe(off,{attributes:true, attributeFilter:['class']}); }
+      if(claim){ claim.addEventListener('click', ()=> SFX_OFF_CLAIM.play(), {capture:true}); }
+      const ach=$('#ach');
+      if(ach){
+        new MutationObserver((muts)=>{
+          muts.forEach(m=>{
+            m.addedNodes.forEach(n=>{
+              const banner=(n instanceof HTMLElement && (n.matches('.banner')? n : n.querySelector?.('.banner')));
+              if(banner) SFX_ACH.play();
+            });
+          });
+        }).observe(ach,{childList:true, subtree:true});
       }
-      prevLen = curLen;
-    }
+    })();
 
-    // 1) Tutorial overlay shown → new step token
-    new MutationObserver(()=>{
-      if(tip.classList.contains('show') && visible(bubble)) {
-        newStep();
+    /* ---------- Coaches: Live Glow + Available/Hired SFX ---------- */
+    (function(){
+      const menu=$('#menu'), body=$('#menu-body'), avatarDot=$('#avatar-dot');
+      if(!menu || !body) return;
+
+      function coachesTabActive(){
+        const t = $('.menu-tabs .tab[data-tab="coaches"]', menu);
+        return menu.classList.contains('show') && t && t.classList.contains('active');
       }
-    }).observe(tip, {attributes:true, attributeFilter:['class']});
 
-    // 2) Speaker changes → new step token
-    new MutationObserver(()=>{ newStep(); }).observe(tipHead, {characterData:true, childList:true, subtree:true});
+      function readSave(){
+        try{ const raw=localStorage.getItem(KEY_MAIN); return raw?JSON.parse(raw):null; }
+        catch(_){ return null; }
+      }
+      function coachPrice(i){ return (i===0) ? 1500 : Math.round(1500 * Math.pow(1.8, i)); }
 
-    // 3) Text is being typed → pounce on first char
-    new MutationObserver(()=>{ maybeInstantFill(); })
-      .observe(tipText, {characterData:true, childList:true, subtree:true});
+      // Stable key: "Coach N" → N-1; fallback row index
+      function coachIndexFromRow(row){
+        const title = row.querySelector('.coach-title')?.textContent || '';
+        const m = title.match(/Coach\s+(\d+)/i);
+        if (m) return Math.max(0, parseInt(m[1],10)-1);
+        const rows = $$('.coach-row', body);
+        const idx = rows.indexOf(row);
+        return idx >= 0 ? idx : null;
+      }
 
-    // 4) Bubble visibility flips → re-arm
-    new MutationObserver(()=>{ setTimeout(()=>{ prevLen=(tipText.textContent||'').length; },0); })
-      .observe(bubble, {attributes:true, attributeFilter:['style','class']});
+      // Session de-dupe: which coach index has already spoken "available"
+      const availSaid = new Set();
+      // Row-level hired state
+      const hiredState = new WeakMap();
+      const AV_TAG='data-ff-av-said', HI_TAG='data-ff-hi-said';
+      let poll=null;
 
-    // Kick once (in case we land mid-step)
-    setTimeout(()=>{ prevLen=(tipText.textContent||'').length; maybeInstantFill(); },0);
+      function syncAvatarDot(save){
+        try{
+          const hp = +save.hp||0, coaches=save.coaches||{}, ex=save.exercises||[];
+          let any=false;
+          for(let i=0;i<ex.length;i++){
+            if(!ex[i] || !ex[i].unlocked) continue;
+            if(coaches['c'+(i+1)]) continue;
+            if(hp >= coachPrice(i)){ any=true; break; }
+          }
+          if(avatarDot) avatarDot.style.display = any ? 'block' : 'none';
+        }catch(_){}
+      }
+
+      // Core: toggle glow live, play SFX when we add glow
+      function syncCoachesGlowOnce(initialScan=false){
+        const save = readSave(); if(!save){ return; }
+
+        const hp = +save.hp||0, ex=save.exercises||[], coaches=save.coaches||{};
+
+        if (coachesTabActive()){
+          $$('.coach-row', body).forEach(row=>{
+            const i = coachIndexFromRow(row); if(i==null) return;
+            const unlocked = !!(ex[i] && ex[i].unlocked);
+            const hired    = !!coaches['c'+(i+1)];
+            const btn      = row.querySelector('button.btn'); if(!btn) return;
+
+            if(!hiredState.has(row)) hiredState.set(row, {hired: !!row.querySelector('.hired')});
+            const st = hiredState.get(row);
+
+            const price = coachPrice(i);
+            const shouldGlow = unlocked && !hired && (hp >= price);
+            const hasGlow = btn.classList.contains('glow');
+
+            if (shouldGlow && !hasGlow){
+              btn.classList.add('glow');
+              if(!availSaid.has(i) && !row.hasAttribute(AV_TAG)){
+                availSaid.add(i); row.setAttribute(AV_TAG,'1');
+                SFX_COACH_AVAIL_M.playSafe(menu);
+              }
+            } else if(!shouldGlow && hasGlow){
+              btn.classList.remove('glow');
+            }
+
+            const hiredNow = !!row.querySelector('.hired');
+            if(!st.hired && hiredNow && !row.hasAttribute(HI_TAG)){
+              st.hired=true; row.setAttribute(HI_TAG,'1'); SFX_COACH_HIRED.play();
+            }else if(!hiredNow){
+              st.hired=false; if(row.hasAttribute(HI_TAG)) row.removeAttribute(HI_TAG);
+            }
+          });
+        }
+
+        syncAvatarDot(save);
+      }
+
+      body.addEventListener('pointerdown', (e)=>{
+        if(!coachesTabActive()) return;
+        const btn=e.target.closest?.('.coach-row .btn'); if(!btn) return;
+        if(!btn.classList.contains('glow')) return;
+        const row=btn.closest('.coach-row'); if(!row) return;
+        if(!row.hasAttribute(HI_TAG)) SFX_COACH_HIRED.playSafe(menu);
+      }, {capture:true, passive:true});
+
+      const mo=new MutationObserver((muts)=>{
+        if(!coachesTabActive()) return;
+        muts.forEach(m=>{
+          if(m.type==='childList'){
+            m.addedNodes.forEach(n=>{
+              if(!(n instanceof HTMLElement)) return;
+              if(n.classList.contains('coach-row')) syncCoachesGlowOnce(true);
+              (n.querySelectorAll ? n.querySelectorAll('.coach-row') : []).forEach(()=> syncCoachesGlowOnce(true));
+              if(n.classList.contains('hired')) syncCoachesGlowOnce();
+            });
+          }
+          if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
+            if(m.target.matches('.coach-row .btn')) syncCoachesGlowOnce();
+          }
+        });
+      });
+      mo.observe(body,{subtree:true, childList:true, attributes:true, attributeFilter:['class']});
+
+      function handleState(){
+        if(coachesTabActive()){
+          syncCoachesGlowOnce(true);
+          if(!poll) poll = setInterval(()=> syncCoachesGlowOnce(false), 250);
+        }else{
+          if(poll){ clearInterval(poll); poll=null; }
+        }
+      }
+      new MutationObserver(handleState).observe(menu,{attributes:true, attributeFilter:['class']});
+      const tabs = $('.menu-tabs', menu);
+      if(tabs){
+        ['pointerdown','click'].forEach(t=>{
+          tabs.addEventListener(t, ()=> setTimeout(handleState,0), {capture:true, passive:true});
+        });
+      }
+      setInterval(()=>{ if(!coachesTabActive()) syncCoachesGlowOnce(false); }, 750);
+
+      setTimeout(()=>{ handleState(); syncCoachesGlowOnce(true); }, 0);
+
+      // Expose pools for any other patches
+      window.__FF_SFX_COACH_AVAIL_POOL__ = SFX_COACH_AVAIL_M;
+      window.__FF_SFX_COACH_HIRED_POOL__ = SFX_COACH_HIRED;
+    })();
+
+    /* ---------- Start Screen: avatar voices + click SFX ---------- */
+    (function(){
+      const avas = $('#start-avatars');
+      if(!avas) return;
+      avas.addEventListener('pointerdown', (e)=>{
+        const a = e.target.closest?.('.ava'); if(!a) return;
+        if(dedupe(a,180)) return;
+        // click pop
+        SFX_START_BTN.play();
+        // voice by gender
+        if(a.classList.contains('m')) VO_AVA_MALE.playSafe(avas);
+        else if(a.classList.contains('f')) VO_AVA_FEMALE.playSafe(avas);
+      }, {capture:true, passive:true});
+    })();
+
+    /* ---------- Tutorial: bubble POP + 7 VO lines ---------- */
+    (function(){
+      const tip = $('#tip'), bubble = $('#tip-bubble'), textEl = $('#tip-text'), headName = $('#tip-head-name');
+      if(!tip || !bubble || !textEl || !headName) return;
+
+      function readSave(){
+        try{ const raw=localStorage.getItem(KEY_MAIN); return raw?JSON.parse(raw):null; }
+        catch(_){ return null; }
+      }
+      function isShown(){ return tip.classList.contains('show') && bubble.style.visibility!=='hidden'; }
+
+      let lastLineKey = '';
+      let lastText = '';
+
+      function norm(s){ return String(s||'').replace(/\s+/g,' ').trim().toLowerCase(); }
+
+      function pickVO(speaker, txt){
+        const s = norm(speaker);
+        const t = norm(txt);
+        if(s.includes('jax')){
+          if(t.includes('low on energy')) return 'jax_low';
+          if(t.includes('walking') && (t.includes('1 hp') || t.includes('1hp'))) return 'jax_walk';
+          if(t.includes('reps') && t.includes('hit harder')) return 'jax_reps';
+          if(t.includes('green bar') && t.includes('cooldown')) return 'jax_cd';
+          if(t.includes('unlock') && t.includes('jogging') && t.includes('button')) return 'jax_jog';
+          if((t.includes('open the menu') || t.includes('avatar')) && (t.includes('coach'))) return 'jax_coach';
+        }else{ // player ("You")
+          if(t.includes('where do i start')) return 'player_q';
+        }
+        return null;
+      }
+
+      function playForKey(key){
+        if(!key) return;
+        if(key==='player_q'){
+          const save = readSave(); const sex = (save && save.avatar)==='female' ? 'f' : 'm';
+          (sex==='f' ? VO.player_q_f : VO.player_q_m).playSafe(bubble);
+        }else{
+          const p = VO[key]; if(p) p.playSafe(bubble);
+        }
+      }
+
+      function onStepMaybe(){
+        if(!isShown()) return;
+        const curText = textEl.textContent||'';
+        const curHead = headName.textContent||'';
+        if(!curText) return;
+
+        // New step detection by text change
+        if(norm(curText) !== norm(lastText)){
+          lastText = curText;
+
+          // Bubble pop first
+          SFX_TIP_POP.play();
+
+          // Then voice that matches this line
+          const key = pickVO(curHead, curText);
+          if(key && key!==lastLineKey){
+            lastLineKey = key;
+            // tiny delay so pop isn't masked
+            setTimeout(()=> playForKey(key), 60);
+          }
+        }
+      }
+
+      // Observe: tutorial show/hide + text changes
+      new MutationObserver(()=>{ setTimeout(onStepMaybe, 0); })
+        .observe(tip, {attributes:true, attributeFilter:['class']});
+      new MutationObserver(()=>{ setTimeout(onStepMaybe, 0); })
+        .observe(textEl, {subtree:true, characterData:true, childList:true});
+      // Safety poll (covers instant replacements)
+      setInterval(onStepMaybe, 300);
+    })();
 
   }catch(e){
-    console.warn('Instant tutorial text v3 error:', e);
+    console.warn('Unified SFX v8.3 error:', e);
   }
 })();
 </script>
+
 
 
 
