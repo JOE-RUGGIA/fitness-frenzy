@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#0f1020; --panel:#1a1c35; --panel-2:#23264a; --text:#f5f7ff; --muted:#aab1d6;
-    --accent:#3aa6ff; --good:#27c93f; --warn:#ffb84d;
+    --accent:#3aa6ff; --accent-2:#7ac6ff; --good:#27c93f; --warn:#ffb84d;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -26,7 +26,8 @@
   .devbar .tag{color:#aab1d6; font-size:12px; opacity:.9}
   .cards{display:grid; gap:12px; margin-top:14px}
   .card{display:grid; grid-template-columns:120px 1fr; gap:14px; padding:12px;
-        background:var(--panel); border:1px solid #262a58; border-radius:14px}
+        background:var(--panel); border:1px solid #262a58; border-radius:14px; transition:transform .14s ease, box-shadow .14s ease}
+  .card.afford{ box-shadow:0 0 0 2px rgba(58,166,255,.18) inset, 0 0 22px rgba(58,166,255,.18); transform:translateY(-2px) }
   .tile{background:var(--panel-2); border-radius:12px; height:120px; user-select:none; cursor:pointer; position:relative}
   .tile.locked{filter:grayscale(100%); opacity:.9; cursor:default}
   .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 7px; border-radius:8px; font-size:13px}
@@ -39,8 +40,13 @@
   .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric:tabular-nums; color:#a6b0d8; font-size:14px}
   .meta{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px; flex-wrap:wrap}
   .muted{color:var(--muted); font-size:15px}
-  .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:10px 12px; border-radius:12px; min-width:160px; cursor:pointer}
-  .btn.glow{box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35)}
+  .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:10px 12px; border-radius:12px; min-width:160px; cursor:pointer; font-weight:700}
+  .btn.glow{
+    background:linear-gradient(180deg,var(--accent),var(--accent-2));
+    border-color:var(--accent-2);
+    color:#061222;
+    box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 14px rgba(58,166,255,.35)
+  }
   @media (max-width:480px){
     .card{grid-template-columns:96px 1fr; padding:10px}
     .tile{height:96px}
@@ -60,7 +66,7 @@
         </div>
       </div>
       <div class="pill"><span>HP</span><span id="hp">0</span></div>
-      <!-- Dev toolbar: leave visible for QA; remove when shipping -->
+      <!-- Dev toolbar -->
       <div class="devbar">
         <button id="dev-reset" class="btn" style="min-width:auto">Reset Save</button>
         <button id="dev-fresh" class="btn" style="min-width:auto">Fresh: Walk only</button>
@@ -77,7 +83,8 @@
 <script>
 /* ==========================================================
    Fitness Frenzy — CORE (Steps 1–3)
-   Bars correct on first frame; reset + seed for QA
+   Fix: unlock glow now updates on every HP change.
+   Bars are correct from frame 1.
    ========================================================== */
 (function(){
   "use strict";
@@ -126,28 +133,13 @@
   const nextCooldown  = (ms)=> Math.max(100, Math.floor(ms/2));
 
   /* ---------- Step 3: State + save ---------- */
-  const SAVE_KEY = 'ff-core-v2';
+  const SAVE_KEY = 'ff-core-v3';
 
   function defaultExercises(){
     return Exercises.map((ex,idx)=>({
       id:ex.id, unlocked:(idx===0), rep:0, repTarget:10, level:1,
       cooldown:ex.baseCooldownMs, lastTapAt:0
     }));
-  }
-
-  function defaults(){
-    // Start with your requested baseline: first 4 unlocked & leveled 4/3/2/1
-    const s = { schema:2, hp:0, qty:1, exercises: defaultExercises() };
-    // unlock first 4
-    for (let i=0;i<4;i++) s.exercises[i].unlocked = true;
-    // bump levels with cooldown-halving
-    levelTo(s.exercises[0], 4);
-    levelTo(s.exercises[1], 3);
-    levelTo(s.exercises[2], 2);
-    levelTo(s.exercises[3], 1);
-    // ensure ready on first frame
-    s.exercises.forEach(e=> e.lastTapAt = 0);
-    return s;
   }
 
   function levelTo(ex, target){
@@ -159,13 +151,26 @@
     }
   }
 
+  function defaults(){
+    // Start with your baseline: first 4 unlocked & leveled 4/3/2/1
+    const s = { schema:3, hp:0, qty:1, exercises: defaultExercises() };
+    for (let i=0;i<4;i++) s.exercises[i].unlocked = true;
+    levelTo(s.exercises[0], 4);
+    levelTo(s.exercises[1], 3);
+    levelTo(s.exercises[2], 2);
+    levelTo(s.exercises[3], 1);
+    s.exercises.forEach(e=> e.lastTapAt = 0);
+    return s;
+  }
+
   function ensureIntegrity(d){
     const byId = new Map((d.exercises||[]).map(e=>[e.id,e]));
     d.exercises = Exercises.map((ex,idx)=>{
       const prev = byId.get(ex.id)||{};
+      const unlockedDefault = idx<4; // keep first 4 unlocked by default
       return {
         id:ex.id,
-        unlocked: !!prev.unlocked, 
+        unlocked: prev.unlocked ?? unlockedDefault,
         rep: (prev.rep|0)||0,
         repTarget: (prev.repTarget|0)||10,
         level: (prev.level|0)||1,
@@ -175,9 +180,9 @@
     });
     d.hp = Number(d.hp)||0;
     d.qty = [1,10,100].includes(d.qty)? d.qty : 1;
-    d.schema = 2;
+    d.schema = 3;
 
-    // Normalize timebase: kill any epoch/future lastTapAt that would break bars
+    // Normalize timebase so bars never count “backwards”
     const nowPerf = performance.now();
     for (const ex of d.exercises) {
       const t = Number(ex.lastTapAt)||0;
@@ -238,7 +243,7 @@
     card.append(tile, right);
     cards.append(card);
 
-    // Immediate first-frame bar state to prevent flicker
+    // First-frame bar state: avoid flicker
     if (ex.unlocked && (!ex.lastTapAt || ex.lastTapAt===0)) {
       bar.style.width = '100%';
       t.textContent = 'Ready';
@@ -258,6 +263,7 @@
       ex.lastTapAt = now;
       renderExercise(idx);
       renderTop();
+      updateAffordances(); // <<< ensure glow state across ALL cards after HP change
       save(S);
     });
 
@@ -286,6 +292,7 @@
       }
       renderExercise(idx);
       renderTop();
+      updateAffordances(); // <<< keep everyone in sync after spending
       save(S);
     });
 
@@ -308,11 +315,12 @@
 
     if(!ex.unlocked){
       r.tile.classList.add('locked');
-      r.left.textContent = '—';
       const base = baseHP(idx, meta.baseCooldownMs);
       const price= unlockCost(base, meta.baseCooldownMs);
+      r.left.textContent = '—';
       r.btn.textContent  = 'Unlock • ' + fmt(price) + ' HP';
       r.btn.classList.toggle('glow', S.hp>=price);
+      r.card.classList.toggle('afford', S.hp>=price);
       r.reptext.textContent = '—';
       r.repfill.style.width = '0%';
       r.bar.style.width     = '0%';
@@ -321,6 +329,8 @@
     }
 
     r.tile.classList.remove('locked');
+    r.card.classList.remove('afford');
+
     const base = baseHP(idx, meta.baseCooldownMs);
     const tap  = perTapHP(base, ex.rep);
     r.left.textContent = tap + ' HP / tap';
@@ -335,10 +345,33 @@
     const pct = Math.max(0, Math.min(100, 100*((ex.rep||0)/(ex.repTarget||10))));
     r.reptext.textContent = (ex.rep||0) + ' / ' + (ex.repTarget||10);
     r.repfill.style.width = pct + '%';
-    // If no active cooldown, bar should read Ready & full immediately
+
     if (!ex.lastTapAt || ex.lastTapAt===0){
       r.bar.style.width = '100%';
       r.t.textContent = 'Ready';
+    }
+  }
+
+  function updateAffordances(){
+    // Recompute glow/pulse for ALL cards based on current HP & qty
+    for (let i=0;i<Exercises.length;i++){
+      const meta = Exercises[i];
+      const ex   = S.exercises[i];
+      const r    = refs.get(meta.id);
+      if(!r) continue;
+      const base = baseHP(i, meta.baseCooldownMs);
+      if(!ex.unlocked){
+        const price = unlockCost(base, meta.baseCooldownMs);
+        r.btn.classList.toggle('glow', S.hp>=price);
+        r.card.classList.toggle('afford', S.hp>=price);
+      }else{
+        const rb = repBaseCost(base);
+        const g  = repGrowth(ex.level||1);
+        const q  = S.qty;
+        const price = Math.ceil(q===1 ? repCostSingle(rb,g,ex.rep||0) : repCostBulk(rb,g,ex.rep||0,q));
+        r.btn.classList.toggle('glow', S.hp>=price);
+        r.card.classList.remove('afford');
+      }
     }
   }
 
@@ -347,6 +380,7 @@
     refs.clear();
     for(let i=0;i<Exercises.length;i++) createCard(i);
     renderTop();
+    updateAffordances(); // <<< initial pass
   }
 
   /* ---------- Engine loop (bars) ---------- */
@@ -363,7 +397,6 @@
         continue;
       }
 
-      // Ready → full bar
       if(!ex.lastTapAt || ex.lastTapAt===0){
         r.bar.style.width = '100%';
         r.t.textContent   = 'Ready';
@@ -393,7 +426,9 @@
     S.qty = q;
     [...bulk.children].forEach(x=> x.classList.toggle('active', x===b));
     save(S);
+    // Qty affects rep prices → update all buttons/glow
     for(let i=0;i<Exercises.length;i++) renderExercise(i);
+    updateAffordances();
   });
 
   /* ---------- Dev: Reset / Fresh / Seed ---------- */
@@ -404,7 +439,7 @@
 
   document.getElementById('dev-fresh').addEventListener('click', ()=>{
     // Walk-only clean start
-    const s = { schema:2, hp:0, qty:1, exercises: defaultExercises() };
+    const s = { schema:3, hp:0, qty:1, exercises: defaultExercises() };
     s.exercises[0].unlocked = true;
     s.exercises.forEach(e=> e.lastTapAt=0);
     S = ensureIntegrity(s);
@@ -413,7 +448,7 @@
   });
 
   document.getElementById('dev-seed').addEventListener('click', ()=>{
-    S = ensureIntegrity(defaults()); // same L4/L3/L2/L1 seed as first-run
+    S = ensureIntegrity(defaults()); // L4/L3/L2/L1 seed
     save(S);
     build();
   });
