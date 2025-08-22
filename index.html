@@ -1030,17 +1030,7 @@ const VO = {
 
 
 
-    (function primeSFX(){
-  const pools = [SFX_START,SFX_OPEN,SFX_TABS,SFX_CLOSE,SFX_REPS,SFX_UNLOCK,SFX_LEVEL,
-                 SFX_BULK,SFX_OFF_OPEN,SFX_OFF_CLAIM,SFX_ACH,SFX_COACH_AVL,SFX_COACH_HI,
-                 VO_AVA_MALE,VO_AVA_FEM,VO.jax1,VO.jax2,VO.jax3,VO.jax4,VO.jax5,VO.jax6];
-  const once = () => {
-    document.removeEventListener('pointerdown', once, true);
-    // play/pause each quietly to “unlock” on iOS; pools handle errors safely
-    pools.forEach(p => { try { p.setVolume(0.001); p.play(); setTimeout(()=>p.setVolume(1.0), 50); } catch(_){} });
-  };
-  document.addEventListener('pointerdown', once, {capture:true, once:true, passive:true});
-})();
+
 
 
 
