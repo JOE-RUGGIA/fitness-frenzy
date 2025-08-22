@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <!-- ===== Build tag (bump when you ship) ===== -->
-  <meta name="ff-build" content="2025-08-21q">
+  <meta name="ff-build" content="2025-08-21r">
 
   <!-- ===== Version Gate / Cache Bust & SW off ===== -->
   <script>
@@ -961,183 +961,6 @@
   })();
   </script>
 
-  <script>
-  /* ===== SFX Core v1.0 (single source of truth) ===== */
-  (function(){
-    if(window.__FF_SFX_CORE__) return; window.__FF_SFX_CORE__=true;
-
-    const $=(s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-    const IS_TOUCH=('ontouchstart'in window)||navigator.maxTouchPoints>0;
-    const BUILD=(document.querySelector('meta[name="ff-build"]')?.content||'dev').trim();
-    const withVer=url=>{ try{ if(!url||/^data:|^blob:/i.test(url)) return url; const u=new URL(url,location.href); u.searchParams.set('v',BUILD); return u.href; }catch(_){return url;} };
-
-    /* Mute legacy bleeps routed through WebAudio */
-    (function(){
-      const AC=window.AudioContext||window.webkitAudioContext;
-      if(AC && !AC.prototype.__ffMutePatched){
-        AC.prototype.__ffMutePatched=true;
-        const orig=AC.prototype.createGain;
-        AC.prototype.createGain=function(){ const g=orig.call(this); const oc=g.connect; g.connect=function(){ try{ if(window.__FF_MUTE_BLEEPNOW_UNTIL && performance.now()<window.__FF_MUTE_BLEEPNOW_UNTIL){ g.gain.value=0; } }catch(_){} return oc.apply(this,arguments); }; return g; };
-      }
-      function arm(rootSel, sel){ const root=$(rootSel); if(!root) return; ['pointerdown','click'].forEach(t=> root.addEventListener(t,(e)=>{ if(e.target?.closest(sel)) window.__FF_MUTE_BLEEPNOW_UNTIL=performance.now()+360; },{capture:true})); }
-      arm('#cards','.card .btn'); arm('#bulk','button'); arm('#menu','.tab, .menu-close, [data-close]'); arm('#menu-body','.coach-row .btn');
-    })();
-
-    function pool(url, n=3, vol=1.0){
-      url=withVer(url);
-      const arr=Array.from({length:n},()=>{ const a=new Audio(url); a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol; try{a.load()}catch(_){} return a; });
-      let i=0; const next=()=>arr[i++%arr.length];
-      return { play(){ const a=next(); try{a.currentTime=0}catch(_){} const p=a.play(); if(p&&p.catch) p.catch(()=>{}); },
-               playSafe(target=document){ const a=next(); try{a.currentTime=0}catch(_){} const p=a.play(); if(p&&p.catch){ p.catch(()=>{ const once=()=>{target.removeEventListener('pointerdown',once,true);target.removeEventListener('touchstart',once,true);a.play().catch(()=>{});}; target.addEventListener('pointerdown',once,{capture:true,passive:true,once:true}); target.addEventListener('touchstart',once,{capture:true,passive:true,once:true}); }); } },
-               setVolume(v){ arr.forEach(a=>{try{a.volume=v}catch(_){}}); } };
-    }
-
-/* Assets (use raw GitHub URLs so <audio> can decode) */
-const GH_RAW = (path) =>
-  `https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/${encodeURIComponent(path)}`;
-
-const VOL_REPS = IS_TOUCH ? 0.20 : 0.32;
-
-const SFX_START     = pool(GH_RAW("ff-sfx-Start-Avatar-Pick.mp3"),               2, 1.0);
-const SFX_OPEN      = pool(GH_RAW("ff-sfx-open-menu.mp3"),                        3, 1.0);
-const SFX_TABS      = pool(GH_RAW("ff-sfx-switch-tabs.mp3"),                      3, 1.0);
-const SFX_CLOSE     = pool(GH_RAW("ff-sfx-menu-backdrop-tap.mp3"),                2, 1.0);
-const SFX_REPS      = pool(GH_RAW("ff-sfx-reps-purchase-success.mp3"),            5, VOL_REPS);
-const SFX_UNLOCK    = pool(GH_RAW("ff-sfx-unlock-exercise.mp3"),                  2, 1.0);
-const SFX_LEVEL     = pool(GH_RAW("ff-sfx-level-up-heartbeat.mp3"),               3, 1.0);
-const SFX_BULK      = pool(GH_RAW("ff-sfx-bulk-selector-change.mp3"),             2, 1.0);
-const SFX_OFF_OPEN  = pool(GH_RAW("ff-sfx-offline-gains-window.mp3"),             2, 1.0);
-const SFX_OFF_CLAIM = pool(GH_RAW("ff-sfx-offline-gains.mp3"),                    2, 1.0);
-const SFX_ACH       = pool(GH_RAW("ff-sfx-achievement-unlocked-2.mp3"),           2, 1.0);
-
-const SFX_COACH_AVL = pool(GH_RAW("ff-sfx-coach-affordable-male.mp3"),            4, 1.0);
-const SFX_COACH_HI  = pool(GH_RAW("ff-sfx-coach-hired.mp3"),                      3, 1.0);
-
-const VO_AVA_MALE   = pool(GH_RAW("player male audio intro (start menu).mp3"),    2, 1.0);
-const VO_AVA_FEM    = pool(GH_RAW("player female audio intro (start screen).mp3"),2, 1.0);
-
-const VO = {
-  jax1: pool(GH_RAW("Jax Audio 1.mp3"),                                           2, 1.0),
-  plyM: VO_AVA_MALE,
-  plyF: VO_AVA_FEM,
-  jax2: pool(GH_RAW("Jax audio 3 (walking hp).mp3"),                               2, 1.0),
-  jax3: pool(GH_RAW("Jax audio REPS.mp3"),                                         2, 1.0),
-  jax4: pool(GH_RAW("Jax audio COOLDOWN.mp3"),                                     2, 1.0),
-  jax5: pool(GH_RAW("Jax audio 6 (jogging).mp3"),                                  2, 1.0),
-  jax6: pool(GH_RAW("Jax audio 9 (coach).mp3"),                                    2, 1.0),
-};
-
-
-
-
-
-
-
-    
-
-
-
-
-
-    
-
-
-
-
-
-    /* Start / Menu */
-    const startNew=$('#btn-new'), startCont=$('#btn-continue'), avatar=$('#avatar'), menu=$('#menu'), tabsWrap=$('.menu-tabs'), menuBody=$('#menu-body'), bulk=$('#bulk'), cards=$('#cards');
-    startNew?.addEventListener('pointerdown', ()=>SFX_START.play(), {capture:true,passive:true});
-    startCont?.addEventListener('pointerdown', ()=>SFX_START.play(), {capture:true,passive:true});
-    avatar?.addEventListener('pointerdown', ()=>SFX_OPEN.play(), {capture:true,passive:true});
-    menu?.addEventListener('pointerdown', (e)=>{ const c=e.target.closest?.('[data-close], .menu-close, .menu-backdrop'); if(c) SFX_CLOSE.play(); }, {capture:true,passive:true});
-    tabsWrap?.addEventListener('pointerdown', (e)=>{ const tab=e.target.closest?.('.tab'); if(!tab||tab.classList.contains('active')) return; SFX_TABS.play(); }, {capture:true,passive:true});
-    bulk?.addEventListener('pointerdown', (e)=>{ const btn=e.target.closest?.('button'); if(!btn) return; setTimeout(()=>{ if(btn.classList.contains('active')) SFX_BULK.play(); },0); }, {capture:true,passive:true});
-
-    /* Reps & Unlock */
-    cards?.addEventListener('pointerdown', (e)=>{
-      const btn=e.target.closest?.('.card .btn'); if(!btn) return;
-      const card=btn.closest('.card'); const tile=card?.querySelector('.tile'); const isLocked=tile?.classList.contains('locked');
-      if(isLocked){ SFX_UNLOCK.play(); return; }
-      if(btn.classList.contains('btn-reps') && btn.classList.contains('glow')) SFX_REPS.play();
-    }, {capture:true,passive:true});
-
-    /* Level up detector (watch .lvl text increases) */
-    const lastLvl=new WeakMap();
-    function scanLvl(el){ const m=(el.textContent||'').match(/Lvl\s+(\d+)/i); const cur=m?+m[1]:null; if(cur==null) return; const prev=lastLvl.get(el); if(prev!=null && cur>prev) SFX_LEVEL.play(); lastLvl.set(el,cur); }
-    document.querySelectorAll('.card .lvl').forEach(scanLvl);
-    new MutationObserver(muts=>{
-      muts.forEach(m=>{
-        if(m.type==='characterData'){ const el=m.target.parentElement; if(el?.classList.contains('lvl')) scanLvl(el); }
-        else if(m.type==='childList'){ m.addedNodes.forEach(n=>{ if(!(n instanceof HTMLElement)) return; if(n.classList?.contains('lvl')) scanLvl(n); n.querySelectorAll?.('.lvl')?.forEach(scanLvl); }); }
-      });
-    }).observe(cards,{subtree:true, childList:true, characterData:true});
-
-    /* Offline / Achievements */
-    const offline=$('#offline'), offClaim=$('#offline-claim'), ach=$('#ach');
-    new MutationObserver(()=>{ if(offline?.classList.contains('show')) SFX_OFF_OPEN.play(); }).observe(offline||document.body,{attributes:true, attributeFilter:['class']});
-    offClaim?.addEventListener('click', ()=> SFX_OFF_CLAIM.play(), {capture:true});
-    new MutationObserver(muts=>{ muts.forEach(m=> m.addedNodes.forEach(n=>{ const b=(n instanceof HTMLElement && (n.matches('.banner')?n:n.querySelector?.('.banner'))); if(b) SFX_ACH.play(); })); }).observe(ach||document.body,{childList:true, subtree:true});
-
-    /* Coaches: available + hired, only in Coaches tab */
-    function coachesTabActive(){ const t=document.querySelector('#menu .menu-tabs .tab[data-tab="coaches"]'); return document.getElementById('menu')?.classList.contains('show') && t && t.classList.contains('active'); }
-    const availPlayed = new WeakSet();
-    function scanCoachRow(row, initial=false){
-      if(!coachesTabActive()) return;
-      const btn=row.querySelector('button.btn'); const glow=!!(btn && btn.classList.contains('glow')); const hired=!!row.querySelector('.hired');
-      if(glow && !availPlayed.has(row)){ availPlayed.add(row); SFX_COACH_AVL.playSafe(document.getElementById('menu')||document); }
-      if(hired && !row.__ffHired__){ row.__ffHired__=true; SFX_COACH_HI.play(); }
-      if(!hired && row.__ffHired__) row.__ffHired__=false;
-    }
-    function scanAllCoachRows(){ if(!coachesTabActive()) return; document.querySelectorAll('#menu-body .coach-row').forEach(r=>scanCoachRow(r,true)); }
-    const menuBodyObs=new MutationObserver(m=>{ if(!coachesTabActive()) return; m.forEach(x=>{ x.addedNodes.forEach(n=>{ if(!(n instanceof HTMLElement)) return; if(n.classList.contains('coach-row')) scanCoachRow(n,true); n.querySelectorAll?.('.coach-row')?.forEach(r=>scanCoachRow(r,true)); }); if(x.type==='attributes' && x.attributeName==='class' && (x.target instanceof HTMLElement) && x.target.matches('.coach-row .btn')) scanCoachRow(x.target.closest('.coach-row')); }); });
-    const bodyEl=document.getElementById('menu-body'); if(bodyEl) menuBodyObs.observe(bodyEl,{subtree:true, childList:true, attributes:true, attributeFilter:['class']});
-    document.getElementById('menu')?.addEventListener('click', (e)=>{ const tab=e.target.closest?.('.tab[data-tab="coaches"]'); if(tab) setTimeout(scanAllCoachRows,0); }, true);
-    setInterval(scanAllCoachRows, 900);
-
-    // Immediate hired feedback on pressing a glowing button
-    bodyEl?.addEventListener('pointerdown', (e)=>{ if(!coachesTabActive()) return; const btn=e.target.closest?.('.coach-row .btn'); if(!btn||!btn.classList.contains('glow')) return; const row=btn.closest('.coach-row'); if(row && !row.__ffHired__) SFX_COACH_HI.playSafe(document.getElementById('menu')||document); }, {capture:true,passive:true});
-
-    /* Tutorial VO + bubble pop */
-    const tip=$('#tip'), tipName=$('#tip-head-name'), tipText=$('#tip-text'), tipBubble=$('#tip-bubble');
-    function playBubble(){ SFX_START.play(); }
-    new MutationObserver(m=>{ m.forEach(x=>{ x.addedNodes.forEach(n=>{ const b=(n instanceof HTMLElement && (n.matches('.bubble')?n:n.querySelector?.('.bubble'))); if(b && tip?.classList.contains('show')) playBubble(); }); }); }).observe(tip||document.body,{childList:true,subtree:true});
-    let lastLine='';
-    function tryPlayVO(){
-      if(!tip || !tip.classList.contains('show')) return;
-      const who=(tipName?.textContent||'').trim().toLowerCase();
-      const line=(tipText?.textContent||'').trim(); if(!line || line===lastLine) return; lastLine=line;
-
-      if(who==='jax'){
-        if(/low on energy/i.test(line)) VO.jax1.play();
-        else if(/Tap Walking/i.test(line)) VO.jax2.play();
-        else if(/Use Reps/i.test(line)) VO.jax3.play();
-        else if(/green bar/i.test(line)||/cooldown halves/i.test(line)) VO.jax4.play();
-        else if(/Unlock Jogging/i.test(line)) VO.jax5.play();
-        else if(/hire a coach/i.test(line)) VO.jax6.play();
-      } else {
-        if(/where do i start/i.test(line)) {
-          const sex = (window.FF?.S?.avatar==='female')?'f':'m';
-          (sex==='f'?VO.plyF:VO.plyM).play();
-        }
-      }
-    }
-    setInterval(tryPlayVO,120);
-
-    /* Start-screen avatar VO on click */
-    const startAvatars=document.getElementById('start-avatars');
-    startAvatars?.addEventListener('pointerdown', (e)=>{
-      const a=e.target.closest?.('.ava'); if(!a) return;
-      if(a.dataset.sex==='female') VO_AVA_FEM.play(); else VO_AVA_MALE.play();
-    }, {capture:true,passive:true});
-
-    /* Reps/Unlock & Level events are already handled above */
-    /* Offline & Ach handled above */
-
-  })();
-  </script>
-
-
 
 
 
@@ -1146,129 +969,417 @@ const VO = {
 
 
   <script type="application/ff-patch">
-/* ===== Mobile SFX Fix v2: unlock + preload + retry (iOS/Safari safe) ===== */
+/* ================= Fitness Frenzy • SFX Engine v9 (clean rewrite) ==================
+   - Single source of truth for all SFX URLs (GitHub raw + ?v=<ff-build>)
+   - Mobile-safe: unlocks audio on first gesture, retries blocked play()
+   - Preloads all assets for snappy playback
+   - Event bindings: Start/Menu/Tabs/Close/Bulk/Reps/Unlock/LevelUp/Offline/Achievements
+   - Coaches: plays "available" when Hire .glow appears (Coaches tab), "hired" on press + flip
+   - Start voices for male/female avatar pick
+   - Tutorial bubble “pop” SFX when bubble appears
+   - Mutes legacy oscillator “bleeps” by no-oping window.SFX handlers
+   ------------------------------------------------------------------------------- */
 (function(){
   try{
-    if (window.__FF_MOBILE_SFX_FIX_V2__) return;
-    window.__FF_MOBILE_SFX_FIX_V2__ = true;
+    if (window.__FF_SFX_V9__) return;
+    window.__FF_SFX_V9__ = true;
 
+    const $  = (s, r=document)=> r.querySelector(s);
+    const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
+    const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
     const BUILD = (document.querySelector('meta[name="ff-build"]')?.content || 'dev').trim();
-    const GH_RAW = (path) =>
-      `https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/${encodeURIComponent(path)}?v=${encodeURIComponent(BUILD)}`;
 
-    /* --- List every SFX/VO file you use here (keeps preload + cache-bust tight) --- */
-    const FILES = [
-      // Core UI
-      "ff-sfx-Start-Avatar-Pick.mp3",
-      "ff-sfx-open-menu.mp3",
-      "ff-sfx-switch-tabs.mp3",
-      "ff-sfx-menu-backdrop-tap.mp3",
-      "ff-sfx-reps-purchase-success.mp3",
-      "ff-sfx-unlock-exercise.mp3",
-      "ff-sfx-level-up-heartbeat.mp3",
-      "ff-sfx-bulk-selector-change.mp3",
-      "ff-sfx-offline-gains-window.mp3",
-      "ff-sfx-offline-gains.mp3",
-      "ff-sfx-achievement-unlocked-2.mp3",
-      // Coaches
-      "ff-sfx-coach-affordable-male.mp3",
-      "ff-sfx-coach-hired.mp3",
-      // Start screen VO
-      "player male audio intro (start menu).mp3",
-      "player female audio intro (start screen).mp3",
-      // Tutorial VO (7 lines)
-      "Jax Audio 1.mp3",
-      "female player audio 1.mp3",            // if you use the female “But where do I start?”
-      "male player audio 1.mp3",              // if you use the male “But where do I start?”
-      "Jax audio 3 (walking hp).mp3",
-      "Jax audio REPS.mp3",
-      "Jax audio COOLDOWN.mp3",
-      "Jax audio 6 (jogging).mp3",
-      "Jax audio 9 (coach).mp3"
-    ];
+    /* ---------- URL helpers (GitHub blob → raw + version param) ---------- */
+    function toRaw(u){
+      return String(u||'').replace(
+        /https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,
+        'https://raw.githubusercontent.com/$1/$2/$3'
+      );
+    }
+    function withVer(url){
+      try{
+        const u = new URL(toRaw(url), location.href);
+        u.searchParams.set('v', BUILD);
+        return u.href;
+      }catch(_){ return url; }
+    }
 
-    /* --- 0) Preload all SFX with cache-busting (fast start on mobile) --- */
-    const head = document.head || document.documentElement;
-    const prewarmed = [];
-    FILES.forEach(name=>{
-      const href = GH_RAW(name);
-      // <link rel=preload>
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'audio';
-      link.crossOrigin = 'anonymous';
-      link.href = href;
-      head.appendChild(link);
-      // also kick a light preload via an off-DOM Audio
-      const a = new Audio(href);
-      a.preload = 'auto';
-      try{ a.load(); }catch(_){}
-      prewarmed.push(a);
-    });
+    /* ---------- Kill legacy “bleep” generators (if any) ---------- */
+    try{
+      if (window.SFX){ window.SFX.ok = ()=>{}; window.SFX.click = ()=>{}; }
+    }catch(_){}
 
-    /* --- 1) Global autoplay retry shim for HTMLAudio.play() --- */
-    const HME = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
-    if (HME && !HME.__ff_play_retry_patch){
-      HME.__ff_play_retry_patch = true;
-      const orig = HME.play;
-      HME.play = function(){
-        const r = (()=>{ try{ return orig.apply(this, arguments); }catch(e){ return Promise.reject(e); } })();
-        if (r && r.catch){
-          r.catch(err=>{
-            const s = (err && (err.name || err.message) || '').toString();
-            if (/NotAllowed|gesture|user/i.test(s)){
-              const el = this;
-              const once = ()=>{
-                document.removeEventListener('pointerdown', once, true);
-                document.removeEventListener('touchstart',  once, true);
-                try{ orig.call(el); }catch(_){}
-              };
-              document.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
-              document.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
-            }
-          });
-        }
-        return r;
+    /* ---------- Mobile unlock + global play() retry ---------- */
+    (function audioBoot(){
+      if (window.__FF_AUDIO_BOOT__) return;
+      window.__FF_AUDIO_BOOT__ = true;
+
+      // Patch HTMLMediaElement.play() to retry on next gesture if blocked
+      const HME = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+      if (HME && !HME.__ffPlayRetry){
+        HME.__ffPlayRetry = true;
+        const orig = HME.play;
+        HME.play = function(){
+          const r = (()=>{ try{ return orig.apply(this, arguments); }catch(e){ return Promise.reject(e); } })();
+          if (r && r.catch){
+            r.catch(err=>{
+              const s = (err && (err.name || err.message) || '').toString();
+              if (/NotAllowed|gesture|user/i.test(s)){
+                const el = this;
+                const once = ()=>{
+                  document.removeEventListener('pointerdown', once, true);
+                  document.removeEventListener('touchstart',  once, true);
+                  try{ orig.call(el); }catch(_){}
+                };
+                document.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+                document.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+              }
+            });
+          }
+          return r;
+        };
+      }
+
+      // Silent unlock (iOS) + resume WebAudio if present
+      const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+      let primed = false;
+      function unlockOnce(){
+        if (primed) return; primed = true;
+        try{
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC){
+            if (!window.__ff_ac__) window.__ff_ac__ = new AC();
+            window.__ff_ac__.resume?.();
+          }
+        }catch(_){}
+        try{
+          const a = new Audio(SILENT); a.muted = true; a.preload = 'auto';
+          a.play().finally(()=>{ try{ a.pause(); }catch(_){}} );
+        }catch(_){}
+      }
+      const arm = ()=>{
+        document.addEventListener('pointerdown', unlockOnce, {capture:true, passive:true, once:true});
+        document.addEventListener('touchstart',  unlockOnce, {capture:true, passive:true, once:true});
+        document.addEventListener('click',       unlockOnce, {capture:true, passive:true, once:true});
+      };
+      arm();
+      window.addEventListener('pageshow', (e)=>{ if(e.persisted){ primed=false; arm(); } });
+    })();
+
+    /* ---------- Lightweight audio pool ---------- */
+    function pool(url, n=3, vol=1.0){
+      const src = withVer(url);
+      const arr = Array.from({length:n}, ()=>{ const a=new Audio(src); a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol; try{ a.load(); }catch(_){ } return a; });
+      let i=0;
+      function next(){ return arr[i++ % arr.length]; }
+      return {
+        play(){
+          const a=next(); try{ a.currentTime=0; }catch(_){}
+          const p=a.play(); if(p && p.catch) p.catch(()=>{});
+        },
+        playSafe(target=document){
+          const a=next(); try{ a.currentTime=0; }catch(_){}
+          const p=a.play();
+          if(p && p.catch){
+            p.catch(()=>{
+              const once = ()=>{ target.removeEventListener('pointerdown', once, true);
+                                 target.removeEventListener('touchstart',  once, true);
+                                 a.play().catch(()=>{}); };
+              target.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+              target.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+            });
+          }
+        },
+        setVolume(v){ arr.forEach(a=>{ try{ a.volume=v; }catch(_){ } }); }
       };
     }
 
-    /* --- 2) Silent-gesture unlock (resumes WebAudio too, just in case) --- */
-    const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
-    let primed = false;
-    function unlockOnce(){
-      if (primed) return; primed = true;
-
-      // resume WebAudio (if you use any)
-      try{
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC){
-          if (!window.__ff_ac__) window.__ff_ac__ = new AC();
-          if (window.__ff_ac__.state === 'suspended') window.__ff_ac__.resume?.();
-        }
-      }catch(_){}
-
-      // play a silent audio to satisfy iOS gesture policy
-      try{
-        const a = new Audio(SILENT);
-        a.muted = true; a.preload = 'auto';
-        a.play().finally(()=>{ try{ a.pause(); }catch(_){} });
-      }catch(_){}
-    }
-    const arm = ()=>{
-      document.addEventListener('pointerdown', unlockOnce, {capture:true, passive:true, once:true});
-      document.addEventListener('touchstart',  unlockOnce, {capture:true, passive:true, once:true});
-      document.addEventListener('click',       unlockOnce, {capture:true, passive:true, once:true});
+    /* ---------- Registry: put ALL your SFX here ---------- */
+    const VOL_REPS = IS_TOUCH ? 0.18 : 0.26;  // quiet on mobile, comfy on desktop
+    const S = {
+      startBtn   : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0),
+      openMenu   : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0),
+      tabSwitch  : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",3,1.0),
+      closeMenu  : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",2,1.0),
+      repsBuy    : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",5,VOL_REPS),
+      unlockEx   : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",2,1.0),
+      levelUp    : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",3,1.0),
+      bulkChange : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",2,1.0),
+      offOpen    : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",2,1.0),
+      offClaim   : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0),
+      achieve    : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0),
+      coachAvail : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",4,1.0), // male-only as requested
+      coachHired : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-hired.mp3",3,1.0),
+      // Start voices
+      voiceMale  : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20male%20audio%20intro%20(start%20menu).mp3",2,1.0),
+      voiceFem   : pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20female%20audio%20intro%20(start%20screen).mp3",2,1.0),
+      // Tutorial bubble “pop” (reuse startBtn you liked)
+      tipPop     : null
     };
-    arm();
+    S.tipPop = S.startBtn;
 
-    // Re-arm after bfcache restore (Safari)
-    window.addEventListener('pageshow', (e)=>{ if(e.persisted){ primed=false; arm(); } });
+    /* Preload everything (keeps mobile snappy) */
+    (function preloadAll(){
+      const head = document.head || document.documentElement;
+      Object.values(S).forEach(p=>{
+        if(!p) return;
+        try{
+          // best-effort: append <link rel=preload as=audio>
+          const a = p.playSafe ? null : null; // pools already preloaded; we still add hints
+        }catch(_){}
+      });
+      // Add explicit hints:
+      const HREFS = [
+        "ff-sfx-Start-Avatar-Pick.mp3",
+        "ff-sfx-open-menu.mp3",
+        "ff-sfx-switch-tabs.mp3",
+        "ff-sfx-menu-backdrop-tap.mp3",
+        "ff-sfx-reps-purchase-success.mp3",
+        "ff-sfx-unlock-exercise.mp3",
+        "ff-sfx-level-up-heartbeat.mp3",
+        "ff-sfx-bulk-selector-change.mp3",
+        "ff-sfx-offline-gains-window.mp3",
+        "ff-sfx-offline-gains.mp3",
+        "ff-sfx-achievement-unlocked-2.mp3",
+        "ff-sfx-coach-affordable-male.mp3",
+        "ff-sfx-coach-hired.mp3",
+        "player male audio intro (start menu).mp3",
+        "player female audio intro (start screen).mp3"
+      ];
+      HREFS.forEach(name=>{
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'audio';
+        link.crossOrigin = 'anonymous';
+        link.href = withVer(`https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/${encodeURIComponent(name)}`);
+        head.appendChild(link);
+      });
+    })();
+
+    /* ---------- Bindings ---------- */
+
+    // Start buttons
+    const btnNew = $('#btn-new'), btnCont = $('#btn-continue');
+    [btnNew, btnCont].forEach(b=> b && b.addEventListener('pointerdown', ()=> S.startBtn.play(), {capture:true, passive:true}));
+
+    // Start screen avatar voices (male/female)
+    const startAvatars = $('#start-avatars');
+    if (startAvatars){
+      startAvatars.addEventListener('pointerdown', (e)=>{
+        const a = e.target.closest('.ava'); if(!a) return;
+        const sex = a.dataset.sex === 'female' ? 'female' : 'male';
+        if (sex === 'female') S.voiceFem.playSafe(document); else S.voiceMale.playSafe(document);
+      }, {capture:true, passive:true});
+    }
+
+    // Menu open/close
+    const avatar = $('#avatar'), menu = $('#menu'), menuBody = $('#menu-body');
+    if (avatar) avatar.addEventListener('pointerdown', ()=> S.openMenu.play(), {capture:true, passive:true});
+    if (menu){
+      // close via backdrop/close
+      menu.addEventListener('pointerdown', (e)=>{
+        const close = e.target.closest?.('.menu-backdrop, .menu-close, [data-close]');
+        if(close) S.closeMenu.play();
+      }, {capture:true, passive:true});
+      // tab switch (only when changing)
+      const tabsWrap = menu.querySelector('.menu-tabs');
+      if (tabsWrap){
+        tabsWrap.addEventListener('pointerdown', (e)=>{
+          const tab=e.target.closest?.('.tab'); if(!tab) return;
+          if(!tab.classList.contains('active')) S.tabSwitch.play();
+        }, {capture:true, passive:true});
+      }
+    }
+
+    // Bulk selector change (play only on change)
+    const bulk = $('#bulk');
+    if (bulk){
+      let last = bulk.querySelector('button.active')?.dataset.q || null;
+      bulk.addEventListener('pointerdown', (e)=>{
+        const btn = e.target.closest?.('button'); if(!btn) return;
+        setTimeout(()=>{ const cur = bulk.querySelector('button.active')?.dataset.q || null;
+          if(cur && cur!==last){ last=cur; S.bulkChange.play(); } }, 0);
+      }, {capture:true, passive:true});
+    }
+
+    // Reps purchase: only when rep count increases
+    (function repsBuyWatcher(){
+      const cards = $('#cards'); if(!cards) return;
+      cards.addEventListener('pointerdown', (e)=>{
+        const btn = e.target.closest?.('.card .meta .btn'); if(!btn) return;
+        if(!/^Reps\b/i.test((btn.textContent||'').trim())) return;
+        // Observe the "x / y" text for increment
+        const card = btn.closest('.card');
+        const repEl = card?.querySelector('.repband .reptext'); if(!repEl) return;
+        const before = parseInt((repEl.textContent||'0').split('/')[0].replace(/\D/g,''),10) || 0;
+        let played=false;
+        const mo = new MutationObserver(()=>{
+          const after = parseInt((repEl.textContent||'0').split('/')[0].replace(/\D/g,''),10) || 0;
+          if(!played && after>before){ played=true; mo.disconnect(); S.repsBuy.play(); }
+        });
+        mo.observe(repEl, {childList:true, characterData:true, subtree:true});
+        setTimeout(()=> mo.disconnect(), 800);
+      }, {capture:true, passive:true});
+    })();
+
+    // Unlock exercise: when tile loses .locked
+    (function unlockWatcher(){
+      const cards = $('#cards'); if(!cards) return;
+      new MutationObserver((muts)=>{
+        muts.forEach(m=>{
+          if(m.type==='attributes' && m.attributeName==='class'){
+            const el=m.target;
+            if(!(el instanceof HTMLElement) || !el.classList.contains('tile')) return;
+            const was = m.oldValue || '';
+            if(/\blocked\b/.test(was) && !el.classList.contains('locked')) S.unlockEx.play();
+          }
+        });
+      }).observe(cards,{subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
+    })();
+
+    // Level up: watch .lvl text increase
+    (function levelWatcher(){
+      const cards = $('#cards'); if(!cards) return;
+      const last = new WeakMap();
+      function scan(el){
+        const m = (el.textContent||'').match(/Lvl\s+(\d+)/i); const cur = m?+m[1]:null;
+        if(cur==null) return;
+        const prev = last.get(el);
+        if(prev!=null && cur>prev) S.levelUp.play();
+        last.set(el, cur);
+      }
+      $$('.card .lvl', cards).forEach(scan);
+      new MutationObserver((muts)=>{
+        muts.forEach(m=>{
+          if(m.type==='characterData'){
+            const el=m.target.parentElement; if(el && el.classList.contains('lvl')) scan(el);
+          }else if(m.type==='childList'){
+            m.addedNodes.forEach(n=>{
+              if(!(n instanceof HTMLElement)) return;
+              if(n.classList?.contains('lvl')) scan(n);
+              $$('.lvl', n).forEach(scan);
+            });
+          }
+        });
+      }).observe(cards,{subtree:true,childList:true,characterData:true});
+      setInterval(()=> $$('.card .lvl', cards).forEach(scan), 350);
+    })();
+
+    // Offline modal + claim
+    (function offlineWatcher(){
+      const off=$('#offline'), claim=$('#offline-claim');
+      if(off){
+        new MutationObserver(()=>{ if(off.classList.contains('show')) S.offOpen.playSafe(document); })
+          .observe(off,{attributes:true, attributeFilter:['class']});
+      }
+      if(claim){ claim.addEventListener('pointerdown', ()=> S.offClaim.play(), {capture:true, passive:true}); }
+    })();
+
+    // Achievements banner
+    (function achWatcher(){
+      const root = $('#ach'); if(!root) return;
+      new MutationObserver((muts)=>{
+        muts.forEach(m=>{
+          m.addedNodes.forEach(n=>{
+            const banner = (n instanceof HTMLElement) && (n.matches('.banner')? n : n.querySelector?.('.banner'));
+            if(banner) S.achieve.playSafe(document);
+          });
+        });
+      }).observe(root, {childList:true, subtree:true});
+    })();
+
+    // Tutorial bubble “pop”
+    (function tipPop(){
+      const tip = $('#tip'), bubble = $('#tip-bubble'); if(!tip || !bubble) return;
+      new MutationObserver((muts)=>{
+        muts.forEach(m=>{
+          if(m.type==='attributes' && m.attributeName==='style'){
+            // show is controlled by visibility in your code
+            const vis = bubble.style.visibility !== 'hidden' && bubble.style.visibility !== '';
+            if(vis){ S.tipPop.play(); }
+          }
+        });
+      }).observe(bubble, {attributes:true, attributeFilter:['style']});
+    })();
+
+    // Coaches tab: available + hired
+    (function coachSFX(){
+      const menu = $('#menu'), body = $('#menu-body'); if(!menu || !body) return;
+
+      function coachesTabActive(){
+        const t = $('.menu-tabs .tab[data-tab="coaches"]', menu);
+        return menu.classList.contains('show') && t && t.classList.contains('active');
+      }
+
+      // Play "available" once per row when .btn.glow appears; "hired" on press + flip
+      const AV_TAG='data-ff-av-sounded', HI_TAG='data-ff-hire-sounded';
+
+      function scanRow(row){
+        if(!coachesTabActive()) return;
+        const btn = row.querySelector('button.btn');
+        const glow = !!(btn && btn.classList.contains('glow'));
+        const hired = !!row.querySelector('.hired');
+
+        if(glow && !row.hasAttribute(AV_TAG)){
+          row.setAttribute(AV_TAG,'1');
+          S.coachAvail.playSafe(menu);
+        }
+        if(hired && !row.hasAttribute(HI_TAG)){
+          row.setAttribute(HI_TAG,'1');
+          S.coachHired.play();
+        }
+        if(!hired && row.hasAttribute(HI_TAG)) row.removeAttribute(HI_TAG);
+      }
+
+      function scanAll(){ $$('.coach-row', body).forEach(scanRow); }
+
+      // Immediate hired feedback on pressing a glowing Hire button
+      body.addEventListener('pointerdown', (e)=>{
+        if(!coachesTabActive()) return;
+        const btn = e.target.closest?.('.coach-row .btn'); if(!btn) return;
+        if(btn.classList.contains('glow')) S.coachHired.playSafe(menu);
+      }, {capture:true, passive:true});
+
+      // Observe DOM changes
+      const mo = new MutationObserver((muts)=>{
+        if(!coachesTabActive()) return;
+        muts.forEach(m=>{
+          if(m.type==='childList'){
+            m.addedNodes.forEach(n=>{
+              if(!(n instanceof HTMLElement)) return;
+              if(n.classList.contains('coach-row')) scanRow(n);
+              n.querySelectorAll?.('.coach-row').forEach(scanRow);
+            });
+          }
+          if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
+            if(m.target.matches('.coach-row .btn')) scanRow(m.target.closest('.coach-row'));
+          }
+        });
+      });
+      mo.observe(body, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
+
+      // Kick on menu open/tab switch
+      new MutationObserver(()=>{ if(coachesTabActive()) setTimeout(scanAll,0); })
+        .observe(menu, {attributes:true, attributeFilter:['class']});
+      const tabs = menu.querySelector('.menu-tabs');
+      tabs && ['pointerdown','click'].forEach(t=> tabs.addEventListener(t, ()=> setTimeout(scanAll,0), {capture:true, passive:true}));
+
+      // Poll fallback for Safari silent swaps
+      setInterval(()=> coachesTabActive() && scanAll(), 800);
+    })();
+
+    // Expose for quick debug: window.FFSFX.play('repsBuy')
+    window.FFSFX = {
+      play: (key)=> S[key]?.play(),
+      setRepsVolume: (v)=> S.repsBuy.setVolume(Math.max(0,Math.min(1, v)))
+    };
 
   }catch(e){
-    console.warn('Mobile SFX Fix error:', e);
+    console.warn('SFX Engine v9 error:', e);
   }
 })();
 </script>
+
 
 </body>
 </html>
