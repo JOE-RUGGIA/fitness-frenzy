@@ -1,6 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+
+
+
+
+
+<!-- Put these at the very top of <head>, before any other <script> or <link> ////////////////NEWEST//////////-->
+<meta name="ff-build" content="2025-08-21e">
+
+<script>
+/* ===== Fitness Frenzy • Version Gate (reads <meta name="ff-build">) =========
+   - Forces versioned URL (?v=BUILD) so mobile never serves stale HTML
+   - Reloads if restored from bfcache
+   - Unregisters any service workers (prevents old assets being served)
+============================================================================= */
+(function(){
+  function getBuild(){
+    return (document.querySelector('meta[name="ff-build"]')?.content || '').trim() || 'dev';
+  }
+  const BUILD = getBuild();
+
+  try{
+    const u = new URL(location.href);
+    if (u.searchParams.get('v') !== BUILD){
+      u.searchParams.set('v', BUILD);
+      location.replace(u.href);            // replace so Back won’t hit stale
+      return;                              // stop running old page
+    }
+  }catch(_){}
+
+  addEventListener('pageshow', e=>{ if(e.persisted){ location.reload(); } });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations?.().then(list=>{
+      list.forEach(reg=> reg.unregister().catch(()=>{}));
+    }).catch(()=>{});
+  }
+})();
+</script>
+
+<!-- Helpful cache headers (defensive) -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+
+
+
+
+
+
+  
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Fitness Frenzy — VS7x (stats + gender-tinted bars & Reps)</title>
@@ -3667,36 +3719,128 @@ try{
 
 
 
+<script>
+/* ===== Fitness Frenzy • Asset Buster (reads <meta name="ff-build">) =========
+   - Appends ?v=BUILD to IMG.src and new Audio(src) (incl. GitHub blob→raw)
+   - Retags existing <img> elements in DOM
+   - Keep your SFX engine’s own audio-unlock; this does ONLY cache-busting
+============================================================================= */
+(function(){
+  function getBuild(){ return (document.querySelector('meta[name="ff-build"]')?.content||'').trim()||'dev'; }
+  const BUILD = getBuild();
+  const HOST_OK = /(^$)|(\.githubusercontent\.com$)|(^github\.com$)/i;
+
+  function toRaw(u){
+    return String(u||'').replace(
+      /https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,
+      'https://raw.githubusercontent.com/$1/$2/$3'
+    );
+  }
+  function bust(url){
+    try{
+      if(!url || /^data:|^blob:/i.test(url)) return url;
+      url = toRaw(url);
+      const u = new URL(url, location.href);
+      if (!HOST_OK.test(u.host)) return url;
+      u.searchParams.set('v', BUILD);
+      return u.href;
+    }catch(_){ return url; }
+  }
+
+  // Patch <img>.src setter
+  try{
+    const desc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+    if (desc && !HTMLImageElement.prototype.__ffSrcBusted){
+      Object.defineProperty(HTMLImageElement.prototype, 'src', {
+        get: desc.get,
+        set: function(v){ return desc.set.call(this, bust(v)); }
+      });
+      HTMLImageElement.prototype.__ffSrcBusted = true;
+    }
+  }catch(_){}
+
+  // Fallback for setAttribute('src', ...)
+  const _setAttr = Element.prototype.setAttribute;
+  Element.prototype.setAttribute = function(name, value){
+    if (name && name.toLowerCase()==='src' && this instanceof HTMLImageElement){
+      return _setAttr.call(this, name, bust(value));
+    }
+    return _setAttr.call(this, name, value);
+  };
+
+  // Retag existing <img> on the page
+  document.querySelectorAll('img[src]').forEach(img=>{
+    try{ img.src = bust(img.getAttribute('src')); }catch(_){}
+  });
+
+  // Wrap Audio() constructor to append ?v=BUILD (lighter preload for heat)
+  try{
+    const OrigAudio = window.Audio;
+    if (OrigAudio && !window.__ffAudioCtorBusted){
+      const Wrapped = function(src){
+        const el = (arguments.length ? new OrigAudio(bust(src)) : new OrigAudio());
+        try{
+          el.crossOrigin = 'anonymous';
+          if (!el.preload || el.preload === 'auto') el.preload = 'metadata';
+        }catch(_){}
+        return el;
+      };
+      Wrapped.prototype = OrigAudio.prototype;
+      // @ts-ignore
+      window.Audio = Wrapped;
+      window.__ffAudioCtorBusted = true;
+    }
+  }catch(_){}
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+  
+
+
 <script type="application/ff-patch">
-/* ===================== Fitness Frenzy — SFX Engine v8 =====================
-   One engine for all SFX with mobile-safe playback, de-dupe, and zero legacy bleeps.
-
-   Covers:
-   - Start/Continue, Menu open/close, Tabs, Bulk selector
-   - Reps purchase (quiet, instant, only when affordable)
-   - Exercise Unlock, Level Up
-   - Offline modal open/claim
-   - Achievements
-   - Coaches: "Available" (male only) + "Hired" (press + real row flip), reliable and de-duped
-   - Global mobile audio unlock + play() retry if autoplay blocked
-   - Kills old oscillator "bleep" SFX
-
-   INSTALL: Remove prior SFX patches (v6/v7/v7.1/etc). Keep only this script.
+/* ===================== Fitness Frenzy — SFX Engine v8.1 ====================
+   - Reads build from <meta name="ff-build"> and version-tags all SFX URLs
+   - Mobile-safe playback, de-dupe, zero legacy bleeps
+   - Includes audio unlock + play() retry (keep this; Asset Buster does only cache-bust)
 ============================================================================ */
 (function(){
   try{
-    if (window.__FF_SFX_V8__) return;
-    window.__FF_SFX_V8__ = true;
+    if (window.__FF_SFX_V81__) return;
+    window.__FF_SFX_V81__ = true;
 
-    /* ========== Small helpers ========== */
+    /* ---------- Utils ---------- */
     const $  = (s, r=document)=> r.querySelector(s);
     const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
     const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
 
-    // Convert github "blob" URLs to raw
-    const RAW = (u)=> u.replace(/https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,'https://raw.githubusercontent.com/$1/$2/$3');
+    function getBuild(){ return (document.querySelector('meta[name="ff-build"]')?.content||'').trim()||'dev'; }
+    const BUILD = getBuild();
 
-    // Micro de-duper per element
+    function toRaw(u){
+      return String(u||'').replace(
+        /https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,
+        'https://raw.githubusercontent.com/$1/$2/$3'
+      );
+    }
+    function withVer(url){
+      try{
+        if(!url || /^data:|^blob:/i.test(url)) return url;
+        url = toRaw(url);
+        const u = new URL(url, location.href);
+        u.searchParams.set('v', BUILD);
+        return u.href;
+      }catch(_){ return url; }
+    }
+
     function dedupe(el, win=220){
       const K='data-ff-lastpd';
       const now=performance.now(), last=+(el.getAttribute(K)||0);
@@ -3704,12 +3848,11 @@ try{
       el.setAttribute(K,String(now)); return false;
     }
 
-    /* ========== Mobile audio unlock + global play() retry if blocked ========== */
+    /* ---------- Mobile audio unlock + global play() retry ---------- */
     (function audioUnlock(){
       if (window.__FF_AUDIO_UNLOCK_V3__) return;
       window.__FF_AUDIO_UNLOCK_V3__ = true;
 
-      // 1) Retry any blocked HTML5 audio play() on next gesture
       const HME = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
       if (HME && !HME.__ffPlayPatchedV3){
         HME.__ffPlayPatchedV3 = true;
@@ -3738,12 +3881,10 @@ try{
         };
       }
 
-      // 2) First-gesture unlock for WebAudio + HTML5 audio priming
       if (!window.__FF_AUDIO_GESTURE_ARMed__){
         window.__FF_AUDIO_GESTURE_ARMed__ = true;
         const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
         const prim = new Audio(SILENT); prim.preload='auto'; prim.muted=true;
-
         function unlock(){
           try{
             const AC = window.AudioContext || window.webkitAudioContext;
@@ -3770,11 +3911,11 @@ try{
       }
     })();
 
-    /* ========== Kill legacy oscillator "bleeps" ========== */
+    /* ---------- Kill legacy oscillator "bleeps" ---------- */
     (function muteLegacyBleeps(){
       const AC = window.AudioContext || window.webkitAudioContext;
-      if(AC && !AC.prototype.__ffMutePatchedV8){
-        AC.prototype.__ffMutePatchedV8 = true;
+      if(AC && !AC.prototype.__ffMutePatchedV81){
+        AC.prototype.__ffMutePatchedV81 = true;
         const origCreateGain = AC.prototype.createGain;
         AC.prototype.createGain = function(){
           const g = origCreateGain.call(this);
@@ -3806,9 +3947,9 @@ try{
       arm('#menu-body','.coach-row .btn'); // hire
     })();
 
-    /* ========== Audio pool ========== */
+    /* ---------- Audio pool (auto version-tags each URL) ---------- */
     function makePool(url, n=3, vol=1.0){
-      const src = RAW(url);
+      const src = withVer(url);
       const arr = Array.from({length:n}, ()=>{
         const a=new Audio(src);
         a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol;
@@ -3839,8 +3980,8 @@ try{
       };
     }
 
-    /* ========== Assets (volumes tuned) ========== */
-    const VOL_REPS = IS_TOUCH ? 0.20 : 0.32;    // quieter per your request
+    /* ---------- Assets ---------- */
+    const VOL_REPS = IS_TOUCH ? 0.20 : 0.32;
 
     const SFX_START_BTN     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0);
     const SFX_OPEN_MENU     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0);
@@ -3854,18 +3995,15 @@ try{
     const SFX_OFF_CLAIM     = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0);
     const SFX_ACH           = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0);
 
-    // Coaches (male-only available VO)
     const SFX_COACH_AVAIL_M = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",4,1.0);
-    const SFX_COACH_HIRED   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-coach-hired.mp3",3,1.0);
+    const SFX_COACH_HIRED   = makePool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-hired.mp3",3,1.0);
 
-    /* ========== Wire UI events (pointerdown for snappiness) ========== */
-    // Start buttons
+    /* ---------- Wire UI events (pointerdown for snappiness) ---------- */
     (function(){
       const n=$('#btn-new'), c=$('#btn-continue');
       [n,c].forEach(b=> b && b.addEventListener('pointerdown', ()=>{ if(dedupe(b,180)) return; SFX_START_BTN.play(); }, {capture:true, passive:true}));
     })();
 
-    // Menu open/close
     (function(){
       const avatar=$('#avatar'), menu=$('#menu');
       if(avatar) avatar.addEventListener('pointerdown', ()=>{ if(dedupe(avatar,200)) return; SFX_OPEN_MENU.play(); }, {capture:true, passive:true});
@@ -3889,33 +4027,26 @@ try{
       }
     })();
 
-    // Bulk selector
     (function(){
       const bulk=$('#bulk'); if(!bulk) return;
       let last = bulk.querySelector('button.active')?.dataset.q || null;
       bulk.addEventListener('pointerdown', (e)=>{
         const btn=e.target.closest?.('button'); if(!btn) return;
         if(dedupe(btn,120)) return;
-        // Wait a tick to let active class move
         setTimeout(()=>{ const cur=bulk.querySelector('button.active')?.dataset.q || null;
           if(cur && cur!==last){ last=cur; SFX_BULK.play(); } },0);
       }, {capture:true, passive:true});
     })();
 
-    // Reps / Unlock within cards
     (function(){
       const cards=$('#cards'); if(!cards) return;
-
-      // Reps: instant, quiet, only when affordable (btn.glow)
       cards.addEventListener('pointerdown', (e)=>{
         const btn=e.target.closest?.('.card .btn'); if(!btn) return;
-        if(dedupe(btn,30)) return;  // tiny window so taps feel immediate
+        if(dedupe(btn,30)) return;
         const card=btn.closest('.card'); const tile=card?.querySelector('.tile');
         const isLocked=tile?.classList.contains('locked');
         if(!isLocked && btn.classList.contains('glow')) SFX_REPS.play();
       }, {capture:true, passive:true});
-
-      // Eat synthesized second click from touch
       cards.addEventListener('click', (e)=>{
         const btn=e.target.closest?.('.card .btn'); if(!btn) return;
         const K='data-ff-lastclick'; const now=performance.now(); const last=+(btn.getAttribute(K)||0);
@@ -3923,7 +4054,7 @@ try{
         btn.setAttribute(K,String(now));
       }, true);
 
-      // Unlock: watch tile class flip locked→unlocked
+      // Unlock & Level Up
       new MutationObserver((muts)=>{
         muts.forEach(m=>{
           if(m.type==='attributes' && m.attributeName==='class'){
@@ -3937,7 +4068,6 @@ try{
         });
       }).observe(cards,{subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
 
-      // Level up: detect Lvl N increments
       const lastLvl=new WeakMap();
       function lvl(el){ const m=(el.textContent||'').match(/Lvl\s+(\d+)/i); return m?+m[1]:null; }
       function scan(el){ const cur=lvl(el); if(cur==null) return; const prev=lastLvl.get(el);
@@ -3959,7 +4089,6 @@ try{
       setInterval(()=> $$('.card .lvl', cards).forEach(scan), 250);
     })();
 
-    // Offline & Achievements
     (function(){
       const off=$('#offline'), claim=$('#offline-claim');
       if(off){ new MutationObserver(()=>{ if(off.classList.contains('show')) SFX_OFF_OPEN.play(); })
@@ -3978,39 +4107,32 @@ try{
       }
     })();
 
-    /* ========== Coaches — Available (male-only) + Hired (press + flip) ========== */
+    /* ---------- Coaches: Available (male-only) + Hired ---------- */
     (function(){
       const menu=$('#menu'), body=$('#menu-body'); if(!menu || !body) return;
-
-      function coachesTabActive(){
+      function tabOn(){
         const t = $('.menu-tabs .tab[data-tab="coaches"]', menu);
         return menu.classList.contains('show') && t && t.classList.contains('active');
       }
-
-      // Use exercise name as stable key across DOM re-renders
       function rowKey(row){
         const sub=row.querySelector('.coach-sub'); if(!sub) return null;
         const m=(sub.textContent||'').match(/Works on:\s*(.+)\s*$/i);
         return m ? m[1].trim() : null;
       }
-
-      const availPlayed = new Set();     // per exercise name
-      const seededState = new WeakMap(); // row -> { hired:boolean }
-      const AV_TAG   = 'data-ff-av-sounded';
-      const HI_TAG   = 'data-ff-hire-sounded';
-      let poll = null;
+      const availPlayed = new Set();
+      const seeded      = new WeakMap();
+      const AV_TAG='data-ff-av', HI_TAG='data-ff-hi';
+      let poll=null;
 
       function scanRow(row, initial=false){
-        if(!coachesTabActive()) return;
-        const key = rowKey(row); if(!key) return;
-        const btn = row.querySelector('button.btn');
-        const glow= !!(btn && btn.classList.contains('glow'));
-        const hiredNow = !!row.querySelector('.hired');
+        if(!tabOn()) return;
+        const key=rowKey(row); if(!key) return;
+        const btn=row.querySelector('button.btn');
+        const glow=!!(btn && btn.classList.contains('glow'));
+        const hiredNow=!!row.querySelector('.hired');
 
-        // Seed state to avoid false "hired" on first render
-        if(!seededState.has(row)){
-          seededState.set(row, {hired:hiredNow});
-          // Speak "available" if we open into an already-glowing row (once per exercise name)
+        if(!seeded.has(row)){
+          seeded.set(row,{hired:hiredNow});
           if(glow && !availPlayed.has(key) && !row.hasAttribute(AV_TAG)){
             availPlayed.add(key); row.setAttribute(AV_TAG,'1');
             SFX_COACH_AVAIL_M.playSafe(menu);
@@ -4018,76 +4140,68 @@ try{
           return;
         }
 
-        // Available: speak when glow appears (once per exercise name)
         if(glow && !availPlayed.has(key) && !row.hasAttribute(AV_TAG)){
           availPlayed.add(key); row.setAttribute(AV_TAG,'1');
           SFX_COACH_AVAIL_M.playSafe(menu);
         }
 
-        // Hired: speak only on transition not-hired -> hired
-        const st = seededState.get(row);
+        const st=seeded.get(row);
         if(!st.hired && hiredNow && !row.hasAttribute(HI_TAG)){
-          st.hired = true; row.setAttribute(HI_TAG,'1');
+          st.hired=true; row.setAttribute(HI_TAG,'1');
           SFX_COACH_HIRED.play();
         }else if(!hiredNow){
-          st.hired = false;
-          if(row.hasAttribute(HI_TAG)) row.removeAttribute(HI_TAG);
+          st.hired=false; if(row.hasAttribute(HI_TAG)) row.removeAttribute(HI_TAG);
         }
       }
+      function scanAll(init=false){ $$('.coach-row', body).forEach(r=> scanRow(r, init)); }
 
-      function scanAll(initial=false){ $$('.coach-row', body).forEach(r=> scanRow(r, initial)); }
-
-      // Instant feedback when pressing an affordable (glowing) Hire button
       body.addEventListener('pointerdown', (e)=>{
-        if(!coachesTabActive()) return;
-        const btn = e.target.closest?.('.coach-row .btn'); if(!btn) return;
+        if(!tabOn()) return;
+        const btn=e.target.closest?.('.coach-row .btn'); if(!btn) return;
         if(!btn.classList.contains('glow')) return;
-        const row = btn.closest('.coach-row'); if(!row) return;
+        const row=btn.closest('.coach-row'); if(!row) return;
         if(!row.hasAttribute(HI_TAG)) SFX_COACH_HIRED.playSafe(menu);
       }, {capture:true, passive:true});
 
-      // Observe DOM changes inside coaches list
-      const mo = new MutationObserver((muts)=>{
-        if(!coachesTabActive()) return;
+      const mo=new MutationObserver((muts)=>{
+        if(!tabOn()) return;
         muts.forEach(m=>{
           if(m.type==='childList'){
             m.addedNodes.forEach(n=>{
               if(!(n instanceof HTMLElement)) return;
-              if(n.classList.contains('coach-row')) scanRow(n, true);
-              $$('.coach-row', n).forEach(r=> scanRow(r, true));
+              if(n.classList.contains('coach-row')) scanRow(n,true);
+              $$('.coach-row', n).forEach(r=> scanRow(r,true));
             });
           }
           if(m.type==='attributes' && m.attributeName==='class' && (m.target instanceof HTMLElement)){
             if(m.target.matches('.coach-row .btn')){
-              const row = m.target.closest('.coach-row');
-              if(row) scanRow(row);
+              const row=m.target.closest('.coach-row'); if(row) scanRow(row);
             }
           }
         });
       });
       mo.observe(body,{subtree:true, childList:true, attributes:true, attributeFilter:['class']});
 
-      // Start/stop scanning when coaches tab opens/closes
-      function handleState(){
-        if(coachesTabActive()){
+      function state(){
+        if(tabOn()){
           scanAll(true);
-          if(!poll) poll = setInterval(()=> scanAll(false), 600);
+          if(!poll) poll=setInterval(()=> scanAll(false), 600);
         }else{
           if(poll){ clearInterval(poll); poll=null; }
         }
       }
-      new MutationObserver(handleState).observe(menu,{attributes:true, attributeFilter:['class']});
-      const tabsWrap = $('.menu-tabs', menu);
+      new MutationObserver(state).observe(menu,{attributes:true, attributeFilter:['class']});
+      const tabsWrap=$('.menu-tabs', menu);
       if(tabsWrap){
         ['pointerdown','click'].forEach(t=>{
-          tabsWrap.addEventListener(t, ()=> setTimeout(handleState,0), {capture:true, passive:true});
+          tabsWrap.addEventListener(t, ()=> setTimeout(state,0), {capture:true, passive:true});
         });
       }
-      setTimeout(handleState,0);
+      setTimeout(state,0);
     })();
 
   }catch(e){
-    console.warn('SFX Engine v8 error:', e);
+    console.warn('SFX Engine v8.1 error:', e);
   }
 })();
 </script>
