@@ -1036,41 +1036,7 @@ const VO = {
     
 
 
-<script type="application/ff-patch">
-/* Safe audio unlock: does NOT play your SFX pools */
-(function(){
-  try{
-    if (window.__FF_SAFE_UNLOCK__) return;
-    window.__FF_SAFE_UNLOCK__ = true;
 
-    // Single silent clip to unlock audio on first gesture
-    const SILENT="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
-    const a = new Audio(SILENT);
-    a.preload = 'auto';
-    a.muted = true;
-
-    function unlock(){
-      // remove listeners
-      ['pointerdown','touchstart','click','keydown'].forEach(type=>{
-        document.removeEventListener(type, unlock, true);
-      });
-      // try to start/stop the silent clip (unlocks audio graph on mobile)
-      try{
-        a.currentTime = 0;
-        const p = a.play();
-        if(p && p.finally) p.finally(()=>{ try{ a.pause(); }catch(_){} });
-        else a.pause();
-      }catch(_){}
-    }
-
-    ['pointerdown','touchstart','click','keydown'].forEach(type=>{
-      document.addEventListener(type, unlock, {capture:true, once:true, passive:true});
-    });
-  }catch(e){ console.warn('safe unlock err', e); }
-})();
-</script>
-
-  
 
 
     
