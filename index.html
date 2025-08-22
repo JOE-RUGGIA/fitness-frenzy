@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <!-- ===== Build tag (bump when you ship) ===== -->
-  <meta name="ff-build" content="2025-08-21u">
+  <meta name="ff-build" content="2025-08-21v">
 
   <!-- ===== Version Gate / Cache Bust & SW off ===== -->
   <script>
@@ -968,23 +968,20 @@
 
 
 
- <script>
-/* =================== FF • SFX Engine (minimal, exact) ===================
-   - Single source of truth for SFX URLs
-   - Correct event bindings (no doubles)
-   - GitHub blob → raw + ?v=<ff-build>
-   - Mobile unlock/primer on first gesture
-========================================================================= */
+<script>
+/* =================== FF • SFX Engine (mobile-lazy init) ===================
+   - Creates audio elements inside first user gesture (iOS-safe)
+   - GitHub blob → raw + ?v=<ff-build> cache-bust
+   - Single bindings for all UI events
+=========================================================================== */
 (function(){
   try{
-    if (window.__FF_SFX_MIN__) return; window.__FF_SFX_MIN__ = true;
+    if (window.__FF_SFX_LAZY__) return; window.__FF_SFX_LAZY__ = true;
 
-    // ---- Helpers ----
     const $  = (s, r=document)=> r.querySelector(s);
     const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
-    const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
 
-    // Use your <meta name="ff-build" ...> as a cache-buster
     const BUILD = (document.querySelector('meta[name="ff-build"]')?.content || 'dev').trim();
     const RAW = u => String(u||'').replace(
       /https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,
@@ -995,7 +992,7 @@
       catch(_){ return url; }
     };
 
-    // ---- Single Sound Map (edit URLs here) ----
+    // ---- Exact SFX mapping (edit URLs here if needed) ----
     const MAP = {
       startBtn      : "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",
       openMenu      : "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",
@@ -1007,7 +1004,7 @@
       unlockExercise: "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",
       levelUp       : "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",
 
-      coachAvailable: "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3", // male-only per your request
+      coachAvailable: "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",
       coachHired    : "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-hired.mp3",
 
       offlineOpen   : "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",
@@ -1016,95 +1013,113 @@
       achievement   : "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3"
     };
 
-    // ---- Small pooled player ----
-    function makePool(url, n=3, vol=1.0){
-      const src = ver(url);
-      const arr = Array.from({length:n}, ()=>{ const a=new Audio(src); a.preload='auto'; a.crossOrigin='anonymous'; a.volume=vol; try{a.load();}catch(_){ } return a; });
-      let i=0;
-      function play(){
-        const a = arr[i++ % arr.length];
-        try{ a.currentTime = 0; }catch(_){}
-        const p = a.play(); if(p && p.catch) p.catch(()=>{});
-      }
-      function setVolume(v){ arr.forEach(a=>{ try{ a.volume=v; }catch(_){} }); }
-      return { play, setVolume };
+    // ---- Lazy pool creation (runs inside the first gesture) ----
+    let POOLS = null;      // {key: [audio1, audio2, ...]}
+    let primed = false;
+
+    function buildPools(){
+      if (POOLS) return;
+      POOLS = {};
+      Object.keys(MAP).forEach(key=>{
+        const url = ver(MAP[key]);
+        const n   = 3;
+        const vol = (key==='repsSuccess') ? (IS_TOUCH ? 0.20 : 0.32) : 1.0;
+        const arr = Array.from({length:n}, ()=>{
+          const a = new Audio(url);
+          a.preload = 'auto';
+          a.crossOrigin = 'anonymous';
+          a.volume = vol;
+          return a;
+        });
+        POOLS[key] = arr;
+      });
     }
 
-    // Pools per key (with mobile-lower volume for reps)
-    const POOLS = {};
-    Object.keys(MAP).forEach(k=>{
-      const vol = (k==='repsSuccess') ? (IS_TOUCH ? 0.20 : 0.32) : 1.0;
-      POOLS[k] = makePool(MAP[k], 3, vol);
-    });
+    function playKey(key){
+      if (!POOLS || !POOLS[key]) return;
+      const arr = POOLS[key];
+      let i = (arr.__idx = ((arr.__idx||0)+1) % arr.length);
+      const a = arr[i];
+      try{ a.currentTime = 0; }catch(_){}
+      const p = a.play();
+      if(p && p.catch) p.catch(()=>{ /* no-op */ });
+    }
 
-    // Expose for debugging
+    // Debug hook
     window.FFSFX = {
-      play: key => { POOLS[key]?.play(); },
-      setVolume: (key, v)=> POOLS[key]?.setVolume(v),
+      play: (key)=> playKey(key),
+      setVolume: (key, v)=>{ if(POOLS && POOLS[key]) POOLS[key].forEach(a=>{ try{ a.volume = v; }catch(_){} }); },
       debug: false
     };
+    const log = k => { if(FFSFX.debug) console.log('[SFX]', k); };
 
-    // Optional: kill legacy “bleep” oscillator if it still exists
-    try{ if(window.SFX){ window.SFX.ok = ()=>{}; window.SFX.click = ()=>{}; } }catch(_){}
+    // ---- Primer: runs ONCE on the first user gesture (iOS unlock + warm) ----
+    function primer(){
+      if (primed) return; primed = true;
 
-    // ---- Mobile unlock / primer on first gesture ----
-    (function primer(){
-      if (window.__FF_SFX_PRIMER__) return; window.__FF_SFX_PRIMER__ = true;
-      const urls = Object.values(MAP).map(ver);
-      function warm(){
-        urls.forEach(u=>{
+      // Create audio elements *inside* the gesture
+      buildPools();
+
+      // Light warm: kick each pool once muted to force readiness
+      Object.values(POOLS).forEach(arr=>{
+        arr.forEach(a=>{
           try{
-            const a = new Audio(u); a.muted = true; a.preload='auto'; a.crossOrigin='anonymous';
-            const p = a.play(); const stop = ()=>{ try{ a.pause(); }catch(_){} };
-            (p && p.finally) ? p.finally(stop) : setTimeout(stop, 250);
+            a.muted = true;
+            const p = a.play();
+            if(p && p.finally){ p.finally(()=>{ try{ a.pause(); a.muted=false; }catch(_){} }); }
+            else { setTimeout(()=>{ try{ a.pause(); a.muted=false; }catch(_){} }, 180); }
           }catch(_){}
         });
-        // tiny confirm click (non-blocking)
-        setTimeout(()=>{ try{ FFSFX.play('startBtn'); }catch(_){} }, 300);
-      }
+      });
+
+      // Tiny audible confirm (start button sound) after unmute
+      setTimeout(()=>{ try{ playKey('startBtn'); }catch(_){ } }, 280);
+    }
+
+    const armPrimer = ()=>{
       const once = ()=>{
         document.removeEventListener('pointerdown', once, true);
         document.removeEventListener('touchstart',  once, true);
         document.removeEventListener('click',       once, true);
-        warm();
+        primer();
       };
       document.addEventListener('pointerdown', once, {capture:true, passive:true});
       document.addEventListener('touchstart',  once, {capture:true, passive:true});
       document.addEventListener('click',       once, {capture:true, passive:true});
-    })();
+    };
+    armPrimer();
 
-    // ---- Bindings (exact, single place) ----
-    function log(key){ if(window.FFSFX.debug) console.log('[SFX]', key); }
+    // ---- Bindings (single source) ----
 
     // Start buttons
     ['btn-new','btn-continue'].forEach(id=>{
       const el = document.getElementById(id);
-      if(el) el.addEventListener('pointerdown', ()=>{ log('startBtn'); FFSFX.play('startBtn'); }, {capture:true, passive:true});
+      if(el) el.addEventListener('pointerdown', ()=>{ log('startBtn'); playKey('startBtn'); }, {capture:true, passive:true});
     });
 
     // Avatar / menu open + close
     const avatar = document.getElementById('avatar');
-    if(avatar) avatar.addEventListener('pointerdown', ()=>{ log('openMenu'); FFSFX.play('openMenu'); }, {capture:true, passive:true});
+    if(avatar) avatar.addEventListener('pointerdown', ()=>{ log('openMenu'); playKey('openMenu'); }, {capture:true, passive:true});
 
     const menu = document.getElementById('menu');
     if(menu){
       menu.addEventListener('pointerdown', (e)=>{
         const close = e.target.closest?.('.menu-close, [data-close], .menu-backdrop');
-        if(close){ log('closeMenu'); FFSFX.play('closeMenu'); }
+        if(close){ log('closeMenu'); playKey('closeMenu'); }
       }, {capture:true, passive:true});
 
-      // Tabs (only when changing tab)
+      // Tabs (only on change)
       const tabs = menu.querySelector('.menu-tabs');
       if(tabs){
         tabs.addEventListener('pointerdown', (e)=>{
           const tab = e.target.closest?.('.tab'); if(!tab) return;
           if(tab.classList.contains('active')) return;
-          log('switchTabs'); FFSFX.play('switchTabs');
+          log('switchTabs'); playKey('switchTabs');
         }, {capture:true, passive:true});
       }
     }
 
-    // Bulk selector (play only on real change)
+    // Bulk selector (only when active changes)
     (function(){
       const bulk = document.getElementById('bulk'); if(!bulk) return;
       let last = bulk.querySelector('button.active')?.dataset.q || null;
@@ -1112,12 +1127,12 @@
         const btn = e.target.closest?.('button'); if(!btn) return;
         setTimeout(()=>{
           const cur = bulk.querySelector('button.active')?.dataset.q || null;
-          if(cur && cur !== last){ last = cur; log('bulkChange'); FFSFX.play('bulkChange'); }
+          if(cur && cur !== last){ last = cur; log('bulkChange'); playKey('bulkChange'); }
         }, 0);
       }, {capture:true, passive:true});
     })();
 
-    // Reps success (bounce on confirmed rep count increase)
+    // Reps success (detect real increase)
     (function(){
       const root = document.getElementById('cards'); if(!root) return;
       document.addEventListener('click', (e)=>{
@@ -1128,37 +1143,36 @@
         const before = parseInt((rep.textContent||'0').split('/')[0].replace(/\D/g,''),10)||0;
         const obs = new MutationObserver(()=>{
           const after = parseInt((rep.textContent||'0').split('/')[0].replace(/\D/g,''),10)||0;
-          if(after > before){ obs.disconnect(); log('repsSuccess'); FFSFX.play('repsSuccess'); }
+          if(after > before){ obs.disconnect(); log('repsSuccess'); playKey('repsSuccess'); }
         });
         obs.observe(rep, {childList:true, characterData:true, subtree:true});
         setTimeout(()=> obs.disconnect(), 600);
       }, true);
     })();
 
-    // Unlock (tile locked -> unlocked)
+    // Unlock (tile locked → unlocked)
     (function(){
       const root = document.getElementById('cards'); if(!root) return;
-      const mo = new MutationObserver((muts)=>{
+      new MutationObserver((muts)=>{
         muts.forEach(m=>{
           if(m.type==='attributes' && m.attributeName==='class'){
             const el = m.target;
             if(!(el instanceof HTMLElement) || !el.classList.contains('tile')) return;
             const was = m.oldValue || '';
             if(/\blocked\b/.test(was) && !el.classList.contains('locked')){
-              log('unlockExercise'); FFSFX.play('unlockExercise');
+              log('unlockExercise'); playKey('unlockExercise');
             }
           }
         });
-      });
-      mo.observe(root, {subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
+      }).observe(root, {subtree:true, attributes:true, attributeOldValue:true, attributeFilter:['class']});
     })();
 
-    // Level up (Lvl N → Lvl N+)
+    // Level up (Lvl N → N+)
     (function(){
       const root = document.getElementById('cards'); if(!root) return;
       const lastLvl = new WeakMap();
       function readLvl(el){ const m = (el.textContent||'').match(/Lvl\s+(\d+)/i); return m ? +m[1] : null; }
-      function scan(el){ const cur = readLvl(el); if(cur==null) return; const prev=lastLvl.get(el); if(prev!=null && cur>prev){ log('levelUp'); FFSFX.play('levelUp'); } lastLvl.set(el, cur); }
+      function scan(el){ const cur = readLvl(el); if(cur==null) return; const prev=lastLvl.get(el); if(prev!=null && cur>prev){ log('levelUp'); playKey('levelUp'); } lastLvl.set(el, cur); }
       $$('.card .lvl', root).forEach(scan);
       new MutationObserver((muts)=>{
         muts.forEach(m=>{
@@ -1178,27 +1192,27 @@
     (function(){
       const off = document.getElementById('offline');
       if(off){
-        new MutationObserver(()=>{ if(off.classList.contains('show')){ log('offlineOpen'); FFSFX.play('offlineOpen'); }})
+        new MutationObserver(()=>{ if(off.classList.contains('show')){ log('offlineOpen'); playKey('offlineOpen'); }})
         .observe(off,{attributes:true, attributeFilter:['class']});
       }
       const claim = document.getElementById('offline-claim');
-      if(claim) claim.addEventListener('click', ()=>{ log('offlineClaim'); FFSFX.play('offlineClaim'); }, {capture:true});
+      if(claim) claim.addEventListener('click', ()=>{ log('offlineClaim'); playKey('offlineClaim'); }, {capture:true});
     })();
 
-    // Achievement banner appears
+    // Achievement banner
     (function(){
       const ach = document.getElementById('ach'); if(!ach) return;
       new MutationObserver((muts)=>{
         muts.forEach(m=>{
           m.addedNodes?.forEach(n=>{
             const banner = (n instanceof HTMLElement) && (n.matches('.banner') ? n : n.querySelector?.('.banner'));
-            if(banner){ log('achievement'); FFSFX.play('achievement'); }
+            if(banner){ log('achievement'); playKey('achievement'); }
           });
         });
       }).observe(ach, {childList:true, subtree:true});
     })();
 
-    // Coaches (available/hired) – only when Coaches tab is active
+    // Coaches (available/hired) — only when Coaches tab active
     (function(){
       const menu = document.getElementById('menu'), body = document.getElementById('menu-body'); if(!menu || !body) return;
       const AV_TAG='data-ff-av-sounded', HI_TAG='data-ff-hi-sounded';
@@ -1213,20 +1227,18 @@
         const glow  = !!(btn && btn.classList.contains('glow'));
         const hired = !!row.querySelector('.hired');
 
-        if(glow && !row.hasAttribute(AV_TAG)){ row.setAttribute(AV_TAG,'1'); log('coachAvailable'); FFSFX.play('coachAvailable'); }
-        if(hired && !row.hasAttribute(HI_TAG)){ row.setAttribute(HI_TAG,'1'); log('coachHired'); FFSFX.play('coachHired'); }
+        if(glow && !row.hasAttribute(AV_TAG)){ row.setAttribute(AV_TAG,'1'); log('coachAvailable'); playKey('coachAvailable'); }
+        if(hired && !row.hasAttribute(HI_TAG)){ row.setAttribute(HI_TAG,'1'); log('coachHired'); playKey('coachHired'); }
         if(!hired && row.hasAttribute(HI_TAG)) row.removeAttribute(HI_TAG);
       }
       function scanAll(){ body.querySelectorAll('.coach-row').forEach(scanRow); }
 
-      // Immediate hired feedback on tapping a glowing button
       body.addEventListener('pointerdown', (e)=>{
         if(!coachesTabActive()) return;
         const btn = e.target.closest?.('.coach-row .btn'); if(!btn) return;
-        if(btn.classList.contains('glow')){ log('coachHired'); FFSFX.play('coachHired'); }
+        if(btn.classList.contains('glow')){ log('coachHired'); playKey('coachHired'); }
       }, {capture:true, passive:true});
 
-      // React to DOM/class changes
       const mo = new MutationObserver((muts)=>{
         if(!coachesTabActive()) return;
         muts.forEach(m=>{
@@ -1244,19 +1256,21 @@
       });
       mo.observe(body, {subtree:true, childList:true, attributes:true, attributeFilter:['class']});
 
-      // Kick on open + when tab switches
       new MutationObserver(()=>{ if(coachesTabActive()) setTimeout(scanAll,0); })
         .observe(menu, {attributes:true, attributeFilter:['class']});
       const tabs = menu.querySelector('.menu-tabs');
       if(tabs) ['pointerdown','click'].forEach(t=> tabs.addEventListener(t, ()=> setTimeout(scanAll,0), {capture:true, passive:true}));
 
-      // Poll fallback (Safari)
       setInterval(()=>{ if(coachesTabActive()) scanAll(); }, 800);
     })();
 
-  }catch(e){ console.warn('SFX engine error:', e); }
+    // (Optional) disable any leftover “bleep” engine
+    try{ if(window.SFX){ window.SFX.ok = ()=>{}; window.SFX.click = ()=>{}; } }catch(_){}
+
+  }catch(e){ console.warn('SFX (mobile-lazy) error:', e); }
 })();
 </script>
+
 
 
 
