@@ -484,61 +484,243 @@
 
 <script id="ff-dev-harness">
 (function(){
-  // Run only in dev mode: index.html?dev=1
+  // Enable only in dev mode: index.html?dev=1
   if (!/[?&]dev(=1|=true)?\b/i.test(location.search)) return;
 
-  // Floating "Coaches" button (bottom-right)
+  // ---------- Styles for the dev drawer ----------
+  if (!document.getElementById('ff-dev-css')) {
+    const css = document.createElement('style');
+    css.id = 'ff-dev-css';
+    css.textContent = `
+      #ff-dev-coaches { position:fixed; right:12px; bottom:12px; z-index:10000;
+        padding:10px 14px; border-radius:12px; border:1px solid #2a2e5e;
+        background:#1b1f44; color:#e9edff; cursor:pointer;
+        box-shadow:0 6px 18px rgba(0,0,0,.35); }
+      #ff-dev-chip { position:fixed; left:12px; bottom:12px; z-index:10000;
+        padding:4px 8px; border-radius:999px; font-size:12px; font-weight:800;
+        border:1px solid #2a2e5e; background:#0f1338; color:#9ec3ff; }
+      #ff-dev-drawer { position:fixed; left:0; right:0; bottom:0; z-index:10001;
+        background:#0f1338; color:#e9edff; border-top:1px solid #2a2e5e;
+        box-shadow:0 -14px 40px rgba(0,0,0,.55); transform:translateY(100%);
+        transition:transform .18s ease; }
+      #ff-dev-drawer.show { transform:translateY(0%); }
+      #ff-dev-head { display:flex; align-items:center; justify-content:space-between;
+        padding:12px 14px; background:#14163a; border-bottom:1px solid #2a2e5e; }
+      #ff-dev-body { max-height:62vh; overflow:auto; padding:12px; }
+      .ff-row { display:grid; grid-template-columns:auto 1fr auto; gap:10px;
+        align-items:center; background:#171a3a; border:1px solid #2a2e5e;
+        padding:10px; border-radius:12px; margin-bottom:10px; }
+      .ff-ava { width:42px; height:42px; border-radius:50%; background:#2b2f63;
+        display:grid; place-items:center; font-weight:800; }
+      .ff-title { font-weight:800; }
+      .ff-sub { font-size:12px; color:#a6adcf; margin-top:2px; }
+      .ff-badge { padding:2px 8px; border-radius:999px; background:#15331b;
+        border:1px solid #275b31; color:#9fe7b1; font-size:12px; font-weight:800; }
+      .ff-btn { appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff;
+        padding:8px 12px; border-radius:10px; cursor:pointer; }
+      .ff-btn.glow { box-shadow:0 0 0 2px rgba(255,180,80,.25) inset, 0 0 12px rgba(255,180,80,.35); }
+      .ff-row.locked { opacity:.6; filter:grayscale(100%); }
+      #ff-dev-tools { display:flex; gap:8px; padding:8px 12px; border-bottom:1px dashed #2a2e5e; }
+      #ff-dev-tools .ff-btn { font-size:13px; padding:6px 10px; }
+      #ff-dev-hp { margin-left:auto; font-variant-numeric:tabular-nums; }
+    `;
+    document.head.appendChild(css);
+  }
+
+  // ---------- Floating open button + DEV chip ----------
   const btn = document.createElement('button');
   btn.id = 'ff-dev-coaches';
   btn.textContent = 'Coaches';
-  Object.assign(btn.style, {
-    position:'fixed', right:'12px', bottom:'12px', zIndex:1000,
-    padding:'10px 14px', borderRadius:'12px', border:'1px solid #2a2e5e',
-    background:'#1b1f44', color:'#e9edff', cursor:'pointer',
-    boxShadow:'0 6px 18px rgba(0,0,0,.35)'
-  });
   document.body.appendChild(btn);
 
-  function openCoachesTab(){
-    // Try to open your built-in menu and switch to Coaches
-    const menu = document.getElementById('menu');
-    const avatar = document.getElementById('avatar');
-    if (menu && !menu.classList.contains('show') && avatar) avatar.click();
+  const chip = document.createElement('div');
+  chip.id = 'ff-dev-chip';
+  chip.textContent = 'DEV';
+  document.body.appendChild(chip);
 
-    // Nudge to Coaches tab once the menu is visible
-    setTimeout(()=>{
-      const tab = document.querySelector('.menu .tab[data-tab="coaches"]');
-      if (tab && !tab.classList.contains('active')) tab.click();
-    }, 0);
+  // ---------- Utils ----------
+  const KEY = 'ff-v1';
+  const fmt = (n)=> {
+    if (!isFinite(n)) return '0';
+    const a = Math.abs(n);
+    if (a>=1e12) return (n/1e12).toFixed(2)+'T';
+    if (a>=1e9)  return (n/1e9).toFixed(2)+'B';
+    if (a>=1e6)  return (n/1e6).toFixed(2)+'M';
+    if (a>=1e3)  return (n/1e3).toFixed(2)+'K';
+    return String(Math.floor(n));
+  };
+  const coachPrice = (i)=> i===0?1500:Math.round(1500*Math.pow(1.8,i));
+  const EXES = [
+    'Walking','Jogging','Sit-ups','Push-ups','Jumping Jacks','Pull-ups','Jump Rope','Plank',
+    'Mountain Climbers','Kettlebell','Burpees','Bench Press','Back Squat','Deadlift',
+    'Handstands','Handstand Push-ups','Muscle-ups','Front Lever','Iron Cross','Victorian Cross'
+  ];
+
+  function load() {
+    try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }
+    catch(_) { return null; }
+  }
+  function save(s) {
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(_){}
   }
 
-  btn.addEventListener('click', openCoachesTab);
+  // ---------- Try to open the real menu if it exists ----------
+  function openRealMenuIfPresent() {
+    const menu = document.getElementById('menu');
+    if (!menu) return false;
 
-  // Keyboard shortcuts
+    // Open via avatar click if closed
+    if (!menu.classList.contains('show')) {
+      const avatar = document.getElementById('avatar');
+      if (avatar) avatar.click(); else menu.classList.add('show');
+    }
+
+    // Switch to Coaches tab if available
+    setTimeout(()=>{
+      const tab = document.querySelector('.menu .tab[data-tab="coaches"]') ||
+                  Array.from(document.querySelectorAll('.menu .tab'))
+                    .find(t=>/coach/i.test(t.textContent||''));
+      if (tab && !tab.classList.contains('active')) tab.click();
+    }, 0);
+
+    return true;
+  }
+
+  // ---------- Dev drawer (fallback when no menu) ----------
+  let drawer;
+  function renderDrawer() {
+    if (!drawer) {
+      drawer = document.createElement('div');
+      drawer.id = 'ff-dev-drawer';
+      drawer.innerHTML = `
+        <div id="ff-dev-head">
+          <div style="font-weight:900">Coaches (dev)</div>
+          <button class="ff-btn" id="ff-dev-close">Close</button>
+        </div>
+        <div id="ff-dev-tools">
+          <button class="ff-btn" id="ff-dev-add1k">+1,000 HP</button>
+          <button class="ff-btn" id="ff-dev-add100k">+100,000 HP</button>
+          <button class="ff-btn" id="ff-dev-reset">Reset Save</button>
+          <div id="ff-dev-hp"></div>
+        </div>
+        <div id="ff-dev-body"></div>
+      `;
+      document.body.appendChild(drawer);
+
+      drawer.querySelector('#ff-dev-close').onclick = ()=> drawer.classList.remove('show');
+      drawer.querySelector('#ff-dev-add1k').onclick = ()=> adjustHP(1000);
+      drawer.querySelector('#ff-dev-add100k').onclick = ()=> adjustHP(100000);
+      drawer.querySelector('#ff-dev-reset').onclick = ()=> {
+        if (confirm('Reset save now?')) { try{ localStorage.removeItem(KEY); }catch(_){}
+          buildList(); updateHPLabel(); }
+      };
+    }
+
+    buildList();
+    updateHPLabel();
+    drawer.classList.add('show');
+  }
+
+  function updateHPLabel() {
+    const s = load();
+    const el = drawer && drawer.querySelector('#ff-dev-hp');
+    if (el) el.textContent = s ? ('HP: ' + fmt(s.hp||0)) : 'HP: —';
+  }
+
+  function adjustHP(delta) {
+    const s = load(); if (!s) return;
+    s.hp = Math.max(0, Math.floor((s.hp||0) + delta));
+    save(s); updateHPLabel(); buildList();
+  }
+
+  function buildList() {
+    const body = drawer.querySelector('#ff-dev-body');
+    body.innerHTML = '';
+    const s = load();
+
+    if (!s || !Array.isArray(s.exercises)) {
+      body.innerHTML = `<div style="color:#aab1d6">No save found. Start a game first.</div>`;
+      return;
+    }
+
+    s.coaches = s.coaches || {};
+    const frag = document.createDocumentFragment();
+
+    s.exercises.forEach((ex, i)=>{
+      const cId = 'c'+(i+1);
+      const price = coachPrice(i);
+      const unlocked = !!(ex && ex.unlocked);
+      const hired = !!s.coaches[cId];
+
+      const row = document.createElement('div');
+      row.className = 'ff-row' + (unlocked ? '' : ' locked');
+
+      const ava = document.createElement('div');
+      ava.className = 'ff-ava';
+      ava.textContent = (i+1);
+
+      const mid = document.createElement('div');
+      const title = document.createElement('div');
+      title.className = 'ff-title';
+      title.textContent = EXES[i] || ('Coach '+(i+1));
+      const sub = document.createElement('div');
+      sub.className = 'ff-sub';
+      sub.textContent = unlocked ? ('Works on: ' + (EXES[i]||('Exercise '+(i+1)))) : 'Exercise locked';
+      mid.append(title, sub);
+
+      const right = document.createElement('div');
+
+      if (hired) {
+        const badge = document.createElement('span');
+        badge.className = 'ff-badge';
+        badge.textContent = 'Hired';
+        right.appendChild(badge);
+      } else {
+        const btn = document.createElement('button');
+        btn.className = 'ff-btn' + ((s.hp||0) >= price && unlocked ? ' glow' : '');
+        btn.textContent = 'Hire • ' + fmt(price) + ' HP';
+        btn.disabled = !unlocked || (s.hp||0) < price;
+        btn.onclick = ()=>{
+          const cur = load(); if (!cur) return;
+          if (!cur.exercises[i] || !cur.exercises[i].unlocked) return;
+          if ((cur.hp||0) < price) return;
+          cur.hp -= price; cur.coaches = cur.coaches || {}; cur.coaches[cId] = true;
+          save(cur);
+          // Emit a gentle event that the main app could listen for later
+          try{ document.dispatchEvent(new CustomEvent('ff:coachHired',{detail:{index:i, cId}})); }catch(_){}
+          buildList(); updateHPLabel();
+        };
+        right.appendChild(btn);
+      }
+
+      row.append(ava, mid, right);
+      frag.appendChild(row);
+    });
+
+    body.appendChild(frag);
+  }
+
+  function openCoaches() {
+    // Try real menu first; if it exists we’re done.
+    if (openRealMenuIfPresent()) return;
+    // Otherwise show the dev drawer.
+    renderDrawer();
+  }
+
+  btn.addEventListener('click', openCoaches);
+
+  // Shortcuts: Shift+C to open, Shift+R to reset
   window.addEventListener('keydown', (e)=>{
-    // Shift+C → open Coaches tab
-    if (e.shiftKey && (e.key === 'C' || e.key === 'c')) {
-      e.preventDefault(); openCoachesTab();
-    }
-    // Shift+R → reset save quickly
-    if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
-      e.preventDefault();
-      try { localStorage.removeItem('ff-v1'); } catch(_) {}
-      location.reload();
+    if (!e.shiftKey) return;
+    if (e.key.toLowerCase() === 'c') { e.preventDefault(); openCoaches(); }
+    if (e.key.toLowerCase() === 'r') {
+      e.preventDefault(); try{ localStorage.removeItem(KEY); }catch(_){}
+      if (drawer) { buildList(); updateHPLabel(); }
     }
   });
-
-  // Little badge so you can see you’re in dev mode
-  const chip = document.createElement('div');
-  chip.textContent = 'DEV';
-  Object.assign(chip.style, {
-    position:'fixed', left:'12px', bottom:'12px', zIndex:1000,
-    padding:'4px 8px', borderRadius:'999px', fontSize:'12px', fontWeight:'800',
-    border:'1px solid #2a2e5e', background:'#0f1338', color:'#9ec3ff'
-  });
-  document.body.appendChild(chip);
 })();
 </script>
+
 
                 
 
