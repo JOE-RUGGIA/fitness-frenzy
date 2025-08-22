@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <!-- ===== Build tag (bump when you ship) ===== -->
-  <meta name="ff-build" content="2025-08-21s">
+  <meta name="ff-build" content="2025-08-21t">
 
   <!-- ===== Version Gate / Cache Bust & SW off ===== -->
   <script>
@@ -1377,6 +1377,80 @@
   }catch(e){
     console.warn('SFX Engine v9 error:', e);
   }
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+  <script>
+/* --- SFX Primer (must go AFTER your SFX engine) --- */
+(function(){
+  try{
+    if (window.__FF_SFX_PRIMER__) return;
+    window.__FF_SFX_PRIMER__ = true;
+
+    // same file list your engine uses (raw + versioned inside)
+    const BUILD = (document.querySelector('meta[name="ff-build"]')?.content || 'dev').trim();
+    const RAW = u => String(u||'').replace(
+      /https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/i,
+      'https://raw.githubusercontent.com/$1/$2/$3'
+    );
+    const ver = url => {
+      try{ const u = new URL(RAW(url), location.href); u.searchParams.set('v', BUILD); return u.href; }
+      catch(_){ return url; }
+    };
+
+    const urls = [
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-hired.mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20male%20audio%20intro%20(start%20menu).mp3",
+      "https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20female%20audio%20intro%20(start%20screen).mp3"
+    ].map(ver);
+
+    function primeAll(){
+      // quietly play each file (muted) once to unlock + cache
+      urls.forEach(u=>{
+        try{
+          const a = new Audio(u);
+          a.muted = true; a.preload='auto'; a.crossOrigin='anonymous';
+          const p = a.play();
+          const stop = ()=> { try{ a.pause(); }catch(_){ } };
+          if (p && p.finally) p.finally(stop); else setTimeout(stop, 250);
+        }catch(_){}
+      });
+
+      // optional: quick audible smoke test after priming (single blip)
+      setTimeout(()=>{ try{ window.FFSFX && window.FFSFX.play('startBtn'); }catch(_){} }, 350);
+    }
+
+    const once = ()=>{
+      document.removeEventListener('pointerdown', once, true);
+      document.removeEventListener('touchstart',  once, true);
+      document.removeEventListener('click',       once, true);
+      primeAll();
+    };
+    document.addEventListener('pointerdown', once, {capture:true, passive:true});
+    document.addEventListener('touchstart',  once, {capture:true, passive:true});
+    document.addEventListener('click',       once, {capture:true, passive:true});
+  }catch(e){ console.warn('SFX primer error:', e); }
 })();
 </script>
 
