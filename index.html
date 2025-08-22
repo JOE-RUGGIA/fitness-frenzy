@@ -165,7 +165,7 @@
       const prev = byId.get(ex.id)||{};
       return {
         id:ex.id,
-        unlocked: !!(prev.unlocked || idx===0 || idx<4), // keep first 4 unlocked by default
+        unlocked: !!prev.unlocked, 
         rep: (prev.rep|0)||0,
         repTarget: (prev.repTarget|0)||10,
         level: (prev.level|0)||1,
