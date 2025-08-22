@@ -487,7 +487,7 @@
   // Enable only in dev mode: index.html?dev=1
   if (!/[?&]dev(=1|=true)?\b/i.test(location.search)) return;
 
-  // ---------- Styles for the dev drawer ----------
+  // ---------- Styles ----------
   if (!document.getElementById('ff-dev-css')) {
     const css = document.createElement('style');
     css.id = 'ff-dev-css';
@@ -520,9 +520,10 @@
         padding:8px 12px; border-radius:10px; cursor:pointer; }
       .ff-btn.glow { box-shadow:0 0 0 2px rgba(255,180,80,.25) inset, 0 0 12px rgba(255,180,80,.35); }
       .ff-row.locked { opacity:.6; filter:grayscale(100%); }
-      #ff-dev-tools { display:flex; gap:8px; padding:8px 12px; border-bottom:1px dashed #2a2e5e; }
+      #ff-dev-tools { display:flex; gap:8px; padding:8px 12px; border-bottom:1px dashed #2a2e5e; align-items:center;}
       #ff-dev-tools .ff-btn { font-size:13px; padding:6px 10px; }
       #ff-dev-hp { margin-left:auto; font-variant-numeric:tabular-nums; }
+      #ff-dev-empty { padding:16px; color:#aab1d6; }
     `;
     document.head.appendChild(css);
   }
@@ -538,8 +539,34 @@
   chip.textContent = 'DEV';
   document.body.appendChild(chip);
 
-  // ---------- Utils ----------
+  // ---------- Save helpers ----------
   const KEY = 'ff-v1';
+  const nowMs = ()=> Date.now();
+
+  const EX = [
+    { id:'walk',   name:'Walking',            base:   1000 },
+    { id:'jog',    name:'Jogging',            base:   3000 },
+    { id:'sit',    name:'Sit-ups',            base:   6000 },
+    { id:'push',   name:'Push-ups',           base:  12000 },
+    { id:'jacks',  name:'Jumping Jacks',      base:  24000 },
+    { id:'pull',   name:'Pull-ups',           base:  48000 },
+    { id:'rope',   name:'Jump Rope',          base:  96000 },
+    { id:'plank',  name:'Plank',              base: 192000 },
+    { id:'mtclimb',name:'Mountain Climbers',  base: 384000 },
+    { id:'kb',     name:'Kettlebell',         base: 768000 },
+    { id:'burpee', name:'Burpees',            base:1536000 },
+    { id:'bench',  name:'Bench Press',        base:3072000 },
+    { id:'backsq', name:'Back Squat',         base:6144000 },
+    { id:'dead',   name:'Deadlift',           base:12288000 },
+    { id:'hand',   name:'Handstands',         base:24576000 },
+    { id:'hspu',   name:'Handstand Push-ups', base:49152000 },
+    { id:'muscle', name:'Muscle-ups',         base:98304000 },
+    { id:'lever',  name:'Front Lever',        base:196608000 },
+    { id:'icross', name:'Iron Cross',         base:393216000 },
+    { id:'vcross', name:'Victorian Cross',    base:786432000 },
+  ];
+  const EX_NAMES = EX.map(e=>e.name);
+  const coachPrice = i => i===0 ? 1500 : Math.round(1500*Math.pow(1.8,i));
   const fmt = (n)=> {
     if (!isFinite(n)) return '0';
     const a = Math.abs(n);
@@ -549,12 +576,6 @@
     if (a>=1e3)  return (n/1e3).toFixed(2)+'K';
     return String(Math.floor(n));
   };
-  const coachPrice = (i)=> i===0?1500:Math.round(1500*Math.pow(1.8,i));
-  const EXES = [
-    'Walking','Jogging','Sit-ups','Push-ups','Jumping Jacks','Pull-ups','Jump Rope','Plank',
-    'Mountain Climbers','Kettlebell','Burpees','Bench Press','Back Squat','Deadlift',
-    'Handstands','Handstand Push-ups','Muscle-ups','Front Lever','Iron Cross','Victorian Cross'
-  ];
 
   function load() {
     try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }
@@ -562,6 +583,23 @@
   }
   function save(s) {
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(_){}
+  }
+  function ensureSave() {
+    let s = load();
+    if (s && s.exercises) return s;
+    const ex = EX.map((meta,i)=>({
+      id: meta.id, unlocked: i===0, repHP:0, repTarget:10, level:1,
+      cooldown: meta.base, lastTapAt:0
+    }));
+    s = {
+      schema:21, started:true, avatar:'male', qty:1,
+      hp:0, exercises:ex, coaches:{},
+      tutorial:{doneIntro:true, shown:{repsHint:true, unlock:{jog:false}, coachFirst:false}},
+      achievements:{first_steps:false, add_routine:false, coach_duty:false, speed_demon:false},
+      offline:{lastSeenAt: nowMs()}, stats:{manual:0,auto:0,totalEarned:0,totalPlayMs:0,firstStartedAt: nowMs()}
+    };
+    save(s);
+    return s;
   }
 
   // ---------- Try to open the real menu if it exists ----------
@@ -586,7 +624,7 @@
     return true;
   }
 
-  // ---------- Dev drawer (fallback when no menu) ----------
+  // ---------- Dev drawer ----------
   let drawer;
   function renderDrawer() {
     if (!drawer) {
@@ -598,6 +636,7 @@
           <button class="ff-btn" id="ff-dev-close">Close</button>
         </div>
         <div id="ff-dev-tools">
+          <button class="ff-btn" id="ff-dev-start">Start Dev Game</button>
           <button class="ff-btn" id="ff-dev-add1k">+1,000 HP</button>
           <button class="ff-btn" id="ff-dev-add100k">+100,000 HP</button>
           <button class="ff-btn" id="ff-dev-reset">Reset Save</button>
@@ -608,8 +647,12 @@
       document.body.appendChild(drawer);
 
       drawer.querySelector('#ff-dev-close').onclick = ()=> drawer.classList.remove('show');
-      drawer.querySelector('#ff-dev-add1k').onclick = ()=> adjustHP(1000);
-      drawer.querySelector('#ff-dev-add100k').onclick = ()=> adjustHP(100000);
+
+      drawer.querySelector('#ff-dev-start').onclick = ()=>{
+        ensureSave(); updateHPLabel(); buildList();
+      };
+      drawer.querySelector('#ff-dev-add1k').onclick = ()=> { ensureSave(); adjustHP(1000); };
+      drawer.querySelector('#ff-dev-add100k').onclick = ()=> { ensureSave(); adjustHP(100000); };
       drawer.querySelector('#ff-dev-reset').onclick = ()=> {
         if (confirm('Reset save now?')) { try{ localStorage.removeItem(KEY); }catch(_){}
           buildList(); updateHPLabel(); }
@@ -624,26 +667,28 @@
   function updateHPLabel() {
     const s = load();
     const el = drawer && drawer.querySelector('#ff-dev-hp');
-    if (el) el.textContent = s ? ('HP: ' + fmt(s.hp||0)) : 'HP: —';
+    if (el) el.textContent = s ? ('HP: ' + fmt(s.hp||0)) : 'HP: — (no save)';
   }
 
   function adjustHP(delta) {
-    const s = load(); if (!s) return;
+    const s = ensureSave();
     s.hp = Math.max(0, Math.floor((s.hp||0) + delta));
     save(s); updateHPLabel(); buildList();
   }
 
   function buildList() {
     const body = drawer.querySelector('#ff-dev-body');
-    body.innerHTML = '';
     const s = load();
 
     if (!s || !Array.isArray(s.exercises)) {
-      body.innerHTML = `<div style="color:#aab1d6">No save found. Start a game first.</div>`;
+      body.innerHTML = `<div id="ff-dev-empty">
+        No save found. Click <b>Start Dev Game</b> (or press <b>Shift+G</b>).
+      </div>`;
       return;
     }
 
     s.coaches = s.coaches || {};
+    body.innerHTML = '';
     const frag = document.createDocumentFragment();
 
     s.exercises.forEach((ex, i)=>{
@@ -662,10 +707,10 @@
       const mid = document.createElement('div');
       const title = document.createElement('div');
       title.className = 'ff-title';
-      title.textContent = EXES[i] || ('Coach '+(i+1));
+      title.textContent = EX_NAMES[i] || ('Coach '+(i+1));
       const sub = document.createElement('div');
       sub.className = 'ff-sub';
-      sub.textContent = unlocked ? ('Works on: ' + (EXES[i]||('Exercise '+(i+1)))) : 'Exercise locked';
+      sub.textContent = unlocked ? ('Works on: ' + (EX_NAMES[i]||('Exercise '+(i+1)))) : 'Exercise locked';
       mid.append(title, sub);
 
       const right = document.createElement('div');
@@ -681,12 +726,11 @@
         btn.textContent = 'Hire • ' + fmt(price) + ' HP';
         btn.disabled = !unlocked || (s.hp||0) < price;
         btn.onclick = ()=>{
-          const cur = load(); if (!cur) return;
+          const cur = ensureSave();
           if (!cur.exercises[i] || !cur.exercises[i].unlocked) return;
           if ((cur.hp||0) < price) return;
           cur.hp -= price; cur.coaches = cur.coaches || {}; cur.coaches[cId] = true;
           save(cur);
-          // Emit a gentle event that the main app could listen for later
           try{ document.dispatchEvent(new CustomEvent('ff:coachHired',{detail:{index:i, cId}})); }catch(_){}
           buildList(); updateHPLabel();
         };
@@ -709,17 +753,19 @@
 
   btn.addEventListener('click', openCoaches);
 
-  // Shortcuts: Shift+C to open, Shift+R to reset
+  // Shortcuts: Shift+C open, Shift+G start dev game, Shift+H +100k HP, Shift+R reset
   window.addEventListener('keydown', (e)=>{
     if (!e.shiftKey) return;
-    if (e.key.toLowerCase() === 'c') { e.preventDefault(); openCoaches(); }
-    if (e.key.toLowerCase() === 'r') {
-      e.preventDefault(); try{ localStorage.removeItem(KEY); }catch(_){}
-      if (drawer) { buildList(); updateHPLabel(); }
-    }
+    const k = e.key.toLowerCase();
+    if (k === 'c') { e.preventDefault(); openCoaches(); }
+    if (k === 'g') { e.preventDefault(); ensureSave(); renderDrawer(); }
+    if (k === 'h') { e.preventDefault(); ensureSave(); adjustHP(100000); }
+    if (k === 'r') { e.preventDefault(); try{ localStorage.removeItem(KEY); }catch(_){}
+      if (drawer) { buildList(); updateHPLabel(); } }
   });
 })();
 </script>
+
 
 
                 
