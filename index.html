@@ -992,35 +992,57 @@
                setVolume(v){ arr.forEach(a=>{try{a.volume=v}catch(_){}}); } };
     }
 
-    /* Assets */
-    const VOL_REPS=IS_TOUCH?0.20:0.32;
-    const SFX_START     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-Start-Avatar-Pick.mp3",2,1.0);
-    const SFX_OPEN      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-open-menu.mp3",3,1.0);
-    const SFX_TABS      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-switch-tabs.mp3",3,1.0);
-    const SFX_CLOSE     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-menu-backdrop-tap.mp3",2,1.0);
-    const SFX_REPS      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-reps-purchase-success.mp3",5,VOL_REPS);
-    const SFX_UNLOCK    = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-unlock-exercise.mp3",2,1.0);
-    const SFX_LEVEL     = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-level-up-heartbeat.mp3",3,1.0);
-    const SFX_BULK      = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-bulk-selector-change.mp3",2,1.0);
-    const SFX_OFF_OPEN  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains-window.mp3",2,1.0);
-    const SFX_OFF_CLAIM = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-offline-gains.mp3",2,1.0);
-    const SFX_ACH       = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/ff-sfx-achievement-unlocked-2.mp3",2,1.0);
+/* Assets (use raw GitHub URLs so <audio> can decode) */
+const GH_RAW = (path) =>
+  `https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/${encodeURIComponent(path)}`;
 
-    const SFX_COACH_AVL = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-affordable-male.mp3",4,1.0);
-    const SFX_COACH_HI  = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/ff-sfx-coach-hired.mp3",3,1.0);
+const VOL_REPS = IS_TOUCH ? 0.20 : 0.32;
 
-    const VO_AVA_MALE   = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20male%20audio%20intro%20(start%20menu).mp3",2,1.0);
-    const VO_AVA_FEM    = pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/player%20female%20audio%20intro%20(start%20screen).mp3",2,1.0);
+const SFX_START     = pool(GH_RAW("ff-sfx-Start-Avatar-Pick.mp3"),               2, 1.0);
+const SFX_OPEN      = pool(GH_RAW("ff-sfx-open-menu.mp3"),                        3, 1.0);
+const SFX_TABS      = pool(GH_RAW("ff-sfx-switch-tabs.mp3"),                      3, 1.0);
+const SFX_CLOSE     = pool(GH_RAW("ff-sfx-menu-backdrop-tap.mp3"),                2, 1.0);
+const SFX_REPS      = pool(GH_RAW("ff-sfx-reps-purchase-success.mp3"),            5, VOL_REPS);
+const SFX_UNLOCK    = pool(GH_RAW("ff-sfx-unlock-exercise.mp3"),                  2, 1.0);
+const SFX_LEVEL     = pool(GH_RAW("ff-sfx-level-up-heartbeat.mp3"),               3, 1.0);
+const SFX_BULK      = pool(GH_RAW("ff-sfx-bulk-selector-change.mp3"),             2, 1.0);
+const SFX_OFF_OPEN  = pool(GH_RAW("ff-sfx-offline-gains-window.mp3"),             2, 1.0);
+const SFX_OFF_CLAIM = pool(GH_RAW("ff-sfx-offline-gains.mp3"),                    2, 1.0);
+const SFX_ACH       = pool(GH_RAW("ff-sfx-achievement-unlocked-2.mp3"),           2, 1.0);
 
-    const VO = {
-      jax1: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/blob/main/Jax%20Audio%201.mp3",2,1.0),
-      plyM: VO_AVA_MALE, plyF: VO_AVA_FEM,
-      jax2: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%203%20(walking%20hp).mp3",2,1.0),
-      jax3: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20REPS.mp3",2,1.0),
-      jax4: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%20COOLDOWN.mp3",2,1.0),
-      jax5: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%206%20(jogging).mp3",2,1.0),
-      jax6: pool("https://github.com/JOE-RUGGIA/fitness-frenzy/raw/refs/heads/main/Jax%20audio%209%20(coach).mp3",2,1.0)
-    };
+const SFX_COACH_AVL = pool(GH_RAW("ff-sfx-coach-affordable-male.mp3"),            4, 1.0);
+const SFX_COACH_HI  = pool(GH_RAW("ff-sfx-coach-hired.mp3"),                      3, 1.0);
+
+const VO_AVA_MALE   = pool(GH_RAW("player male audio intro (start menu).mp3"),    2, 1.0);
+const VO_AVA_FEM    = pool(GH_RAW("player female audio intro (start screen).mp3"),2, 1.0);
+
+const VO = {
+  jax1: pool(GH_RAW("Jax Audio 1.mp3"),                                           2, 1.0),
+  plyM: VO_AVA_MALE,
+  plyF: VO_AVA_FEM,
+  jax2: pool(GH_RAW("Jax audio 3 (walking hp).mp3"),                               2, 1.0),
+  jax3: pool(GH_RAW("Jax audio REPS.mp3"),                                         2, 1.0),
+  jax4: pool(GH_RAW("Jax audio COOLDOWN.mp3"),                                     2, 1.0),
+  jax5: pool(GH_RAW("Jax audio 6 (jogging).mp3"),                                  2, 1.0),
+  jax6: pool(GH_RAW("Jax audio 9 (coach).mp3"),                                    2, 1.0),
+};
+
+
+
+
+    (function primeSFX(){
+  const pools = [SFX_START,SFX_OPEN,SFX_TABS,SFX_CLOSE,SFX_REPS,SFX_UNLOCK,SFX_LEVEL,
+                 SFX_BULK,SFX_OFF_OPEN,SFX_OFF_CLAIM,SFX_ACH,SFX_COACH_AVL,SFX_COACH_HI,
+                 VO_AVA_MALE,VO_AVA_FEM,VO.jax1,VO.jax2,VO.jax3,VO.jax4,VO.jax5,VO.jax6];
+  const once = () => {
+    document.removeEventListener('pointerdown', once, true);
+    // play/pause each quietly to “unlock” on iOS; pools handle errors safely
+    pools.forEach(p => { try { p.setVolume(0.001); p.play(); setTimeout(()=>p.setVolume(1.0), 50); } catch(_){} });
+  };
+  document.addEventListener('pointerdown', once, {capture:true, once:true, passive:true});
+})();
+
+
 
     /* Start / Menu */
     const startNew=$('#btn-new'), startCont=$('#btn-continue'), avatar=$('#avatar'), menu=$('#menu'), tabsWrap=$('.menu-tabs'), menuBody=$('#menu-body'), bulk=$('#bulk'), cards=$('#cards');
