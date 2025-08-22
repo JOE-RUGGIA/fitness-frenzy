@@ -1,91 +1,122 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Fitness Frenzy — core + menu + fitcoins + rep bars (quiet)</title>
+<title>Fitness Frenzy — Core (Steps 1–3)</title>
 <style>
   :root{
-    --bg:#0f1020; --panel:#151836; --panel2:#1d2148; --border:#2a2e5e;
-    --text:#eef1ff; --muted:#aab1d6; --good:#27c93f; --accent:#3aa6ff;
-    --f-accent:#ff76b5;
+    --bg:#0f1020; --panel:#112036; --panel-2:#0c1a2b; --accent:#ff7a1a; --blue:#3aa6ff;
+    --text:#f5f7ff; --muted:#aab1d6; --good:#27c93f;
+    --male-1:#2f6df3; --male-2:#41b0ff;
+    --pink-1:#ff76b5; --pink-2:#ffb3d5;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0; background:var(--bg); color:var(--text); font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  a{color:inherit}
+
   /* Top bar */
-  .topbar{position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#151734,#10122a); border-bottom:1px solid #22254b}
-  .wrap{max-width:920px; margin:0 auto; padding:12px 14px}
+  .topbar{position:sticky; top:0; z-index:10; background:linear-gradient(180deg,#151734,#10122a); border-bottom:1px solid #22254b}
+  .topbar .wrap{max-width:960px; margin:0 auto; padding:12px 14px}
   .row{display:flex; align-items:center; justify-content:space-between; gap:12px}
-  .brand{font-weight:900; letter-spacing:.3px}
-  .avatar{width:64px; height:64px; border-radius:50%; border:2px solid #3b3f78; background:#23265a; display:grid; place-items:center; font-weight:900; cursor:pointer; position:relative}
-  .avatar .dot{position:absolute; right:-6px; top:-6px; width:18px; height:18px; border-radius:50%; background:var(--good); border:3px solid var(--bg); display:none}
-  .bulk{display:inline-flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:#1a1e45}
-  .bulk button{border:0; background:transparent; color:#fff; padding:8px 12px; min-width:52px; cursor:pointer}
-  .bulk button.active{background:var(--accent); color:#061222; font-weight:800}
-  /* Two-pill row */
-  .top-pills{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
-  .hp-pill,.fit-pill{
-    background:#182047; border:1px solid var(--border); padding:10px 12px; border-radius:12px;
-    display:flex; justify-content:space-between; font-variant-numeric:tabular-nums
-  }
+  .brand{display:flex; align-items:center; gap:10px; font-weight:900; letter-spacing:.3px}
+  .avatar{width:56px; height:56px; border-radius:50%; border:2px solid #2b2f63; background:#1b1f44; display:grid; place-items:center; font-weight:900; user-select:none}
+  .bulk{display:inline-flex; background:#1a1e42; border:1px solid #2a2e5e; border-radius:12px; overflow:hidden}
+  .bulk button{appearance:none; border:0; background:transparent; color:#fff; padding:8px 12px; cursor:pointer; min-width:56px; font-size:15px}
+  .bulk button.active{background:var(--blue); color:#061222; font-weight:800}
+  .pills{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+  .pill{background:#182047; border:1px solid #2a2e5e; padding:10px 12px; border-radius:12px; display:flex; align-items:center; justify-content:space-between; font-variant-numeric:tabular-nums; font-size:16px}
 
   /* Cards */
+  .wrap{max-width:960px; margin:0 auto; padding:14px}
   .cards{display:grid; gap:12px}
-  .card{display:grid; grid-template-columns:120px 1fr; gap:12px; padding:12px; background:var(--panel); border:1px solid var(--border); border-radius:14px}
-  .tile{height:120px; border-radius:12px; background:var(--panel2); position:relative; cursor:pointer; user-select:none; overflow:hidden}
-  .tile.locked{filter:grayscale(100%); opacity:.9; cursor:default}
-  .lvl{position:absolute; left:6px; top:6px; font-size:12px; padding:2px 6px; background:#10122a; border:1px solid #2b2f63; border-radius:8px; z-index:2}
-  /* Rep progress band (green) */
-  .repband{position:absolute; left:6px; right:6px; bottom:6px; height:18px; border-radius:9px; background:#0e132e; border:1px solid #2a2e5e; overflow:hidden; z-index:1}
-  .repfill{height:100%; width:0%; background:linear-gradient(90deg,#17b34c,#27c93f)}
-  .reptext{position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:#cfead6; text-shadow:0 1px 2px #000}
+  .card{display:grid; grid-template-columns:120px 1fr; gap:14px; padding:12px; background:var(--panel); border:1px solid var(--panel-2); border-radius:14px}
+  .tile{height:120px; background:#0f1a30; border:1px solid #0c1a2b; border-radius:12px; position:relative; overflow:hidden; user-select:none}
+  .tile.locked{filter:grayscale(100%); opacity:.92}
+  .lvl{position:absolute; top:6px; left:6px; background:#171a38; border:1px solid #2b2f63; padding:2px 7px; border-radius:8px; font-size:12px}
+  .media{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.9; pointer-events:none}
+  .title{font-weight:800; font-size:16px}
+  .meta{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; flex-wrap:wrap}
+  .muted{color:var(--muted); font-size:15px}
 
-  .cooldown{margin-top:6px; height:22px; background:#141739; border:1px solid var(--border); border-radius:8px; position:relative; overflow:hidden}
-  .bar{position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#2f6df3,#41b0ff)}
-  body.female .bar{background:linear-gradient(90deg,var(--f-accent),#ffb3d5)}
-  .t{position:relative; z-index:1; padding-left:8px; font-size:13px; color:#a6b0d8}
-  .title{font-weight:800}
-  .meta{display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:10px; flex-wrap:wrap}
-  .muted{color:var(--muted)}
-  .btn{appearance:none; border:1px solid var(--border); background:#1b1f44; color:#e9edff; padding:10px 14px; border-radius:12px; cursor:pointer; min-width:180px}
-  .btn.glow{box-shadow:0 0 0 2px rgba(255,192,120,.22) inset, 0 0 10px rgba(255,122,26,.25)}
+  /* Cooldown */
+  .cooldown{margin-top:8px; height:22px; background:#141739; border:1px solid #2a2e5e; border-radius:8px; overflow:hidden; position:relative}
+  .cooldown .t{position:relative; z-index:1; padding-left:8px; font-variant-numeric:tabular-nums; color:#a6b0d8; font-size:14px; line-height:22px}
+  .bar{position:absolute; inset:0; width:0%; will-change:width; transform:translateZ(0); min-width:2px}
+  .cooldown.ready .bar{min-width:0}
+  /* Gender gradient + diagonal stripes */
+  .bar{
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0, rgba(255,255,255,.18) 6px, rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px),
+      linear-gradient(90deg,var(--male-1),var(--male-2));
+  }
+  body.female .bar{
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0, rgba(255,255,255,.18) 6px, rgba(255,255,255,0) 6px, rgba(255,255,255,0) 12px),
+      linear-gradient(90deg,var(--pink-1),var(--pink-2));
+  }
 
-  /* Menu (slides up) */
-  .menu{position:fixed; inset:0; display:none; z-index:40}
-  .menu.show{display:block}
-  .backdrop{position:absolute; inset:0; background:rgba(0,0,0,.55)}
-  .sheet{position:absolute; left:0; right:0; bottom:0; background:#14163a; border-top:1px solid var(--border); transform:translateY(6%); opacity:0; transition:transform .14s ease, opacity .14s ease; max-height:82vh; display:flex; flex-direction:column}
-  .menu.show .sheet{transform:translateY(0%); opacity:1}
-  .sheet-head{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border)}
-  .tabs{display:flex; gap:8px; padding:8px 14px; border-bottom:1px solid var(--border); overflow:auto}
-  .tab{appearance:none; border:1px solid var(--border); background:#1b1f44; color:#e9edff; padding:8px 12px; border-radius:10px; cursor:pointer; white-space:nowrap}
-  .tab.active{background:#202767; outline:2px solid var(--accent)}
-  .sheet-body{flex:1; overflow:auto; padding:14px}
-  .coach-row{display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; background:#171a3a; border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:10px}
-  .coach-ava{width:44px; height:44px; border-radius:50%; background:#2b2f63; display:grid; place-items:center; font-weight:800}
-  .coach-title{font-weight:800}
-  .coach-sub{font-size:12px; color:#a6adcf}
-  .hired{color:var(--good); font-weight:800}
-  .pill{display:inline-block; padding:2px 8px; border-radius:999px; background:#1b1f44; border:1px solid var(--border); font-size:12px}
+  /* Buttons */
+  .btn{appearance:none; border:1px solid #2a2e5e; background:#1b1f44; color:#e9edff; padding:10px 14px; border-radius:12px; min-width:180px; cursor:pointer; font-variant-numeric:tabular-nums; font-size:15px}
+  .btn:disabled{opacity:.6; cursor:not-allowed}
+  /* Reps button neutral by default */
+  .btn-reps{background:#1b1f44; border-color:#2a2e5e; color:#e9edff; font-weight:900}
+  /* Affordable → male tint */
+  .btn-reps.glow{
+    background:linear-gradient(180deg,var(--male-1),var(--male-2)); border-color:var(--male-2); color:#071428; box-shadow:0 0 0 2px rgba(58,166,255,.25) inset, 0 0 12px rgba(58,166,255,.35)
+  }
+  /* Affordable → female tint */
+  body.female .btn-reps.glow{
+    background:linear-gradient(180deg,var(--pink-1),var(--pink-2)); border-color:var(--pink-2); color:#2b0020; box-shadow:0 0 0 2px rgba(255,118,181,.25) inset, 0 0 12px rgba(255,118,181,.35)
+  }
 
-  @media (max-width:480px){
-    .card{grid-template-columns:100px 1fr}
-    .tile{height:100px}
-    .btn{min-width:140px; padding:8px 12px}
+  /* Start screen */
+  .start{position:fixed; inset:0; display:grid; place-items:center; background:radial-gradient(1200px 600px at 50% 10%, rgba(255,255,255,.06), transparent 60%), #0c1125; z-index:20}
+  .start .panel{background:rgba(18,20,52,.75); backdrop-filter:blur(6px); border:1px solid rgba(42,46,94,.75); border-radius:16px; padding:18px; width:min(820px,94vw)}
+  .start h1{margin:0 0 10px; font-size:22px}
+  .avatars{display:flex; gap:12px; margin:6px 0 12px}
+  .ava{width:96px; height:96px; border-radius:12px; border:2px solid #2a2e5e; display:grid; place-items:center; cursor:pointer; user-select:none; background:#121434; font-weight:900}
+  .ava.active{outline:3px solid var(--blue)}
+  .actions{display:flex; gap:10px; flex-wrap:wrap}
+  .btn-start{background:var(--blue); color:#061222; font-weight:900}
+  body.female .btn-start{background:var(--pink-1); color:#2b0020}
+  .hint{margin-top:8px; color:#cdd3ff; opacity:.85; font-size:14px}
+  .hidden{display:none !important}
+
+  @media (max-width:520px){
+    .card{grid-template-columns:96px 1fr}
+    .tile{height:96px}
+    .btn{min-width:140px; padding:9px 12px}
   }
 </style>
 </head>
 <body>
+  <!-- Start (simple) -->
+  <div id="start" class="start">
+    <div class="panel">
+      <h1>Fitness Frenzy</h1>
+      <div style="color:#aab1d6">Choose your avatar</div>
+      <div class="avatars" id="start-avatars">
+        <div class="ava active" data-sex="male">Male</div>
+        <div class="ava" data-sex="female">Female</div>
+      </div>
+      <div class="actions">
+        <button id="btn-new" class="btn btn-start">New Game</button>
+        <button id="btn-continue" class="btn">Continue</button>
+        <button id="btn-reset" class="btn">Reset Save</button>
+      </div>
+      <div class="hint">Core build (no SFX/menus). Unlock → Reps → Level-ups. Bulk in top-right.</div>
+    </div>
+  </div>
 
-  <!-- Top bar -->
+  <!-- Top Bar -->
   <div class="topbar">
     <div class="wrap">
-      <change-me>
       <div class="row">
-        <div class="row" style="gap:12px">
-          <button id="avatar" class="avatar" title="Menu">FF<span class="dot" id="avatar-dot"></span></button>
-          <div class="brand">Fitness Frenzy</div>
+        <div class="brand">
+          <div id="avatar" class="avatar">FF</div>
+          <div>Fitness Frenzy</div>
         </div>
         <div class="bulk" id="bulk">
           <button data-q="1" class="active">×1</button>
@@ -93,455 +124,364 @@
           <button data-q="100">×100</button>
         </div>
       </div>
-      <!-- Two-pill row -->
-      <div class="top-pills">
-        <div class="hp-pill"><span>HP</span><span id="hp-readout">0</span></div>
-        <div class="fit-pill"><span>Fitcoins</span><span id="fc-readout">0</span></div>
+      <div class="pills">
+        <div class="pill"><span>HP</span><span id="hp-readout">0</span></div>
+        <div class="pill"><span>Fitcoins</span><span id="fc-readout">0</span></div>
       </div>
-      </change-me>
     </div>
   </div>
 
-  <div class="wrap"><div id="cards" class="cards"></div></div>
-
-  <!-- Menu (bottom sheet) -->
-  <div id="menu" class="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
-    <div class="backdrop" data-close="1"></div>
-    <div class="sheet">
-      <div class="sheet-head">
-        <div id="menu-title" style="font-weight:900">Menu</div>
-        <button class="btn" data-close="1">Close</button>
-      </div>
-      <div class="tabs">
-        <button class="tab active" data-tab="coaches">Coaches</button>
-        <button class="tab" data-tab="achievements">Achievements</button>
-        <button class="tab" data-tab="settings">Settings</button>
-      </div>
-      <div id="menu-body" class="sheet-body"></div>
-    </div>
+  <!-- Cards -->
+  <div class="wrap">
+    <div id="cards" class="cards"></div>
   </div>
 
 <script>
-/* ====================== Core (quiet) + Fitcoins + Rep bars ====================== */
+/* =========================
+   Fitness Frenzy — CORE
+   Steps 1–3 only (no SFX)
+   ========================= */
+
 (function(){
-  const $  = (s, r=document)=> r.querySelector(s);
-  const $$ = (s, r=document)=> Array.from(r.querySelectorAll(s));
-
-  // --- Data & math
+  /* ---------- Data & math ---------- */
   const Exercises = [
-    { id:'walk',   name:'Walking',            base:   1000 },
-    { id:'jog',    name:'Jogging',            base:   3000 },
-    { id:'sit',    name:'Sit-ups',            base:   6000 },
-    { id:'push',   name:'Push-ups',           base:  12000 },
-    { id:'jacks',  name:'Jumping Jacks',      base:  24000 },
-    { id:'pull',   name:'Pull-ups',           base:  48000 },
-    { id:'rope',   name:'Jump Rope',          base:  96000 },
-    { id:'plank',  name:'Plank',              base: 192000 },
-    { id:'mtclimb',name:'Mountain Climbers',  base: 384000 },
-    { id:'kb',     name:'Kettlebell',         base: 768000 },
-    { id:'burpee', name:'Burpees',            base:1536000 },
-    { id:'bench',  name:'Bench Press',        base:3072000 },
-    { id:'backsq', name:'Back Squat',         base:6144000 },
-    { id:'dead',   name:'Deadlift',           base:12288000 },
-    { id:'hand',   name:'Handstands',         base:24576000 },
-    { id:'hspu',   name:'Handstand Push-ups', base:49152000 },
-    { id:'muscle', name:'Muscle-ups',         base:98304000 },
-    { id:'lever',  name:'Front Lever',        base:196608000 },
-    { id:'icross', name:'Iron Cross',         base:393216000 },
-    { id:'vcross', name:'Victorian Cross',    base:786432000 },
+    { id:'walk',   name:'Walking',            baseCooldownMs:1000  },
+    { id:'jog',    name:'Jogging',            baseCooldownMs:3000  },
+    { id:'sit',    name:'Sit-ups',            baseCooldownMs:6000  },
+    { id:'push',   name:'Push-ups',           baseCooldownMs:12000 },
+    { id:'jacks',  name:'Jumping Jacks',      baseCooldownMs:24000 },
+    { id:'pull',   name:'Pull-ups',           baseCooldownMs:48000 },
+    { id:'rope',   name:'Jump Rope',          baseCooldownMs:96000 },
+    { id:'plank',  name:'Plank',              baseCooldownMs:192000 },
+    { id:'mt',     name:'Mountain Climbers',  baseCooldownMs:384000 },
+    { id:'kb',     name:'Kettlebell',         baseCooldownMs:768000 },
+    { id:'burp',   name:'Burpees',            baseCooldownMs:1536000 },
+    { id:'bench',  name:'Bench Press',        baseCooldownMs:3072000 },
+    { id:'bsq',    name:'Back Squat',         baseCooldownMs:6144000 },
+    { id:'dl',     name:'Deadlift',           baseCooldownMs:12288000 },
+    { id:'hand',   name:'Handstands',         baseCooldownMs:24576000 },
+    { id:'hspu',   name:'Handstand Push-ups', baseCooldownMs:49152000 },
+    { id:'mus',    name:'Muscle-ups',         baseCooldownMs:98304000 },
+    { id:'lev',    name:'Front Lever',        baseCooldownMs:196608000 },
+    { id:'ic',     name:'Iron Cross',         baseCooldownMs:393216000 },
+    { id:'vc',     name:'Victorian Cross',    baseCooldownMs:786432000 },
   ];
-  const KEY='ff-core-v2'; // bump since we added Fitcoins
 
-  const coachPrice = i => i===0 ? 1500 : Math.round(1500*Math.pow(1.8,i));
-  const baseHP     = (idx,ms)=> idx===0 ? 1 : Math.round(20*Math.pow(ms/1000,1.10));
-  const perTapHP   = (b,rep)=> b + rep;
-  const repBaseCost= b => Math.max(4,Math.round(b*.05));
-  const repGrowth  = lvl=> Math.max(1.07,Math.min(1.15,1.07+.01*Math.log2(Math.max(1,lvl))));
-  const repCost1   = (rb,g,rep)=> rb*Math.pow(g,rep);
-  const repCostN   = (rb,g,rep,n)=> rb*Math.pow(g,rep)*((Math.pow(g,n)-1)/(g-1));
-  const nextCd     = ms=> Math.max(100, Math.floor(ms/2));
-  const unlockCost = (b,ms)=> Math.round(b*Math.pow(ms/1000,.60)*1.15);
-  const fmt        = n=>{ if(!isFinite(n)) return '0'; const a=Math.abs(n);
+  const fmt = n=>{
+    if(!isFinite(n)) return '0';
+    const a=Math.abs(n);
     if(a>=1e12) return (n/1e12).toFixed(2)+'T';
-    if(a>=1e9)  return (n/1e9).toFixed(2)+'B';
-    if(a>=1e6)  return (n/1e6).toFixed(2)+'M';
-    if(a>=1e3)  return (n/1e3).toFixed(2)+'K';
-    return String(Math.floor(n)); };
+    if(a>=1e9)  return (n/1e9 ).toFixed(2)+'B';
+    if(a>=1e6)  return (n/1e6 ).toFixed(2)+'M';
+    if(a>=1e3)  return (n/1e3 ).toFixed(2)+'K';
+    return String(Math.floor(n));
+  };
 
-  // --- State
-  function defaultExercises(){ return Exercises.map((ex,i)=>({id:ex.id, unlocked:i===0, repHP:0, repTarget:10, level:1, cooldown:ex.base, lastTapAt:0})); }
+  const log2 = x => Math.log(x)/Math.log(2);
+  const baseHP = (idx, ms) => idx===0 ? 1 : Math.round(20*Math.pow(ms/1000,1.10));
+  const perTapHP = (b,rep) => b + rep;
+  const repBaseCost = b => Math.max(4, Math.round(b*.05));
+  const repGrowth = lvl => Math.max(1.07, Math.min(1.15, 1.07 + .01*log2(Math.max(1,lvl))));
+  const repCostSingle = (rb,g,rep) => rb*Math.pow(g,rep);
+  const repCostBulk = (rb,g,rep,n)=> rb*Math.pow(g,rep) * ((Math.pow(g,n)-1)/(g-1));
+  const nextCooldown = ms => Math.max(100, Math.floor(ms/2));
+  const unlockCost = (b,ms) => Math.round(b*Math.pow(ms/1000,.60)*1.15);
+
+  /* ---------- State ---------- */
+  const KEY='ff-core-v2';
+  function defaultExercises(){
+    return Exercises.map((ex,idx)=>({
+      id:ex.id, unlocked: idx===0, repHP:0, repTarget:10, level:1, cooldown:ex.baseCooldownMs, lastTapAt:0
+    }));
+  }
   function defaults(){
-    return { schema:2, avatar:'male', qty:1, hp:0, fc:0, started:true,
-      exercises:defaultExercises(), coaches:{}, stats:{manual:0,auto:0,totalEarned:0} };
+    return { schema:2, started:false, avatar:'male', hp:0, fitcoins:0, qty:1, exercises:defaultExercises() };
   }
-  function ensure(s){
-    if(!s || typeof s!=='object') return defaults();
-    s.avatar = (s.avatar==='female') ? 'female' : 'male';
-    s.qty    = s.qty|0 || 1;
-    s.hp     = s.hp|0;
-    s.fc     = s.fc|0 || 0;
-    // repair exercises
-    const byId = new Map((s.exercises||[]).map(e=>[e.id,e]));
-    s.exercises = Exercises.map((ex,i)=>{
-      const e = byId.get(ex.id) || {};
-      return {
-        id: ex.id, unlocked: !!(i===0 || e.unlocked), repHP: e.repHP|0 || 0,
-        repTarget: e.repTarget|0 || 10, level: e.level|0 || 1,
-        cooldown: e.cooldown|0 || ex.base, lastTapAt: e.lastTapAt|0 || 0
-      };
+  function ensure(d){
+    if(!d || typeof d!=='object') return defaults();
+    d.schema=2;
+    d.avatar = d.avatar==='female' ? 'female' : 'male';
+    d.started = !!d.started;
+    d.hp = d.hp|0; d.fitcoins = d.fitcoins|0; d.qty = d.qty||1;
+    const by = new Map((d.exercises||[]).map(e=>[e.id,e]));
+    d.exercises = Exercises.map((ex,idx)=>{
+      const prev = by.get(ex.id);
+      const base = { id:ex.id, unlocked: idx===0, repHP:0, repTarget:10, level:1, cooldown:ex.baseCooldownMs, lastTapAt:0 };
+      if(prev){
+        base.unlocked = !!prev.unlocked;
+        base.repHP    = prev.repHP|0;
+        base.repTarget= prev.repTarget ? prev.repTarget|0 : 10;
+        base.level    = prev.level ? prev.level|0 : 1;
+        base.cooldown = prev.cooldown ? prev.cooldown|0 : ex.baseCooldownMs;
+        base.lastTapAt= prev.lastTapAt|0;
+      }
+      return base;
     });
-    s.coaches = s.coaches || {};
-    s.stats   = s.stats   || {manual:0,auto:0,totalEarned:0};
-    return s;
+    return d;
   }
-  function load(){ try{ const raw=localStorage.getItem(KEY); return ensure(raw?JSON.parse(raw):null); }catch(_){ return ensure(null); } }
-  function save(x){ try{ localStorage.setItem(KEY, JSON.stringify(ensure(x))); }catch(_){ } }
+  function load(){ try{ const raw=localStorage.getItem(KEY); return ensure(raw?JSON.parse(raw):defaults()); }catch(_){ return defaults(); } }
+  function save(s){ try{ const c=ensure(JSON.parse(JSON.stringify(s))); c.exercises.forEach(e=> e.lastTapAt = e.lastTapAt|0); localStorage.setItem(KEY, JSON.stringify(c)); }catch(_){ } }
 
   let S = load();
-  function patch(mut){ S = ensure(mut(ensure(S))); save(S); markDirty(); }
 
-  // --- DOM refs
-  const hpEl = $('#hp-readout');
-  const fcEl = $('#fc-readout');
-  const bulk = $('#bulk');
-  const cardsRoot = $('#cards');
-  const avatarBtn = $('#avatar');
-  const avatarDot = $('#avatar-dot');
-  const menu = $('#menu');
-  const menuBody = $('#menu-body');
+  /* ---------- DOM ---------- */
+  const start = document.getElementById('start');
+  const avatars = document.getElementById('start-avatars');
+  const btnNew = document.getElementById('btn-new');
+  const btnCont= document.getElementById('btn-continue');
+  const btnReset=document.getElementById('btn-reset');
+  const cardsRoot = document.getElementById('cards');
+  const hpReadout = document.getElementById('hp-readout');
+  const fcReadout = document.getElementById('fc-readout');
+  const bulk = document.getElementById('bulk');
 
-  // --- UI (cards)
-  const cardRefs = new Map();
-  function updateCard(id){
-    const r = cardRefs.get(id); if(!r) return;
-    const meta = Exercises[r.idx]; const ex = S.exercises[r.idx];
-
-    r.title.textContent = meta.name;
-    r.lvl.textContent   = 'Lvl ' + ex.level;
-
-    if(!ex.unlocked){
-      const b=baseHP(r.idx, meta.base), price=unlockCost(b, meta.base);
-      r.tile.classList.add('locked');
-      r.left.textContent = '—';
-      r.btn.textContent  = 'Unlock • ' + fmt(price) + ' HP';
-      r.btn.classList.toggle('glow', S.hp>=price);
-      r.reptext.textContent='—';
-      r.repfill.style.width='0%';
-    }else{
-      r.tile.classList.remove('locked');
-      const b=baseHP(r.idx, meta.base), hpTap=perTapHP(b, ex.repHP);
-      r.left.textContent = hpTap + ' HP / tap';
-      const rb=repBaseCost(b), g=repGrowth(ex.level), qty=S.qty;
-      const cost = Math.ceil(qty===1 ? repCost1(rb,g,ex.repHP) : repCostN(rb,g,ex.repHP,qty));
-      r.btn.textContent  = 'Reps • ' + fmt(cost) + ' HP';
-      r.btn.classList.toggle('glow', S.hp>=cost);
-      // rep band
-      const target = ex.repTarget||10, cur = ex.repHP||0;
-      r.reptext.textContent = cur + ' / ' + target;
-      r.repfill.style.width = Math.max(0, Math.min(100, 100 * (cur/target))) + '%';
-    }
+  // start screen state
+  function updateStartButtons(){
+    btnCont.classList.toggle('hidden', !hasRealSave());
   }
-  function createCard(i){
-    const meta = Exercises[i], ex = S.exercises[i];
+  function hasRealSave(){
+    const d = load();
+    if(d.started) return true;
+    if(d.hp>0) return true;
+    if((d.exercises||[]).some((e,i)=>i>0 && e && e.unlocked)) return true;
+    if((d.exercises||[]).some(e=>e && (e.repHP||0)>0)) return true;
+    return false;
+  }
+  function setAvatar(sex){
+    S.avatar = (sex==='female') ? 'female' : 'male';
+    document.body.classList.toggle('female', S.avatar==='female');
+    save(S);
+  }
+  avatars.addEventListener('click', e=>{
+    const a = e.target.closest('.ava'); if(!a) return;
+    [...avatars.children].forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    setAvatar(a.dataset.sex);
+  });
+  btnNew.addEventListener('click', ()=>{
+    const chosen = S.avatar;
+    S = defaults(); S.avatar=chosen; S.started=true; save(S);
+    start.classList.add('hidden'); buildCards(); dirty();
+  });
+  btnCont.addEventListener('click', ()=>{
+    S = load(); S.started=true; save(S);
+    start.classList.add('hidden'); buildCards(); dirty();
+  });
+  btnReset.addEventListener('click', ()=>{
+    if(!confirm('Delete local save?')) return;
+    try{ localStorage.removeItem(KEY); }catch(_){}
+    S = defaults(); save(S); updateStartButtons();
+    // keep start visible so you can choose again
+  });
+  updateStartButtons();
+  // initialize body class from stored avatar
+  document.body.classList.toggle('female', S.avatar==='female');
+
+  /* ---------- Build cards ---------- */
+  const cardRefs = new Map(); // id -> refs
+
+  function createCard(idx){
+    const exMeta = Exercises[idx];
+    const ex = S.exercises[idx];
+
     const card = document.createElement('div'); card.className='card';
-    const tile = document.createElement('div'); tile.className='tile';
-    if(!ex.unlocked) tile.classList.add('locked');
-    const lvl = document.createElement('div'); lvl.className='lvl'; lvl.textContent='Lvl '+ex.level;
-    // rep band
-    const repband=document.createElement('div'); repband.className='repband';
-    const repfill=document.createElement('div'); repfill.className='repfill';
-    const reptext=document.createElement('div'); reptext.className='reptext'; reptext.textContent='0 / 10';
-    repband.append(repfill,reptext);
-    tile.append(lvl, repband);
+    const tile = document.createElement('div'); tile.className='tile' + (ex.unlocked?'':' locked');
+
+    const lvl  = document.createElement('div'); lvl.className='lvl'; lvl.textContent='Lvl '+(ex.level||1);
+    const media= document.createElement('img'); media.className='media'; media.alt=exMeta.name; media.style.display='none';
+    tile.append(lvl, media);
 
     const right = document.createElement('div');
-    const title = document.createElement('div'); title.className='title'; title.textContent=meta.name;
-    const cd    = document.createElement('div'); cd.className='cooldown';
-    const bar   = document.createElement('div'); bar.className='bar';
-    const t     = document.createElement('div'); t.className='t'; t.textContent='Ready'; cd.append(bar,t);
-    const metaL = document.createElement('div'); metaL.className='meta';
-    const left  = document.createElement('div'); left.className='muted';
-    const btn   = document.createElement('button'); btn.className='btn';
-    metaL.append(left, btn); right.append(title, cd, metaL);
+    const title = document.createElement('div'); title.className='title'; title.textContent=exMeta.name;
+
+    const cd = document.createElement('div'); cd.className='cooldown';
+    const bar= document.createElement('div'); bar.className='bar'; cd.append(bar);
+    const t  = document.createElement('div'); t.className='t'; t.textContent='Ready'; cd.append(t);
+
+    const meta= document.createElement('div'); meta.className='meta';
+    const left= document.createElement('div'); left.className='muted';
+    const btn = document.createElement('button'); btn.className='btn'; meta.append(left, btn);
+
+    right.append(title, cd, meta);
     card.append(tile, right);
-
-    // tap tile
-    tile.addEventListener('click', ()=>{
-      const ex = S.exercises[i]; if(!ex.unlocked) return;
-      const now = performance.now();
-      if(ex.lastTapAt>0 && now < ex.lastTapAt + ex.cooldown) return;
-      const gain = perTapHP(baseHP(i,meta.base), ex.repHP);
-      patch(st=>{ st.hp += gain; st.stats.manual++; st.stats.totalEarned += gain; st.exercises[i].lastTapAt = now; return st; });
-    });
-
-    // button (unlock or reps)
-    btn.addEventListener('click', ()=>{
-      const st = S; const ex = st.exercises[i];
-      if(!ex.unlocked){
-        const price = unlockCost(baseHP(i,meta.base), meta.base);
-        if(st.hp < price) return;
-        patch(s=>{ s.hp -= price; s.exercises[i].unlocked = true; return s; });
-      }else{
-        const b = baseHP(i,meta.base), rb=repBaseCost(b), g=repGrowth(ex.level), qty=st.qty;
-        const price = Math.ceil(qty===1 ? repCost1(rb,g,ex.repHP) : repCostN(rb,g,ex.repHP,qty));
-        if(st.hp < price) return;
-        patch(s=>{
-          s.hp -= price;
-          s.exercises[i].repHP += qty;
-          while(s.exercises[i].repHP >= s.exercises[i].repTarget){
-            s.exercises[i].repHP    -= s.exercises[i].repTarget;
-            s.exercises[i].repTarget*= 2;
-            s.exercises[i].level    += 1;
-            s.exercises[i].cooldown  = nextCd(s.exercises[i].cooldown);
-          }
-          return s;
-        });
-      }
-    });
-
     cardsRoot.append(card);
-    cardRefs.set(meta.id, { idx:i, card, tile, lvl, left, btn, bar, t, title, repband, repfill, reptext });
-    updateCard(meta.id);
-  }
-  function buildCards(){ cardsRoot.innerHTML=''; cardRefs.clear(); for(let i=0;i<Exercises.length;i++) createCard(i); }
 
-  // bulk selector
+    // handlers
+    tile.addEventListener('click', ()=>{
+      const st = S.exercises[idx]; if(!st.unlocked) return;
+      const now = performance.now();
+      if(st.lastTapAt>0 && now < st.lastTapAt + st.cooldown) return;
+      const gain = perTapHP(baseHP(idx, exMeta.baseCooldownMs), st.repHP||0);
+      S.hp += gain; st.lastTapAt = now; save(S); dirty();
+    });
+
+    btn.addEventListener('click', ()=>{
+      const st = S.exercises[idx];
+      if(!st.unlocked){
+        const b=baseHP(idx,exMeta.baseCooldownMs);
+        const price=unlockCost(b,exMeta.baseCooldownMs);
+        if(S.hp < price) return;
+        S.hp -= price; st.unlocked=true; save(S); dirty();
+        return;
+      }
+      const b=baseHP(idx,exMeta.baseCooldownMs);
+      const rb=repBaseCost(b);
+      const g =repGrowth(st.level||1);
+      const qty=S.qty||1;
+      const price=Math.ceil(qty===1?repCostSingle(rb,g,st.repHP||0):repCostBulk(rb,g,st.repHP||0,qty));
+      if(S.hp < price) return;
+      S.hp -= price;
+      st.repHP = (st.repHP||0) + qty;
+      let leveled=false;
+      while(st.repHP >= (st.repTarget||10)){
+        st.level = (st.level||1)+1; leveled=true;
+        st.cooldown = nextCooldown(st.cooldown||exMeta.baseCooldownMs);
+        st.repTarget = (st.repTarget||10)*2;
+      }
+      save(S); dirty();
+    });
+
+    const refs = { idx, card, tile, lvl, media, title, cd, bar, t, left, btn };
+    cardRefs.set(exMeta.id, refs);
+
+    // initial render to avoid first-paint missing bar
+    renderCard(exMeta.id, performance.now());
+  }
+
+  function buildCards(){
+    cardsRoot.innerHTML='';
+    cardRefs.clear();
+    for(let i=0;i<Exercises.length;i++) createCard(i);
+  }
+
+  /* ---------- Render helpers ---------- */
+
+  function renderCooldown(r, ex, now){
+    const cd  = ex.cooldown|0;
+    const last= ex.lastTapAt|0;
+
+    if(!last || now >= (last + cd)){
+      r.bar.style.width='100%';
+      r.t.textContent='Ready';
+      r.cd.classList.add('ready');
+      return;
+    }
+    const dt = Math.max(0, now - last);
+    const left = Math.max(0, (last + cd) - now);
+    const pct = Math.max(0, Math.min(100, (dt / Math.max(1, cd)) * 100));
+    r.bar.style.width = (pct <= 0 ? '0.5%' : pct.toFixed(2)+'%');
+    r.t.textContent = (left/1000).toFixed(2)+'s';
+    r.cd.classList.remove('ready');
+  }
+
+  function renderCard(id, now){
+    const r = cardRefs.get(id); if(!r) return;
+    const exMeta = Exercises[r.idx];
+    const ex = S.exercises[r.idx];
+
+    // Level label
+    r.lvl.textContent = 'Lvl ' + (ex.level||1);
+
+    if(!ex.unlocked){
+      r.tile.classList.add('locked');
+      r.left.textContent = '—';
+      r.btn.classList.remove('btn-reps','glow');
+      const b=baseHP(r.idx, exMeta.baseCooldownMs);
+      const price=unlockCost(b,exMeta.baseCooldownMs);
+      r.btn.textContent = 'Unlock • ' + fmt(price) + ' HP';
+      if(S.hp >= price) r.btn.classList.add('glow'); else r.btn.classList.remove('glow');
+      // cooldown display
+      r.bar.style.width='0%';
+      r.t.textContent='—';
+      r.cd.classList.remove('ready');
+      return;
+    }
+
+    r.tile.classList.remove('locked');
+
+    // Left: HP/tap
+    const b = baseHP(r.idx, exMeta.baseCooldownMs);
+    const hpTap = perTapHP(b, ex.repHP||0);
+    r.left.textContent = hpTap + ' HP / tap';
+
+    // Button: Reps (neutral unless affordable)
+    r.btn.classList.add('btn-reps');
+    const rb = repBaseCost(b);
+    const g  = repGrowth(ex.level||1);
+    const qty= S.qty||1;
+    const price = Math.ceil(qty===1?repCostSingle(rb,g,ex.repHP||0):repCostBulk(rb,g,ex.repHP||0,qty));
+    r.btn.textContent = 'Reps • ' + fmt(price) + ' HP';
+    r.btn.classList.toggle('glow', S.hp >= price);
+
+    // Cooldown render (robust on first paint)
+    renderCooldown(r, ex, now);
+  }
+
+  function renderAll(now){
+    hpReadout.textContent = fmt(S.hp);
+    fcReadout.textContent = fmt(S.fitcoins||0);
+    for(const id of cardRefs.keys()) renderCard(id, now);
+  }
+
+  /* ---------- Bulk ---------- */
   bulk.addEventListener('click', e=>{
-    const b = e.target.closest('button'); if(!b) return;
-    $$('.bulk button').forEach(x=>x.classList.toggle('active', x===b));
-    patch(s=>{ s.qty = parseInt(b.dataset.q,10)||1; return s; });
+    const b=e.target.closest('button'); if(!b) return;
+    [...bulk.children].forEach(x=>x.classList.toggle('active', x===b));
+    const q = parseInt(b.dataset.q,10)||1;
+    S.qty = q; save(S); // UI text updates on next dirty()
+    dirty();
   });
 
-  // tick loop (cooldowns + hired auto taps)
+  /* ---------- Tick ---------- */
+  let needsRender = true;
+  function dirty(){ needsRender = true; }
   function tick(){
     const now = performance.now();
-    for(let i=0;i<Exercises.length;i++){
-      const ex = S.exercises[i]; const r = cardRefs.get(Exercises[i].id); if(!r) continue;
-      if(!ex.unlocked){ r.bar.style.width='0%'; r.t.textContent='—'; continue; }
-      const last = ex.lastTapAt||0, cd = ex.cooldown||1;
-      const ready = last===0 || now >= last+cd;
-      if(ready){ r.bar.style.width='100%'; r.t.textContent='Ready'; }
-      else{
-        const dt = now-last; const pct = Math.max(0, Math.min(100, 100*dt/cd));
-        r.bar.style.width = pct+'%';
-        const remain = Math.max(0, (last+cd)-now);
-        r.t.textContent = (remain/1000).toFixed(2)+'s';
+
+    // auto cooldown UI & auto taps (none, because we have no coaches in core)
+    // just redraw time bars
+    if(needsRender){
+      needsRender = false;
+      renderAll(now);
+    }else{
+      // Update only bars/time each frame for efficiency
+      for(const id of cardRefs.keys()){
+        const r = cardRefs.get(id);
+        const ex = S.exercises[r.idx];
+        if(!ex || !ex.unlocked){
+          r.bar.style.width='0%'; r.t.textContent='—'; r.cd.classList.remove('ready');
+          continue;
+        }
+        renderCooldown(r, ex, now);
       }
-      // auto tap if coach hired
-      const cId='c'+(i+1);
-      if(S.coaches[cId] && ready){
-        const gain = perTapHP(baseHP(i,Exercises[i].base), ex.repHP);
-        patch(s=>{ s.hp += gain; s.stats.auto++; s.stats.totalEarned += gain; s.exercises[i].lastTapAt = now; return s; });
-      }
+      // keep readouts fresh if hp changed between frames (taps)
+      hpReadout.textContent = fmt(S.hp);
     }
     requestAnimationFrame(tick);
   }
 
-  // menu
-  let activeTab='coaches';
-  function openMenu(tab='coaches'){ activeTab=tab; renderMenu(); menu.classList.add('show'); }
-  function closeMenu(){ menu.classList.remove('show'); }
-  $('#avatar').addEventListener('click', ()=> openMenu('coaches'));
-  $('#menu').addEventListener('click', e=>{
-    const x = e.target.closest('[data-close]'); if(x) return closeMenu();
-    const t = e.target.closest('.tab'); if(t){ $$('.tab', menu).forEach(b=>b.classList.toggle('active', b===t)); activeTab=t.dataset.tab; renderMenu(); }
-  });
-
-  function anyCoachAffordable(){
-    for(let i=0;i<Exercises.length;i++){
-      const ex=S.exercises[i]; if(!ex||!ex.unlocked) continue;
-      const cId='c'+(i+1); if(S.coaches[cId]) continue;
-      if(S.hp >= coachPrice(i)) return true;
+  /* ---------- Boot ---------- */
+  function boot(){
+    // show/hide Continue based on save
+    updateStartButtons();
+    // If already started, go straight in
+    if(S.started){
+      start.classList.add('hidden');
+      buildCards();
+      dirty();
+    }else{
+      start.classList.remove('hidden');
     }
-    return false;
+    requestAnimationFrame(tick);
   }
+  boot();
 
-  function renderMenu(){
-    avatarDot.style.display = anyCoachAffordable() ? 'block' : 'none';
-
-    if(activeTab==='coaches'){
-      const frag=document.createDocumentFragment();
-      let any=false;
-      for(let i=0;i<Exercises.length;i++){
-        const ex=S.exercises[i]; if(!ex||!ex.unlocked) continue; any=true;
-        const row=document.createElement('div'); row.className='coach-row';
-        const ava=document.createElement('div'); ava.className='coach-ava'; ava.textContent=String(i+1);
-        const mid=document.createElement('div');
-        const title=document.createElement('div'); title.className='coach-title'; title.textContent='Coach '+(i+1);
-        const sub=document.createElement('div'); sub.className='coach-sub'; sub.textContent='Works on: '+Exercises[i].name;
-        mid.append(title, sub);
-        const right=document.createElement('div');
-        const cId='c'+(i+1); const hired=!!S.coaches[cId]; const price=coachPrice(i);
-        if(hired){
-          const tag=document.createElement('span'); tag.className='hired'; tag.textContent='Hired'; right.append(tag);
-        }else{
-          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Hire • '+fmt(price)+' HP';
-          btn.classList.toggle('glow', S.hp>=price);
-          btn.disabled = S.hp<price;
-          btn.addEventListener('click', ()=>{
-            if(S.hp<price) return;
-            patch(s=>{ s.hp-=price; s.coaches[cId]=true; return s; });
-            renderMenu();
-          });
-          right.append(btn);
-        }
-        row.append(ava,mid,right);
-        frag.append(row);
-      }
-      menuBody.innerHTML = any ? '' : '<div class="muted">Unlock an exercise to hire its coach.</div>';
-      menuBody.append(frag);
-      return;
-    }
-
-    if(activeTab==='achievements'){
-      const div=document.createElement('div');
-      div.innerHTML = `
-        <div class="coach-row">
-          <div class="coach-ava">★</div>
-          <div>
-            <div class="coach-title">First Steps</div>
-            <div class="coach-sub">Walking reaches Lvl 2</div>
-          </div>
-          <div><span class="pill">Coming soon</span></div>
-        </div>`;
-      menuBody.innerHTML=''; menuBody.append(div);
-      return;
-    }
-
-    if(activeTab==='settings'){
-      const s=S;
-      const div=document.createElement('div');
-      div.innerHTML = `
-        <div class="coach-row">
-          <div class="coach-ava">👤</div>
-          <div>
-            <div class="coach-title">Avatar</div>
-            <div class="coach-sub">Tint cooldown bars by gender</div>
-          </div>
-          <div>
-            <label><input type="radio" name="av" value="male" ${s.avatar==='male'?'checked':''}> Male</label>
-            &nbsp;&nbsp;
-            <label><input type="radio" name="av" value="female" ${s.avatar==='female'?'checked':''}> Female</label>
-          </div>
-        </div>
-        <div class="coach-row">
-          <div class="coach-ava">🧪</div>
-          <div>
-            <div class="coach-title">Reset Save</div>
-            <div class="coach-sub">Start fresh (no confirmation dialog)</div>
-          </div>
-          <div><button class="btn" id="reset">Reset</button></div>
-        </div>
-      `;
-      menuBody.innerHTML=''; menuBody.append(div);
-      // wire
-      div.querySelectorAll('input[name="av"]').forEach(r=>{
-        r.addEventListener('change', e=>{
-          const val = e.target.value==='female' ? 'female' : 'male';
-          patch(st=>{ st.avatar = val; return st; });
-          document.body.classList.toggle('female', val==='female');
-        });
-      });
-      div.querySelector('#reset').addEventListener('click', ()=>{
-        try{ localStorage.removeItem(KEY); }catch(_){}
-        S = load(); document.body.classList.toggle('female', S.avatar==='female');
-        buildCards(); renderMenu(); markDirty();
-      });
-      return;
-    }
-  }
-
-  // --- render loop
-  let dirty=true;
-  function markDirty(){ dirty=true; }
-  function flush(){
-    if(dirty){
-      dirty=false;
-      hpEl.textContent = fmt(S.hp);
-      fcEl.textContent = fmt(S.fc);
-      document.body.classList.toggle('female', S.avatar==='female');
-      for(const id of cardRefs.keys()) updateCard(id);
-      avatarDot.style.display = anyCoachAffordable() ? 'block' : 'none';
-    }
-    requestAnimationFrame(flush);
-  }
-
-  // boot
-  buildCards();
-  requestAnimationFrame(flush);
-  requestAnimationFrame(tick);
-
+  // expose small helper if you want to set fitcoins later
+  window.setFitcoins = n=>{
+    const v = Number(n); if(!Number.isFinite(v)) return;
+    S.fitcoins = Math.max(0, Math.floor(v)); save(S); dirty();
+  };
 })();
 </script>
-
-
-
-
-
-
-
-
-
-
-<script type="application/ff-patch">
-/* ===== Cooldown Fix (refresh-safe) ==========================================
-   - Migrates old saves that used performance.now() for lastTapAt
-   - Shims performance.now() to use Date.now() so timing survives reloads
-   - No changes needed in your core code
-============================================================================= */
-(function(){
-  try{
-    if (window.__FF_COOLDOWN_REFRESH_FIX__) return;
-    window.__FF_COOLDOWN_REFRESH_FIX__ = true;
-
-    /* 1) Migrate old saves: if lastTapAt is tiny (< 1e11), treat as legacy perf.now
-          and zero it so bars show "Ready" on load. */
-    (function migrateSave(){
-      const KEY = 'ff-v1';
-      try{
-        const raw = localStorage.getItem(KEY);
-        if(!raw) return;
-        const s = JSON.parse(raw);
-        if(!s || !Array.isArray(s.exercises)) return;
-
-        let changed = false;
-        for (const e of s.exercises){
-          if(!e) continue;
-          const v = Number(e.lastTapAt || 0);
-          // Rough cutoff: real epoch ms is ~1.7e12+; perf.now is usually < 1e9
-          if (Number.isFinite(v) && v > 0 && v < 1e11){
-            e.lastTapAt = 0; // make it "Ready" after refresh
-            changed = true;
-          }
-        }
-        if (changed){
-          localStorage.setItem(KEY, JSON.stringify(s));
-        }
-      }catch(_){}
-    })();
-
-    /* 2) Shim performance.now() → Date.now() so future timing uses an epoch baseline.
-          If anything depends on monotonic deltas, this still works for our use cases. */
-    (function shimPerfNow(){
-      try{
-        if (performance.__ffPatchedNow) return;
-        const fallback = performance.now.bind(performance);
-        performance.now = function(){
-          try{ return Date.now(); }catch(_){ return fallback(); }
-        };
-        performance.__ffPatchedNow = true;
-      }catch(_){}
-    })();
-
-  }catch(e){
-    console.warn('Cooldown refresh fix error:', e);
-  }
-})();
-</script>
-  
-  
-
-  
-
 </body>
 </html>
