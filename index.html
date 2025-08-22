@@ -296,6 +296,188 @@
 </style>
 
 
+
+
+
+
+
+
+
+  <!-- ===== Coaches (no-audio) — logic ===== -->
+<script type="application/ff-patch">
+(function(){
+  if (window.__FF_COACHES_V1__) return;
+  window.__FF_COACHES_V1__ = true;
+
+  /* ---------- tiny core-API shim (works with your existing save) ---------- */
+  const KEY='ff-v1';
+  function ensure(d){
+    d = d||{};
+    d.hp = d.hp|0;
+    d.coaches = d.coaches||{};
+    d.exercises = Array.isArray(d.exercises)? d.exercises : [];
+    d.stats = d.stats||{manual:0,auto:0,totalEarned:0,totalPlayMs:0};
+    d.schema = d.schema|0;
+    return d;
+  }
+  function load(){ try{ return ensure(JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(_){ return ensure({}); } }
+  function save(s){ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(_){ } }
+  function patch(mut){ const s=load(); const out=ensure(mut(s)); save(out); return out; }
+  function get(){ return load(); }
+
+  /* ---------- the same math you’ve been using ---------- */
+  const Exercises = window.Exercises || []; // if your core exposes it
+  const coachPrice = i => (i===0?1500:Math.round(1500*Math.pow(1.8,i)));
+  const baseHP = (idx,ms)=> idx===0?1:Math.round(20*Math.pow(ms/1000,1.10));
+  const perTapHP = (b,rep)=> b + (rep|0);
+
+  /* ---------- build bottom sheet ---------- */
+  const avatar = document.getElementById('avatar');
+  if (avatar && !avatar.querySelector('.ff-dot')){
+    const dot=document.createElement('i'); dot.className='ff-dot'; avatar.appendChild(dot);
+  }
+
+  const sheet = document.createElement('div');
+  sheet.className = 'ff-sheet';
+  sheet.innerHTML = `
+    <div class="shroud" data-close></div>
+    <div class="panel" role="dialog" aria-modal="true" aria-label="Coaches">
+      <div class="top">
+        <div class="title">Coaches</div>
+        <button class="close" data-close>Close</button>
+      </div>
+      <div class="ff-coaches" id="ff-coaches-body"></div>
+    </div>`;
+  document.body.appendChild(sheet);
+  const body = sheet.querySelector('#ff-coaches-body');
+
+  function open(){ sheet.classList.add('show'); document.documentElement.style.overflow='hidden'; emit('menu:open',{tab:'coaches'}); }
+  function close(){ sheet.classList.remove('show'); document.documentElement.style.overflow=''; emit('menu:close',{tab:'coaches'}); }
+  sheet.addEventListener('click', e=>{ if(e.target.closest('[data-close]')) close(); });
+
+  if (avatar){
+    avatar.addEventListener('click', ()=> open());
+  }
+
+  /* ---------- rendering ---------- */
+  const fmt=n=>{ const a=Math.abs(n); if(a>=1e9) return (n/1e9).toFixed(2)+'B'; if(a>=1e6) return (n/1e6).toFixed(2)+'M'; if(a>=1e3) return (n/1e3).toFixed(2)+'K'; return String(Math.floor(n)); };
+
+  function rowFor(i, s){
+    const ex = s.exercises[i]; if(!ex || !ex.unlocked) return null;
+    const hired = !!s.coaches['c'+(i+1)];
+    const price = coachPrice(i);
+
+    const div=document.createElement('div');
+    div.className='ff-row';
+    div.innerHTML = `
+      <div class="ff-ava">${/* you can drop an image here later */''}</div>
+      <div>
+        <div class="ff-title">Coach ${i+1}</div>
+        <div class="ff-sub">Works on: ${Exercises[i]?.name || ('Exercise '+(i+1))}</div>
+      </div>
+      <div class="ff-act"></div>
+    `;
+    const act = div.querySelector('.ff-act');
+    if (hired){
+      const tag=document.createElement('span'); tag.className='ff-hired'; tag.textContent='Hired'; act.appendChild(tag);
+    }else{
+      const btn=document.createElement('button'); btn.className='ff-btn'; btn.textContent='Hire • '+fmt(price)+' HP';
+      if (s.hp>=price) btn.classList.add('glow');
+      btn.addEventListener('click', ()=>{
+        const cur=get(); const priceNow=coachPrice(i); // recalc
+        if(cur.hp < priceNow || cur.coaches['c'+(i+1)]) return;
+        patch(st=>{ st.hp -= priceNow; st.coaches['c'+(i+1)] = true; return st; });
+        emit('coach:hired', {index:i});
+        render(); // refresh UI
+        // also flip an affordable-dot refresh
+        updateAffordableDot();
+      });
+      act.appendChild(btn);
+    }
+    return div;
+  }
+
+  function render(){
+    const s=get();
+    body.innerHTML='';
+    let any=false;
+    for(let i=0;i<Exercises.length;i++){
+      const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue;
+      const row=rowFor(i,s); if(row){ any=true; body.appendChild(row); }
+    }
+    if(!any){
+      body.innerHTML = `<div class="ff-sub">Unlock an exercise to hire its coach.</div>`;
+    }
+    updateAffordableDot();
+  }
+
+  function updateAffordableDot(){
+    const s=get();
+    let affordable=false;
+    for(let i=0;i<Exercises.length;i++){
+      const ex=s.exercises[i]; if(!ex || !ex.unlocked) continue;
+      const id='c'+(i+1);
+      if(s.coaches[id]) continue;
+      const price=coachPrice(i);
+      if(s.hp>=price){ affordable=true; break; }
+    }
+    if(avatar){
+      avatar.classList.toggle('has-affordable', affordable);
+    }
+  }
+
+  /* ---------- auto-tap engine for hired coaches (no audio) ---------- */
+  function autoTick(){
+    const s=get();
+    const now = performance.now();
+    let changed = false;
+
+    for(let i=0;i<Exercises.length;i++){
+      const ex = s.exercises[i]; if(!ex || !ex.unlocked) continue;
+      const hired = !!s.coaches['c'+(i+1)];
+      if(!hired) continue;
+
+      const cd = ex.cooldown|0;
+      const last = ex.lastTapAt|0;
+      if(last===0 || now >= last + cd){
+        const base = baseHP(i, (window.Exercises?.[i]?.baseCooldownMs) || cd);
+        const gain = perTapHP(base, ex.repHP|0);
+        ex.lastTapAt = now;
+        s.hp += gain;
+        s.stats.totalEarned = (s.stats.totalEarned|0) + gain;
+        s.stats.auto = (s.stats.auto|0) + 1;
+        changed = true;
+      }
+    }
+    if(changed) save(s);
+    requestAnimationFrame(autoTick);
+  }
+
+  /* ---------- event bus (for future audio, analytics, etc.) ---------- */
+  function emit(type, detail){ 
+    try{ document.dispatchEvent(new CustomEvent('ff:'+type, {detail})); }catch(_){}
+    if (window.ffHooks && typeof window.ffHooks.emit === 'function'){ 
+      try{ window.ffHooks.emit(type, detail); }catch(_){}
+    }
+  }
+
+  /* ---------- react to HP changes from core so glow/dot stay fresh ---------- */
+  (function observeHp(){
+    const hpEl = document.getElementById('hp-readout');
+    if(!hpEl) return;
+    let last = hpEl.textContent;
+    new MutationObserver(()=>{ const cur=hpEl.textContent; if(cur!==last){ last=cur; render(); } })
+      .observe(hpEl, {childList:true, characterData:true, subtree:true});
+  })();
+
+  /* ---------- boot ---------- */
+  render();
+  requestAnimationFrame(autoTick);
+
+})();
+</script>
+
+
                 
 
   <!-- (Optional) Later: add a separate sfx.js that only listens to events, e.g.
