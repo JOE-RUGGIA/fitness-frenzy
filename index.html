@@ -1136,5 +1136,139 @@ const VO = {
 
   })();
   </script>
+
+
+
+
+
+
+
+
+
+  <script type="application/ff-patch">
+/* ===== Mobile SFX Fix v2: unlock + preload + retry (iOS/Safari safe) ===== */
+(function(){
+  try{
+    if (window.__FF_MOBILE_SFX_FIX_V2__) return;
+    window.__FF_MOBILE_SFX_FIX_V2__ = true;
+
+    const BUILD = (document.querySelector('meta[name="ff-build"]')?.content || 'dev').trim();
+    const GH_RAW = (path) =>
+      `https://raw.githubusercontent.com/JOE-RUGGIA/fitness-frenzy/main/${encodeURIComponent(path)}?v=${encodeURIComponent(BUILD)}`;
+
+    /* --- List every SFX/VO file you use here (keeps preload + cache-bust tight) --- */
+    const FILES = [
+      // Core UI
+      "ff-sfx-Start-Avatar-Pick.mp3",
+      "ff-sfx-open-menu.mp3",
+      "ff-sfx-switch-tabs.mp3",
+      "ff-sfx-menu-backdrop-tap.mp3",
+      "ff-sfx-reps-purchase-success.mp3",
+      "ff-sfx-unlock-exercise.mp3",
+      "ff-sfx-level-up-heartbeat.mp3",
+      "ff-sfx-bulk-selector-change.mp3",
+      "ff-sfx-offline-gains-window.mp3",
+      "ff-sfx-offline-gains.mp3",
+      "ff-sfx-achievement-unlocked-2.mp3",
+      // Coaches
+      "ff-sfx-coach-affordable-male.mp3",
+      "ff-sfx-coach-hired.mp3",
+      // Start screen VO
+      "player male audio intro (start menu).mp3",
+      "player female audio intro (start screen).mp3",
+      // Tutorial VO (7 lines)
+      "Jax Audio 1.mp3",
+      "female player audio 1.mp3",            // if you use the female “But where do I start?”
+      "male player audio 1.mp3",              // if you use the male “But where do I start?”
+      "Jax audio 3 (walking hp).mp3",
+      "Jax audio REPS.mp3",
+      "Jax audio COOLDOWN.mp3",
+      "Jax audio 6 (jogging).mp3",
+      "Jax audio 9 (coach).mp3"
+    ];
+
+    /* --- 0) Preload all SFX with cache-busting (fast start on mobile) --- */
+    const head = document.head || document.documentElement;
+    const prewarmed = [];
+    FILES.forEach(name=>{
+      const href = GH_RAW(name);
+      // <link rel=preload>
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'audio';
+      link.crossOrigin = 'anonymous';
+      link.href = href;
+      head.appendChild(link);
+      // also kick a light preload via an off-DOM Audio
+      const a = new Audio(href);
+      a.preload = 'auto';
+      try{ a.load(); }catch(_){}
+      prewarmed.push(a);
+    });
+
+    /* --- 1) Global autoplay retry shim for HTMLAudio.play() --- */
+    const HME = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+    if (HME && !HME.__ff_play_retry_patch){
+      HME.__ff_play_retry_patch = true;
+      const orig = HME.play;
+      HME.play = function(){
+        const r = (()=>{ try{ return orig.apply(this, arguments); }catch(e){ return Promise.reject(e); } })();
+        if (r && r.catch){
+          r.catch(err=>{
+            const s = (err && (err.name || err.message) || '').toString();
+            if (/NotAllowed|gesture|user/i.test(s)){
+              const el = this;
+              const once = ()=>{
+                document.removeEventListener('pointerdown', once, true);
+                document.removeEventListener('touchstart',  once, true);
+                try{ orig.call(el); }catch(_){}
+              };
+              document.addEventListener('pointerdown', once, {capture:true, passive:true, once:true});
+              document.addEventListener('touchstart',  once, {capture:true, passive:true, once:true});
+            }
+          });
+        }
+        return r;
+      };
+    }
+
+    /* --- 2) Silent-gesture unlock (resumes WebAudio too, just in case) --- */
+    const SILENT = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+    let primed = false;
+    function unlockOnce(){
+      if (primed) return; primed = true;
+
+      // resume WebAudio (if you use any)
+      try{
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC){
+          if (!window.__ff_ac__) window.__ff_ac__ = new AC();
+          if (window.__ff_ac__.state === 'suspended') window.__ff_ac__.resume?.();
+        }
+      }catch(_){}
+
+      // play a silent audio to satisfy iOS gesture policy
+      try{
+        const a = new Audio(SILENT);
+        a.muted = true; a.preload = 'auto';
+        a.play().finally(()=>{ try{ a.pause(); }catch(_){} });
+      }catch(_){}
+    }
+    const arm = ()=>{
+      document.addEventListener('pointerdown', unlockOnce, {capture:true, passive:true, once:true});
+      document.addEventListener('touchstart',  unlockOnce, {capture:true, passive:true, once:true});
+      document.addEventListener('click',       unlockOnce, {capture:true, passive:true, once:true});
+    };
+    arm();
+
+    // Re-arm after bfcache restore (Safari)
+    window.addEventListener('pageshow', (e)=>{ if(e.persisted){ primed=false; arm(); } });
+
+  }catch(e){
+    console.warn('Mobile SFX Fix error:', e);
+  }
+})();
+</script>
+
 </body>
 </html>
