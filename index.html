@@ -474,5 +474,156 @@
 })();
 </script>
 
+
+
+
+
+
+
+  <style data-ff-patch>
+  .ff-save-tools{margin-top:16px;padding:12px;border:1px solid #2a2e5e;border-radius:12px;background:#171a3a}
+  .ff-save-tools .h{font-weight:900;margin-bottom:10px}
+  .ff-save-tools .row{display:flex;gap:10px;flex-wrap:wrap}
+  .ff-save-tools .btn{appearance:none;border:1px solid #2a2e5e;background:#1b1f44;color:#e9edff;
+    padding:10px 14px;border-radius:10px;cursor:pointer}
+</style>
+
+<script type="application/ff-patch">
+/* === Settings → General: Export / Import Save (plus Shift+E / Shift+I hotkeys) === */
+(function(){
+  try{
+    const CANDIDATES = ['ff-core-v2','ff-v1']; // try new-first, then legacy
+    const menu      = document.getElementById('menu');
+    const menuBody  = document.getElementById('menu-body');
+
+    function hasSave(){
+      return CANDIDATES.some(k => localStorage.getItem(k) != null);
+    }
+    function readSave(){
+      for(const k of CANDIDATES){
+        const v = localStorage.getItem(k);
+        if(v != null) return {key:k, json:v};
+      }
+      return null;
+    }
+    function writeSave(json){
+      // If one of the keys exists already, use that; else first candidate.
+      for(const k of CANDIDATES){
+        if(localStorage.getItem(k) != null){
+          localStorage.setItem(k, json);
+          return k;
+        }
+      }
+      localStorage.setItem(CANDIDATES[0], json);
+      return CANDIDATES[0];
+    }
+
+    function exportSave(){
+      const s = readSave();
+      if(!s){ alert('No save found. Start a game first.'); return; }
+      const blob = new Blob([s.json], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ff-save.json';
+      a.click();
+      setTimeout(()=> URL.revokeObjectURL(a.href), 0);
+    }
+
+    function importSave(){
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json';
+      input.onchange = () => {
+        const f = input.files && input.files[0];
+        if(!f) return;
+        const r = new FileReader();
+        r.onload = () => {
+          try{
+            JSON.parse(r.result);                  // sanity check
+            writeSave(r.result);
+            alert('Save imported. Reloading…');
+            location.reload();
+          }catch(e){
+            alert('Invalid save file.');
+          }
+        };
+        r.readAsText(f);
+      };
+      input.click();
+    }
+
+    // Keyboard fallback: Shift+E export, Shift+I import
+    window.addEventListener('keydown', (e)=>{
+      if(!e.shiftKey) return;
+      if(e.key === 'E'){ e.preventDefault(); exportSave(); }
+      if(e.key === 'I'){ e.preventDefault(); importSave(); }
+    }, true);
+
+    // Helper: are we on Settings → General?
+    function settingsGeneralActive(){
+      if(!menu || !menuBody) return false;
+      const menuOpen = menu.classList.contains('show');
+      if(!menuOpen) return false;
+      const tab = menu.querySelector('.menu-tabs .tab.active');
+      if(!tab) return false;
+      const isSettingsTab = (tab.dataset.tab || '').toLowerCase() === 'settings' ||
+                            /settings/i.test(tab.textContent||'');
+      if(!isSettingsTab) return false;
+
+      // Try to detect your “General” subtab when present; if no subtabs, assume General.
+      const subActive = menuBody.querySelector('.subtabs .tab.active');
+      if(!subActive) return true;
+      const subIsGeneral = /general/i.test(subActive.textContent||'');
+      return !!subIsGeneral;
+    }
+
+    // Inject the Export/Import UI into Settings → General
+    function inject(){
+      if(!settingsGeneralActive()) return;
+      if(menuBody.querySelector('.ff-save-tools')) return; // already there
+
+      const box = document.createElement('div');
+      box.className = 'ff-save-tools';
+      box.innerHTML = `
+        <div class="h">Save transfer</div>
+        <div class="row">
+          <button class="btn" id="ff-save-export">Export save</button>
+          <button class="btn" id="ff-save-import">Import save</button>
+        </div>
+        <div class="muted" style="margin-top:8px;font-size:13px">
+          Tip: Shift+E to export, Shift+I to import.
+        </div>
+      `;
+
+      // Append near the end of General settings body
+      menuBody.appendChild(box);
+
+      const bEx = box.querySelector('#ff-save-export');
+      const bIm = box.querySelector('#ff-save-import');
+      bEx.addEventListener('click', exportSave);
+      bIm.addEventListener('click', importSave);
+
+      // If no save yet, dim the export button
+      if(!hasSave()){
+        bEx.disabled = true;
+        bEx.title = 'No save found yet';
+        bEx.style.opacity = .6;
+      }
+    }
+
+    // Re-inject on menu open / tab switches / settings refreshes
+    const mo = new MutationObserver(()=> setTimeout(inject, 0));
+    if(menu) mo.observe(menu, {attributes:true, attributeFilter:['class']});
+    if(menuBody) mo.observe(menuBody, {childList:true, subtree:true});
+
+    // Also try once on load (in case Settings is already open)
+    setTimeout(inject, 0);
+  }catch(e){
+    console.warn('Save transfer (settings) patch error:', e);
+  }
+})();
+</script>
+
+
 </body>
 </html>
