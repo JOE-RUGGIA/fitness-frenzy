@@ -482,62 +482,61 @@
 
 
 
-  <script type="application/ff-patch">
+<script id="ff-dev-harness">
 (function(){
-  if (window.__FF_TEST_HARNESS__) return;
-  window.__FF_TEST_HARNESS__ = true;
+  // Run only in dev mode: index.html?dev=1
+  if (!/[?&]dev(=1|=true)?\b/i.test(location.search)) return;
 
-  /* --- minimal save helpers (isolated from core) --- */
-  const KEY='ff-v1';
-  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(_){ return {}; } }
-  function save(s){ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(_){} }
+  // Floating "Coaches" button (bottom-right)
+  const btn = document.createElement('button');
+  btn.id = 'ff-dev-coaches';
+  btn.textContent = 'Coaches';
+  Object.assign(btn.style, {
+    position:'fixed', right:'12px', bottom:'12px', zIndex:1000,
+    padding:'10px 14px', borderRadius:'12px', border:'1px solid #2a2e5e',
+    background:'#1b1f44', color:'#e9edff', cursor:'pointer',
+    boxShadow:'0 6px 18px rgba(0,0,0,.35)'
+  });
+  document.body.appendChild(btn);
 
-  /* --- public test API --- */
-  window.ffTest = {
-    addHP(n=100000){
-      const s=load(); s.hp=(s.hp|0)+n; save(s);
-      // if your core mirrors hp to #hp-readout, nudge UI by re-setting text
-      const el=document.getElementById('hp-readout');
-      if(el){ el.textContent = el.textContent; } // triggers observers without changing number formatting
-      console.log('[ffTest] +HP', n);
-    },
-    unlock(n=2){
-      const s=load(); s.exercises = Array.isArray(s.exercises)? s.exercises : [];
-      for(let i=0;i<=n;i++){ if(s.exercises[i]) s.exercises[i].unlocked = true; }
-      save(s);
-      console.log('[ffTest] unlocked first', n+1, 'exercises — reload if UI doesn’t auto-refresh');
-    },
-    open(){
-      const sh=document.querySelector('.ff-sheet'); if(sh){ sh.classList.add('show'); document.documentElement.style.overflow='hidden'; }
-    },
-    close(){
-      const sh=document.querySelector('.ff-sheet'); if(sh){ sh.classList.remove('show'); document.documentElement.style.overflow=''; }
-    }
-  };
+  function openCoachesTab(){
+    // Try to open your built-in menu and switch to Coaches
+    const menu = document.getElementById('menu');
+    const avatar = document.getElementById('avatar');
+    if (menu && !menu.classList.contains('show') && avatar) avatar.click();
 
-  /* --- temporary button if #avatar doesn’t exist --- */
-  if (!document.getElementById('avatar')){
-    const btn=document.createElement('button');
-    btn.id='ff-dev-coaches';
-    btn.textContent='Coaches';
-    btn.style.cssText='position:fixed;right:14px;bottom:14px;z-index:60;padding:10px 12px;border-radius:12px;border:1px solid #2a2e5e;background:#1b1f44;color:#e9edff;cursor:pointer';
-    btn.addEventListener('click', ()=>{
-      const sh=document.querySelector('.ff-sheet');
-      if(sh){ sh.classList.add('show'); document.documentElement.style.overflow='hidden'; }
-    });
-    document.body.appendChild(btn);
+    // Nudge to Coaches tab once the menu is visible
+    setTimeout(()=>{
+      const tab = document.querySelector('.menu .tab[data-tab="coaches"]');
+      if (tab && !tab.classList.contains('active')) tab.click();
+    }, 0);
   }
 
-  /* --- keyboard: Shift + C toggles the sheet --- */
-  document.addEventListener('keydown', (e)=>{
-    if ((e.key||'').toLowerCase()==='c' && e.shiftKey){
-      const sh=document.querySelector('.ff-sheet'); if(!sh) return;
-      const show = !sh.classList.contains('show');
-      sh.classList.toggle('show', show);
-      document.documentElement.style.overflow = show ? 'hidden' : '';
-    }
-  }, {capture:true});
+  btn.addEventListener('click', openCoachesTab);
 
+  // Keyboard shortcuts
+  window.addEventListener('keydown', (e)=>{
+    // Shift+C → open Coaches tab
+    if (e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+      e.preventDefault(); openCoachesTab();
+    }
+    // Shift+R → reset save quickly
+    if (e.shiftKey && (e.key === 'R' || e.key === 'r')) {
+      e.preventDefault();
+      try { localStorage.removeItem('ff-v1'); } catch(_) {}
+      location.reload();
+    }
+  });
+
+  // Little badge so you can see you’re in dev mode
+  const chip = document.createElement('div');
+  chip.textContent = 'DEV';
+  Object.assign(chip.style, {
+    position:'fixed', left:'12px', bottom:'12px', zIndex:1000,
+    padding:'4px 8px', borderRadius:'999px', fontSize:'12px', fontWeight:'800',
+    border:'1px solid #2a2e5e', background:'#0f1338', color:'#9ec3ff'
+  });
+  document.body.appendChild(chip);
 })();
 </script>
 
